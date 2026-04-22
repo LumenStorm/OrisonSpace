@@ -17,7 +17,16 @@ type TaskEntry = {
   result: TaskResult | null;
 };
 
+type ProjectMeta = {
+  name: string;
+  path: string;
+};
+
 type AppState = {
+  currentProject: ProjectMeta | null;
+  openProject: (project: ProjectMeta) => void;
+  closeProject: () => void;
+
   activeModule: WorkspaceModule;
   setActiveModule: (module: WorkspaceModule) => void;
 
@@ -32,6 +41,10 @@ type AppState = {
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
+  currentProject: null,
+  openProject: (project) => set({ currentProject: project }),
+  closeProject: () => set({ currentProject: null }),
+
   activeModule: 'storyboard',
   setActiveModule: (activeModule) => set({ activeModule }),
 

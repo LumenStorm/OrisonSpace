@@ -1,6 +1,6 @@
-import { EditorTabs } from '../../features/editor/EditorTabs';
+import { EditorArea } from '../../features/editor/EditorArea';
 import { InspectorPanel } from '../../features/inspector/InspectorPanel';
-import { ProjectTree } from '../../features/project-tree/ProjectTree';
+import { SideNav } from '../../features/side-nav/SideNav';
 import { TaskFeedPanel } from '../../features/tasks/TaskFeedPanel';
 import { TopBar } from '../../features/top-bar/TopBar';
 
@@ -9,11 +9,11 @@ export function WorkspaceLayout() {
     <div className="workspace-shell">
       <TopBar />
       <div className="workspace-body">
-        <ProjectTree />
+        <SideNav />
         <main className="workspace-main">
-          <EditorTabs />
+          <EditorArea />
         </main>
-        <div style={{ minWidth: 0 }}>
+        <div className="workspace-right">
           <InspectorPanel />
           <TaskFeedPanel />
         </div>
