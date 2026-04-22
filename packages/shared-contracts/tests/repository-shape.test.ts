@@ -1,0 +1,22 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const root = resolve(__dirname, '..', '..', '..');
+
+function repoPath(p: string) {
+  return resolve(root, p);
+}
+
+describe('repository shape', () => {
+  it('uses apps and packages instead of the old layout', () => {
+    expect(existsSync(repoPath('apps/desktop/shell'))).toBe(true);
+    expect(existsSync(repoPath('apps/desktop/ui'))).toBe(true);
+    expect(existsSync(repoPath('apps/desktop/local-bff'))).toBe(true);
+    expect(existsSync(repoPath('apps/server'))).toBe(true);
+    expect(existsSync(repoPath('packages/shared-contracts'))).toBe(true);
+    expect(existsSync(repoPath('packages/shared-utils'))).toBe(true);
+    expect(existsSync(repoPath('packages/ui-kit'))).toBe(true);
+    expect(existsSync(repoPath('packages/eslint-config'))).toBe(true);
+  });
+});

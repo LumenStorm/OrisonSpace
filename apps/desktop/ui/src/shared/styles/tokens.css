@@ -1,0 +1,40 @@
+:root {
+  color-scheme: light;
+  --background: #faf9f7;
+  --surface: #faf9f7;
+  --surface-container-low: #f4f3f1;
+  --surface-container: #efeeec;
+  --surface-container-high: #e9e8e6;
+  --surface-container-highest: #e3e2e0;
+  --surface-container-lowest: #ffffff;
+  --surface-variant: #e3e2e0;
+  --outline-variant: #c7c7bf;
+  --outline: #777771;
+  --on-surface: #1a1c1b;
+  --on-surface-variant: #464741;
+  --primary: #020302;
+  --accent: #6b7a6a;
+  --accent-strong: #586657;
+  --font-ui: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Newsreader", "Georgia", serif;
+  --shadow-soft: 0 12px 40px rgba(45, 52, 51, 0.06);
+  --sidebar-width: 260px;
+  --inspector-width: 300px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--on-surface);
+  font-family: var(--font-ui);
+}

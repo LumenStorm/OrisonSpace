@@ -1,0 +1,11 @@
+{
+  "name": "@orison/ui-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest --run",
+    "lint": "echo ui-kit lint placeholder",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+.vite/
+coverage/
+playwright-report/
+test-results/
+.turbo/
+pnpm-lock.yaml
+.DS_Store

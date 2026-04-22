@@ -1,0 +1,28 @@
+{
+  "name": "@orison/desktop-shell",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.cjs",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "test": "vitest --run",
+    "lint": "echo shell lint placeholder",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@orison/shared-contracts": "file:..\\..\\..\\packages\\shared-contracts",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.30",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "4.7.0",
+    "electron": "^37.10.3",
+    "electron-vite": "^5.0.0"
+  }
+}

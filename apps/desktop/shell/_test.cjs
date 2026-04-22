@@ -1,0 +1,1 @@
+const electron = require("electron"); console.log(JSON.stringify({type: typeof electron, isString: typeof electron === "string", processType: process.type, versions: process.versions.electron}));

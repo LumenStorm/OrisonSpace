@@ -1,0 +1,15 @@
+{
+  "name": "@orison/desktop-local-bff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest --run",
+    "lint": "echo local-bff lint placeholder",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@orison/shared-contracts": "file:../../../packages/shared-contracts",
+    "yaml": "^2.7.1"
+  }
+}
