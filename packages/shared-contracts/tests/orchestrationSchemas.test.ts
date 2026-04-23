@@ -27,7 +27,13 @@ describe('orchestration schemas', () => {
   it('accepts a valid node config with YAML prompt file', () => {
     const parsed = orchestrationNodeConfigSchema.parse({
       agentId: 'story-planner-agent',
+      runtime: 'python',
+      entry: './python-agent/nodes/story_planner_agent.py',
       model: 'gpt-5.4',
+      execution: {
+        timeoutMs: 30000,
+        maxRetries: 2
+      },
       prompt: {
         file: './prompts/story-planner.yaml',
         systemKey: 'system',
@@ -47,6 +53,8 @@ describe('orchestration schemas', () => {
       }
     });
 
+    expect(parsed.runtime).toBe('python');
+    expect(parsed.entry).toContain('story_planner_agent.py');
     expect(parsed.prompt.file).toContain('story-planner.yaml');
   });
 

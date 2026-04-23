@@ -17,7 +17,12 @@ describe('orchestration config loader', () => {
       path.join(root, 'story-planner-agent.yaml'),
       `
 agentId: story-planner-agent
+runtime: python
+entry: ./python-agent/nodes/story_planner_agent.py
 model: gpt-5.4
+execution:
+  timeoutMs: 30000
+  maxRetries: 2
 prompt:
   file: ./story-planner-prompt.yaml
   systemKey: system

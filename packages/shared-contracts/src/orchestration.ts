@@ -38,7 +38,13 @@ export const orchestrationRunSchema = z.object({
 
 export const orchestrationNodeConfigSchema = z.object({
   agentId: z.string().min(1),
+  runtime: z.enum(['typescript', 'python']).default('python'),
+  entry: z.string().min(1),
   model: z.string().min(1),
+  execution: z.object({
+    timeoutMs: z.number().int().positive(),
+    maxRetries: z.number().int().min(0)
+  }),
   prompt: z.object({
     file: z.string().min(1),
     systemKey: z.string().min(1),

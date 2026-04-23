@@ -14,6 +14,10 @@ export function loadNodeConfig({ configRoot, agentId }: LoadNodeConfigInput) {
   return orchestrationNodeConfigSchema.parse(YAML.parse(raw));
 }
 
+export function resolveNodeEntry(configRoot: string, entry: string) {
+  return path.resolve(configRoot, entry);
+}
+
 export function resolvePromptTemplate({ configRoot, config, variables }: ResolvePromptTemplateInput) {
   const promptPath = path.resolve(configRoot, config.prompt.file);
   if (!existsSync(promptPath)) {
