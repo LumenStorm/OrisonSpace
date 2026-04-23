@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,17 @@ def test_runner_loads_node_and_returns_json():
         text=True,
         capture_output=True,
         check=False,
+        env={
+            **os.environ,
+            "OPENAI_API_KEY": "test-key",
+            "OPENAI_RESPONSES_MOCK_JSON": json.dumps({
+                "title": "Cold City",
+                "premise": "A detective returns.",
+                "tone": "noir",
+                "acts": [],
+                "characters": [],
+            }),
+        },
     )
 
     assert result.returncode == 0

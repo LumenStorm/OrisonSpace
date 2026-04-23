@@ -18,6 +18,10 @@ def generate_structured(
     if not api_key:
         raise ConfigurationError("OPENAI_API_KEY is not set", retryable=False)
 
+    mock_payload = os.getenv("OPENAI_RESPONSES_MOCK_JSON")
+    if mock_payload:
+        return json.loads(mock_payload)
+
     client = OpenAI(api_key=api_key)
 
     try:
