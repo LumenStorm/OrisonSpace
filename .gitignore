@@ -9,3 +9,5 @@ test-results/
 pnpm-lock.yaml
 .DS_Store
 .worktrees/
+__pycache__/
+*.pyc
