@@ -117,6 +117,31 @@ pnpm lint
 - `dev` — 日常开发分支
 - 功能分支从 `dev` 切出，命名 `feat/xxx` 或 `fix/xxx`
 
+### 同步代码
+
+协同开发时，拉取最新代码请使用 `git remote update` + `git rebase`，避免产生多余的 merge commit：
+
+```bash
+# 1. 拉取远程所有分支的最新状态
+git remote update
+
+# 2. 将本地提交变基到远程最新节点上
+git rebase origin/dev
+```
+
+如果 rebase 过程中遇到冲突：
+
+```bash
+# 解决冲突后
+git add <冲突文件>
+git rebase --continue
+
+# 如果想放弃本次 rebase
+git rebase --abort
+```
+
+> 注意：不要使用 `git pull`（默认会产生 merge commit），保持提交历史线性。
+
 ### 提交信息
 
 遵循 [Conventional Commits](https://www.conventionalcommits.org/)：

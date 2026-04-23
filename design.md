@@ -291,3 +291,31 @@ Inspector Panel（基础字段）
 - macOS：`titleBarStyle: 'hidden'`，保留原生红绿灯
 - TopBar 整体 `-webkit-app-region: drag` 支持拖拽移动窗口
 - 窗口控制通过 IPC 通道（`window:minimize` / `window:maximize` / `window:close`）
+
+---
+
+## 九、协同开发规范
+
+### 分支策略
+
+- `main` — 稳定发布分支
+- `dev` — 日常开发分支
+- 功能分支从 `dev` 切出，命名 `feat/xxx` 或 `fix/xxx`
+
+### 同步代码
+
+拉取最新代码统一使用 `git remote update` + `git rebase`，保持提交历史线性：
+
+```bash
+git remote update
+git rebase origin/dev
+```
+
+遇到冲突时：
+
+```bash
+git add <冲突文件>
+git rebase --continue
+```
+
+> 禁止使用 `git pull`（默认产生 merge commit），避免污染提交历史。
