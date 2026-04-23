@@ -1,0 +1,1 @@
+export { createIntakeNode } from '../base';

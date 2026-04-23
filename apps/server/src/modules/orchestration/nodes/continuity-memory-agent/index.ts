@@ -1,0 +1,1 @@
+export { createContinuityNode } from '../base';

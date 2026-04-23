@@ -1,0 +1,1 @@
+export { createAssetLoaderNode } from '../base';
