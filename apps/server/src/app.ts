@@ -5,6 +5,7 @@ import { registerHealthRoutes } from './common/health';
 import { logger } from './common/logger';
 import { authPlugin } from './modules/auth/plugin';
 import { registerAuthRoutes } from './modules/auth/routes';
+import { registerOrchestrationRoutes } from './modules/orchestration/routes';
 import { registerTaskRoutes } from './modules/task/routes';
 
 export function buildServer() {
@@ -21,6 +22,7 @@ export function buildServer() {
   app.register(authPlugin);
   app.register(registerHealthRoutes);
   app.register(registerAuthRoutes);
+  app.register(registerOrchestrationRoutes);
   app.register(registerTaskRoutes);
 
   return app;
