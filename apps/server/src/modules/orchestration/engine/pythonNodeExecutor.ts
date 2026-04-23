@@ -51,3 +51,15 @@ export async function executePythonNode({
     child.stdin.end();
   });
 }
+
+export async function executePythonNodeWithTimeout(
+  input: ExecutePythonNodeInput,
+  timeoutMs: number
+): Promise<PythonRunnerResponse> {
+  return Promise.race([
+    executePythonNode(input),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`Python node timed out after ${timeoutMs}ms`)), timeoutMs);
+    })
+  ]);
+}

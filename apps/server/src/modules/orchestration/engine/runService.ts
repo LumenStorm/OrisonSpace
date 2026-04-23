@@ -1,12 +1,14 @@
 import crypto from 'node:crypto';
 import { orchestrationRunSchema } from '@orison/shared-contracts';
 import { createNodeRegistry } from './registry';
+import { executePythonNodeWithTimeout } from './pythonNodeExecutor';
 import { routeReview } from './reviewRouter';
 import { runStore } from '../store/runStore';
 import type { RunSnapshot, StartRunCommand } from '../contracts/run';
 
-export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'escalate' }) {
+export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'escalate'; forcePythonFailure?: boolean }) {
   const reviewMode = options?.reviewMode ?? 'pass';
+  const forcePythonFailure = options?.forcePythonFailure ?? false;
 
   return {
     async start(command: StartRunCommand): Promise<RunSnapshot> {
@@ -32,12 +34,64 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
           currentNodeId: node.id
         };
 
-        const result = await node.run({ run, requirement: command.requirement });
+        let result;
+        try {
+          result = await executePythonNodeWithTimeout(
+            {
+              pythonCommand: 'python',
+              runnerPath: 'python-agent/runner/main.py',
+              request: {
+                runId: run.runId,
+                nodeId: node.id,
+                nodeFile: forcePythonFailure && node.id === 'story-planner-agent'
+                  ? 'python-agent/nodes/missing_story_planner_agent.py'
+                  : node.config.entry,
+                configFile: command.configRoot ?? `project-config/agents/${node.id}.yaml`,
+                projectPath: command.projectPath,
+                config: node.config,
+                prompt: node.prompt,
+                input: {
+                  requirement: command.requirement,
+                  artifacts: run.artifacts,
+                  reviewMode
+                }
+              }
+            },
+            node.config.execution.timeoutMs
+          );
+        } catch (error) {
+          run = {
+            ...run,
+            status: 'human_in_loop',
+            currentNodeId: node.id,
+            review: {
+              verdict: 'escalate',
+              summary: `python node failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              reasons: ['python_runner_failure']
+            }
+          };
+          break;
+        }
+
+        if (!result.ok) {
+          run = {
+            ...run,
+            status: result.error.retryable ? 'failed' : 'human_in_loop',
+            currentNodeId: node.id,
+            review: {
+              verdict: 'escalate',
+              summary: `python node failed: ${result.error.message}`,
+              reasons: [result.error.type]
+            }
+          };
+          break;
+        }
+
         run = {
           ...run,
           artifacts: {
             ...run.artifacts,
-            [result.stateKey]: result.artifact
+            [result.state_key ?? result.stateKey]: result.artifact
           },
           completedNodes: [...run.completedNodes, node.id],
           pendingNodes: run.pendingNodes.filter((id) => id !== node.id)

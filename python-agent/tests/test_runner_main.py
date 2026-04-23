@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-def test_runner_returns_controlled_failure_when_node_file_is_missing():
+def test_runner_loads_node_and_returns_json():
     root = Path(__file__).resolve().parents[1]
     request = {
         "run_id": "run_1",
@@ -26,8 +26,6 @@ def test_runner_returns_controlled_failure_when_node_file_is_missing():
 
     assert result.returncode == 0
     payload = json.loads(result.stdout)
-    assert payload["ok"] is False
+    assert payload["ok"] is True
     assert payload["node_id"] == "story-planner-agent"
-    assert payload["error"]["type"] == "NodeExecutionError"
-    assert payload["error"]["retryable"] is False
-    assert "story_planner_agent.py" in payload["error"]["message"]
+    assert payload["state_key"] == "planning.storyPlan"

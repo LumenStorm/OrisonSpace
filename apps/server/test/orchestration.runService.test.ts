@@ -13,7 +13,9 @@ describe('orchestration run service', () => {
 
     expect(run.status).toBe('approved');
     expect(run.completedNodes).toContain('multi-review-agent');
-    expect(run.artifacts['planning.storyPlan']).toBeTruthy();
+    expect(run.artifacts['planning.storyPlan']).toMatchObject({
+      summary: 'Python story plan for: Create a moody urban outline.'
+    });
   });
 
   it('routes to revision_pending when review requests revision', async () => {

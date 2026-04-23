@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { executePythonNode } from '../src/modules/orchestration/engine/pythonNodeExecutor';
 
 describe('python node executor', () => {
-  it('executes the runner and parses a controlled failure payload when the node file is missing', async () => {
+  it('executes the runner and parses a success payload', async () => {
     const result = await executePythonNode({
       pythonCommand: 'python',
       runnerPath: 'python-agent/runner/main.py',
@@ -28,12 +28,13 @@ describe('python node executor', () => {
       }
     });
 
-    expect(result.ok).toBe(false);
-    if (result.ok) {
-      throw new Error('expected missing node file to produce a failure payload');
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(`expected a success payload, got ${result.error.message}`);
     }
-    expect(result.error.type).toBe('NodeExecutionError');
-    expect(result.error.retryable).toBe(false);
-    expect(result.error.message).toContain('story_planner_agent.py');
+    expect(result.state_key ?? result.stateKey).toBe('planning.storyPlan');
+    expect(result.artifact).toMatchObject({
+      summary: 'Python story plan for: Write a dark opening.'
+    });
   });
 });
