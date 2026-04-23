@@ -14,7 +14,7 @@ export function buildServer() {
   });
 
   app.register(cors, {
-    origin: ['http://localhost:5173'],
+    origin: true,
     credentials: true
   });
 

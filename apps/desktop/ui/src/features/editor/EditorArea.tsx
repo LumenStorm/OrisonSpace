@@ -1,5 +1,8 @@
 import { storyboardFrames } from '../../shared/data/workspaceData';
-import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
+import { useAppStore } from '../../shared/store/appStore';
+import { OutlineEditor } from './OutlineEditor';
+import { ScriptEditor } from './ScriptEditor';
+import { VideoEditor } from './VideoEditor';
 
 function StoryboardCanvas() {
   return (
@@ -12,21 +15,6 @@ function StoryboardCanvas() {
           <p className="storyboard-copy">{frame.title}</p>
         </article>
       ))}
-    </div>
-  );
-}
-
-function PlaceholderView({ module }: { module: WorkspaceModule }) {
-  const labels: Record<WorkspaceModule, string> = {
-    story: 'Outline Editor',
-    script: 'Script Editor',
-    storyboard: 'Storyboard',
-    video: 'Video Timeline',
-  };
-  return (
-    <div className="editor-placeholder">
-      <span className="material-symbols-outlined" aria-hidden="true">construction</span>
-      <p>{labels[module]} — coming soon</p>
     </div>
   );
 }
@@ -47,17 +35,21 @@ function AcceptedPatchesView() {
   );
 }
 
+const editors = {
+  outline: OutlineEditor,
+  script: ScriptEditor,
+  storyboard: StoryboardCanvas,
+  video: VideoEditor,
+} as const;
+
 export function EditorArea() {
   const activeModule = useAppStore((s) => s.activeModule);
+  const Editor = editors[activeModule];
 
   return (
     <div className="workspace-content">
       <AcceptedPatchesView />
-      {activeModule === 'storyboard' ? (
-        <StoryboardCanvas />
-      ) : (
-        <PlaceholderView module={activeModule} />
-      )}
+      <Editor />
     </div>
   );
 }

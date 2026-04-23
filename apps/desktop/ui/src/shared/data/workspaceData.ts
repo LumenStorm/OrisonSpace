@@ -1,7 +1,7 @@
 import type { WorkspaceModule } from '../store/appStore';
 
 export const moduleItems: Array<{ key: WorkspaceModule; label: string; icon: string }> = [
-  { key: 'story', label: 'Story', icon: 'auto_stories' },
+  { key: 'outline', label: 'Outline', icon: 'auto_stories' },
   { key: 'script', label: 'Script', icon: 'description' },
   { key: 'storyboard', label: 'Storyboard', icon: 'view_quilt' },
   { key: 'video', label: 'Video', icon: 'movie_filter' }

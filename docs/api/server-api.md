@@ -6,7 +6,7 @@
 
 ## Authentication
 
-All endpoints except `/health` and `/v1/auth/login` require a `Bearer` token in the `Authorization` header.
+All endpoints except `/health` and `/v1/auth/*` require a `Bearer` token in the `Authorization` header.
 
 ## Endpoints
 
@@ -16,11 +16,26 @@ Returns server health status.
 
 Response: `{ "status": "ok" }`
 
+### POST /v1/auth/register
+
+Create a new user account.
+
+Request body: `{ "email": string, "password": string (min 6), "displayName"?: string }`
+
+Response (201): `{ "accessToken": string, "tokenType": "Bearer", "user": { "id": string, "email": string, "displayName": string } }`
+
+Errors:
+- 400: Invalid input
+- 409: Email already registered
+
 ### POST /v1/auth/login
 
 Request body: `{ "email": string, "password": string }`
 
-Response: `{ "accessToken": string, "tokenType": "Bearer", "user": { "id": string, "email": string, "displayName": string } }`
+Response (200): `{ "accessToken": string, "tokenType": "Bearer", "user": { "id": string, "email": string, "displayName": string } }`
+
+Errors:
+- 401: Invalid email or password
 
 ### POST /v1/tasks
 

@@ -11,7 +11,7 @@ export const taskRequestSchema = z.object({
   taskType: z.string().min(1),
   projectFingerprint: z.string().min(1),
   selectedScope: z.object({
-    module: z.enum(['story', 'script', 'storyboard', 'video']),
+    module: z.enum(['outline', 'detailed_outline', 'novel', 'script', 'storyboard', 'video']),
     entityId: z.string().optional()
   }),
   contextPayload: z.record(z.string(), z.unknown()),

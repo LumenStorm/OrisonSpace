@@ -1,7 +1,7 @@
 import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
 
 const navItems: { key: WorkspaceModule; icon: string; label: string }[] = [
-  { key: 'story', icon: 'auto_stories', label: 'Outline' },
+  { key: 'outline', icon: 'auto_stories', label: 'Outline' },
   { key: 'script', icon: 'description', label: 'Script' },
   { key: 'storyboard', icon: 'view_quilt', label: 'Storyboard' },
   { key: 'video', icon: 'movie_filter', label: 'Video' },

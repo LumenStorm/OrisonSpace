@@ -10,14 +10,14 @@ describe('shared contracts', () => {
   it('accepts a valid task request and result pair', () => {
     const taskRequest = {
       taskId: 'task_123',
-      taskType: 'story.rewrite',
+      taskType: 'outline.rewrite',
       projectFingerprint: 'project_abc',
       selectedScope: {
-        module: 'story',
+        module: 'outline',
         entityId: 'act_1'
       },
       contextPayload: {
-        story: {
+        outline: {
           title: 'Cold City',
           acts: [{ id: 'act_1', title: 'Arrival', summary: 'A detective arrives.' }]
         }
@@ -35,7 +35,7 @@ describe('shared contracts', () => {
         operations: [
           {
             op: 'replace',
-            path: 'story.acts[0].summary',
+            path: 'outline.acts[0].summary',
             value: 'A detective arrives in a rain-soaked city full of dread.'
           }
         ]
@@ -65,18 +65,19 @@ describe('shared contracts', () => {
   });
 
   it('accepts the minimal local project document shape', () => {
+    const now = new Date().toISOString();
     const parsed = projectDocumentSchema.parse({
       meta: {
         id: 'project_1',
         name: 'Orison Demo',
-        version: 1
+        type: 'novel',
+        version: 1,
+        created_at: now,
+        updated_at: now
       },
-      story: {
+      outline: {
         title: 'Orison',
         acts: []
-      },
-      script: {
-        scenes: []
       },
       storyboard: {
         shots: []

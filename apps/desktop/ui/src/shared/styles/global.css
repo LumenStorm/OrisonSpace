@@ -1,4 +1,6 @@
 @import "./tokens.css";
+@import "./editor.css";
+@import "./pages.css";
 
 /* ── Reset ── */
 body {

@@ -27,11 +27,29 @@ oneline2video/
 
 - Node.js >= 22
 - pnpm >= 10
+- PostgreSQL >= 14
 
 ## 安装
 
 ```bash
 pnpm install
+```
+
+### 数据库初始化
+
+```sql
+-- 连接 PostgreSQL 后执行
+CREATE ROLE root WITH LOGIN PASSWORD 'root' SUPERUSER;
+CREATE DATABASE orison_dev;
+
+-- 连接 orison_dev 后执行
+CREATE TABLE IF NOT EXISTS users (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email         VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  display_name  VARCHAR(100),
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
 如果 Electron 下载缓慢，可设置国内镜像：
@@ -47,14 +65,23 @@ export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 ## 启动
 
 ```bash
-# 启动桌面应用（Electron + 热更新）
-pnpm dev
+# 启动后端服务 + 桌面应用（推荐）
+run.bat 选项 1
 
 # 单独启动后端服务
 pnpm dev:server
+
+# 单独启动桌面应用（需先启动后端）
+pnpm dev
 ```
 
-也可以使用 `run.bat`（Windows）或 `run.sh`（macOS/Linux）菜单启动。
+也可以使用 `run.bat`（Windows）菜单启动。
+
+### 测试账号
+
+| 邮箱 | 密码 |
+|------|------|
+| test@orison.dev | test123 |
 
 ## 构建
 

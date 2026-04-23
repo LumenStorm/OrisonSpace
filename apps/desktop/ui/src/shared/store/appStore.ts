@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
-export type WorkspaceModule = 'story' | 'script' | 'storyboard' | 'video';
+export type WorkspaceModule = 'outline' | 'script' | 'storyboard' | 'video';
 type TaskRequest = z.infer<typeof taskRequestSchema>;
 type TaskResult = z.infer<typeof taskResultSchema>;
 type PatchOperation = z.infer<typeof patchOperationSchema>;
+
+const API_BASE = 'http://localhost:4000';
 
 export type TaskAdapter = {
   submitTask: (request: TaskRequest) => Promise<{ taskId: string; status: string }>;
@@ -17,40 +19,114 @@ type TaskEntry = {
   result: TaskResult | null;
 };
 
+type UserInfo = {
+  id: string;
+  email: string;
+  displayName?: string;
+};
+
 type ProjectMeta = {
   name: string;
   path: string;
 };
 
 type AppState = {
+  // ── Auth ──
+  token: string | null;
+  user: UserInfo | null;
+  authError: string | null;
+  authLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, displayName?: string) => Promise<void>;
+  logout: () => void;
+
+  // ── Project ──
   currentProject: ProjectMeta | null;
   openProject: (project: ProjectMeta) => void;
   closeProject: () => void;
 
+  // ── Workspace ──
   activeModule: WorkspaceModule;
   setActiveModule: (module: WorkspaceModule) => void;
 
+  // ── Tasks ──
   taskAdapter: TaskAdapter | null;
   setTaskAdapter: (adapter: TaskAdapter) => void;
-
   currentTask: TaskEntry | null;
   submitRewrite: (instruction: string) => Promise<void>;
   acceptTaskResult: () => void;
-
   acceptedPatches: PatchOperation[];
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
+  // ── Auth ──
+  token: localStorage.getItem('orison_token'),
+  user: (() => {
+    try { return JSON.parse(localStorage.getItem('orison_user') || 'null'); } catch { return null; }
+  })(),
+  authError: null,
+  authLoading: false,
+
+  async login(email, password) {
+    set({ authLoading: true, authError: null });
+    try {
+      const res = await fetch(`${API_BASE}/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Login failed');
+      }
+      const data = await res.json();
+      localStorage.setItem('orison_token', data.accessToken);
+      localStorage.setItem('orison_user', JSON.stringify(data.user));
+      set({ token: data.accessToken, user: data.user, authLoading: false });
+    } catch (e: any) {
+      set({ authError: e.message, authLoading: false });
+    }
+  },
+
+  async register(email, password, displayName) {
+    set({ authLoading: true, authError: null });
+    try {
+      const res = await fetch(`${API_BASE}/v1/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, displayName }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Registration failed');
+      }
+      const data = await res.json();
+      localStorage.setItem('orison_token', data.accessToken);
+      localStorage.setItem('orison_user', JSON.stringify(data.user));
+      set({ token: data.accessToken, user: data.user, authLoading: false });
+    } catch (e: any) {
+      set({ authError: e.message, authLoading: false });
+    }
+  },
+
+  logout() {
+    localStorage.removeItem('orison_token');
+    localStorage.removeItem('orison_user');
+    set({ token: null, user: null, currentProject: null });
+  },
+
+  // ── Project ──
   currentProject: null,
   openProject: (project) => set({ currentProject: project }),
   closeProject: () => set({ currentProject: null }),
 
-  activeModule: 'storyboard',
+  // ── Workspace ──
+  activeModule: 'outline',
   setActiveModule: (activeModule) => set({ activeModule }),
 
+  // ── Tasks ──
   taskAdapter: null,
   setTaskAdapter: (adapter) => set({ taskAdapter: adapter }),
-
   currentTask: null,
 
   async submitRewrite(instruction: string) {
@@ -59,10 +135,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const request: TaskRequest = {
       taskId: `task_${Date.now()}`,
-      taskType: 'story.rewrite',
+      taskType: 'outline.rewrite',
       projectFingerprint: 'local_project',
-      selectedScope: { module: 'story', entityId: 'act_1' },
-      contextPayload: { story: { title: 'Current Story' } },
+      selectedScope: { module: 'outline', entityId: 'act_1' },
+      contextPayload: { outline: { title: 'Current Story' } },
       userInstruction: instruction,
       privacyLevel: 'minimal',
       expectedOutputType: 'patch'

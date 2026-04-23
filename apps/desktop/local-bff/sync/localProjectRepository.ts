@@ -4,19 +4,20 @@ import { patchOperationSchema, projectDocumentSchema } from '@orison/shared-cont
 type ProjectDocument = z.infer<typeof projectDocumentSchema>;
 type PatchOperation = z.infer<typeof patchOperationSchema>;
 
-export function createEmptyProjectDocument(name: string): ProjectDocument {
+export function createEmptyProjectDocument(name: string, type: 'novel' | 'script' = 'novel'): ProjectDocument {
+  const now = new Date().toISOString();
   return projectDocumentSchema.parse({
     meta: {
       id: crypto.randomUUID(),
       name,
-      version: 1
+      type,
+      version: 1,
+      created_at: now,
+      updated_at: now
     },
-    story: {
+    outline: {
       title: name,
       acts: []
-    },
-    script: {
-      scenes: []
     },
     storyboard: {
       shots: []
@@ -32,11 +33,12 @@ export function applyPatchOperations(project: ProjectDocument, operations: Patch
       continue;
     }
 
-    if (operation.path === 'story.acts[0].summary' && next.story.acts[0]) {
-      next.story.acts[0].summary = operation.value;
+    if (operation.path === 'outline.acts[0].summary' && next.outline.acts[0]) {
+      next.outline.acts[0].summary = operation.value;
     }
   }
 
   next.meta.version += 1;
+  next.meta.updated_at = new Date().toISOString();
   return projectDocumentSchema.parse(next);
 }

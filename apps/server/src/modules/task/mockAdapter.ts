@@ -15,7 +15,7 @@ export async function runMockTask(request: TaskRequest): Promise<TaskResult> {
       operations: [
         {
           op: 'replace',
-          path: 'story.acts[0].summary',
+          path: 'outline.acts[0].summary',
           value: `Rewritten: ${request.userInstruction}`
         }
       ]
