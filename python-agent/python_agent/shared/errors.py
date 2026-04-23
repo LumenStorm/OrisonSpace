@@ -10,3 +10,11 @@ class PromptConfigError(NodeExecutionError):
 
 class ModelCallError(NodeExecutionError):
     pass
+
+
+class ConfigurationError(NodeExecutionError):
+    pass
+
+
+class ModelOutputError(NodeExecutionError):
+    pass
