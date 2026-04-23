@@ -2,7 +2,7 @@
 .tiptap-wrapper {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
   background: var(--surface);
   overflow: hidden;
@@ -13,8 +13,8 @@
   align-items: center;
   gap: 0.15rem;
   padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid rgba(199, 199, 191, 0.5);
-  background: rgba(241, 239, 233, 0.6);
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
   flex-wrap: wrap;
 }
 
@@ -37,12 +37,12 @@
 }
 
 .tiptap-toolbar-btn:hover {
-  background: rgba(227, 226, 224, 0.8);
+  background: var(--hover-overlay);
   color: var(--on-surface);
 }
 
 .tiptap-toolbar-btn.is-active {
-  background: #e9edea;
+  background: var(--surface-container-high);
   color: var(--accent);
 }
 
@@ -54,7 +54,7 @@
   width: 1px;
   height: 1.2rem;
   margin: 0 0.25rem;
-  background: rgba(199, 199, 191, 0.6);
+  background: var(--outline-variant);
 }
 
 .tiptap-content {
@@ -98,7 +98,7 @@
 }
 
 .tiptap-content .tiptap pre {
-  background: #f1efe9;
+  background: var(--surface-container-low);
   border-radius: 0.35rem;
   padding: 0.75rem 1rem;
   font-family: monospace;
@@ -107,7 +107,7 @@
 }
 
 .tiptap-content .tiptap code {
-  background: rgba(199, 199, 191, 0.3);
+  background: var(--outline-variant);
   border-radius: 0.2rem;
   padding: 0.1rem 0.3rem;
   font-family: monospace;
@@ -135,7 +135,7 @@
 .outline-title-input {
   width: 100%;
   border: 0;
-  border-bottom: 2px solid rgba(199, 199, 191, 0.5);
+  border-bottom: 2px solid var(--outline-variant);
   background: transparent;
   font-family: var(--font-display);
   font-size: 1.8rem;
@@ -156,7 +156,7 @@
 
 .outline-logline-input {
   width: 100%;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.35rem;
   background: var(--surface);
   font: inherit;
@@ -193,7 +193,7 @@
 }
 
 .outline-style-input {
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.35rem;
   background: var(--surface);
   font: inherit;
@@ -233,7 +233,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.8rem;
-  border: 1px dashed rgba(199, 199, 191, 0.8);
+  border: 1px dashed var(--outline-variant);
   border-radius: 0.35rem;
   background: transparent;
   color: var(--on-surface-variant);
@@ -244,7 +244,7 @@
 }
 
 .outline-add-btn:hover {
-  background: rgba(227, 226, 224, 0.5);
+  background: var(--hover-overlay);
   border-color: var(--accent);
   color: var(--on-surface);
 }
@@ -254,7 +254,7 @@
 }
 
 .outline-act-card {
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
   background: var(--surface);
   overflow: hidden;
@@ -265,13 +265,13 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 0.85rem;
-  background: rgba(241, 239, 233, 0.5);
+  background: var(--surface-container-low);
   cursor: pointer;
   user-select: none;
 }
 
 .outline-act-header:hover {
-  background: rgba(227, 226, 224, 0.5);
+  background: var(--hover-overlay);
 }
 
 .outline-act-toggle {
@@ -297,7 +297,7 @@
 
 .outline-act-body {
   padding: 0.75rem 0.85rem;
-  border-top: 1px solid rgba(199, 199, 191, 0.4);
+  border-top: 1px solid var(--outline-variant);
 }
 
 /* ── Script / Novel Editor ── */
@@ -312,8 +312,8 @@
 .script-sidebar {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(199, 199, 191, 0.7);
-  background: rgba(241, 239, 233, 0.4);
+  border-right: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
   overflow-y: auto;
 }
 
@@ -322,7 +322,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem;
-  border-bottom: 1px solid rgba(199, 199, 191, 0.5);
+  border-bottom: 1px solid var(--outline-variant);
 }
 
 .script-sidebar-title {
@@ -348,7 +348,7 @@
 }
 
 .script-sidebar-add:hover {
-  background: rgba(227, 226, 224, 0.8);
+  background: var(--hover-overlay);
   color: var(--on-surface);
 }
 
@@ -380,12 +380,12 @@
 }
 
 .script-chapter-item:hover {
-  background: rgba(227, 226, 224, 0.5);
+  background: var(--hover-overlay);
   color: var(--on-surface);
 }
 
 .script-chapter-item.is-active {
-  background: #e9edea;
+  background: var(--surface-container-high);
   color: var(--on-surface);
   font-weight: 500;
 }
@@ -425,8 +425,8 @@
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at center, rgba(107, 122, 106, 0.08), transparent 60%),
-    #1a1c1b;
+    radial-gradient(circle at center, var(--active-indicator), transparent 60%),
+    var(--surface-container-lowest);
   border-radius: 0.5rem;
   min-height: 200px;
 }
@@ -436,7 +436,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--on-surface-variant);
 }
 
 .video-preview-placeholder .material-symbols-outlined {
@@ -453,9 +453,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
-  background: rgba(241, 239, 233, 0.4);
+  background: var(--surface-container-low);
   overflow-x: auto;
   min-height: 60px;
 }
@@ -471,7 +471,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.35rem;
   background: var(--surface);
   font-size: 0.8rem;

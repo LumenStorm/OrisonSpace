@@ -15,7 +15,7 @@
   width: 100%;
   max-width: 380px;
   padding: 2.5rem 2rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.75rem;
   background: var(--surface);
 }
@@ -37,7 +37,7 @@
 .auth-tabs {
   display: flex;
   width: 100%;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.4rem;
   overflow: hidden;
 }
@@ -57,7 +57,7 @@
 
 .auth-tab.is-active {
   background: var(--accent);
-  color: #fff;
+  color: var(--surface-container-lowest);
 }
 
 .auth-form {
@@ -70,7 +70,7 @@
 .auth-input {
   width: 100%;
   padding: 0.65rem 0.75rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.35rem;
   background: var(--surface);
   font: inherit;
@@ -88,8 +88,8 @@
   margin: 0;
   padding: 0.5rem 0.65rem;
   border-radius: 0.3rem;
-  background: rgba(220, 80, 80, 0.1);
-  color: #c44;
+  background: var(--error-bg);
+  color: var(--error);
   font-size: 0.82rem;
 }
 
@@ -99,7 +99,7 @@
   border: 0;
   border-radius: 0.4rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--surface-container-lowest);
   font: inherit;
   font-size: 0.92rem;
   font-weight: 600;
@@ -129,7 +129,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  border-bottom: 1px solid rgba(199, 199, 191, 0.5);
+  border-bottom: 1px solid var(--outline-variant);
   background: var(--surface);
 }
 
@@ -157,7 +157,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.8rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.35rem;
   background: transparent;
   color: var(--on-surface-variant);
@@ -168,7 +168,7 @@
 }
 
 .projects-logout:hover {
-  background: rgba(227, 226, 224, 0.5);
+  background: var(--hover-overlay);
 }
 
 .projects-logout .material-symbols-outlined {
@@ -199,7 +199,7 @@
   gap: 0.5rem;
   flex: 1;
   padding: 1.5rem;
-  border: 2px dashed rgba(199, 199, 191, 0.7);
+  border: 2px dashed var(--outline-variant);
   border-radius: 0.6rem;
   background: transparent;
   color: var(--on-surface-variant);
@@ -212,7 +212,7 @@
 
 .projects-action-card:hover {
   border-color: var(--accent);
-  background: rgba(227, 226, 224, 0.3);
+  background: var(--hover-overlay);
   color: var(--on-surface);
 }
 
@@ -225,7 +225,7 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.25rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
   background: var(--surface);
 }
@@ -242,7 +242,7 @@
 .projects-cancel {
   flex: 1;
   padding: 0.7rem;
-  border: 1px solid rgba(199, 199, 191, 0.7);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.4rem;
   background: transparent;
   color: var(--on-surface-variant);
@@ -252,7 +252,7 @@
 }
 
 .projects-cancel:hover {
-  background: rgba(227, 226, 224, 0.5);
+  background: var(--hover-overlay);
 }
 
 .projects-section-title {
@@ -276,7 +276,7 @@
   gap: 0.75rem;
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 1px solid rgba(199, 199, 191, 0.5);
+  border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
   background: var(--surface);
   color: var(--on-surface);
@@ -288,7 +288,7 @@
 
 .projects-item:hover {
   border-color: var(--accent);
-  background: rgba(241, 239, 233, 0.5);
+  background: var(--hover-overlay);
 }
 
 .projects-item .material-symbols-outlined {

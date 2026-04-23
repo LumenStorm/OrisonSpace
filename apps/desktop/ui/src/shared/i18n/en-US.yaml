@@ -1,0 +1,142 @@
+# Orison Space — English
+auth:
+  brand: "Orison Space"
+  tagline: "One line to video — AI-powered storytelling"
+  login: "Login"
+  register: "Register"
+  displayName: "Display Name"
+  email: "Email"
+  password: "Password"
+  pleaseWait: "Please wait..."
+  signIn: "Sign In"
+  createAccount: "Create Account"
+
+projects:
+  brand: "Orison Space"
+  logout: "Logout"
+  newProject: "New Project"
+  openProject: "Open Project"
+  projectName: "Project name"
+  create: "Create"
+  cancel: "Cancel"
+  recentProjects: "Recent Projects"
+
+nav:
+  project: "Project"
+  outline: "Outline"
+  script: "Script"
+  storyboard: "Storyboard"
+  video: "Video"
+
+outline:
+  projectTitle: "Project Title"
+  loglinePlaceholder: "Logline — one sentence that captures the story"
+  visualStyle: "Visual Style"
+  narrativeStyle: "Narrative Style"
+  pacing: "Pacing"
+  reference: "Reference"
+  acts: "Acts"
+  addAct: "Add Act"
+  noActs: "No acts yet. Add one to start structuring your story."
+  actTitle: "Act title"
+  actSummary: "Write the act summary..."
+
+script:
+  chapters: "Chapters"
+  chapterDefault: "Chapter {n}"
+  startWriting: "Start writing this chapter..."
+  selectChapter: "Select a chapter to start editing"
+
+storyboard:
+  cameraLens: "Camera Lens"
+  lightingMood: "Lighting Mood"
+  shotType: "Shot Type"
+
+video:
+  previewPlaceholder: "Video preview will appear here"
+  noClips: "No clips yet. Generate video from storyboard shots to populate the timeline."
+  resolution: "Resolution"
+  frameRate: "Frame Rate"
+  outputFormat: "Output Format"
+
+inspector:
+  title: "Inspector"
+  parameters: "{module} Parameters"
+  aspectRatio: "Aspect Ratio"
+  generateWithAI: "Generate with AI"
+  outline:
+    visualStyle: "Visual Style"
+    narrativeStyle: "Narrative Style"
+    pacing: "Pacing"
+    tone: "Tone"
+    rewrite: "Rewrite Outline"
+    prompt: "Describe how to refine the story outline..."
+    options:
+      visualStyle: ["Cinematic", "Anime", "Watercolor", "Noir", "Realistic"]
+      narrativeStyle: ["Linear", "Non-linear", "Episodic", "Parallel"]
+      pacing: ["Slow burn", "Fast-paced", "Rhythmic", "Gradual"]
+      tone: ["Dark", "Light", "Suspenseful", "Comedic", "Dramatic"]
+  script:
+    sceneType: "Scene Type"
+    timeOfDay: "Time of Day"
+    dialogueStyle: "Dialogue Style"
+    format: "Format"
+    rewrite: "Rewrite Scene"
+    prompt: "Describe dialogue or scene adjustments..."
+    options:
+      sceneType: ["Interior", "Exterior", "INT/EXT"]
+      timeOfDay: ["Day", "Night", "Dawn", "Dusk", "Continuous"]
+      dialogueStyle: ["Natural", "Formal", "Poetic", "Minimal"]
+      format: ["Screenplay", "Novel", "Stage Play"]
+  storyboard:
+    cameraLens: "Camera Lens"
+    lightingMood: "Lighting Mood"
+    shotType: "Shot Type"
+    rewrite: "Render Frame"
+    prompt: "Describe the frame details to refine the image..."
+    options:
+      cameraLens: ["24mm Wide", "35mm Standard", "50mm Portrait", "85mm Telephoto"]
+      lightingMood: ["Natural", "High Key", "Low Key", "Neon", "Golden Hour"]
+      shotType: ["Wide", "Medium", "Close-up", "Extreme Close-up", "Over-the-shoulder"]
+  video:
+    resolution: "Resolution"
+    frameRate: "Frame Rate"
+    outputFormat: "Output Format"
+    rewrite: "Generate Video"
+    prompt: "Describe video generation parameters..."
+    options:
+      resolution: ["1080p", "2K", "4K"]
+      frameRate: ["24fps", "30fps", "60fps"]
+      outputFormat: ["MP4", "MOV", "WebM"]
+
+tasks:
+  runRewrite: "Run AI Rewrite"
+  inProgress: "Task in progress..."
+  failed: "Task failed: {summary}"
+  retry: "Retry"
+  accept: "Accept Task Result"
+
+editor:
+  startWriting: "Start writing..."
+  bold: "Bold"
+  italic: "Italic"
+  strikethrough: "Strikethrough"
+  codeBlock: "Code Block"
+  quote: "Quote"
+  bulletList: "Bullet List"
+  orderedList: "Ordered List"
+  heading: "Heading {level}"
+
+welcome:
+  brand: "Orison Space"
+  tagline: "One line to video — AI-powered storytelling"
+  newProject: "New Project"
+  openProject: "Open Project"
+
+settings:
+  theme: "Theme"
+  themeSystem: "System"
+  themeLight: "Light"
+  themeDark: "Dark"
+  language: "Language"
+  languageSystem: "System"

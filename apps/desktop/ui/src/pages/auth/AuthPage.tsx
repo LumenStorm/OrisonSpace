@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const { login, register, authError, authLoading } = useAppStore();
+  const { login, register, authError, authLoading, resolvedLocale } = useAppStore();
+  const { t } = useI18n(resolvedLocale);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +22,8 @@ export function AuthPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-brand">Orison Space</h1>
-        <p className="auth-tagline">One line to video — AI-powered storytelling</p>
+        <h1 className="auth-brand">{t('auth.brand')}</h1>
+        <p className="auth-tagline">{t('auth.tagline')}</p>
 
         <div className="auth-tabs">
           <button
@@ -29,14 +31,14 @@ export function AuthPage() {
             className={`auth-tab${mode === 'login' ? ' is-active' : ''}`}
             onClick={() => setMode('login')}
           >
-            Login
+            {t('auth.login')}
           </button>
           <button
             type="button"
             className={`auth-tab${mode === 'register' ? ' is-active' : ''}`}
             onClick={() => setMode('register')}
           >
-            Register
+            {t('auth.register')}
           </button>
         </div>
 
@@ -45,7 +47,7 @@ export function AuthPage() {
             <input
               className="auth-input"
               type="text"
-              placeholder="Display Name"
+              placeholder={t('auth.displayName')}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
@@ -53,7 +55,7 @@ export function AuthPage() {
           <input
             className="auth-input"
             type="email"
-            placeholder="Email"
+            placeholder={t('auth.email')}
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -61,7 +63,7 @@ export function AuthPage() {
           <input
             className="auth-input"
             type="password"
-            placeholder="Password"
+            placeholder={t('auth.password')}
             required
             minLength={6}
             value={password}
@@ -71,7 +73,7 @@ export function AuthPage() {
           {authError && <p className="auth-error">{authError}</p>}
 
           <button className="auth-submit" type="submit" disabled={authLoading}>
-            {authLoading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {authLoading ? t('auth.pleaseWait') : mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
           </button>
         </form>
       </div>

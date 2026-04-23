@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
+import { detectSystemLocale, availableLocales } from '../i18n/useI18n';
 
 export type WorkspaceModule = 'outline' | 'script' | 'storyboard' | 'video';
+export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
+export type LocaleSetting = 'system' | (string & {});
 type TaskRequest = z.infer<typeof taskRequestSchema>;
 type TaskResult = z.infer<typeof taskResultSchema>;
 type PatchOperation = z.infer<typeof patchOperationSchema>;
@@ -56,6 +59,15 @@ type AppState = {
   submitRewrite: (instruction: string) => Promise<void>;
   acceptTaskResult: () => void;
   acceptedPatches: PatchOperation[];
+
+  // ── Theme ──
+  theme: ThemeSetting;
+  setTheme: (theme: ThemeSetting) => void;
+
+  // ── Locale ──
+  locale: LocaleSetting;
+  resolvedLocale: string;
+  setLocale: (locale: LocaleSetting) => void;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -171,5 +183,35 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  acceptedPatches: []
+  acceptedPatches: [],
+
+  // ── Theme ──
+  theme: (localStorage.getItem('orison_theme') as ThemeSetting) || 'system',
+  setTheme(theme) {
+    localStorage.setItem('orison_theme', theme);
+    applyTheme(theme);
+    set({ theme });
+  },
+
+  // ── Locale ──
+  locale: (localStorage.getItem('orison_locale') as LocaleSetting) || 'system',
+  resolvedLocale: resolveLocale((localStorage.getItem('orison_locale') as LocaleSetting) || 'system'),
+  setLocale(locale) {
+    localStorage.setItem('orison_locale', locale);
+    set({ locale, resolvedLocale: resolveLocale(locale) });
+  },
 }));
+
+/* ── Theme helpers ── */
+function applyTheme(theme: ThemeSetting) {
+  document.documentElement.dataset.theme = theme;
+}
+
+function resolveLocale(locale: LocaleSetting): string {
+  if (locale === 'system') return detectSystemLocale();
+  if (availableLocales.includes(locale)) return locale;
+  return 'en-US';
+}
+
+// 初始化：应用已保存的主题
+applyTheme((localStorage.getItem('orison_theme') as ThemeSetting) || 'system');

@@ -1,33 +1,34 @@
 import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 
 type FieldDef = {
-  label: string;
-  options: string[];
-  selected: string;
+  labelKey: string;
+  optionsKey: string;
+  defaultIndex: number;
 };
 
 const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
   outline: [
-    { label: 'Visual Style', options: ['Cinematic', 'Anime', 'Watercolor', 'Noir', 'Realistic'], selected: 'Cinematic' },
-    { label: 'Narrative Style', options: ['Linear', 'Non-linear', 'Episodic', 'Parallel'], selected: 'Linear' },
-    { label: 'Pacing', options: ['Slow burn', 'Fast-paced', 'Rhythmic', 'Gradual'], selected: 'Slow burn' },
-    { label: 'Tone', options: ['Dark', 'Light', 'Suspenseful', 'Comedic', 'Dramatic'], selected: 'Dramatic' },
+    { labelKey: 'inspector.outline.visualStyle', optionsKey: 'inspector.outline.options.visualStyle', defaultIndex: 0 },
+    { labelKey: 'inspector.outline.narrativeStyle', optionsKey: 'inspector.outline.options.narrativeStyle', defaultIndex: 0 },
+    { labelKey: 'inspector.outline.pacing', optionsKey: 'inspector.outline.options.pacing', defaultIndex: 0 },
+    { labelKey: 'inspector.outline.tone', optionsKey: 'inspector.outline.options.tone', defaultIndex: 4 },
   ],
   script: [
-    { label: 'Scene Type', options: ['Interior', 'Exterior', 'INT/EXT'], selected: 'Interior' },
-    { label: 'Time of Day', options: ['Day', 'Night', 'Dawn', 'Dusk', 'Continuous'], selected: 'Day' },
-    { label: 'Dialogue Style', options: ['Natural', 'Formal', 'Poetic', 'Minimal'], selected: 'Natural' },
-    { label: 'Format', options: ['Screenplay', 'Novel', 'Stage Play'], selected: 'Screenplay' },
+    { labelKey: 'inspector.script.sceneType', optionsKey: 'inspector.script.options.sceneType', defaultIndex: 0 },
+    { labelKey: 'inspector.script.timeOfDay', optionsKey: 'inspector.script.options.timeOfDay', defaultIndex: 0 },
+    { labelKey: 'inspector.script.dialogueStyle', optionsKey: 'inspector.script.options.dialogueStyle', defaultIndex: 0 },
+    { labelKey: 'inspector.script.format', optionsKey: 'inspector.script.options.format', defaultIndex: 0 },
   ],
   storyboard: [
-    { label: 'Camera Lens', options: ['24mm Wide', '35mm Standard', '50mm Portrait', '85mm Telephoto'], selected: '35mm Standard' },
-    { label: 'Lighting Mood', options: ['Natural', 'High Key', 'Low Key', 'Neon', 'Golden Hour'], selected: 'Natural' },
-    { label: 'Shot Type', options: ['Wide', 'Medium', 'Close-up', 'Extreme Close-up', 'Over-the-shoulder'], selected: 'Medium' },
+    { labelKey: 'inspector.storyboard.cameraLens', optionsKey: 'inspector.storyboard.options.cameraLens', defaultIndex: 1 },
+    { labelKey: 'inspector.storyboard.lightingMood', optionsKey: 'inspector.storyboard.options.lightingMood', defaultIndex: 0 },
+    { labelKey: 'inspector.storyboard.shotType', optionsKey: 'inspector.storyboard.options.shotType', defaultIndex: 1 },
   ],
   video: [
-    { label: 'Resolution', options: ['1080p', '2K', '4K'], selected: '1080p' },
-    { label: 'Frame Rate', options: ['24fps', '30fps', '60fps'], selected: '24fps' },
-    { label: 'Output Format', options: ['MP4', 'MOV', 'WebM'], selected: 'MP4' },
+    { labelKey: 'inspector.video.resolution', optionsKey: 'inspector.video.options.resolution', defaultIndex: 0 },
+    { labelKey: 'inspector.video.frameRate', optionsKey: 'inspector.video.options.frameRate', defaultIndex: 0 },
+    { labelKey: 'inspector.video.outputFormat', optionsKey: 'inspector.video.options.outputFormat', defaultIndex: 0 },
   ],
 };
 
@@ -38,47 +39,53 @@ const aspectRatios: Record<WorkspaceModule, string[]> = {
   video: ['16:9', '2.35:1', '4:3', '9:16'],
 };
 
-const aiPrompts: Record<WorkspaceModule, string> = {
-  outline: 'Describe how to refine the story outline...',
-  script: 'Describe dialogue or scene adjustments...',
-  storyboard: 'Describe the frame details to refine the image...',
-  video: 'Describe video generation parameters...',
+const promptKeys: Record<WorkspaceModule, string> = {
+  outline: 'inspector.outline.prompt',
+  script: 'inspector.script.prompt',
+  storyboard: 'inspector.storyboard.prompt',
+  video: 'inspector.video.prompt',
 };
 
-const aiActions: Record<WorkspaceModule, string> = {
-  outline: 'Rewrite Outline',
-  script: 'Rewrite Scene',
-  storyboard: 'Render Frame',
-  video: 'Generate Video',
+const actionKeys: Record<WorkspaceModule, string> = {
+  outline: 'inspector.outline.rewrite',
+  script: 'inspector.script.rewrite',
+  storyboard: 'inspector.storyboard.rewrite',
+  video: 'inspector.video.rewrite',
 };
 
 export function InspectorPanel() {
   const activeModule = useAppStore((s) => s.activeModule);
+  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
+  const { t, tArray } = useI18n(resolvedLocale);
+
   const fields = moduleFields[activeModule];
   const ratios = aspectRatios[activeModule];
 
   return (
     <aside className="workspace-inspector" aria-label="Inspector Panel">
       <div className="workspace-inspectorHeader">
-        <h3 className="workspace-inspectorTitle">Inspector</h3>
-        <p className="workspace-inspectorMeta">{activeModule.charAt(0).toUpperCase() + activeModule.slice(1)} Parameters</p>
+        <h3 className="workspace-inspectorTitle">{t('inspector.title')}</h3>
+        <p className="workspace-inspectorMeta">{t('inspector.parameters', { module: activeModule.charAt(0).toUpperCase() + activeModule.slice(1) })}</p>
       </div>
       <div className="workspace-inspectorBody">
         <div className="inspector-group">
-          {fields.map((field) => (
-            <label key={field.label}>
-              <div className="inspector-label">{field.label}</div>
-              <select className="inspector-select" defaultValue={field.selected}>
-                {field.options.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </label>
-          ))}
+          {fields.map((field) => {
+            const options = tArray(field.optionsKey);
+            return (
+              <label key={field.labelKey}>
+                <div className="inspector-label">{t(field.labelKey)}</div>
+                <select className="inspector-select" defaultValue={options[field.defaultIndex] ?? ''}>
+                  {options.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
           {ratios.length > 0 && (
             <div>
-              <div className="inspector-label">Aspect Ratio</div>
-              <div className="inspector-segmented" role="group" aria-label="Aspect Ratio">
+              <div className="inspector-label">{t('inspector.aspectRatio')}</div>
+              <div className="inspector-segmented" role="group" aria-label={t('inspector.aspectRatio')}>
                 {ratios.map((r, i) => (
                   <button
                     key={r}
@@ -94,15 +101,15 @@ export function InspectorPanel() {
         </div>
         <div className="workspace-divider" style={{ width: '100%', height: '1px', margin: 0 }} />
         <div className="inspector-group">
-          <div className="inspector-label">Generate with AI</div>
+          <div className="inspector-label">{t('inspector.generateWithAI')}</div>
           <textarea
             className="inspector-textarea"
-            placeholder={aiPrompts[activeModule]}
+            placeholder={t(promptKeys[activeModule])}
             defaultValue=""
           />
           <button className="inspector-cta" type="button">
             <span className="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
-            {aiActions[activeModule]}
+            {t(actionKeys[activeModule])}
           </button>
         </div>
       </div>

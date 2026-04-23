@@ -1,0 +1,142 @@
+# Orison Space — 简体中文
+auth:
+  brand: "Orison Space"
+  tagline: "一句话到视频 — AI 驱动的影视创作"
+  login: "登录"
+  register: "注册"
+  displayName: "显示名称"
+  email: "邮箱"
+  password: "密码"
+  pleaseWait: "请稍候..."
+  signIn: "登录"
+  createAccount: "创建账号"
+
+projects:
+  brand: "Orison Space"
+  logout: "退出登录"
+  newProject: "新建项目"
+  openProject: "打开项目"
+  projectName: "项目名称"
+  create: "创建"
+  cancel: "取消"
+  recentProjects: "最近项目"
+
+nav:
+  project: "项目"
+  outline: "大纲"
+  script: "剧本"
+  storyboard: "分镜"
+  video: "视频"
+
+outline:
+  projectTitle: "项目标题"
+  loglinePlaceholder: "Logline — 一句话概括故事"
+  visualStyle: "视觉风格"
+  narrativeStyle: "叙事风格"
+  pacing: "节奏"
+  reference: "参考"
+  acts: "幕"
+  addAct: "添加幕"
+  noActs: "暂无幕。添加一个来开始构建故事结构。"
+  actTitle: "幕标题"
+  actSummary: "撰写幕概要..."
+
+script:
+  chapters: "章节"
+  chapterDefault: "第 {n} 章"
+  startWriting: "开始撰写本章..."
+  selectChapter: "选择一个章节开始编辑"
+
+storyboard:
+  cameraLens: "镜头焦距"
+  lightingMood: "光影氛围"
+  shotType: "镜头类型"
+
+video:
+  previewPlaceholder: "视频预览将在此显示"
+  noClips: "暂无片段。从分镜生成视频以填充时间线。"
+  resolution: "分辨率"
+  frameRate: "帧率"
+  outputFormat: "输出格式"
+
+inspector:
+  title: "检查器"
+  parameters: "{module} 参数"
+  aspectRatio: "画面比例"
+  generateWithAI: "AI 生成"
+  outline:
+    visualStyle: "视觉风格"
+    narrativeStyle: "叙事风格"
+    pacing: "节奏"
+    tone: "基调"
+    rewrite: "改写大纲"
+    prompt: "描述如何优化故事大纲..."
+    options:
+      visualStyle: ["电影感", "动漫", "水彩", "黑色电影", "写实"]
+      narrativeStyle: ["线性", "非线性", "单元式", "平行"]
+      pacing: ["慢热", "快节奏", "韵律感", "渐进"]
+      tone: ["暗黑", "明快", "悬疑", "喜剧", "戏剧"]
+  script:
+    sceneType: "场景类型"
+    timeOfDay: "时间"
+    dialogueStyle: "对白风格"
+    format: "格式"
+    rewrite: "改写场景"
+    prompt: "描述对白或场景调整..."
+    options:
+      sceneType: ["室内", "室外", "内外交替"]
+      timeOfDay: ["白天", "夜晚", "黎明", "黄昏", "连续"]
+      dialogueStyle: ["自然", "正式", "诗意", "极简"]
+      format: ["电影剧本", "小说", "舞台剧"]
+  storyboard:
+    cameraLens: "镜头焦距"
+    lightingMood: "光影氛围"
+    shotType: "镜头类型"
+    rewrite: "渲染帧"
+    prompt: "描述画面细节以优化图像..."
+    options:
+      cameraLens: ["24mm 广角", "35mm 标准", "50mm 人像", "85mm 长焦"]
+      lightingMood: ["自然光", "高调", "低调", "霓虹", "黄金时刻"]
+      shotType: ["远景", "中景", "特写", "大特写", "过肩"]
+  video:
+    resolution: "分辨率"
+    frameRate: "帧率"
+    outputFormat: "输出格式"
+    rewrite: "生成视频"
+    prompt: "描述视频生成参数..."
+    options:
+      resolution: ["1080p", "2K", "4K"]
+      frameRate: ["24fps", "30fps", "60fps"]
+      outputFormat: ["MP4", "MOV", "WebM"]
+
+tasks:
+  runRewrite: "运行 AI 改写"
+  inProgress: "任务进行中..."
+  failed: "任务失败：{summary}"
+  retry: "重试"
+  accept: "接受任务结果"
+
+editor:
+  startWriting: "开始写作..."
+  bold: "粗体"
+  italic: "斜体"
+  strikethrough: "删除线"
+  codeBlock: "代码块"
+  quote: "引用"
+  bulletList: "无序列表"
+  orderedList: "有序列表"
+  heading: "标题 {level}"
+
+welcome:
+  brand: "Orison Space"
+  tagline: "一句话到视频 — AI 驱动的影视创作"
+  newProject: "新建项目"
+  openProject: "打开项目"
+
+settings:
+  theme: "主题"
+  themeSystem: "跟随系统"
+  themeLight: "浅色"
+  themeDark: "深色"
+  language: "语言"
+  languageSystem: "跟随系统"

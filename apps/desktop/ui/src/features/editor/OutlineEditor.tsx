@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { TiptapEditor } from './TiptapEditor';
+import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 
 type Act = {
   id: string;
@@ -8,6 +10,9 @@ type Act = {
 };
 
 export function OutlineEditor() {
+  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
+  const { t } = useI18n(resolvedLocale);
+
   const [title, setTitle] = useState('');
   const [logline, setLogline] = useState('');
   const [style, setStyle] = useState({ visual: '', narrative: '', pacing: '', reference: '' });
@@ -32,34 +37,36 @@ export function OutlineEditor() {
     });
   };
 
+  const styleFields = [
+    ['visual', 'outline.visualStyle'],
+    ['narrative', 'outline.narrativeStyle'],
+    ['pacing', 'outline.pacing'],
+    ['reference', 'outline.reference'],
+  ] as const;
+
   return (
     <div className="outline-editor">
       <div className="outline-header">
         <input
           className="outline-title-input"
-          placeholder="Project Title"
+          placeholder={t('outline.projectTitle')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <textarea
           className="outline-logline-input"
-          placeholder="Logline — one sentence that captures the story"
+          placeholder={t('outline.loglinePlaceholder')}
           value={logline}
           onChange={(e) => setLogline(e.target.value)}
           rows={2}
         />
         <div className="outline-style-grid">
-          {([
-            ['visual', 'Visual Style'],
-            ['narrative', 'Narrative Style'],
-            ['pacing', 'Pacing'],
-            ['reference', 'Reference'],
-          ] as const).map(([key, label]) => (
+          {styleFields.map(([key, i18nKey]) => (
             <div key={key} className="outline-style-field">
-              <label className="outline-style-label">{label}</label>
+              <label className="outline-style-label">{t(i18nKey)}</label>
               <input
                 className="outline-style-input"
-                placeholder={label}
+                placeholder={t(i18nKey)}
                 value={style[key]}
                 onChange={(e) => setStyle({ ...style, [key]: e.target.value })}
               />
@@ -70,16 +77,16 @@ export function OutlineEditor() {
 
       <div className="outline-acts">
         <div className="outline-acts-header">
-          <h3 className="outline-acts-title">Acts</h3>
+          <h3 className="outline-acts-title">{t('outline.acts')}</h3>
           <button type="button" className="outline-add-btn" onClick={addAct}>
             <span className="material-symbols-outlined" aria-hidden="true">add</span>
-            Add Act
+            {t('outline.addAct')}
           </button>
         </div>
 
         {acts.length === 0 && (
           <p style={{ color: 'var(--outline)', fontSize: '0.88rem', margin: 0 }}>
-            No acts yet. Add one to start structuring your story.
+            {t('outline.noActs')}
           </p>
         )}
 
@@ -93,7 +100,7 @@ export function OutlineEditor() {
                 </span>
                 <input
                   className="outline-act-title-input"
-                  placeholder="Act title"
+                  placeholder={t('outline.actTitle')}
                   value={act.title}
                   onChange={(e) => updateAct(act.id, { title: e.target.value })}
                   onClick={(e) => e.stopPropagation()}
@@ -103,7 +110,7 @@ export function OutlineEditor() {
                 <div className="outline-act-body">
                   <TiptapEditor
                     content={act.summary}
-                    placeholder="Write the act summary..."
+                    placeholder={t('outline.actSummary')}
                     onChange={(html) => updateAct(act.id, { summary: html })}
                   />
                 </div>

@@ -69,6 +69,9 @@
 
 - 三栏网格：左侧导航 / 中间编辑区 / 右侧检查器+任务面板
 - TopBar 固定顶部，包含品牌名、操作按钮（新建/打开/保存/撤销/重做/设置）
+- TopBar 同时作为自定义标题栏（隐藏原生标题栏），支持拖拽移动窗口
+  - Windows/Linux：右侧显示最小化/最大化/关闭按钮
+  - macOS：保留原生红绿灯，左侧 70px 占位避让
 
 ---
 
@@ -224,3 +227,48 @@ ProjectDocument
 | 阴影 | 0 12px 40px rgba(45,52,51,0.06) |
 | 侧栏宽度 | 260px |
 | 检查器宽度 | 300px |
+
+> 注：以上颜色值为 light 主题默认值。所有颜色通过 CSS 自定义属性（`var(--token)`）引用，实际值由主题系统控制。
+
+---
+
+## 10. 主题系统
+
+应用支持 light / dark 主题切换，以及跟随系统自动切换。
+
+| 项目 | 说明 |
+|------|------|
+| 主题定义 | `themes/light.yaml` + `themes/dark.yaml`，YAML 定义所有 design token |
+| 构建脚本 | `buildThemes.ts` 扫描 YAML 生成 `tokens.css` |
+| CSS 选择器 | `:root` / `[data-theme="light"]` / `[data-theme="dark"]` / `[data-theme="system"]`（媒体查询） |
+| 状态管理 | `appStore.theme`：`'system'` / `'light'` / `'dark'`，持久化到 localStorage |
+| 扩展 | 新增 `themes/{name}.yaml` 即自动注册 |
+
+---
+
+## 11. 多语言 (i18n)
+
+应用支持中文 (zh-CN) 和英文 (en-US)，根据系统语言自动选择。
+
+| 项目 | 说明 |
+|------|------|
+| 语言包 | `i18n/zh-CN.yaml` + `i18n/en-US.yaml`，按模块分 namespace |
+| Hook | `useI18n(locale)` — 提供 `t(key, vars?)` 和 `tArray(key)` |
+| 检测 | Electron `getLocale()` → `navigator.language` → 回退 en-US |
+| 状态管理 | `appStore.locale` / `appStore.resolvedLocale`，持久化到 localStorage |
+| 扩展 | 新增 `i18n/{locale}.yaml` 即自动注册 |
+
+所有用户可见文本均通过 `t()` 函数获取，不再硬编码。
+
+---
+
+## 12. 自定义标题栏
+
+隐藏原生标题栏，TopBar 组件同时承担窗口控制功能。
+
+| 平台 | 实现方式 |
+|------|----------|
+| Windows/Linux | `frame: false`，TopBar 右侧渲染最小化/最大化/关闭 SVG 按钮 |
+| macOS | `titleBarStyle: 'hidden'`，保留原生红绿灯，TopBar 左侧 70px 占位 |
+
+TopBar 整体设置 `-webkit-app-region: drag` 实现拖拽移动，按钮等交互元素设置 `no-drag`。

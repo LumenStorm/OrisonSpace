@@ -59,11 +59,14 @@ Right Panel（Inspector + AI）
 - 项目管理：New / Open / Save / Export
 - 编辑控制：Undo / Redo
 - 系统入口：AI Assistant / Settings / Help
+- 窗口控制：最小化 / 最大化 / 关闭（自定义标题栏，隐藏原生标题栏）
 
 设计要求：
 
 - 简洁、工具化
 - 支持状态反馈（保存中 / 生成中）
+- 整体可拖拽移动窗口（`-webkit-app-region: drag`）
+- Windows/Linux 右侧显示窗口控制按钮，macOS 保留原生红绿灯
 
 ---
 
@@ -260,3 +263,31 @@ Project Tree
 Story / Script / Storyboard 编辑器基础版
 Inspector Panel（基础字段）
 简单 AI 接口调用（mock 或 API）
+
+---
+
+## 八、主题与多语言
+
+### 8.1 主题系统
+
+- 支持 light / dark / system（跟随系统）三种模式
+- 主题定义：`themes/light.yaml` + `themes/dark.yaml`，YAML 存储所有 design token
+- 构建脚本 `buildThemes.ts` 自动扫描 YAML 生成 `tokens.css`
+- CSS 通过 `[data-theme]` 选择器切换，所有颜色使用 `var(--token)` 引用
+- 扩展：新增 `themes/{name}.yaml` 即自动注册
+
+### 8.2 多语言 (i18n)
+
+- 支持 zh-CN / en-US，根据系统语言自动选择
+- 语言包：`i18n/zh-CN.yaml` + `i18n/en-US.yaml`，按模块分 namespace
+- `useI18n` hook 通过 `import.meta.glob` 运行时自动扫描语言包
+- `t(key, vars?)` 支持插值，`tArray(key)` 获取数组值
+- 扩展：新增 `i18n/{locale}.yaml` 即自动注册
+
+### 8.3 自定义标题栏
+
+- 隐藏原生标题栏，TopBar 组件替代
+- Windows/Linux：`frame: false`，TopBar 右侧渲染最小化/最大化/关闭按钮
+- macOS：`titleBarStyle: 'hidden'`，保留原生红绿灯
+- TopBar 整体 `-webkit-app-region: drag` 支持拖拽移动窗口
+- 窗口控制通过 IPC 通道（`window:minimize` / `window:maximize` / `window:close`）

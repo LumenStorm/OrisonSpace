@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 
 export function ProjectsPage() {
-  const { user, logout, openProject } = useAppStore();
+  const { user, logout, openProject, resolvedLocale } = useAppStore();
+  const { t } = useI18n(resolvedLocale);
   const [showNew, setShowNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [recentProjects] = useState([
@@ -28,12 +30,12 @@ export function ProjectsPage() {
     <div className="projects-page">
       <header className="projects-header">
         <div className="projects-header-left">
-          <h1 className="projects-brand">Orison Space</h1>
+          <h1 className="projects-brand">{t('projects.brand')}</h1>
           {user && <span className="projects-user">{user.displayName || user.email}</span>}
         </div>
         <button type="button" className="projects-logout" onClick={logout}>
           <span className="material-symbols-outlined" aria-hidden="true">logout</span>
-          Logout
+          {t('projects.logout')}
         </button>
       </header>
 
@@ -41,11 +43,11 @@ export function ProjectsPage() {
         <div className="projects-actions">
           <button type="button" className="projects-action-card" onClick={() => setShowNew(true)}>
             <span className="material-symbols-outlined" aria-hidden="true">add_circle</span>
-            <span>New Project</span>
+            <span>{t('projects.newProject')}</span>
           </button>
           <button type="button" className="projects-action-card" onClick={handleOpen}>
             <span className="material-symbols-outlined" aria-hidden="true">folder_open</span>
-            <span>Open Project</span>
+            <span>{t('projects.openProject')}</span>
           </button>
         </div>
 
@@ -54,21 +56,21 @@ export function ProjectsPage() {
             <input
               className="auth-input"
               type="text"
-              placeholder="Project name"
+              placeholder={t('projects.projectName')}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               autoFocus
             />
             <div className="projects-new-actions">
-              <button type="button" className="auth-submit" onClick={handleCreate}>Create</button>
-              <button type="button" className="projects-cancel" onClick={() => setShowNew(false)}>Cancel</button>
+              <button type="button" className="auth-submit" onClick={handleCreate}>{t('projects.create')}</button>
+              <button type="button" className="projects-cancel" onClick={() => setShowNew(false)}>{t('projects.cancel')}</button>
             </div>
           </div>
         )}
 
         <section className="projects-recent">
-          <h2 className="projects-section-title">Recent Projects</h2>
+          <h2 className="projects-section-title">{t('projects.recentProjects')}</h2>
           <div className="projects-list">
             {recentProjects.map((p) => (
               <button
