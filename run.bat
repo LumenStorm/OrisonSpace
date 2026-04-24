@@ -27,7 +27,7 @@ set /p choice="  Select [0-8]: "
 
 :runchoice
 if "%choice%"=="0" exit /b 0
-if "%choice%"=="1" ( call :killport 4000 && start "OrisonServer" cmd /c "pnpm dev:server" && ping -n 3 127.0.0.1 >nul && pnpm dev && goto done )
+if "%choice%"=="1" ( call :killport 4000 && start "OrisonServer" cmd /k "pnpm dev:server" && ping -n 5 127.0.0.1 >nul && pnpm dev && goto done )
 if "%choice%"=="2" ( pnpm dev && goto done )
 if "%choice%"=="3" ( call :killport 4000 && pnpm dev:server && goto done )
 if "%choice%"=="4" ( pnpm build && goto done )

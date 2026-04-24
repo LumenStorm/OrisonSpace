@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/app.ts",
+    "dev": "tsx watch --env-file=.env src/app.ts",
     "build": "tsup src/app.ts --format esm --out-dir dist --clean",
     "test": "vitest --run",
     "lint": "echo server lint placeholder",

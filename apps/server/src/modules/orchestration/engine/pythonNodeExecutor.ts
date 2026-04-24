@@ -2,6 +2,9 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import type { PythonRunnerRequest, PythonRunnerResponse } from '../contracts/pythonExecutor';
 
+// 从当前文件位置推算 monorepo 根目录（apps/server/src/modules/orchestration/engine → 上6级）
+const MONOREPO_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..', '..', '..');
+
 type ExecutePythonNodeInput = {
   pythonCommand: string;
   runnerPath: string;
@@ -16,7 +19,7 @@ export async function executePythonNode({
   workspaceRoot
 }: ExecutePythonNodeInput): Promise<PythonRunnerResponse> {
   return new Promise((resolve, reject) => {
-    const resolvedWorkspaceRoot = workspaceRoot ?? process.cwd();
+    const resolvedWorkspaceRoot = workspaceRoot ?? MONOREPO_ROOT;
     const child = spawn(pythonCommand, [path.resolve(resolvedWorkspaceRoot, runnerPath)], {
       cwd: resolvedWorkspaceRoot,
       stdio: ['pipe', 'pipe', 'pipe']
