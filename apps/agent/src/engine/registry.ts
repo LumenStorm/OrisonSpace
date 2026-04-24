@@ -33,7 +33,7 @@ function createPythonNode(
         maxRetries: 2
       },
       prompt: {
-        file: `./project-config/prompts/${id}.yaml`,
+        file: `./prompts/${id}.yaml`,
         systemKey: 'system',
         userKey: 'user'
       },
@@ -60,7 +60,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
   return [
     createPythonNode(
       'intake-agent',
-      'python-agent/nodes/intake_agent.py',
+      'python/nodes/intake_agent.py',
       'intake.requirement',
       'requirement',
       {
@@ -70,7 +70,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'asset-loader-agent',
-      'python-agent/nodes/asset_loader_agent.py',
+      'python/nodes/asset_loader_agent.py',
       'assets.projectContext',
       'project_context',
       {
@@ -80,7 +80,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'story-planner-agent',
-      'python-agent/nodes/story_planner_agent.py',
+      'python/nodes/story_planner_agent.py',
       'planning.storyPlan',
       'story_plan',
       {
@@ -90,7 +90,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'chapter-task-agent',
-      'python-agent/nodes/chapter_task_agent.py',
+      'python/nodes/chapter_task_agent.py',
       'planning.chapterTasks',
       'chapter_tasks',
       {
@@ -100,7 +100,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'draft-writer-agent',
-      'python-agent/nodes/draft_writer_agent.py',
+      'python/nodes/draft_writer_agent.py',
       'draft.initial',
       'draft',
       {
@@ -110,7 +110,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'continuity-memory-agent',
-      'python-agent/nodes/continuity_memory_agent.py',
+      'python/nodes/continuity_memory_agent.py',
       'memory.continuity',
       'continuity_memory',
       {
@@ -120,7 +120,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'multi-review-agent',
-      'python-agent/nodes/multi_review_agent.py',
+      'python/nodes/multi_review_agent.py',
       'review.latest',
       'review',
       {
@@ -131,7 +131,7 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
     ),
     createPythonNode(
       'targeted-revision-agent',
-      'python-agent/nodes/targeted_revision_agent.py',
+      'python/nodes/targeted_revision_agent.py',
       'draft.revision',
       'draft_revision',
       {

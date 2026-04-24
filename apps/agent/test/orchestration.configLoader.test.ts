@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { loadNodeConfig, resolvePromptTemplate } from '../src/modules/orchestration/config/loader';
+import { loadNodeConfig, resolvePromptTemplate } from '../src/config/loader';
 
 describe('orchestration config loader', () => {
   let root = '';
@@ -18,7 +18,7 @@ describe('orchestration config loader', () => {
       `
 agentId: story-planner-agent
 runtime: python
-entry: ./python-agent/nodes/story_planner_agent.py
+entry: ./python/nodes/story_planner_agent.py
 model: gpt-5.4
 execution:
   timeoutMs: 30000

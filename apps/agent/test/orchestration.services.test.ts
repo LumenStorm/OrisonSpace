@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createArchiveRecord } from '../src/modules/orchestration/engine/archiveService';
-import { buildDeliveryOutput } from '../src/modules/orchestration/engine/deliveryService';
-import { buildFeedback } from '../src/modules/orchestration/engine/feedbackService';
-import type { RunSnapshot } from '../src/modules/orchestration/contracts/run';
+import { createArchiveRecord } from '../src/engine/archiveService';
+import { buildDeliveryOutput } from '../src/engine/deliveryService';
+import { buildFeedback } from '../src/engine/feedbackService';
+import type { RunSnapshot } from '../src/contracts/run';
 
 function makeRun(overrides?: Partial<RunSnapshot>): RunSnapshot {
   return {

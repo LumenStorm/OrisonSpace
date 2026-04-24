@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createRunService } from '../src/modules/orchestration/engine/runService';
-import { createActionService } from '../src/modules/orchestration/engine/actionService';
+import { createRunService } from '../src/engine/runService';
+import { createActionService } from '../src/engine/actionService';
 
 const MOCK_BY_NODE = JSON.stringify({
   __mock_by_node__: {

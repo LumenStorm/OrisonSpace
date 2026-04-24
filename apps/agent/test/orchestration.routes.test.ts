@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildServer } from '../src/app';
+import { buildAgent } from '../src/app';
 
 describe('orchestration routes', () => {
   it('creates a run and returns a run snapshot', { timeout: 30000 }, async () => {
-    const app = buildServer();
+    const app = buildAgent();
     const response = await app.inject({
       method: 'POST',
       url: '/v1/orchestration/runs',

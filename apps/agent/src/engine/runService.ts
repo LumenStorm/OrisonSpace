@@ -44,14 +44,14 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
           result = await executePythonNodeWithTimeout(
             {
               pythonCommand: 'python',
-              runnerPath: 'python-agent/runner/main.py',
+              runnerPath: 'python/runner/main.py',
               request: {
                 runId: run.runId,
                 nodeId: node.id,
                 nodeFile: forcePythonFailure && node.id === 'story-planner-agent'
-                  ? 'python-agent/nodes/missing_story_planner_agent.py'
+                  ? 'python/nodes/missing_story_planner_agent.py'
                   : node.config.entry,
-                configFile: command.configRoot ?? `project-config/agents/${node.id}.yaml`,
+                configFile: command.configRoot ?? `prompts/${node.id}.yaml`,
                 projectPath: command.projectPath,
                 config: node.config,
                 prompt: node.prompt,

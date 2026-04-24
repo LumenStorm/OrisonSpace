@@ -7,6 +7,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default('info'),
   DEMO_ACCESS_TOKEN: z.string().default('demo-access-token'),
   DATABASE_URL: z.string().default('postgresql://postgres:root@localhost:5432/orison_dev'),
+  AGENT_URL: z.string().default('http://localhost:4001'),
   JWT_SECRET: isProd
     ? z.string().min(32, 'JWT_SECRET must be at least 32 characters in production')
     : z.string().default('orison-dev-secret-key-NOT-FOR-PRODUCTION'),

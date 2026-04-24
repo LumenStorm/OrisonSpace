@@ -6,14 +6,14 @@ describe('python node config schema', () => {
     const parsed = orchestrationNodeConfigSchema.parse({
       agentId: 'story-planner-agent',
       runtime: 'python',
-      entry: './python-agent/nodes/story_planner_agent.py',
+      entry: './python/nodes/story_planner_agent.py',
       model: 'gpt-5.4',
       execution: {
         timeoutMs: 30000,
         maxRetries: 2
       },
       prompt: {
-        file: './project-config/prompts/story-planner.yaml',
+        file: './prompts/story-planner.yaml',
         systemKey: 'system',
         userKey: 'user'
       },

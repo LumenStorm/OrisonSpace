@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRunService } from '../src/modules/orchestration/engine/runService';
+import { createRunService } from '../src/engine/runService';
 
 describe('python retry and human handoff', () => {
   it('routes to human_in_loop when a non-retryable python error occurs', async () => {

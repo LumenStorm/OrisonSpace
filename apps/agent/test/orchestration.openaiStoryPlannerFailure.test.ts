@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRunService } from '../src/modules/orchestration/engine/runService';
+import { createRunService } from '../src/engine/runService';
 
 describe('openai api key missing failure path', () => {
   it('routes to human_in_loop when OPENAI_API_KEY is missing', async () => {

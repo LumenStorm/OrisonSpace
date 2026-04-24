@@ -73,7 +73,7 @@ export function createActionService() {
           result = await executePythonNodeWithTimeout(
             {
               pythonCommand: 'python',
-              runnerPath: 'python-agent/runner/main.py',
+              runnerPath: 'python/runner/main.py',
               request: {
                 runId: updated.runId,
                 nodeId: node.id,
@@ -177,7 +177,7 @@ export function createActionService() {
           result = await executePythonNodeWithTimeout(
             {
               pythonCommand: 'python',
-              runnerPath: 'python-agent/runner/main.py',
+              runnerPath: 'python/runner/main.py',
               request: {
                 runId: updated.runId,
                 nodeId: node.id,
