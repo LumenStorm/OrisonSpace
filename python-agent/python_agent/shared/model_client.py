@@ -5,6 +5,14 @@ from openai import OpenAI
 
 from .errors import ConfigurationError, ModelCallError, ModelOutputError
 
+# 当前执行的 node_id，由 runner 设置
+_current_node_id: str | None = None
+
+
+def set_current_node_id(node_id: str) -> None:
+    global _current_node_id
+    _current_node_id = node_id
+
 
 def generate_structured(
     *,
@@ -20,7 +28,15 @@ def generate_structured(
 
     mock_payload = os.getenv("OPENAI_RESPONSES_MOCK_JSON")
     if mock_payload:
-        return json.loads(mock_payload)
+        parsed = json.loads(mock_payload)
+        # 支持按 node_id 返回不同 mock: {"__mock_by_node__": {"intake-agent": {...}, ...}}
+        if isinstance(parsed, dict) and "__mock_by_node__" in parsed:
+            node_mocks = parsed["__mock_by_node__"]
+            if _current_node_id and _current_node_id in node_mocks:
+                return node_mocks[_current_node_id]
+            # fallback: 返回第一个值
+            return next(iter(node_mocks.values()))
+        return parsed
 
     client = OpenAI(api_key=api_key)
 

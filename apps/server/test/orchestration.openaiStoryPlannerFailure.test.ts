@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRunService } from '../src/modules/orchestration/engine/runService';
 
-describe('openai story planner failure path', () => {
+describe('openai api key missing failure path', () => {
   it('routes to human_in_loop when OPENAI_API_KEY is missing', async () => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_RESPONSES_MOCK_JSON;
@@ -14,7 +14,8 @@ describe('openai story planner failure path', () => {
     });
 
     expect(run.status).toBe('human_in_loop');
-    expect(run.currentNodeId).toBe('story-planner-agent');
+    // 第一个调用 LLM 的节点（intake-agent）会因缺少 API key 而失败
+    expect(run.currentNodeId).toBe('intake-agent');
     expect(run.review?.summary ?? '').toContain('OPENAI_API_KEY');
   });
 });

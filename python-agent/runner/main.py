@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from python_agent.shared.errors import NodeExecutionError
+from python_agent.shared.model_client import set_current_node_id
 from python_agent.shared.result_schema import failure
 
 
@@ -39,6 +40,7 @@ def main():
         request = json.loads(sys.stdin.read())
         node_file = _request_value(request, "node_file", "nodeFile")
         node_id = _request_value(request, "node_id", "nodeId")
+        set_current_node_id(node_id)
         module = _load_module(node_file)
         result = module.run(request)
         sys.stdout.write(json.dumps({"ok": True, "node_id": node_id, **result}))
