@@ -1,0 +1,64 @@
+/* ── Workspace Shell ── */
+.workspace-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  background: var(--background);
+}
+
+/* ── Body Grid ── */
+.workspace-body {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ── Resize Handle ── */
+.resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  z-index: 10;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--accent);
+}
+
+/* ── Main Content ── */
+.workspace-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.workspace-content {
+  flex: 1;
+  overflow: auto;
+  padding: 2rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .workspace-sidebar {
+    max-width: 220px;
+  }
+
+  .workspace-right {
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace-sidebar,
+  .workspace-inspector,
+  .workspace-right {
+    display: none;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+}

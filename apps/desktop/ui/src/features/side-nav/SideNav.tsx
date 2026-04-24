@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { useShallow } from 'zustand/react/shallow';
 
 type NavItem = { key: WorkspaceModule; icon: string; i18nKey: string };
 
@@ -19,22 +20,45 @@ const scriptNavItems: NavItem[] = [
 ];
 
 export function SideNav() {
-  const activeModule = useAppStore((s) => s.activeModule);
-  const setActiveModule = useAppStore((s) => s.setActiveModule);
-  const currentProject = useAppStore((s) => s.currentProject);
-  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
-  const theme = useAppStore((s) => s.theme);
-  const setTheme = useAppStore((s) => s.setTheme);
-  const locale = useAppStore((s) => s.locale);
-  const setLocale = useAppStore((s) => s.setLocale);
-  const user = useAppStore((s) => s.user);
-  const logout = useAppStore((s) => s.logout);
-  const { t } = useI18n(resolvedLocale);
+  const {
+    activeModule, setActiveModule,
+    currentProject, resolvedLocale,
+    theme, setTheme,
+    locale, setLocale,
+    user, logout,
+  } = useAppStore(useShallow((s) => ({
+    activeModule: s.activeModule,
+    setActiveModule: s.setActiveModule,
+    currentProject: s.currentProject,
+    resolvedLocale: s.resolvedLocale,
+    theme: s.theme,
+    setTheme: s.setTheme,
+    locale: s.locale,
+    setLocale: s.setLocale,
+    user: s.user,
+    logout: s.logout,
+  })));
 
+  const { t } = useI18n(resolvedLocale);
   const navItems = currentProject?.type === 'novel' ? novelNavItems : scriptNavItems;
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+
+  const handleToggleSettings = useCallback(() => {
+    setShowSettings((v) => !v);
+    setShowAccount(false);
+  }, []);
+
+  const handleToggleAccount = useCallback(() => {
+    setShowAccount((v) => !v);
+    setShowSettings(false);
+  }, []);
+
+  const handleModuleClick = useCallback(
+    (key: WorkspaceModule) => setActiveModule(key),
+    [setActiveModule],
+  );
 
   return (
     <nav className="workspace-sidebar" aria-label="Module Navigation">
@@ -51,7 +75,7 @@ export function SideNav() {
               type="button"
               className={`workspace-treeItem${active ? ' workspace-treeItemActive' : ''}`}
               aria-current={active ? 'page' : undefined}
-              onClick={() => setActiveModule(item.key)}
+              onClick={() => handleModuleClick(item.key)}
             >
               <span className="material-symbols-outlined" aria-hidden="true">
                 {item.icon}
@@ -101,7 +125,7 @@ export function SideNav() {
         <button
           type="button"
           className={`workspace-treeItem${showSettings ? ' workspace-treeItemActive' : ''}`}
-          onClick={() => { setShowSettings((v) => !v); setShowAccount(false); }}
+          onClick={handleToggleSettings}
         >
           <span className="material-symbols-outlined" aria-hidden="true">settings</span>
           <span>{t('nav.settings')}</span>
@@ -123,7 +147,7 @@ export function SideNav() {
         <button
           type="button"
           className={`workspace-treeItem${showAccount ? ' workspace-treeItemActive' : ''}`}
-          onClick={() => { setShowAccount((v) => !v); setShowSettings(false); }}
+          onClick={handleToggleAccount}
         >
           <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
           <span>{t('nav.account')}</span>

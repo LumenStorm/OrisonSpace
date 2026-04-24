@@ -14,9 +14,21 @@ export function buildServer() {
     bodyLimit: 1_048_576
   });
 
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:4000',
+    'app://.',
+  ];
+
   app.register(cors, {
-    origin: true,
-    credentials: true
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
+    },
+    credentials: true,
   });
 
   app.register(authPlugin);

@@ -146,10 +146,12 @@ refactor(store): extract project state
 
 - TypeScript strict 模式
 - React 函数组件 + Hooks
-- 状态管理使用 Zustand
-- 样式使用 CSS 变量 + BEM-like 类名（无 CSS-in-JS）
+- 状态管理使用 Zustand（按职责拆分为 slices：auth / project / settings / panels / tasks）
+- 样式使用 CSS 变量 + BEM-like 类名（无 CSS-in-JS），按模块拆分为独立 CSS 文件
 - 字体：Inter + Noto Sans SC（UI）/ Newsreader + Noto Serif SC（内容展示），均为开源可商用
 - 图标：Material Symbols Outlined
+- 性能：组件使用 `useShallow` 合并 selector，回调使用 `useCallback`
+- 安全：JWT 使用 `jose` 库 HS256 签名 + 2h 过期，CORS 白名单限制
 
 ### 数据流
 
@@ -163,6 +165,12 @@ refactor(store): extract project state
 - `features/` — 功能模块组件
 - `widgets/` — 布局组件
 - `shared/` — 公共状态、样式、类型、数据
+  - `store/` — Zustand slices（authSlice / projectSlice / settingsSlice / panelsSlice / tasksSlice）
+  - `styles/` — 模块化 CSS（global.css 仅做 import + reset）
+  - `components/` — 共享组件（NewProjectDialog / WindowControls / ResizeHandle）
+  - `data/` — 配置数据（inspectorFields）
+  - `constants.ts` — 全局常量（API 地址、面板尺寸、断点）
+  - `i18n/` — 多语言
 
 ## 文档
 

@@ -1,0 +1,174 @@
+/* ── Side Nav ── */
+.workspace-sidebar {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  border-right: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  overflow-y: auto;
+}
+
+.workspace-sidebarHeader {
+  padding: 1rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.workspace-sidebarTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.workspace-sidebarMeta {
+  margin: 0.35rem 0 0;
+  color: var(--outline);
+  font-size: 0.74rem;
+}
+
+.workspace-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.5rem;
+  flex: 1;
+}
+
+.workspace-treeItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+
+.workspace-treeItem:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.workspace-treeItemActive {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  box-shadow: inset 4px 0 0 var(--accent);
+  font-weight: 500;
+}
+
+.workspace-treeItem .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* ── Sidebar Bottom ── */
+.sidebar-bottom {
+  border-top: 1px solid var(--outline-variant);
+  padding: 0.5rem;
+}
+
+.sidebar-settings-panel,
+.sidebar-account-panel {
+  padding: 0.75rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--surface-container);
+}
+
+.sidebar-settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-settings-row:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-settings-label {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+  font-weight: 500;
+}
+
+.sidebar-settings-options {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.sidebar-settings-option {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-settings-option:hover {
+  background: var(--hover-overlay);
+}
+
+.sidebar-settings-option.is-active {
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+  border-color: var(--accent);
+}
+
+.sidebar-account-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-account-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--on-surface);
+}
+
+.sidebar-account-info .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--on-surface-variant);
+}
+
+.sidebar-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--error);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sidebar-logout-btn:hover {
+  background: var(--error-bg);
+}
+
+.sidebar-logout-btn .material-symbols-outlined {
+  font-size: 16px;
+}
