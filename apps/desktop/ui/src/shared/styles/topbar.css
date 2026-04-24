@@ -1,0 +1,123 @@
+/* ── Top Bar ── */
+.workspace-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  -webkit-app-region: drag;
+}
+
+.workspace-topbar button,
+.workspace-topbar input,
+.workspace-topbar select,
+.workspace-topbar a {
+  -webkit-app-region: no-drag;
+}
+
+/* macOS 红绿灯占位 */
+.topbar-traffic-light-spacer {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.workspace-brand {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.workspace-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+}
+
+.workspace-action:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.workspace-divider {
+  width: 1px;
+  height: 1rem;
+  background: var(--outline-variant);
+  margin: 0 0.5rem;
+}
+
+/* ── Window Controls (Windows/Linux) ── */
+.window-controls {
+  display: flex;
+  align-items: stretch;
+  margin-left: auto;
+  margin-right: -1.5rem;
+  -webkit-app-region: no-drag;
+}
+
+.window-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  min-height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--on-surface);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.window-control:hover {
+  background: var(--hover-overlay);
+}
+
+.window-control-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+/* ── New Project Dialog ── */
+.topbar-new-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.topbar-new-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-soft);
+  min-width: 320px;
+}
+
+.topbar-new-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+}

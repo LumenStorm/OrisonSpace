@@ -36,7 +36,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     );
 
     const user = result.rows[0];
-    const token = createToken(user.id);
+    const token = await createToken(user.id);
 
     return reply.code(201).send({
       accessToken: token,
@@ -72,7 +72,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return reply.code(401).send({ error: 'Invalid email or password' });
     }
 
-    const token = createToken(user.id);
+    const token = await createToken(user.id);
 
     return reply.code(200).send({
       accessToken: token,

@@ -17,6 +17,9 @@ projects:
   newProject: "New Project"
   openProject: "Open Project"
   projectName: "Project name"
+  projectType: "Project Type"
+  typeNovel: "Novel"
+  typeScript: "Script"
   create: "Create"
   cancel: "Cancel"
   recentProjects: "Recent Projects"
@@ -24,9 +27,13 @@ projects:
 nav:
   project: "Project"
   outline: "Outline"
+  novel: "Novel"
   script: "Script"
   storyboard: "Storyboard"
   video: "Video"
+  settings: "Settings"
+  account: "Account"
+  logout: "Logout"
 
 outline:
   projectTitle: "Project Title"

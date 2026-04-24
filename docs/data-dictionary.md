@@ -10,7 +10,7 @@
 | display_name | VARCHAR(100) | — | 显示名称 |
 | created_at | TIMESTAMPTZ | DEFAULT NOW() | 注册时间 |
 
-数据库：`orison_dev`，连接串：`postgresql://root:root@localhost:5432/orison_dev`
+数据库：`orison_dev`，连接串：`postgresql://postgres:root@localhost:5432/orison_dev`（服务端启动时自动创建库和表）
 
 ---
 

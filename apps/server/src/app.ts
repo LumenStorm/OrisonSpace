@@ -1,5 +1,6 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import { initDatabase } from './common/db';
 import { env } from './common/env';
 import { registerHealthRoutes } from './common/health';
 import { logger } from './common/logger';
@@ -14,9 +15,21 @@ export function buildServer() {
     bodyLimit: 1_048_576
   });
 
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:4000',
+    'app://.',
+  ];
+
   app.register(cors, {
-    origin: true,
-    credentials: true
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'), false);
+      }
+    },
+    credentials: true,
   });
 
   app.register(authPlugin);
@@ -31,8 +44,10 @@ export function buildServer() {
 if (process.env.VITEST !== 'true') {
   const app = buildServer();
 
-  app.listen({ port: env.PORT, host: '0.0.0.0' }).catch((error) => {
-    app.log.error(error);
-    process.exit(1);
-  });
+  initDatabase()
+    .then(() => app.listen({ port: env.PORT, host: '0.0.0.0' }))
+    .catch((error) => {
+      app.log.error(error);
+      process.exit(1);
+    });
 }

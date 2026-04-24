@@ -1,7 +1,18 @@
+import { useCallback, useState } from 'react';
 import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { useShallow } from 'zustand/react/shallow';
 
-const navItems: { key: WorkspaceModule; icon: string; i18nKey: string }[] = [
+type NavItem = { key: WorkspaceModule; icon: string; i18nKey: string };
+
+const novelNavItems: NavItem[] = [
+  { key: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' },
+  { key: 'novel', icon: 'menu_book', i18nKey: 'nav.novel' },
+  { key: 'storyboard', icon: 'view_quilt', i18nKey: 'nav.storyboard' },
+  { key: 'video', icon: 'movie_filter', i18nKey: 'nav.video' },
+];
+
+const scriptNavItems: NavItem[] = [
   { key: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' },
   { key: 'script', icon: 'description', i18nKey: 'nav.script' },
   { key: 'storyboard', icon: 'view_quilt', i18nKey: 'nav.storyboard' },
@@ -9,10 +20,45 @@ const navItems: { key: WorkspaceModule; icon: string; i18nKey: string }[] = [
 ];
 
 export function SideNav() {
-  const activeModule = useAppStore((s) => s.activeModule);
-  const setActiveModule = useAppStore((s) => s.setActiveModule);
-  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
+  const {
+    activeModule, setActiveModule,
+    currentProject, resolvedLocale,
+    theme, setTheme,
+    locale, setLocale,
+    user, logout,
+  } = useAppStore(useShallow((s) => ({
+    activeModule: s.activeModule,
+    setActiveModule: s.setActiveModule,
+    currentProject: s.currentProject,
+    resolvedLocale: s.resolvedLocale,
+    theme: s.theme,
+    setTheme: s.setTheme,
+    locale: s.locale,
+    setLocale: s.setLocale,
+    user: s.user,
+    logout: s.logout,
+  })));
+
   const { t } = useI18n(resolvedLocale);
+  const navItems = currentProject?.type === 'novel' ? novelNavItems : scriptNavItems;
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+
+  const handleToggleSettings = useCallback(() => {
+    setShowSettings((v) => !v);
+    setShowAccount(false);
+  }, []);
+
+  const handleToggleAccount = useCallback(() => {
+    setShowAccount((v) => !v);
+    setShowSettings(false);
+  }, []);
+
+  const handleModuleClick = useCallback(
+    (key: WorkspaceModule) => setActiveModule(key),
+    [setActiveModule],
+  );
 
   return (
     <nav className="workspace-sidebar" aria-label="Module Navigation">
@@ -29,7 +75,7 @@ export function SideNav() {
               type="button"
               className={`workspace-treeItem${active ? ' workspace-treeItemActive' : ''}`}
               aria-current={active ? 'page' : undefined}
-              onClick={() => setActiveModule(item.key)}
+              onClick={() => handleModuleClick(item.key)}
             >
               <span className="material-symbols-outlined" aria-hidden="true">
                 {item.icon}
@@ -38,6 +84,74 @@ export function SideNav() {
             </button>
           );
         })}
+      </div>
+
+      <div className="sidebar-bottom">
+        {showSettings && (
+          <div className="sidebar-settings-panel">
+            <div className="sidebar-settings-row">
+              <span className="sidebar-settings-label">{t('settings.theme')}</span>
+              <div className="sidebar-settings-options">
+                {(['system', 'light', 'dark'] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`sidebar-settings-option${theme === v ? ' is-active' : ''}`}
+                    onClick={() => setTheme(v)}
+                  >
+                    {t(`settings.theme${v[0].toUpperCase() + v.slice(1)}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="sidebar-settings-row">
+              <span className="sidebar-settings-label">{t('settings.language')}</span>
+              <div className="sidebar-settings-options">
+                {(['system', 'zh-CN', 'en-US'] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    className={`sidebar-settings-option${locale === v ? ' is-active' : ''}`}
+                    onClick={() => setLocale(v)}
+                  >
+                    {v === 'system' ? t('settings.languageSystem') : v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className={`workspace-treeItem${showSettings ? ' workspace-treeItemActive' : ''}`}
+          onClick={handleToggleSettings}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">settings</span>
+          <span>{t('nav.settings')}</span>
+        </button>
+
+        {showAccount && (
+          <div className="sidebar-account-panel">
+            <div className="sidebar-account-info">
+              <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
+              <span className="sidebar-account-name">{user?.displayName || user?.email}</span>
+            </div>
+            <button type="button" className="sidebar-logout-btn" onClick={logout}>
+              <span className="material-symbols-outlined" aria-hidden="true">logout</span>
+              <span>{t('nav.logout')}</span>
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className={`workspace-treeItem${showAccount ? ' workspace-treeItemActive' : ''}`}
+          onClick={handleToggleAccount}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
+          <span>{t('nav.account')}</span>
+        </button>
       </div>
     </nav>
   );

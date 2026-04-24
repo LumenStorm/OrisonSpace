@@ -17,6 +17,9 @@ projects:
   newProject: "新建项目"
   openProject: "打开项目"
   projectName: "项目名称"
+  projectType: "项目类型"
+  typeNovel: "小说"
+  typeScript: "剧本"
   create: "创建"
   cancel: "取消"
   recentProjects: "最近项目"
@@ -24,9 +27,13 @@ projects:
 nav:
   project: "项目"
   outline: "大纲"
+  novel: "小说"
   script: "剧本"
   storyboard: "分镜"
   video: "视频"
+  settings: "设置"
+  account: "个人中心"
+  logout: "退出登录"
 
 outline:
   projectTitle: "项目标题"

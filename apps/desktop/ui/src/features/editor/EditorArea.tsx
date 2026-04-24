@@ -37,6 +37,7 @@ function AcceptedPatchesView() {
 
 const editors = {
   outline: OutlineEditor,
+  novel: ScriptEditor,
   script: ScriptEditor,
   storyboard: StoryboardCanvas,
   video: VideoEditor,

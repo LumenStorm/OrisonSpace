@@ -1,5 +1,5 @@
-import crypto from 'node:crypto';
 import fp from 'fastify-plugin';
+import { SignJWT, jwtVerify } from 'jose';
 import { env } from '../../common/env';
 import { query } from '../../common/db';
 
@@ -9,20 +9,24 @@ declare module 'fastify' {
   }
 }
 
-function verifyToken(token: string): string | null {
+const TOKEN_EXPIRY = '2h';
+const secret = new TextEncoder().encode(env.JWT_SECRET);
+
+async function verifyToken(token: string): Promise<string | null> {
   try {
-    const payload = Buffer.from(token, 'base64url').toString();
-    const parsed = JSON.parse(payload);
-    if (parsed.secret !== env.JWT_SECRET) return null;
-    return parsed.userId;
+    const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
+    return (payload.sub as string) ?? null;
   } catch {
     return null;
   }
 }
 
-export function createToken(userId: string): string {
-  const payload = JSON.stringify({ userId, secret: env.JWT_SECRET, iat: Date.now() });
-  return Buffer.from(payload).toString('base64url');
+export async function createToken(userId: string): Promise<string> {
+  return new SignJWT({ sub: userId })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(TOKEN_EXPIRY)
+    .sign(secret);
 }
 
 export const authPlugin = fp(async (app) => {
@@ -42,9 +46,9 @@ export const authPlugin = fp(async (app) => {
     }
 
     const token = header.slice(7);
-    const userId = verifyToken(token);
+    const userId = await verifyToken(token);
     if (!userId) {
-      return reply.code(401).send({ error: 'Invalid token' });
+      return reply.code(401).send({ error: 'Invalid or expired token' });
     }
 
     const result = await query('SELECT id FROM users WHERE id = $1', [userId]);
