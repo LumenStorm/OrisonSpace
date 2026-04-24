@@ -3,7 +3,7 @@ import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 import { detectSystemLocale, availableLocales } from '../i18n/useI18n';
 
-export type WorkspaceModule = 'outline' | 'script' | 'storyboard' | 'video';
+export type WorkspaceModule = 'outline' | 'novel' | 'script' | 'storyboard' | 'video';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
 export type LocaleSetting = 'system' | (string & {});
 type TaskRequest = z.infer<typeof taskRequestSchema>;
@@ -31,6 +31,7 @@ type UserInfo = {
 type ProjectMeta = {
   name: string;
   path: string;
+  type: 'novel' | 'script';
 };
 
 type AppState = {

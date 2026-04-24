@@ -14,6 +14,12 @@ const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
     { labelKey: 'inspector.outline.pacing', optionsKey: 'inspector.outline.options.pacing', defaultIndex: 0 },
     { labelKey: 'inspector.outline.tone', optionsKey: 'inspector.outline.options.tone', defaultIndex: 4 },
   ],
+  novel: [
+    { labelKey: 'inspector.script.sceneType', optionsKey: 'inspector.script.options.sceneType', defaultIndex: 0 },
+    { labelKey: 'inspector.script.timeOfDay', optionsKey: 'inspector.script.options.timeOfDay', defaultIndex: 0 },
+    { labelKey: 'inspector.script.dialogueStyle', optionsKey: 'inspector.script.options.dialogueStyle', defaultIndex: 0 },
+    { labelKey: 'inspector.script.format', optionsKey: 'inspector.script.options.format', defaultIndex: 0 },
+  ],
   script: [
     { labelKey: 'inspector.script.sceneType', optionsKey: 'inspector.script.options.sceneType', defaultIndex: 0 },
     { labelKey: 'inspector.script.timeOfDay', optionsKey: 'inspector.script.options.timeOfDay', defaultIndex: 0 },
@@ -34,6 +40,7 @@ const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
 
 const aspectRatios: Record<WorkspaceModule, string[]> = {
   outline: [],
+  novel: [],
   script: [],
   storyboard: ['16:9', '2.35:1', '4:3', '9:16'],
   video: ['16:9', '2.35:1', '4:3', '9:16'],
@@ -41,6 +48,7 @@ const aspectRatios: Record<WorkspaceModule, string[]> = {
 
 const promptKeys: Record<WorkspaceModule, string> = {
   outline: 'inspector.outline.prompt',
+  novel: 'inspector.script.prompt',
   script: 'inspector.script.prompt',
   storyboard: 'inspector.storyboard.prompt',
   video: 'inspector.video.prompt',
@@ -48,6 +56,7 @@ const promptKeys: Record<WorkspaceModule, string> = {
 
 const actionKeys: Record<WorkspaceModule, string> = {
   outline: 'inspector.outline.rewrite',
+  novel: 'inspector.script.rewrite',
   script: 'inspector.script.rewrite',
   storyboard: 'inspector.storyboard.rewrite',
   video: 'inspector.video.rewrite',

@@ -214,8 +214,8 @@ ProjectDocument
 
 | 项目 | 值 |
 |------|-----|
-| UI 字体 | Inter, 400/500/600 |
-| 内容字体 | Newsreader, 400/500 |
+| UI 字体 | Inter, Noto Sans SC, 400/500/600 |
+| 内容字体 | Newsreader, Noto Serif SC, 400/500 |
 | 图标 | Material Symbols Outlined |
 | 主色调 | sage green #6B7A6A |
 | 强调色 | #586657 |

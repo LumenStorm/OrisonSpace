@@ -1,5 +1,6 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
+import { initDatabase } from './common/db';
 import { env } from './common/env';
 import { registerHealthRoutes } from './common/health';
 import { logger } from './common/logger';
@@ -29,8 +30,10 @@ export function buildServer() {
 if (process.env.VITEST !== 'true') {
   const app = buildServer();
 
-  app.listen({ port: env.PORT, host: '0.0.0.0' }).catch((error) => {
-    app.log.error(error);
-    process.exit(1);
-  });
+  initDatabase()
+    .then(() => app.listen({ port: env.PORT, host: '0.0.0.0' }))
+    .catch((error) => {
+      app.log.error(error);
+      process.exit(1);
+    });
 }

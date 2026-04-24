@@ -3,6 +3,12 @@
 @import "./pages.css";
 
 /* ── Reset ── */
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
 body {
   height: 100vh;
   overflow: hidden;
@@ -111,7 +117,7 @@ body {
 /* ── Workspace Shell ── */
 .workspace-shell {
   display: flex;
-  min-height: 100vh;
+  flex: 1;
   flex-direction: column;
   background: var(--background);
 }
@@ -213,6 +219,33 @@ body {
   color: #fff;
 }
 
+/* ── TopBar New Project Dialog ── */
+.topbar-new-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.topbar-new-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-soft);
+  min-width: 320px;
+}
+
+.topbar-new-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* ── Body Grid ── */
 .workspace-body {
   display: grid;
@@ -255,6 +288,7 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   padding: 0.75rem 0.5rem;
+  flex: 1;
 }
 
 .workspace-treeItem {
@@ -287,6 +321,112 @@ body {
 
 .workspace-treeItem .material-symbols-outlined {
   font-size: 18px;
+}
+
+/* ── Sidebar Bottom ── */
+.sidebar-bottom {
+  border-top: 1px solid var(--outline-variant);
+  padding: 0.5rem;
+}
+
+.sidebar-settings-panel,
+.sidebar-account-panel {
+  padding: 0.75rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--surface-container);
+}
+
+.sidebar-settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-settings-row:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-settings-label {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+  font-weight: 500;
+}
+
+.sidebar-settings-options {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.sidebar-settings-option {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-settings-option:hover {
+  background: var(--hover-overlay);
+}
+
+.sidebar-settings-option.is-active {
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+  border-color: var(--accent);
+}
+
+.sidebar-account-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-account-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--on-surface);
+}
+
+.sidebar-account-info .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--on-surface-variant);
+}
+
+.sidebar-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--error);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sidebar-logout-btn:hover {
+  background: var(--error-bg);
+}
+
+.sidebar-logout-btn .material-symbols-outlined {
+  font-size: 16px;
 }
 
 /* ── Main Content ── */

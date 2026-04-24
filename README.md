@@ -2,7 +2,7 @@
 
 AI 驱动的影视创作 IDE —— 从一句话创意到完整视频。
 
-核心理念：AI 主导生成，人类审阅、接受或拒绝。工作流程为：创意 → 大纲 → 剧本 → 分镜 → 视频。
+核心理念：AI 主导生成，人类审阅、接受或拒绝。新建项目时选择类型（小说 novel / 剧本 script），工作流程为：创意 → 大纲 → 小说/剧本 → 分镜 → 视频。
 
 ## 项目结构
 
@@ -37,20 +37,9 @@ pnpm install
 
 ### 数据库初始化
 
-```sql
--- 连接 PostgreSQL 后执行
-CREATE ROLE root WITH LOGIN PASSWORD 'root' SUPERUSER;
-CREATE DATABASE orison_dev;
+服务端启动时会自动检测并创建数据库 `orison_dev` 和 `users` 表，无需手动执行 SQL。
 
--- 连接 orison_dev 后执行
-CREATE TABLE IF NOT EXISTS users (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email         VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  display_name  VARCHAR(100),
-  created_at    TIMESTAMPTZ DEFAULT NOW()
-);
-```
+默认使用 PostgreSQL 自带的 `postgres` 账户连接（`postgresql://postgres:root@localhost:5432/orison_dev`），可通过环境变量 `DATABASE_URL` 覆盖。
 
 如果 Electron 下载缓慢，可设置国内镜像：
 
@@ -159,7 +148,7 @@ refactor(store): extract project state
 - React 函数组件 + Hooks
 - 状态管理使用 Zustand
 - 样式使用 CSS 变量 + BEM-like 类名（无 CSS-in-JS）
-- 字体：Inter（UI）/ Newsreader（内容展示）
+- 字体：Inter + Noto Sans SC（UI）/ Newsreader + Noto Serif SC（内容展示），均为开源可商用
 - 图标：Material Symbols Outlined
 
 ### 数据流
@@ -178,8 +167,10 @@ refactor(store): extract project state
 ## 文档
 
 - [UI 页面与元素设计](docs/ui-design.md)
+- [数据字典](docs/data-dictionary.md)
 - [桌面端 IPC 协议](docs/ipc/desktop-ipc.md)
 - [服务端 API](docs/api/server-api.md)
+- [开发计划](docs/plan.md)
 
 ## License
 

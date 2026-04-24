@@ -14,8 +14,8 @@ const themesDir = path.resolve(__dirname);
 const outFile = path.resolve(__dirname, '../styles/tokens.css');
 
 const staticTokens = `
-  --font-ui: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-display: "Newsreader", "Georgia", serif;
+  --font-ui: "Inter", "Noto Sans SC", "Segoe UI", sans-serif;
+  --font-display: "Newsreader", "Noto Serif SC", "Georgia", serif;
   --sidebar-width: 260px;
   --inspector-width: 300px;
 `;
