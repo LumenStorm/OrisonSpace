@@ -16,7 +16,7 @@ export async function executePythonNode({
   workspaceRoot
 }: ExecutePythonNodeInput): Promise<PythonRunnerResponse> {
   return new Promise((resolve, reject) => {
-    const resolvedWorkspaceRoot = workspaceRoot ?? path.resolve(process.cwd(), '../..');
+    const resolvedWorkspaceRoot = workspaceRoot ?? process.cwd();
     const child = spawn(pythonCommand, [path.resolve(resolvedWorkspaceRoot, runnerPath)], {
       cwd: resolvedWorkspaceRoot,
       stdio: ['pipe', 'pipe', 'pipe']

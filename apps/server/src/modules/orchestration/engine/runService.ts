@@ -3,6 +3,9 @@ import { orchestrationRunSchema } from '@orison/shared-contracts';
 import { createNodeRegistry } from './registry';
 import { executePythonNodeWithTimeout } from './pythonNodeExecutor';
 import { routeReview } from './reviewRouter';
+import { createArchiveRecord } from './archiveService';
+import { buildDeliveryOutput } from './deliveryService';
+import { buildFeedback } from './feedbackService';
 import { runStore } from '../store/runStore';
 import type { RunSnapshot, StartRunCommand } from '../contracts/run';
 
@@ -22,7 +25,9 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
         pendingNodes: nodes.map((node) => node.id),
         artifacts: {},
         review: null,
-        archive: null
+        archive: null,
+        delivery: null,
+        feedback: null
       });
 
       for (const node of nodes) {
@@ -113,6 +118,18 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
           ...run,
           status: 'approved',
           currentNodeId: null
+        };
+
+        // 归档 → 交付 → 数据回流
+        const archive = createArchiveRecord(run);
+        const delivery = buildDeliveryOutput(run);
+        const feedback = buildFeedback(run);
+        run = {
+          ...run,
+          status: 'delivered',
+          archive,
+          delivery,
+          feedback
         };
       }
 

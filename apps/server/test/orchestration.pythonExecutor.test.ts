@@ -1,7 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { executePythonNode } from '../src/modules/orchestration/engine/pythonNodeExecutor';
 
+const MOCK_STORY_PLAN = JSON.stringify({
+  title: 'Mock Story',
+  premise: 'A test premise',
+  tone: 'dark',
+  acts: [{ id: 'act_1', title: 'Act 1', goal: 'Open', conflict: 'None', turn: 'None' }],
+  characters: [{ id: 'char_1', name: 'Hero', role: 'protagonist', goal: 'survive', risk: 'death' }]
+});
+
 describe('python node executor', () => {
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    process.env.OPENAI_RESPONSES_MOCK_JSON = MOCK_STORY_PLAN;
+  });
+
+  afterEach(() => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_RESPONSES_MOCK_JSON;
+  });
+
   it('executes the runner and parses a success payload', async () => {
     const result = await executePythonNode({
       pythonCommand: 'python',
@@ -34,7 +52,7 @@ describe('python node executor', () => {
     }
     expect(result.state_key ?? result.stateKey).toBe('planning.storyPlan');
     expect(result.artifact).toMatchObject({
-      summary: 'Python story plan for: Write a dark opening.'
+      title: 'Mock Story'
     });
   });
 });

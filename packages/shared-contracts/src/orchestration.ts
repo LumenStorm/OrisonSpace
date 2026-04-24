@@ -24,6 +24,25 @@ export const orchestrationArchiveSchema = z.object({
   promptFiles: z.array(z.string()).default([])
 }).nullable();
 
+export const deliveryOutputSchema = z.object({
+  deliveryId: z.string().min(1),
+  deliveredAt: z.string().datetime(),
+  format: z.enum(['json', 'yaml', 'markdown']).default('json'),
+  content: z.record(z.string(), z.unknown()),
+  summary: z.string().min(1)
+}).nullable();
+
+export const dataFeedbackSchema = z.object({
+  feedbackId: z.string().min(1),
+  createdAt: z.string().datetime(),
+  assetPatches: z.array(z.object({
+    target: z.enum(['asset', 'rule', 'prompt']),
+    key: z.string().min(1),
+    value: z.unknown()
+  })).default([]),
+  memo: z.string().default('')
+}).nullable();
+
 export const orchestrationRunSchema = z.object({
   runId: z.string().min(1),
   status: orchestrationStatusSchema,
@@ -33,7 +52,9 @@ export const orchestrationRunSchema = z.object({
   pendingNodes: z.array(z.string()),
   artifacts: z.record(z.string(), z.unknown()),
   review: orchestrationReviewSchema,
-  archive: orchestrationArchiveSchema
+  archive: orchestrationArchiveSchema,
+  delivery: deliveryOutputSchema.optional().default(null),
+  feedback: dataFeedbackSchema.optional().default(null)
 });
 
 export const orchestrationNodeConfigSchema = z.object({
