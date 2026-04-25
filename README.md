@@ -1,47 +1,62 @@
 # Orison Space (OneLine2Video)
 
-AI 驱动的影视创作 IDE —— 从一句话创意到完整视频。
+Orison Space is an AI-assisted creative workspace for long-form stories, scripts, storyboards, and video planning.
 
-核心理念：AI 主导生成，人类审阅、接受或拒绝。新建项目时选择类型（小说 novel / 剧本 script），工作流程为：创意 → 大纲 → 小说/剧本 → 分镜 → 视频。
+The product direction is a desktop-first creative IDE: AI generates and expands structured creative material, while the user reviews, edits, accepts, rejects, or reruns the result. The local project remains the authority for creative content; server and agent services provide authentication, task intake, orchestration, and generation support.
 
-## 项目结构
+## Current Capabilities
 
+- Desktop workspace built with Electron, React, TypeScript, Zustand, and CSS modules.
+- Local-first project model for novel and script projects.
+- Structured creative fields for brief, world setting, outline, episode outlines, growth curve, pacing curve, emotion curve, asset cards, and relationship graph.
+- Fastify server for authentication, task APIs, database initialization, and orchestration proxying.
+- Agent service for multi-agent orchestration runs, review actions, archive metadata, delivery output, and data feedback.
+- Python node bridge for selected agent nodes.
+- Shared Zod contracts for project documents, patches, creative fields, workflow sync, tasks, auth, IPC, and orchestration.
+
+## Repository Layout
+
+```text
+OneLine2Video/
+  apps/
+    agent/                Multi-agent orchestration service
+      prompts/            Agent prompt YAML files
+      python/             Python node implementations
+      src/                Fastify app, run engine, registry, contracts
+      test/               Agent and orchestration tests
+    desktop/
+      shell/              Electron main, preload, and renderer shell
+      ui/                 React UI, pages, features, Zustand store, styles
+      local-bff/          Local project repository, field sync, desktop adapters
+    server/               Remote API server, auth, tasks, orchestration proxy
+  packages/
+    shared-contracts/     Zod schemas and shared DTOs
+    shared-utils/         Shared pure utilities
+    ui-kit/               Shared UI package
+    eslint-config/        Shared lint configuration
+  docs/
+    api/                  Server API notes
+    ipc/                  Desktop IPC notes
+    superpowers/          Design specs and implementation plans
+  run.bat                 Windows development launcher
+  pnpm-workspace.yaml     pnpm workspace definition
+  turbo.json              Turborepo pipeline configuration
 ```
-oneline2video/
-├── apps/
-│   ├── desktop/
-│   │   ├── shell/          # Electron 主进程 + 预加载 + 渲染入口
-│   │   ├── ui/             # React UI 组件（页面、功能模块、样式）
-│   │   └── local-bff/      # 本地 BFF 层（IPC 桥接、本地数据持久化）
-│   └── server/             # 远程服务端（Fastify，负责认证、任务提交、配额）
-├── packages/
-│   ├── shared-contracts/   # Zod schema 契约（项目、任务、认证、IPC）
-│   ├── shared-utils/       # 公共工具函数
-│   ├── ui-kit/             # 通用 UI 组件库
-│   └── eslint-config/      # 共享 ESLint 配置
-├── turbo.json              # Turborepo 构建编排
-└── pnpm-workspace.yaml     # pnpm 工作区配置
-```
 
-## 环境要求
+## Requirements
 
-- Node.js >= 22
-- pnpm >= 10
-- PostgreSQL >= 14
+- Node.js 22 or newer
+- pnpm 10 or newer
+- PostgreSQL 14 or newer
+- Python 3.10 or newer for Python-backed agent nodes
 
-## 安装
+## Install
 
 ```bash
 pnpm install
 ```
 
-### 数据库初始化
-
-服务端启动时会自动检测并创建数据库 `orison_dev` 和 `users` 表，无需手动执行 SQL。
-
-默认使用 PostgreSQL 自带的 `postgres` 账户连接（`postgresql://postgres:root@localhost:5432/orison_dev`），可通过环境变量 `DATABASE_URL` 覆盖。
-
-如果 Electron 下载缓慢，可设置国内镜像：
+If Electron downloads are slow in your network environment, set an Electron mirror before installing dependencies.
 
 ```bash
 # Windows
@@ -51,135 +66,156 @@ set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 ```
 
-## 启动
+## Environment
 
-```bash
-# 启动后端服务 + 桌面应用（推荐）
-run.bat 选项 1
+The server reads `.env` through `tsx --env-file=.env`. The agent service reads `apps/agent/.env.agent`.
 
-# 单独启动后端服务
-pnpm dev:server
+Server defaults:
 
-# 单独启动桌面应用（需先启动后端）
-pnpm dev
+```text
+PORT=4000
+DATABASE_URL=postgresql://postgres:root@localhost:5432/orison_dev
+AGENT_URL=http://localhost:18422
+JWT_SECRET=orison-dev-secret-key-NOT-FOR-PRODUCTION
+DEMO_ACCESS_TOKEN=demo-access-token
 ```
 
-也可以使用 `run.bat`（Windows）菜单启动。
+Agent defaults:
 
-### 测试账号
+```text
+PORT=18422
+LOG_LEVEL=info
+```
 
-| 邮箱 | 密码 |
-|------|------|
-| test@orison.dev | test123 |
+On startup, the server checks whether the target PostgreSQL database exists and creates the `users` table if needed.
 
-## 构建
+## Development
+
+Start the full local development stack on Windows:
 
 ```bash
-# 全量构建
+run.bat
+```
+
+Choose option `1` to start the agent service, server, and Electron desktop app together.
+
+Common pnpm commands:
+
+```bash
+# Desktop app
+pnpm dev
+
+# Server only, default http://localhost:4000
+pnpm dev:server
+
+# Agent service only, default http://localhost:18422
+pnpm dev:agent
+
+# Build all packages and apps
 pnpm build
 
-# 单独构建桌面应用
+# Build desktop app
 pnpm build:desktop
 
-# 单独构建服务端
+# Build server
 pnpm build:server
 ```
 
-## 测试 & 检查
+## Testing And Checks
 
 ```bash
-# 运行全部测试
+# Run all tests through Turbo
 pnpm test
 
-# 类型检查
+# Type-check all workspaces
 pnpm typecheck
 
-# 代码检查
+# Run lint scripts
 pnpm lint
 ```
 
-## 开发规范
-
-### 分支
-
-- `main` — 稳定发布分支
-- `dev` — 日常开发分支
-- 功能分支从 `dev` 切出，命名 `feat/xxx` 或 `fix/xxx`
-
-### 同步代码
-
-协同开发时，拉取最新代码请使用 `git remote update` + `git rebase`，避免产生多余的 merge commit：
+Targeted examples:
 
 ```bash
-# 1. 拉取远程所有分支的最新状态
-git remote update
-
-# 2. 将本地提交变基到远程最新节点上
-git rebase origin/dev
+pnpm --filter @orison/server test
+pnpm --filter @orison/agent test
+pnpm --filter @orison/desktop-ui test
+pnpm --filter @orison/shared-contracts test
 ```
 
-如果 rebase 过程中遇到冲突：
+## Runtime Services
 
-```bash
-# 解决冲突后
-git add <冲突文件>
-git rebase --continue
+### Server
 
-# 如果想放弃本次 rebase
-git rebase --abort
-```
+The server is the desktop client's remote API entrypoint. It owns:
 
-> 注意：不要使用 `git pull`（默认会产生 merge commit），保持提交历史线性。
+- `/health`
+- `/v1/auth/register`
+- `/v1/auth/login`
+- `/v1/tasks`
+- `/v1/tasks/:taskId`
+- `/v1/orchestration/*` proxy routes to the agent service
 
-### 提交信息
+### Agent
 
-遵循 [Conventional Commits](https://www.conventionalcommits.org/)：
+The agent service owns orchestration execution:
 
-```
-feat(ui): add welcome page
-fix(shell): resolve CSP font loading
-docs: update UI design spec
-refactor(store): extract project state
-```
+- `/v1/orchestration/runs`
+- `/v1/orchestration/runs/:runId`
+- `/v1/orchestration/actions`
 
-### 代码风格
+It supports the legacy orchestration request shape and the newer creative run request shape. Agent outputs are validated through shared contracts before being delivered back to the desktop workflow.
 
-- TypeScript strict 模式
-- React 函数组件 + Hooks
-- 状态管理使用 Zustand（按职责拆分为 slices：auth / project / settings / panels / tasks）
-- 样式使用 CSS 变量 + BEM-like 类名（无 CSS-in-JS），按模块拆分为独立 CSS 文件
-- 字体：Inter + Noto Sans SC（UI）/ Newsreader + Noto Serif SC（内容展示），均为开源可商用
-- 图标：Material Symbols Outlined
-- 性能：组件使用 `useShallow` 合并 selector，回调使用 `useCallback`
-- 安全：JWT 使用 `jose` 库 HS256 签名 + 2h 过期，CORS 白名单限制
+### Desktop
 
-### 数据流
+The Electron shell provides the native host surface and preload bridge. The React UI renders:
 
-- 本地优先：项目数据存储在客户端，服务端仅处理认证、任务和配额
-- AI 任务通过 `taskRequest` 提交，返回 `patchOperations`
-- 所有 AI 结果需经用户审阅后才合并到本地数据
+- Auth and project entry screens
+- Workspace layout with side navigation, editor area, inspector, and task feed
+- Creative field editors and review panels
+- Orchestration run status and actions
 
-### 目录约定
+The local BFF layer handles local project repository logic, field sync, and desktop-side adapters.
 
-- `pages/` — 页面级组件
-- `features/` — 功能模块组件
-- `widgets/` — 布局组件
-- `shared/` — 公共状态、样式、类型、数据
-  - `store/` — Zustand slices（authSlice / projectSlice / settingsSlice / panelsSlice / tasksSlice）
-  - `styles/` — 模块化 CSS（global.css 仅做 import + reset）
-  - `components/` — 共享组件（NewProjectDialog / WindowControls / ResizeHandle）
-  - `data/` — 配置数据（inspectorFields）
-  - `constants.ts` — 全局常量（API 地址、面板尺寸、断点）
-  - `i18n/` — 多语言
+## Project Data Model
 
-## 文档
+Project documents are validated with `projectDocumentSchema` from `@orison/shared-contracts`.
 
-- [UI 页面与元素设计](docs/ui-design.md)
-- [数据字典](docs/data-dictionary.md)
-- [桌面端 IPC 协议](docs/ipc/desktop-ipc.md)
-- [服务端 API](docs/api/server-api.md)
-- [开发计划](docs/plan.md)
+Core project areas:
+
+- `meta`: project identity, type, version, timestamps
+- `outline`: classic outline
+- `detailed_outline`: scene or chapter planning
+- `novel`: chapter list and content file references
+- `script`: scene list, dialogue data, and content file references
+- `storyboard`: shots and source references
+- `video`: generated clip metadata
+- `assets`: characters and locations
+- `creative_*`: newer creative field structures used by the agent workflow
+
+Agent-generated updates are returned as field-level patches and must be reviewed before they are applied.
+
+## Development Conventions
+
+- TypeScript strict mode.
+- React function components and hooks.
+- Zustand store split by responsibility.
+- Zod schemas for all cross-process and cross-package contracts.
+- Local project data is authoritative.
+- Server and agent modules must not depend on desktop implementation details.
+- `packages/shared-contracts` must stay framework-neutral.
+- AI output should be structured, reviewable, and reversible.
+
+## Useful Documentation
+
+- [Server API](docs/api/server-api.md)
+- [Desktop IPC](docs/ipc/desktop-ipc.md)
+- [Data Dictionary](docs/data-dictionary.md)
+- [UI Design](docs/ui-design.md)
+- [Development Plan](docs/plan.md)
+- [Design Specs](docs/superpowers/specs)
+- [Implementation Plans](docs/superpowers/plans)
 
 ## License
 
-Private
+Private.
