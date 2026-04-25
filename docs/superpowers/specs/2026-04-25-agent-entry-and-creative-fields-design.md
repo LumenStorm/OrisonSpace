@@ -147,6 +147,109 @@ type CreativeRunContext = {
 4. 子 agent 不把模型推理过程写入项目字段。
 5. 子 agent 不把临时审稿意见混入正式设定字段。
 
+## YAML-First Prompt and Artifact Storage
+
+提示词、节点契约和中间流转产物统一采用 YAML 文件作为持久化格式。目标是降低上下文传递成本，减少重复 token，并让每一步产物可审阅、可 diff、可回放。
+
+运行时仍使用结构化对象。TS 和 Python 在读取 YAML 后解析为对象，执行 schema 校验，节点内部不直接操作未校验的 YAML 字符串。HTTP API 可以继续返回 JSON，以保持前端和现有客户端兼容。
+
+### Prompt YAML
+
+每个子 agent 的提示词和行为约束放入 YAML：
+
+```yaml
+agent_id: story-planner-agent
+role: story planner
+goal: generate or revise outline
+system: |
+  ...
+user: |
+  ...
+inputs:
+  from_state:
+    - creative_brief
+    - world_setting
+    - asset_cards
+outputs:
+  state_key: outline
+  schema: outline
+must:
+  - preserve locked facts
+must_not:
+  - write chapter prose
+quality_gates:
+  - has central conflict
+  - has major turning points
+```
+
+`AgentContract` 是代码层权威结构，Prompt YAML 是它的可编辑载体。加载时必须校验两者一致：`agent_id`、输入、输出、禁止项和质量门不能互相矛盾。
+
+### Artifact YAML
+
+中间流转产物按 run 存放为 YAML：
+
+```text
+project-config/
+  prompts/
+    story-planner-agent.yaml
+  runs/
+    run_<id>/
+      artifacts/
+        creative_brief.yaml
+        world_setting.yaml
+        asset_cards.yaml
+        relationship_graph.yaml
+        outline.yaml
+        growth_curve.yaml
+        pacing_curve.yaml
+        emotion_curve.yaml
+        episode_outlines.yaml
+        review.latest.yaml
+      context-packets/
+        story-planner-agent.yaml
+        episode-planner-agent.yaml
+```
+
+`artifacts/*.yaml` 是完整中间产物，用于审阅、回放和数据回流。`context-packets/*.yaml` 是传给下游 agent 的瘦身上下文，只包含该节点需要的字段、字段版本和引用。
+
+### Token Budget Strategy
+
+下游 agent 不默认接收完整历史产物。上下文构建遵循：
+
+1. 优先传 `context-packet`，而不是完整 artifact。
+2. 大字段使用 `fieldRef`、`entityRefs` 和摘要。
+3. 节点只展开 `reads` 中声明的字段。
+4. 对 `asset_cards` 和 `relationship_graph` 按相关角色、地点、集纲引用做裁剪。
+5. 对正文和长集纲使用摘要、范围引用和必要片段。
+
+示例：
+
+```yaml
+run_id: run_123
+node_id: episode-planner-agent
+field_versions:
+  outline: 4
+  asset_cards: 9
+  relationship_graph: 3
+refs:
+  outline: artifacts/outline.yaml
+  asset_cards:
+    file: artifacts/asset_cards.yaml
+    include_ids: [char_main, loc_school]
+inline:
+  requirement_summary: ...
+  target_episode_count: 12
+```
+
+### Storage Rules
+
+- YAML 是 prompt 和中间产物的落盘格式。
+- JSON Schema 或 Zod schema 仍是校验权威。
+- 每个 YAML artifact 必须带 `schema_version`、`field_version`、`generated_by`、`source_refs`。
+- 写入 YAML 前必须通过 schema 校验。
+- 读取 YAML 后必须再次校验，避免手工编辑破坏结构。
+- API 层可以把 YAML 解析结果转换成 JSON 返回。
+
 ## Creative Fields
 
 新增或强化以下项目字段。
@@ -491,13 +594,15 @@ intake-agent
    - 节点允许读取的字段
    - 节点专属 prompt
    - 全局 agent policy
-4. 节点返回 schema 化 artifact。
-5. TS 层校验 artifact，对应写入 `artifacts`。
-6. delivery 阶段把 artifacts 转换为 project patch。
-7. `AssetLibraryService` 从 artifacts、正文和 review 中提取资产/关系/规则候选。
-8. `ReviewGate` 判断候选补丁自动应用、等待用户确认或进入人工接管。
-9. `WorkflowSyncService` 应用补丁后更新字段版本、依赖图、stale 标记和同步事件。
-10. feedback 阶段把审稿和连续性记忆转换为候选回流补丁。
+4. Context builder 生成该节点的 YAML `context-packet`，裁剪无关字段。
+5. 节点读取 context packet，运行时解析为结构化对象。
+6. 节点返回 schema 化 artifact。
+7. TS 层校验 artifact，对应写入内存 artifacts，并落盘为 `artifacts/*.yaml`。
+8. delivery 阶段把 artifacts 转换为 project patch。
+9. `AssetLibraryService` 从 artifacts、正文和 review 中提取资产/关系/规则候选。
+10. `ReviewGate` 判断候选补丁自动应用、等待用户确认或进入人工接管。
+11. `WorkflowSyncService` 应用补丁后更新字段版本、依赖图、stale 标记和同步事件。
+12. feedback 阶段把审稿和连续性记忆转换为候选回流补丁。
 
 ## Real-Time Workflow Synchronization
 
@@ -546,6 +651,8 @@ intake-agent
 - `assets.characters` 和 `assets.locations` 保留，后续可从 `asset_cards` 派生。
 - 人物关系先进入 `relationship_graph`，旧 UI 若没有关系网视图，可以忽略该字段。
 - 现有 `/v1/orchestration/runs` API 可继续使用，内部转换到 `CreativeRunContext`。
+- 内部 prompt、context packet 和中间 artifacts 使用 YAML 存储；API 响应继续可以是 JSON。
+- 旧 JSON artifact 测试可以保留，但需要新增 YAML round-trip 测试。
 
 ## Testing Strategy
 
@@ -561,6 +668,9 @@ intake-agent
 8. `apps/agent`：资产自动上库会生成 `asset_cards` 和 `relationship_graph` 补丁。
 9. `apps/agent`：资产、世设或大纲变更会生成 `WorkflowSyncEvent` 并标记下游 stale 字段。
 10. `apps/agent`：审核使用的字段版本必须等于 run snapshot 中记录的版本。
+11. `apps/agent`：Prompt YAML 加载后与 `AgentContract` 一致。
+12. `apps/agent`：artifact 写入 YAML 后再读取，schema 校验结果不变。
+13. `apps/agent`：context packet 只包含目标节点 `reads` 中声明的字段和必要引用。
 
 ## Rollout Plan
 
@@ -572,6 +682,8 @@ intake-agent
 - 更新核心节点输出 schema。
 - 增加资产自动上库候选补丁结构。
 - 增加字段版本、依赖图、stale 字段和同步事件结构。
+- 建立 Prompt YAML loader，并校验其与 `AgentContract` 一致。
+- 建立 artifact YAML writer/reader 和 context packet builder。
 - 保持现有 UI 不变。
 
 ### Phase 2: Artifact to Project Patch
@@ -581,6 +693,8 @@ intake-agent
 - 旧字段派生兼容。
 - 保存 `asset_cards`、`relationship_graph` 和字段元信息。
 - 用户编辑人物关系后能触发同步事件。
+- 将 run 中间产物落盘到 `project-config/runs/<runId>/artifacts/*.yaml`。
+- 下游节点通过 `context-packets/*.yaml` 获取瘦身上下文。
 
 ### Phase 3: UI Exposure
 
@@ -597,6 +711,7 @@ intake-agent
 - 旧字段不删除，避免破坏现有项目和测试。
 - draw.io 图中的数据回流升级为 `AssetLibraryService`、`WorkflowSyncService` 和 `ReviewGate`。
 - 资产自动上库先以候选补丁和字段版本同步落地，避免 agent 覆盖用户锁定内容。
+- prompt 和中间流转产物采用 YAML 落盘，运行时解析为对象并继续使用 schema 校验。
 
 ## Success Criteria
 
@@ -608,3 +723,5 @@ intake-agent
 6. 资产和人物关系可以自动进入资产库候选区，并保留来源、版本和锁定信息。
 7. 世设、大纲、曲线、资产卡、关系网和集纲变化后，工作流能实时标记受影响的下游字段。
 8. 多维审核始终知道自己审核的是哪些字段版本。
+9. 每个 run 的关键中间产物都能以 YAML 文件审阅和回放。
+10. 下游 agent 的上下文包能省略无关大字段，只携带必要 YAML 片段和引用。
