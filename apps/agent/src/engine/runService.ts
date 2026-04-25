@@ -9,6 +9,7 @@ import { buildDeliveryOutput } from './deliveryService';
 import { buildFeedback } from './feedbackService';
 import { buildCreativeRunContext } from './contextBuilder';
 import { writeArtifactYaml, buildContextPacket, writeContextPacketYaml } from './artifactYaml';
+import { syncForeshadowRegistryFromEpisodes } from './foreshadowLedger';
 import { runStore } from '../store/runStore';
 import type { RunSnapshot, StartRunCommand } from '../contracts/run';
 
@@ -95,11 +96,16 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
           break;
         }
 
+        const stateKey = result.state_key ?? result.stateKey;
+        if (!stateKey) {
+          throw new Error(`python node ${node.id} returned no state key`);
+        }
+
         run = {
           ...run,
           artifacts: {
             ...run.artifacts,
-            [result.state_key ?? result.stateKey]: result.artifact
+            [stateKey]: result.artifact
           },
           completedNodes: [...run.completedNodes, node.id],
           pendingNodes: run.pendingNodes.filter((id) => id !== node.id)
@@ -239,24 +245,60 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
         }
 
         const stateKey = result.state_key ?? result.stateKey;
+        if (!stateKey) {
+          throw new Error(`python node ${node.id} returned no state key`);
+        }
+        let nextArtifacts: Record<string, unknown> = {
+          ...run.artifacts,
+          [stateKey]: result.artifact
+        };
+        let derivedForeshadowRegistry: unknown | null = null;
+
+        if (stateKey === 'episode_outlines' && Array.isArray(result.artifact)) {
+          const synced = syncForeshadowRegistryFromEpisodes({
+            registry: nextArtifacts.foreshadow_registry ?? { items: [], version: 0, updatedBy: 'agent' },
+            episodeOutlines: result.artifact as Array<{
+              id: string;
+              index: number;
+              title?: string;
+              foreshadowing?: string[];
+              payoffs?: string[];
+              status?: string;
+            }>
+          });
+          derivedForeshadowRegistry = synced.registry;
+          nextArtifacts = {
+            ...nextArtifacts,
+            foreshadow_registry: synced.registry
+          };
+        }
+
         run = {
           ...run,
-          artifacts: {
-            ...run.artifacts,
-            [stateKey]: result.artifact
-          },
+          artifacts: nextArtifacts,
           completedNodes: [...run.completedNodes, node.id],
           pendingNodes: run.pendingNodes.filter((id) => id !== node.id)
         };
 
         // 落盘：将产物写入 YAML
         try {
+          const fieldVersion = stateKey in context.fieldVersions
+            ? context.fieldVersions[stateKey as keyof typeof context.fieldVersions] ?? 0
+            : 0;
           writeArtifactYaml(configRoot, run.runId, stateKey, result.artifact, {
             schema_version: 1,
-            field_version: context.fieldVersions[stateKey] ?? 0,
+            field_version: fieldVersion,
             generated_by: node.id,
             source_refs: []
           });
+          if (derivedForeshadowRegistry) {
+            writeArtifactYaml(configRoot, run.runId, 'foreshadow_registry', derivedForeshadowRegistry, {
+              schema_version: 1,
+              field_version: context.fieldVersions.foreshadow_registry ?? 0,
+              generated_by: node.id,
+              source_refs: [`artifact:${stateKey}`]
+            });
+          }
         } catch (err) { console.warn(`[${run.runId}] artifact 落盘失败 (${node.id}):`, err); }
 
         if (result.review) {

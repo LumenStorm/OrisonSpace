@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
-import type { CreativeFieldKey, FieldDependencyGraph, WorkflowSyncEvent } from './agent-contract';
-import { creativeFieldKeys } from './creative-fields';
+import type { FieldDependencyGraph, WorkflowSyncEvent } from './agent-contract';
+import { creativeFieldKeys, type CreativeFieldKey } from './creative-fields';
 
 // ── 硬编码依赖图 ──
 // upstream 变化 → downstream 需要重算
@@ -11,25 +11,30 @@ const DEPENDENCY_EDGES: { upstream: CreativeFieldKey; downstream: CreativeFieldK
   { upstream: 'asset_cards', downstream: 'growth_curve' },
   { upstream: 'asset_cards', downstream: 'pacing_curve' },
   { upstream: 'asset_cards', downstream: 'emotion_curve' },
+  { upstream: 'asset_cards', downstream: 'foreshadow_registry' },
   { upstream: 'asset_cards', downstream: 'episode_outlines' },
   { upstream: 'relationship_graph', downstream: 'world_setting' },
   { upstream: 'relationship_graph', downstream: 'outline' },
   { upstream: 'relationship_graph', downstream: 'growth_curve' },
   { upstream: 'relationship_graph', downstream: 'pacing_curve' },
   { upstream: 'relationship_graph', downstream: 'emotion_curve' },
+  { upstream: 'relationship_graph', downstream: 'foreshadow_registry' },
   { upstream: 'relationship_graph', downstream: 'episode_outlines' },
   { upstream: 'world_setting', downstream: 'outline' },
   { upstream: 'world_setting', downstream: 'growth_curve' },
   { upstream: 'world_setting', downstream: 'pacing_curve' },
   { upstream: 'world_setting', downstream: 'emotion_curve' },
+  { upstream: 'world_setting', downstream: 'foreshadow_registry' },
   { upstream: 'world_setting', downstream: 'episode_outlines' },
   { upstream: 'outline', downstream: 'growth_curve' },
   { upstream: 'outline', downstream: 'pacing_curve' },
   { upstream: 'outline', downstream: 'emotion_curve' },
+  { upstream: 'outline', downstream: 'foreshadow_registry' },
   { upstream: 'outline', downstream: 'episode_outlines' },
   { upstream: 'growth_curve', downstream: 'episode_outlines' },
   { upstream: 'pacing_curve', downstream: 'episode_outlines' },
-  { upstream: 'emotion_curve', downstream: 'episode_outlines' }
+  { upstream: 'emotion_curve', downstream: 'episode_outlines' },
+  { upstream: 'foreshadow_registry', downstream: 'episode_outlines' }
 ];
 
 export function getDefaultDependencyGraph(): FieldDependencyGraph {

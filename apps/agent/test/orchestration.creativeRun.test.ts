@@ -167,6 +167,12 @@ describe('creative run 最小产出验证', () => {
     expect(episodes[0].id).toBe('ep_1');
     expect(episodes[0].core_event).toBeDefined();
 
+    const foreshadows = a['foreshadow_registry'] as { items?: Array<Record<string, unknown>> };
+    expect(foreshadows).toBeDefined();
+    expect(foreshadows.items).toHaveLength(1);
+    expect(foreshadows.items?.[0].content).toBe('神秘电话');
+    expect(foreshadows.items?.[0].status).toBe('pending');
+
     // curves 来自 curve-planner
     const curves = a['curves'] as Record<string, unknown>;
     expect(curves).toBeDefined();

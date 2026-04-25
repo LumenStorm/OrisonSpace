@@ -12,7 +12,7 @@ inputs:
     - world_setting
 outputs:
   state_key: episode_outlines
-  schema: episodeOutlinesSchema
+  schema: episodePlannerOutputSchema
 must:
   - 每集包含目的、核心事件、情绪点、节奏点、伏笔、回收和钩子
 must_not:
@@ -20,6 +20,7 @@ must_not:
   - 写正文
 quality_gates:
   - each_episode_has_core_event
+  - foreshadows_have_payoff_plan
   - no_conflict_with_outline
 
 system: |

@@ -11,18 +11,20 @@ import {
   assetCardSchema,
   assetCardsSchema,
   relationshipGraphSchema,
+  foreshadowRegistrySchema,
   fieldMetadataSchema,
   creativeFieldKeys,
   creativeFieldKeySchema
 } from '../src';
 
 describe('creative-fields schemas', () => {
-  it('creativeFieldKeys 覆盖 9 个核心字段', () => {
-    expect(creativeFieldKeys).toHaveLength(9);
+  it('creativeFieldKeys 覆盖 10 个核心字段', () => {
+    expect(creativeFieldKeys).toHaveLength(10);
     expect(creativeFieldKeys).toContain('world_setting');
     expect(creativeFieldKeys).toContain('asset_cards');
     expect(creativeFieldKeys).toContain('relationship_graph');
     expect(creativeFieldKeys).toContain('episode_outlines');
+    expect(creativeFieldKeys).toContain('foreshadow_registry');
   });
 
   it('creativeFieldKeySchema 校验合法值', () => {
@@ -198,5 +200,29 @@ describe('creative-fields schemas', () => {
     expect(graph.nodes).toEqual([]);
     expect(graph.edges).toEqual([]);
     expect(graph.version).toBe(0);
+  });
+  it('foreshadowRegistrySchema tracks planting, payoff, urgency and context flags', () => {
+    const registry = foreshadowRegistrySchema.parse({
+      items: [
+        {
+          id: 'fs_red_key',
+          title: 'red key',
+          content: 'A red key appears before the locked tower is introduced.',
+          plant_ref: 'ep_1',
+          plant_index: 1,
+          target_resolve_ref: 'ep_5',
+          target_resolve_index: 5,
+          status: 'planted',
+          category: 'item',
+          related_asset_ids: ['prop_red_key']
+        }
+      ]
+    });
+
+    expect(registry.items[0].status).toBe('planted');
+    expect(registry.items[0].importance).toBe(0.5);
+    expect(registry.items[0].auto_remind).toBe(true);
+    expect(registry.items[0].include_in_context).toBe(true);
+    expect(registry.version).toBe(0);
   });
 });

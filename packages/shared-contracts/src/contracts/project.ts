@@ -9,6 +9,7 @@ import {
   emotionCurveSchema,
   assetCardsSchema,
   relationshipGraphSchema,
+  foreshadowRegistrySchema,
   fieldMetadataSchema,
   creativeFieldKeySchema
 } from './creative-fields';
@@ -211,5 +212,6 @@ export const projectDocumentSchema = z.object({
   emotion_curve: emotionCurveSchema.optional(),
   asset_cards: assetCardsSchema.optional(),
   relationship_graph: relationshipGraphSchema.optional(),
+  foreshadow_registry: foreshadowRegistrySchema.optional(),
   field_metadata: z.record(creativeFieldKeySchema, fieldMetadataSchema).optional()
 });

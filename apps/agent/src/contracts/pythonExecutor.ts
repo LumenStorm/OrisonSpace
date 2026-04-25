@@ -17,6 +17,8 @@ export type PythonRunnerRequest = {
   input: {
     requirement: string;
     artifacts: Record<string, unknown>;
+    reviewMode?: 'pass' | 'revise' | 'escalate';
+    context?: unknown;
   };
 };
 

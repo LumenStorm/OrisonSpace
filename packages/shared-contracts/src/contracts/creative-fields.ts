@@ -11,7 +11,8 @@ export const creativeFieldKeys = [
   'pacing_curve',
   'emotion_curve',
   'asset_cards',
-  'relationship_graph'
+  'relationship_graph',
+  'foreshadow_registry'
 ] as const;
 
 export type CreativeFieldKey = (typeof creativeFieldKeys)[number];
@@ -118,6 +119,77 @@ export const episodeOutlineSchema = z.object({
 });
 
 export const episodeOutlinesSchema = z.array(episodeOutlineSchema);
+
+// Foreshadow Registry
+
+export const foreshadowStatusSchema = z.enum([
+  'pending',
+  'planted',
+  'resolved',
+  'partially_resolved',
+  'abandoned'
+]);
+
+export const foreshadowSourceTypeSchema = z.enum(['manual', 'agent', 'analysis', 'imported']);
+
+export const foreshadowCategorySchema = z.enum([
+  'identity',
+  'mystery',
+  'item',
+  'relationship',
+  'event',
+  'ability',
+  'prophecy',
+  'motif',
+  'world_rule',
+  'custom'
+]);
+
+export const foreshadowEntrySchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).max(200),
+  content: z.string().min(1),
+  hint_text: z.string().optional(),
+  resolution_text: z.string().optional(),
+  source_type: foreshadowSourceTypeSchema.default('agent'),
+  source_memory_id: z.string().optional(),
+  source_analysis_id: z.string().optional(),
+  plant_ref: z.string().optional(),
+  plant_index: z.number().int().nonnegative().optional(),
+  target_resolve_ref: z.string().optional(),
+  target_resolve_index: z.number().int().nonnegative().optional(),
+  actual_resolve_ref: z.string().optional(),
+  actual_resolve_index: z.number().int().nonnegative().optional(),
+  status: foreshadowStatusSchema.default('pending'),
+  is_long_term: z.boolean().default(false),
+  importance: z.number().min(0).max(1).default(0.5),
+  strength: z.number().int().min(1).max(10).default(5),
+  subtlety: z.number().int().min(1).max(10).default(5),
+  urgency: z.number().int().min(0).max(3).default(0),
+  related_asset_ids: z.array(z.string()).default([]),
+  related_foreshadow_ids: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+  category: foreshadowCategorySchema.optional(),
+  notes: z.string().optional(),
+  resolution_notes: z.string().optional(),
+  auto_remind: z.boolean().default(true),
+  remind_before_units: z.number().int().min(1).max(20).default(5),
+  include_in_context: z.boolean().default(true),
+  sourceRefs: z.array(z.string()).default([]),
+  created_at: z.string().datetime().optional(),
+  updated_at: z.string().datetime().optional(),
+  planted_at: z.string().datetime().optional(),
+  resolved_at: z.string().datetime().optional()
+});
+
+export const foreshadowRegistrySchema = z.object({
+  items: z.array(foreshadowEntrySchema).default([]),
+  version: z.number().int().nonnegative().default(0),
+  updatedBy: z.enum(['user', 'agent', 'sync']).default('agent')
+});
+
+export type ForeshadowEntry = z.infer<typeof foreshadowEntrySchema>;
+export type ForeshadowRegistry = z.infer<typeof foreshadowRegistrySchema>;
 
 // ── Growth Curve 成长曲线 ──
 

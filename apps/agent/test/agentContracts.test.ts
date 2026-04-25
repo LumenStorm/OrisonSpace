@@ -53,7 +53,7 @@ describe('agentContracts 注册表', () => {
   it('每个有 owns 的核心创作字段至少被一个 agent 拥有', () => {
     const ownedFields = new Set(contracts.flatMap((c) => c.owns));
     // 这些字段必须有 owner
-    const requiredOwned = ['creative_brief', 'world_setting', 'outline', 'episode_outlines', 'asset_cards', 'relationship_graph'];
+    const requiredOwned = ['creative_brief', 'world_setting', 'outline', 'episode_outlines', 'asset_cards', 'relationship_graph', 'foreshadow_registry'];
     for (const f of requiredOwned) {
       expect(ownedFields.has(f), `字段 ${f} 没有被任何 agent 拥有`).toBe(true);
     }

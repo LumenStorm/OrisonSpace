@@ -115,8 +115,11 @@ export function createActionService() {
           });
         }
 
+        const stateKey = result.state_key ?? result.stateKey;
+        if (!stateKey) throw new Error(`Node ${node.id} returned no state key`);
+
         updated = runStore.update(runId, {
-          artifacts: { ...updated.artifacts, [result.state_key ?? result.stateKey]: result.artifact },
+          artifacts: { ...updated.artifacts, [stateKey]: result.artifact },
           completedNodes: [...updated.completedNodes, node.id],
           pendingNodes: updated.pendingNodes.filter((id) => id !== node.id)
         });
@@ -219,8 +222,11 @@ export function createActionService() {
           });
         }
 
+        const stateKey = result.state_key ?? result.stateKey;
+        if (!stateKey) throw new Error(`Node ${node.id} returned no state key`);
+
         updated = runStore.update(runId, {
-          artifacts: { ...updated.artifacts, [result.state_key ?? result.stateKey]: result.artifact },
+          artifacts: { ...updated.artifacts, [stateKey]: result.artifact },
           completedNodes: [...updated.completedNodes, node.id],
           pendingNodes: updated.pendingNodes.filter((id) => id !== node.id)
         });

@@ -4,7 +4,8 @@ import { computeAffectedFields, createSyncEvent, markStaleFields, initFieldVersi
 describe('workflowSync', () => {
   it('initFieldVersions 初始化所有字段为 0', () => {
     const versions = initFieldVersions();
-    expect(Object.keys(versions)).toHaveLength(9);
+    expect(Object.keys(versions)).toHaveLength(10);
+    expect(versions.foreshadow_registry).toBe(0);
     for (const v of Object.values(versions)) {
       expect(v).toBe(0);
     }
@@ -42,6 +43,12 @@ describe('workflowSync', () => {
   it('computeAffectedFields("episode_outlines") 无直接下游', () => {
     const affected = computeAffectedFields('episode_outlines');
     expect(affected).toEqual([]);
+  });
+
+  it('computeAffectedFields("foreshadow_registry") refreshes downstream episode planning', () => {
+    const affected = computeAffectedFields('foreshadow_registry');
+    expect(affected).toContain('episode_outlines');
+    expect(affected).not.toContain('foreshadow_registry');
   });
 
   it('computeAffectedFields 传递性：world_setting 变化影响 episode_outlines', () => {
