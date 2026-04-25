@@ -3,6 +3,7 @@ import { useAppStore } from '../../shared/store/appStore';
 import { OutlineEditor } from './OutlineEditor';
 import { ScriptEditor } from './ScriptEditor';
 import { VideoEditor } from './VideoEditor';
+import { CreativeFieldsEditor } from '../creative/CreativeFieldsEditor';
 
 function StoryboardCanvas() {
   return (
@@ -41,6 +42,7 @@ const editors = {
   script: ScriptEditor,
   storyboard: StoryboardCanvas,
   video: VideoEditor,
+  creative: CreativeFieldsEditor,
 } as const;
 
 export function EditorArea() {

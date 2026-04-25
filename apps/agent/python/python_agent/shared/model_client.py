@@ -38,7 +38,8 @@ def generate_structured(
             return next(iter(node_mocks.values()))
         return parsed
 
-    client = OpenAI(api_key=api_key)
+    base_url = os.getenv("OPENAI_BASE_URL") or None
+    client = OpenAI(api_key=api_key, base_url=base_url)
 
     try:
         response = client.responses.create(

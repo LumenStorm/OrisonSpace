@@ -6,8 +6,10 @@ STORY_PLAN_SCHEMA = {
     "type": "object",
     "properties": {
         "title": {"type": "string"},
-        "premise": {"type": "string"},
-        "tone": {"type": "string"},
+        "logline": {"type": "string"},
+        "theme": {"type": "string"},
+        "genre": {"type": "string"},
+        "central_conflict": {"type": "string"},
         "acts": {
             "type": "array",
             "items": {
@@ -17,29 +19,20 @@ STORY_PLAN_SCHEMA = {
                     "title": {"type": "string"},
                     "goal": {"type": "string"},
                     "conflict": {"type": "string"},
-                    "turn": {"type": "string"},
+                    "turning_point": {"type": "string"},
+                    "cost": {"type": "string"},
+                    "end_state": {"type": "string"},
+                    "summary": {"type": "string"},
                 },
-                "required": ["id", "title", "goal", "conflict", "turn"],
+                "required": ["id", "title"],
                 "additionalProperties": False,
             },
         },
-        "characters": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "name": {"type": "string"},
-                    "role": {"type": "string"},
-                    "goal": {"type": "string"},
-                    "risk": {"type": "string"},
-                },
-                "required": ["id", "name", "role", "goal", "risk"],
-                "additionalProperties": False,
-            },
-        },
+        "major_turning_points": {"type": "array", "items": {"type": "string"}},
+        "ending_direction": {"type": "string"},
+        "constraints": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["title", "premise", "tone", "acts", "characters"],
+    "required": ["title"],
     "additionalProperties": False,
 }
 

@@ -9,17 +9,16 @@ from python_agent.shared.template import render_template
 INTAKE_SCHEMA = {
     "type": "object",
     "properties": {
-        "genre": {"type": "string", "description": "故事类型，如悬疑、科幻、奇幻、都市"},
-        "tone": {"type": "string", "description": "基调，如黑暗、温暖、紧张、幽默"},
-        "setting": {"type": "string", "description": "背景设定"},
-        "premise": {"type": "string", "description": "核心前提，一句话概括故事"},
-        "constraints": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "约束条件列表",
-        },
+        "genre": {"type": "string"},
+        "theme": {"type": "string"},
+        "tone": {"type": "string"},
+        "audience": {"type": "string"},
+        "length": {"type": "string"},
+        "taboos": {"type": "array", "items": {"type": "string"}},
+        "userConstraints": {"type": "array", "items": {"type": "string"}},
+        "rawRequirement": {"type": "string"},
     },
-    "required": ["genre", "tone", "setting", "premise", "constraints"],
+    "required": ["rawRequirement"],
     "additionalProperties": False,
 }
 

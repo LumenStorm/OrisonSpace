@@ -1,4 +1,17 @@
 import { z } from 'zod';
+import {
+  creativeBriefSchema,
+  worldSettingSchema,
+  outlineV2Schema,
+  episodeOutlinesSchema,
+  growthCurveSchema,
+  pacingCurveSchema,
+  emotionCurveSchema,
+  assetCardsSchema,
+  relationshipGraphSchema,
+  fieldMetadataSchema,
+  creativeFieldKeySchema
+} from './creative-fields';
 
 // ── Meta ──
 
@@ -187,5 +200,16 @@ export const projectDocumentSchema = z.object({
   script: scriptSchema.optional(),
   storyboard: storyboardSchema,
   video: videoSchema.optional(),
-  assets: assetsSchema.optional()
+  assets: assetsSchema.optional(),
+  // Phase 2: 新创作字段（全部可选，保持旧文档兼容）
+  creative_brief: creativeBriefSchema.optional(),
+  world_setting: worldSettingSchema.optional(),
+  outline_v2: outlineV2Schema.optional(),
+  episode_outlines: episodeOutlinesSchema.optional(),
+  growth_curve: growthCurveSchema.optional(),
+  pacing_curve: pacingCurveSchema.optional(),
+  emotion_curve: emotionCurveSchema.optional(),
+  asset_cards: assetCardsSchema.optional(),
+  relationship_graph: relationshipGraphSchema.optional(),
+  field_metadata: z.record(creativeFieldKeySchema, fieldMetadataSchema).optional()
 });

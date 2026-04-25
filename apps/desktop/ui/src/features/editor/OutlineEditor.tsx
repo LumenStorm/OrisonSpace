@@ -15,7 +15,7 @@ export function OutlineEditor() {
 
   const [title, setTitle] = useState('');
   const [logline, setLogline] = useState('');
-  const [style, setStyle] = useState({ visual: '', narrative: '', pacing: '', reference: '' });
+  const [style, setStyle] = useState({ reference: '' });
   const [acts, setActs] = useState<Act[]>([]);
   const [openActIds, setOpenActIds] = useState<Set<string>>(new Set());
 
@@ -38,9 +38,6 @@ export function OutlineEditor() {
   };
 
   const styleFields = [
-    ['visual', 'outline.visualStyle'],
-    ['narrative', 'outline.narrativeStyle'],
-    ['pacing', 'outline.pacing'],
     ['reference', 'outline.reference'],
   ] as const;
 

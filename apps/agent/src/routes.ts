@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { orchestrationActionSchema, startOrchestrationRunSchema } from '@orison/shared-contracts';
+import { orchestrationActionSchema, startOrchestrationRunSchema, creativeRunRequestSchema } from '@orison/shared-contracts';
 import { createRunService } from './engine/runService';
 import { createActionService } from './engine/actionService';
 
@@ -8,7 +8,17 @@ const actionService = createActionService();
 
 export async function registerOrchestrationRoutes(app: FastifyInstance) {
   app.post('/v1/orchestration/runs', async (request, reply) => {
-    const command = startOrchestrationRunSchema.parse(request.body);
+    const body = request.body as Record<string, unknown>;
+
+    // 检测是否为新格式（包含 runIntent 或 targetFields）
+    if ('runIntent' in body || 'targetFields' in body || 'constraints' in body) {
+      const creativeRequest = creativeRunRequestSchema.parse(body);
+      const run = await runService.startCreative(creativeRequest);
+      return reply.code(202).send(run);
+    }
+
+    // 兼容旧格式
+    const command = startOrchestrationRunSchema.parse(body);
     const run = await runService.start(command);
     return reply.code(202).send(run);
   });

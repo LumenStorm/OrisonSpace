@@ -172,3 +172,109 @@
 .sidebar-logout-btn .material-symbols-outlined {
   font-size: 16px;
 }
+
+/* ── Model Config ── */
+.sidebar-settings-divider {
+  height: 1px;
+  background: var(--outline-variant);
+  margin: 0.5rem 0;
+}
+
+.sidebar-settings-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+}
+
+.sidebar-settings-input-label {
+  font-size: 0.72rem;
+  color: var(--outline);
+}
+
+.sidebar-settings-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.sidebar-settings-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.sidebar-settings-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.sidebar-settings-input-wrap .sidebar-settings-input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.sidebar-settings-input-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--outline-variant);
+  border-left: 0;
+  border-radius: 0 0.25rem 0.25rem 0;
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+}
+
+.sidebar-settings-input-toggle .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.sidebar-settings-input-toggle:hover {
+  background: var(--hover-overlay);
+}
+
+.sidebar-config-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--outline);
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.sidebar-config-dot.is-configured {
+  background: var(--success, #4caf50);
+}
+
+/* ── Auto-apply toggle ── */
+.sidebar-settings-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.sidebar-settings-checkbox {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.sidebar-settings-hint {
+  font-size: 0.7rem;
+  color: var(--outline);
+  line-height: 1.3;
+  margin-top: 0.15rem;
+}

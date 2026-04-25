@@ -1,10 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { existsSync, rmSync } from 'node:fs';
+import path from 'node:path';
 import {
   applyPatchOperations,
-  createEmptyProjectDocument
+  createEmptyProjectDocument,
+  saveProject,
+  loadProject,
+  applyFieldPatches
 } from '../sync/localProjectRepository';
+import type { ProjectFieldPatch } from '@orison/shared-contracts';
+
+const TEST_PROJECT_DIR = path.join(process.cwd(), 'test-tmp-local-project');
 
 describe('local project repository helpers', () => {
+  afterEach(() => {
+    if (existsSync(TEST_PROJECT_DIR)) {
+      rmSync(TEST_PROJECT_DIR, { recursive: true, force: true });
+    }
+  });
+
   it('creates an empty local project document with outline and storyboard roots', () => {
     const project = createEmptyProjectDocument('Orison Demo');
 
@@ -15,7 +29,6 @@ describe('local project repository helpers', () => {
   });
 
   it('applies a replace patch to the first outline act summary', () => {
-    const now = new Date().toISOString();
     const project = createEmptyProjectDocument('Demo');
     const withAct = {
       ...project,
@@ -34,5 +47,113 @@ describe('local project repository helpers', () => {
     ]);
 
     expect(updated.outline.acts[0].summary).toBe('New value');
+  });
+
+  it('saveProject / loadProject 往返一致', () => {
+    const project = createEmptyProjectDocument('Round Trip Test');
+    saveProject(TEST_PROJECT_DIR, project);
+
+    const loaded = loadProject(TEST_PROJECT_DIR);
+    expect(loaded).not.toBeNull();
+    expect(loaded!.meta.name).toBe('Round Trip Test');
+    expect(loaded!.meta.type).toBe('novel');
+    expect(loaded!.outline.acts).toEqual([]);
+  });
+
+  it('loadProject 对不存在的路径返回 null', () => {
+    const loaded = loadProject(path.join(TEST_PROJECT_DIR, 'nonexistent'));
+    expect(loaded).toBeNull();
+  });
+
+  it('saveProject 保存新创作字段后 loadProject 能读取', () => {
+    const project = createEmptyProjectDocument('Creative Fields Test');
+    const withFields = {
+      ...project,
+      world_setting: {
+        premise: '永夜都市',
+        era: '近未来',
+        locations: [],
+        rules: [],
+        power_structures: [],
+        taboos: [],
+        visual_language: [],
+        tone_rules: [],
+        open_questions: []
+      },
+      asset_cards: [
+        { id: 'c1', type: 'character' as const, name: '侦探', summary: '孤独调查者', tags: [], relationships: [], sourceRefs: [], status: 'active' as const, locked: false }
+      ]
+    };
+
+    saveProject(TEST_PROJECT_DIR, withFields as any);
+    const loaded = loadProject(TEST_PROJECT_DIR);
+
+    expect(loaded!.world_setting).toBeDefined();
+    expect(loaded!.world_setting!.premise).toBe('永夜都市');
+    expect(loaded!.asset_cards).toBeDefined();
+    expect(loaded!.asset_cards!.length).toBe(1);
+    expect(loaded!.asset_cards![0].name).toBe('侦探');
+  });
+
+  it('applyFieldPatches 正确更新字段和元信息', () => {
+    const project = createEmptyProjectDocument('Patch Test');
+    saveProject(TEST_PROJECT_DIR, project);
+
+    const fieldPatch: ProjectFieldPatch = {
+      runId: 'run_test_123',
+      createdAt: new Date().toISOString(),
+      patches: [
+        {
+          field: 'world_setting',
+          action: 'set',
+          data: { premise: '赛博朋克', era: '2077', locations: [], rules: [], power_structures: [], taboos: [], visual_language: [], tone_rules: [], open_questions: [] },
+          fieldVersion: 1,
+          generatedBy: 'asset-loader-agent'
+        },
+        {
+          field: 'asset_cards',
+          action: 'set',
+          data: [{ id: 'c1', type: 'character', name: 'V', summary: '主角', tags: [], relationships: [], sourceRefs: [], status: 'active', locked: false }],
+          fieldVersion: 1,
+          generatedBy: 'asset-loader-agent'
+        }
+      ]
+    };
+
+    const updated = applyFieldPatches(TEST_PROJECT_DIR, fieldPatch);
+
+    expect(updated.world_setting).toBeDefined();
+    expect(updated.world_setting!.premise).toBe('赛博朋克');
+    expect(updated.asset_cards).toBeDefined();
+    expect(updated.asset_cards!.length).toBe(1);
+    expect(updated.field_metadata).toBeDefined();
+    expect(updated.field_metadata!.world_setting).toBeDefined();
+    expect(updated.field_metadata!.world_setting!.version).toBe(1);
+    expect(updated.field_metadata!.world_setting!.source).toBe('agent');
+    expect(updated.meta.version).toBe(2);
+  });
+
+  it('旧格式文档（含 assets.characters）加载时自动派生 asset_cards', () => {
+    const project = createEmptyProjectDocument('Legacy Test');
+    const withOldAssets = {
+      ...project,
+      assets: {
+        characters: [
+          { id: 'char_1', name: '张三', appearance: '高大', personality: '沉稳' }
+        ],
+        locations: [
+          { id: 'loc_1', name: '办公室', description: '现代风格' }
+        ]
+      }
+    };
+
+    saveProject(TEST_PROJECT_DIR, withOldAssets as any);
+    const loaded = loadProject(TEST_PROJECT_DIR);
+
+    expect(loaded!.assets).toBeDefined();
+    expect(loaded!.asset_cards).toBeDefined();
+    expect(loaded!.asset_cards!.length).toBe(1);
+    expect(loaded!.asset_cards![0].name).toBe('张三');
+    expect(loaded!.asset_cards![0].type).toBe('character');
   });
 });

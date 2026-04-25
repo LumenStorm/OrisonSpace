@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import type { RunSnapshot } from '../contracts/run';
+import type { AssetPatchCandidate } from '@orison/shared-contracts';
+import { extractAssetCandidates, classifyPatches } from './assetLibrary';
 
 type AssetPatch = {
   target: 'asset' | 'rule' | 'prompt';
@@ -37,6 +39,45 @@ export function buildFeedback(run: RunSnapshot) {
     feedbackId: `fb_${crypto.randomUUID()}`,
     createdAt: new Date().toISOString(),
     assetPatches: patches,
+    memo
+  };
+}
+
+/**
+ * 从 creative run 产物中提取结构化的 AssetPatchCandidate。
+ * 使用 assetLibrary 的 extractAssetCandidates + classifyPatches。
+ */
+export function buildCreativeFeedback(run: RunSnapshot): {
+  feedbackId: string;
+  createdAt: string;
+  candidates: AssetPatchCandidate[];
+  autoApply: AssetPatchCandidate[];
+  needsReview: AssetPatchCandidate[];
+  memo: string;
+} {
+  const assetOutput = run.artifacts['assets.projectContext'] as Record<string, unknown> | undefined;
+
+  // 提取资产卡候选补丁
+  const existingCards: Array<{ id: string; type: string; name: string; status?: string }> = [];
+  const candidates: AssetPatchCandidate[] = [];
+
+  if (assetOutput) {
+    const extracted = extractAssetCandidates(assetOutput, existingCards);
+    candidates.push(...extracted);
+  }
+
+  const { autoApply, needsReview } = classifyPatches(candidates);
+
+  const memo = run.review
+    ? `审核结论: ${run.review.verdict ?? 'none'} — ${run.review.summary}。共 ${candidates.length} 个资产补丁（${autoApply.length} 自动，${needsReview.length} 需审核）`
+    : `无审核记录。共 ${candidates.length} 个资产补丁`;
+
+  return {
+    feedbackId: `fb_${crypto.randomUUID()}`,
+    createdAt: new Date().toISOString(),
+    candidates,
+    autoApply,
+    needsReview,
     memo
   };
 }

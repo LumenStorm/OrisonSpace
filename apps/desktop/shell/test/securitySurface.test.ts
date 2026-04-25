@@ -16,7 +16,9 @@ describe('preload security surface', () => {
       'maximize',
       'close',
       'isMaximized',
-      'platform'
+      'platform',
+      'loadModelConfig',
+      'saveModelConfig'
     ]);
   });
 });

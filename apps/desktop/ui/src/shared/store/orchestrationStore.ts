@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import type { z } from 'zod';
 import type { orchestrationRunSchema, orchestrationActionSchema } from '@orison/shared-contracts';
+import { projectFieldPatchSchema } from '@orison/shared-contracts';
+import { useAppStore } from './appStore';
+import { API_BASE } from '../constants';
 
 type RunSnapshot = z.infer<typeof orchestrationRunSchema>;
 type OrchestrationAction = z.infer<typeof orchestrationActionSchema>;
-
-const API_BASE = 'http://localhost:4000';
 
 type OrchestrationState = {
   run: RunSnapshot | null;
@@ -45,6 +46,22 @@ export const useOrchestrationStore = create<OrchestrationState>((set, get) => ({
       if (!res.ok) throw new Error(`刷新失败: ${res.status}`);
       const updated = await res.json() as RunSnapshot;
       set({ run: updated });
+      // 交付完成时自动填充待审核补丁
+      if (updated.status === 'delivered' && updated.delivery?.content) {
+        const result = projectFieldPatchSchema.safeParse(updated.delivery.content);
+        if (result.success) {
+          const appStore = useAppStore.getState();
+          const autoApply = appStore.autoApplyPatches;
+          appStore.setPendingPatch(result.data);
+          if (autoApply) {
+            // 全自动模式：选中所有补丁并立即应用
+            for (const op of result.data.operations) {
+              appStore.togglePatchSelection(op.field);
+            }
+            appStore.applySelectedPatches();
+          }
+        }
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '未知错误' });
     }

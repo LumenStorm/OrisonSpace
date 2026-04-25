@@ -1,4 +1,6 @@
 import type { PythonNodeConfig } from '../contracts/pythonExecutor';
+import type { AgentContract } from '@orison/shared-contracts';
+import { getAgentContract } from './agentContracts';
 
 export type PythonRegistryNode = {
   id: string;
@@ -8,6 +10,7 @@ export type PythonRegistryNode = {
     system: string;
     user: string;
   };
+  contract?: AgentContract;
 };
 
 export type RegistryNode = PythonRegistryNode;
@@ -18,7 +21,8 @@ function createPythonNode(
   stateKey: string,
   artifactType: string,
   prompt: { system: string; user: string },
-  reviewMode?: 'pass' | 'revise' | 'escalate'
+  reviewMode?: 'pass' | 'revise' | 'escalate',
+  modelOverride?: string
 ): PythonRegistryNode {
   return {
     id,
@@ -27,7 +31,7 @@ function createPythonNode(
       agentId: id,
       runtime: 'python',
       entry,
-      model: 'gpt-5.4',
+      model: modelOverride ?? 'gpt-5.4',
       execution: {
         timeoutMs: 30000,
         maxRetries: 2
@@ -52,11 +56,12 @@ function createPythonNode(
         escalateOn: reviewMode ? ['review_escalates'] : []
       }
     },
-    prompt
+    prompt,
+    contract: getAgentContract(id)
   };
 }
 
-export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 'pass'): RegistryNode[] {
+export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 'pass', model?: string): RegistryNode[] {
   return [
     createPythonNode(
       'intake-agent',
@@ -66,7 +71,9 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You normalize user requirements.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     ),
     createPythonNode(
       'asset-loader-agent',
@@ -76,7 +83,9 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You load project assets.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     ),
     createPythonNode(
       'story-planner-agent',
@@ -86,7 +95,9 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You are a story planner.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     ),
     createPythonNode(
       'chapter-task-agent',
@@ -96,7 +107,9 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You break plans into chapter tasks.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     ),
     createPythonNode(
       'draft-writer-agent',
@@ -106,7 +119,9 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You write the first draft.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     ),
     createPythonNode(
       'continuity-memory-agent',
@@ -116,7 +131,9 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You update continuity memory.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     ),
     createPythonNode(
       'multi-review-agent',
@@ -127,7 +144,8 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
         system: 'You review the generated content.',
         user: `Review mode: ${reviewMode}. Requirement: {{requirement}}`
       },
-      reviewMode
+      reviewMode,
+      model
     ),
     createPythonNode(
       'targeted-revision-agent',
@@ -137,7 +155,48 @@ export function createNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 
       {
         system: 'You revise the draft based on review feedback.',
         user: 'Requirement: {{requirement}}'
-      }
+      },
+      undefined,
+      model
     )
   ];
+}
+
+/**
+ * 扩展节点注册表，包含 Phase 1 新增的 curve-planner 和 episode-planner。
+ * Python 节点文件尚未实现，暂不加入默认 pipeline。
+ */
+export function createExtendedNodeRegistry(reviewMode: 'pass' | 'revise' | 'escalate' = 'pass', model?: string): RegistryNode[] {
+  const base = createNodeRegistry(reviewMode, model);
+  const storyPlannerIdx = base.findIndex((n) => n.id === 'story-planner-agent');
+  const insertIdx = storyPlannerIdx >= 0 ? storyPlannerIdx + 1 : base.length;
+
+  const newNodes = [
+    createPythonNode(
+      'curve-planner-agent',
+      'python/nodes/curve_planner_agent.py',
+      'curves',
+      'curves',
+      {
+        system: 'You generate growth, pacing, and emotion curves.',
+        user: 'Requirement: {{requirement}}'
+      },
+      undefined,
+      model
+    ),
+    createPythonNode(
+      'episode-planner-agent',
+      'python/nodes/episode_planner_agent.py',
+      'episode_outlines',
+      'episode_outlines',
+      {
+        system: 'You generate episode outlines.',
+        user: 'Requirement: {{requirement}}'
+      },
+      undefined,
+      model
+    )
+  ];
+
+  return [...base.slice(0, insertIdx), ...newNodes, ...base.slice(insertIdx)];
 }

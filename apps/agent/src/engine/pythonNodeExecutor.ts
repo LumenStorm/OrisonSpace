@@ -10,19 +10,26 @@ type ExecutePythonNodeInput = {
   runnerPath: string;
   request: PythonRunnerRequest;
   workspaceRoot?: string;
+  modelEnv?: { apiKey?: string; baseUrl?: string };
 };
 
 export async function executePythonNode({
   pythonCommand,
   runnerPath,
   request,
-  workspaceRoot
+  workspaceRoot,
+  modelEnv
 }: ExecutePythonNodeInput): Promise<PythonRunnerResponse> {
   return new Promise((resolve, reject) => {
     const resolvedWorkspaceRoot = workspaceRoot ?? AGENT_ROOT;
+    const env: Record<string, string | undefined> = { ...process.env };
+    if (modelEnv?.apiKey) env.OPENAI_API_KEY = modelEnv.apiKey;
+    if (modelEnv?.baseUrl) env.OPENAI_BASE_URL = modelEnv.baseUrl;
+
     const child = spawn(pythonCommand, [path.resolve(resolvedWorkspaceRoot, runnerPath)], {
       cwd: resolvedWorkspaceRoot,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env
     });
 
     let stdout = '';

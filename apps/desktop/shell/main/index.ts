@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
+import { registerConfigIpc } from './ipc/configIpc';
 
 function createWindow() {
   const isMac = process.platform === 'darwin';
@@ -24,6 +25,7 @@ function createWindow() {
 
   registerProjectIpc();
   registerWindowIpc(mainWindow);
+  registerConfigIpc();
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);

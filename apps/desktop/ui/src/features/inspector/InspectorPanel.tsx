@@ -1,15 +1,19 @@
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { moduleFields, aspectRatios, promptKeys, actionKeys } from '../../shared/data/inspectorFields';
+import { PatchReviewPanel } from '../creative/PatchReviewPanel';
 
 export function InspectorPanel() {
   const activeModule = useAppStore((s) => s.activeModule);
+  const pendingPatch = useAppStore((s) => s.pendingPatch);
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const toggleInspector = useAppStore((s) => s.toggleInspector);
   const { t, tArray } = useI18n(resolvedLocale);
 
-  const fields = moduleFields[activeModule];
-  const ratios = aspectRatios[activeModule];
+  const showPatchReview = activeModule === 'creative' && pendingPatch;
+
+  const fields = moduleFields[activeModule] ?? [];
+  const ratios = aspectRatios[activeModule] ?? [];
 
   return (
     <aside className="workspace-inspector" aria-label="Inspector Panel">
@@ -28,7 +32,11 @@ export function InspectorPanel() {
         <p className="workspace-inspectorMeta">{t('inspector.parameters', { module: activeModule.charAt(0).toUpperCase() + activeModule.slice(1) })}</p>
       </div>
       <div className="workspace-inspectorBody">
-        <div className="inspector-group">
+        {showPatchReview ? (
+          <PatchReviewPanel />
+        ) : (
+          <>
+            <div className="inspector-group">
           {fields.map((field) => {
             const options = tArray(field.optionsKey);
             return (
@@ -72,6 +80,8 @@ export function InspectorPanel() {
             {t(actionKeys[activeModule])}
           </button>
         </div>
+          </>
+        )}
       </div>
     </aside>
   );

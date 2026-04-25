@@ -19,16 +19,16 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
     }
   };
 
-  const actions: { icon: string; handler: () => void }[][] = [
+  const actions: { icon: string; handler: () => void; disabled?: boolean }[][] = [
     [
       { icon: 'add', handler: () => setShowNewDialog(true) },
       { icon: 'folder_open', handler: handleOpen },
-      { icon: 'save', handler: () => console.log('save') },
-      { icon: 'ios_share', handler: () => console.log('export') },
+      { icon: 'save', handler: () => {}, disabled: true },
+      { icon: 'ios_share', handler: () => {}, disabled: true },
     ],
     [
-      { icon: 'undo', handler: () => console.log('undo') },
-      { icon: 'redo', handler: () => console.log('redo') },
+      { icon: 'undo', handler: () => {}, disabled: true },
+      { icon: 'redo', handler: () => {}, disabled: true },
     ],
   ];
 
@@ -51,7 +51,7 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
             {actions.map((group, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {group.map((action) => (
-                  <button key={action.icon} className="workspace-action" type="button" aria-label={action.icon} onClick={action.handler}>
+                  <button key={action.icon} className="workspace-action" type="button" aria-label={action.icon} onClick={action.handler} disabled={action.disabled} title={action.disabled ? 'Coming soon' : undefined}>
                     <span className="material-symbols-outlined">{action.icon}</span>
                   </button>
                 ))}
