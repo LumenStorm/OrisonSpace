@@ -46,6 +46,38 @@
 
 暂不在第一阶段做完整 UI 编辑器，也不重写数据库持久化。这样可以先稳定 agent 产物，避免 UI 和存储层围绕不稳定字段反复返工。
 
+## Reference Orchestration Architecture
+
+编排架构参考 `I:\OneLine2Video-dev\v2.drawio.html`。图中的主链路是：
+
+```text
+需求接入
+  -> 资产装载
+  -> 故事规划
+  -> 章节任务卡
+  -> 正文初稿生成
+  -> 连续性记忆更新
+  -> 多维审核
+  -> 是否通过
+```
+
+审核后的分支是：
+
+- 通过：版本归档 -> 交付输出 -> 数据回流。
+- 未通过：定向修订 -> 多维审核。
+- 重大冲突：人工接管 -> 多维审核。
+
+图中的两条虚线数据回流必须落实为正式机制：
+
+1. `数据回流 -> 更新资产与规则 -> 资产装载`：审核、初稿和连续性记忆发现的新资产、规则、关系和冲突，必须形成结构化资产补丁，进入资产库候选区或直接上库。
+2. `数据回流 -> 影响后续生成与审核 -> 多维审核`：资产、规则、世设、大纲、曲线和集纲变化后，后续生成和审核必须读取最新版本，不允许继续使用旧 artifact。
+
+因此本设计把编排层拆成三类服务：
+
+- `AssetLibraryService`：负责资产卡上库、去重、合并、锁定、版本和来源追踪。
+- `WorkflowSyncService`：负责字段版本、依赖图、stale 标记和同步事件。
+- `ReviewGate`：负责决定补丁可自动应用、需要用户确认，还是进入人工接管。
+
 ## Agent Entry Contract
 
 新增入口语义为 `CreativeRunRequest`。它可以继续由现有 `/v1/orchestration/runs` 承载，也可以在后续新增 `/v1/agent/runs`。第一阶段推荐复用现有路由，内部转换为新上下文，降低外部 API 震荡。
@@ -85,6 +117,9 @@ type CreativeRunContext = {
   targetFields: CreativeFieldKey[];
   projectDocument: ProjectDocument | null;
   fieldVersions: Record<CreativeFieldKey, number>;
+  dependencyGraph: FieldDependencyGraph;
+  staleFields: CreativeFieldKey[];
+  syncEvents: WorkflowSyncEvent[];
   constraints: CreativeConstraints;
   agentPolicy: AgentPolicy;
 };
@@ -228,6 +263,34 @@ type CreativeRunContext = {
 
 现有 `assets.characters` 和 `assets.locations` 第一阶段可保留，但新 agent 应优先写入 `asset_cards`，再由适配层派生旧字段，保持兼容。
 
+### `relationship_graph` 人物关系网
+
+用途：支持用户自定义人物、可视化编辑关系网，并让 agent 在生成与审核时读取最新关系。
+
+建议字段：
+
+- `nodes[]`: `{ id, assetCardId, label, type, locked }`
+- `edges[]`: `{ id, from, to, relationType, label, strength, polarity, visibility, sourceRefs, locked }`
+- `relationType`: `family | alliance | romance | rivalry | mentor | secret | debt | organization | custom`
+- `layout`: 可选的可视化坐标和分组信息。
+- `version`
+- `updatedBy`: `user | agent | sync`
+
+关系网的节点必须引用 `asset_cards(type=character)` 或相关组织卡。用户编辑优先级高于 agent 建议；被 `locked` 的节点和边只能由用户修改。agent 可以提交关系建议补丁，但不能直接覆盖用户锁定关系。
+
+### Field Metadata
+
+所有自动生成并实时同步的核心字段都必须拥有统一元信息：
+
+- `version`: 字段级版本号。
+- `source`: `user | agent | imported | sync`。
+- `locked`: 用户锁定后 agent 只能提交候选补丁。
+- `dependsOn`: 当前字段依赖的上游字段和版本。
+- `stale`: 上游字段变化后，当前字段是否需要重算或审核。
+- `lastSyncedAt`
+
+适用字段包括：`world_setting`、`outline`、`growth_curve`、`pacing_curve`、`emotion_curve`、`asset_cards`、`relationship_graph`、`episode_outlines`。
+
 ## Sub-Agent Contracts
 
 每个子 agent 在注册表中必须拥有结构化契约：
@@ -257,8 +320,8 @@ type AgentContract = {
 ### Asset Loader Agent
 
 - 目标：建立初始资产卡和世设素材。
-- 读取：`creative_brief`、已有 `asset_cards`、已有 `world_setting`。
-- 写入：`asset_cards`、`world_setting` 草案。
+- 读取：`creative_brief`、已有 `asset_cards`、已有 `relationship_graph`、已有 `world_setting`。
+- 写入：`asset_cards`、`relationship_graph` 候选补丁、`world_setting` 草案。
 - 必须：区分事实设定和建议设定。
 - 禁止：覆盖 locked 资产。
 
@@ -275,7 +338,7 @@ type AgentContract = {
 ### Story Planner Agent
 
 - 目标：生成或修订 `outline`。
-- 读取：`creative_brief`、`world_setting`、`asset_cards`。
+- 读取：`creative_brief`、`world_setting`、`asset_cards`、`relationship_graph`。
 - 写入：`outline`。
 - 必须：明确主题、核心冲突、主要转折。
 - 禁止：直接写章节正文。
@@ -285,7 +348,7 @@ type AgentContract = {
 第一阶段可作为 Story Planner 的后置节点，也可独立。
 
 - 目标：产出 `growth_curve`、`pacing_curve`、`emotion_curve`。
-- 读取：`outline`、`asset_cards`、`world_setting`。
+- 读取：`outline`、`asset_cards`、`relationship_graph`、`world_setting`。
 - 写入：三类曲线。
 - 必须：每个曲线点引用 act、episode 或 chapter。
 - 禁止：产生无法映射到结构单元的抽象建议。
@@ -293,7 +356,7 @@ type AgentContract = {
 ### Episode Planner Agent
 
 - 目标：生成 `episode_outlines` 集纲。
-- 读取：`outline`、三类曲线、`asset_cards`、`world_setting`。
+- 读取：`outline`、三类曲线、`asset_cards`、`relationship_graph`、`world_setting`。
 - 写入：`episode_outlines`。
 - 必须：每集包含目的、核心事件、情绪点、节奏点、伏笔、回收和钩子。
 - 禁止：让集纲与总大纲转折冲突。
@@ -309,8 +372,8 @@ type AgentContract = {
 ### Continuity Memory Agent
 
 - 目标：抽取连续性记忆。
-- 读取：初稿、`asset_cards`、`world_setting`。
-- 写入：`memory.continuity` 和候选资产补丁。
+- 读取：初稿、`asset_cards`、`relationship_graph`、`world_setting`。
+- 写入：`memory.continuity`、候选资产补丁、候选关系补丁。
 - 必须：区分事实更新和建议更新。
 - 禁止：自动把候选补丁写入 locked 字段。
 
@@ -329,6 +392,64 @@ type AgentContract = {
 - 写入：目标字段补丁或 `draft.revision`。
 - 必须：只改 review 指定范围。
 - 禁止：无理由扩大改动范围。
+
+## Asset Library and Sync Architecture
+
+资产不再只是 agent run 中的临时 artifact，而是项目级资产库。资产库至少支持三类写入来源：
+
+1. 用户手动创建或编辑。
+2. agent 从需求、世设、大纲、集纲、正文和审核中自动发现。
+3. 外部导入。
+
+### Asset Auto-Ingestion
+
+自动上库流程：
+
+```text
+agent artifact
+  -> extract asset candidates
+  -> normalize to asset_cards / relationship_graph patches
+  -> deduplicate against existing assets
+  -> classify auto-apply vs needs-review
+  -> apply patch or queue candidate
+  -> emit WorkflowSyncEvent
+```
+
+自动上库必须满足：
+
+- 每张资产卡有稳定 `id`、`type`、`name`、`sourceRefs`、`status`。
+- 同名不等于同资产，合并需要比较类型、关系、首次出现位置和描述相似度。
+- 新发现角色、地点、组织、道具、规则、视觉母题都进入 `asset_cards`。
+- 新发现人物关系进入 `relationship_graph.edges`。
+- 若目标资产或关系被用户锁定，只生成候选补丁，不自动应用。
+
+### Workflow Sync Events
+
+所有核心字段变化后都要发出同步事件：
+
+```ts
+type WorkflowSyncEvent = {
+  id: string;
+  createdAt: string;
+  source: 'user' | 'agent' | 'sync';
+  field: CreativeFieldKey;
+  entityId?: string;
+  fromVersion: number;
+  toVersion: number;
+  reason: string;
+  affectedFields: CreativeFieldKey[];
+};
+```
+
+`WorkflowSyncService` 根据依赖图计算影响范围：
+
+- `asset_cards` 或 `relationship_graph` 变化：影响 `world_setting`、`outline`、三类曲线、`episode_outlines`、审核。
+- `world_setting` 变化：影响 `outline`、三类曲线、`episode_outlines`、正文生成、审核。
+- `outline` 变化：影响三类曲线、`episode_outlines`、正文生成、审核。
+- 任一曲线变化：影响 `episode_outlines`、正文生成、审核。
+- `episode_outlines` 变化：影响正文生成、连续性记忆、审核。
+
+受影响字段不一定立即重算。第一阶段可以先标记 `stale`，由下一次 run 或用户操作触发重算；后续阶段再支持后台自动刷新。
 
 ## Pipeline
 
@@ -358,6 +479,8 @@ intake-agent
 
 合并方案中，`asset-loader-agent` 负责 `world_setting` 和 `asset_cards`，`story-planner-agent` 负责 `outline` 和三类曲线。
 
+该 pipeline 必须保留 draw.io 图中的控制语义：多维审核通过才进入归档和交付；未通过进入定向修订；重大冲突进入人工接管。无论哪个分支结束，只要产生新资产、关系或规则，都进入数据回流和同步事件处理。
+
 ## Data Flow
 
 1. 入口解析 request，构造 `CreativeRunContext`。
@@ -371,7 +494,33 @@ intake-agent
 4. 节点返回 schema 化 artifact。
 5. TS 层校验 artifact，对应写入 `artifacts`。
 6. delivery 阶段把 artifacts 转换为 project patch。
-7. feedback 阶段把审稿和连续性记忆转换为候选回流补丁。
+7. `AssetLibraryService` 从 artifacts、正文和 review 中提取资产/关系/规则候选。
+8. `ReviewGate` 判断候选补丁自动应用、等待用户确认或进入人工接管。
+9. `WorkflowSyncService` 应用补丁后更新字段版本、依赖图、stale 标记和同步事件。
+10. feedback 阶段把审稿和连续性记忆转换为候选回流补丁。
+
+## Real-Time Workflow Synchronization
+
+“实时同步”在设计上表示：字段变化后，工作流状态立刻知道哪些下游字段过期、哪些节点需要重跑、审核必须读取哪个版本。它不要求第一阶段实现多人协同或 WebSocket 推送。
+
+第一阶段同步能力：
+
+- project patch 应用后立即更新 `fieldVersions`。
+- 下游字段被标记到 `staleFields`。
+- orchestration run snapshot 返回 `syncEvents`。
+- UI 可以据此提示“集纲需要按新世设刷新”或“审核使用的是旧资产版本”。
+
+第二阶段同步能力：
+
+- local-bff 监听项目字段变化，推送到前端 store。
+- 用户编辑人物关系网后，自动触发相关字段 stale 标记。
+- agent run 可选择 `targetFields`，只刷新 stale 字段。
+
+第三阶段同步能力：
+
+- 后台自动刷新低风险字段。
+- 高风险字段仍需要用户确认后应用。
+- 多端协作通过字段版本解决冲突。
 
 ## Error Handling
 
@@ -395,6 +544,7 @@ intake-agent
 - `outline` 保留但扩展。
 - `detailed_outline` 可逐步由 `episode_outlines` 替代。
 - `assets.characters` 和 `assets.locations` 保留，后续可从 `asset_cards` 派生。
+- 人物关系先进入 `relationship_graph`，旧 UI 若没有关系网视图，可以忽略该字段。
 - 现有 `/v1/orchestration/runs` API 可继续使用，内部转换到 `CreativeRunContext`。
 
 ## Testing Strategy
@@ -408,6 +558,9 @@ intake-agent
 5. `apps/agent/python`：关键节点输出符合新 JSON schema。
 6. `apps/agent`：最小 run 能产出 `world_setting`、`outline`、`episode_outlines`、`asset_cards`。
 7. `apps/agent`：locked 字段冲突不会被自动覆盖。
+8. `apps/agent`：资产自动上库会生成 `asset_cards` 和 `relationship_graph` 补丁。
+9. `apps/agent`：资产、世设或大纲变更会生成 `WorkflowSyncEvent` 并标记下游 stale 字段。
+10. `apps/agent`：审核使用的字段版本必须等于 run snapshot 中记录的版本。
 
 ## Rollout Plan
 
@@ -417,6 +570,8 @@ intake-agent
 - 增加 `AgentContract` 注册结构。
 - 入口构造 `CreativeRunContext`。
 - 更新核心节点输出 schema。
+- 增加资产自动上库候选补丁结构。
+- 增加字段版本、依赖图、stale 字段和同步事件结构。
 - 保持现有 UI 不变。
 
 ### Phase 2: Artifact to Project Patch
@@ -424,12 +579,15 @@ intake-agent
 - delivery 阶段生成项目字段 patch。
 - local-bff 能保存并读取新字段。
 - 旧字段派生兼容。
+- 保存 `asset_cards`、`relationship_graph` 和字段元信息。
+- 用户编辑人物关系后能触发同步事件。
 
 ### Phase 3: UI Exposure
 
-- 前端显示世设、资产卡、总大纲、集纲和曲线。
+- 前端显示世设、资产卡、人物关系网、总大纲、集纲和曲线。
 - 支持人工锁定字段。
 - 支持 review 后选择性应用补丁。
+- 支持可视化编辑人物关系网。
 
 ## Open Decisions Resolved
 
@@ -437,6 +595,8 @@ intake-agent
 - 第一阶段不做完整 UI。
 - 子 agent 约束以 `AgentContract` 为权威来源，prompt 和 Python schema 必须与它一致。
 - 旧字段不删除，避免破坏现有项目和测试。
+- draw.io 图中的数据回流升级为 `AssetLibraryService`、`WorkflowSyncService` 和 `ReviewGate`。
+- 资产自动上库先以候选补丁和字段版本同步落地，避免 agent 覆盖用户锁定内容。
 
 ## Success Criteria
 
@@ -445,3 +605,6 @@ intake-agent
 3. 子 agent 输出不再依赖散文式约定，而是由 schema 校验。
 4. 第一阶段实现后，不需要前端改版也能在 artifacts 或 project patch 中看到新字段。
 5. 后续 UI、持久化和更多 agent 节点可以围绕同一字段契约继续扩展。
+6. 资产和人物关系可以自动进入资产库候选区，并保留来源、版本和锁定信息。
+7. 世设、大纲、曲线、资产卡、关系网和集纲变化后，工作流能实时标记受影响的下游字段。
+8. 多维审核始终知道自己审核的是哪些字段版本。
