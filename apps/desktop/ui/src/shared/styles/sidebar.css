@@ -1,84 +1,159 @@
-/* ── Side Nav ── */
-.workspace-sidebar {
+/* ── Icon Rail ── */
+.icon-rail {
   display: flex;
-  min-height: 0;
   flex-direction: column;
-  border-right: 1px solid var(--outline-variant);
+  justify-content: space-between;
+  width: 48px;
   background: var(--surface-container-low);
-  overflow-y: auto;
+  border-right: 1px solid var(--outline-variant);
+  overflow: hidden;
 }
 
-.workspace-sidebarHeader {
-  padding: 1rem;
-  border-bottom: 1px solid var(--outline-variant);
-}
-
-.workspace-sidebarTitle {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.workspace-sidebarMeta {
-  margin: 0.35rem 0 0;
-  color: var(--outline);
-  font-size: 0.74rem;
-}
-
-.workspace-tree {
+.icon-rail-top,
+.icon-rail-bottom {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.75rem 0.5rem;
-  flex: 1;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0;
 }
 
-.workspace-treeItem {
+.icon-rail-bottom {
+  position: relative;
+}
+
+.icon-rail-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.9rem;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: 0.35rem;
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
   font: inherit;
-  font-size: 0.88rem;
-  text-align: left;
   transition: background 0.15s, color 0.15s;
 }
 
-.workspace-treeItem:hover {
+.icon-rail-btn:hover {
   background: var(--hover-overlay);
   color: var(--on-surface);
 }
 
-.workspace-treeItemActive {
-  background: var(--surface-container-high);
+.icon-rail-btnActive {
+  background: var(--active-indicator);
   color: var(--on-surface);
-  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.icon-rail-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* ── Icon Rail Popover (settings / account) ── */
+.icon-rail-popover {
+  position: absolute;
+  left: 52px;
+  bottom: 0;
+  z-index: 50;
+  min-width: 240px;
+  background: var(--surface-container-lowest);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--outline-variant);
+}
+
+/* ── Project Tree Panel ── */
+.project-tree-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-container-low);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.ptree-header {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.ptree-header-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.ptree-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.35rem 0;
+}
+
+.ptree-node {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--on-surface-variant);
+  transition: background 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ptree-node:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.ptree-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.ptree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ptree-folder {
   font-weight: 500;
 }
 
-.workspace-treeItem .material-symbols-outlined {
-  font-size: 18px;
+/* ── Project Tree: Chevron ── */
+.ptree-chevron {
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
 }
 
-/* ── Sidebar Bottom ── */
-.sidebar-bottom {
-  border-top: 1px solid var(--outline-variant);
-  padding: 0.5rem;
+.ptree-chevron.is-open {
+  transform: rotate(90deg);
 }
 
+/* ── Project Tree: Active node ── */
+.ptree-node.is-active {
+  background: var(--active-indicator);
+  color: var(--on-surface);
+}
+
+.ptree-node.is-active:hover {
+  background: var(--active-indicator);
+}
+
+/* ── Sidebar Settings (reused in popover) ── */
 .sidebar-settings-panel,
 .sidebar-account-panel {
   padding: 0.75rem;
   margin-bottom: 0.25rem;
   border-radius: 0.25rem;
-  background: var(--surface-container);
 }
 
 .sidebar-settings-row {

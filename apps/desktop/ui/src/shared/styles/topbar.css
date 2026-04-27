@@ -121,3 +121,101 @@
   display: flex;
   gap: 0.5rem;
 }
+
+/* ── Settings / Account Dialog ── */
+.settings-dialog {
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+  max-width: 480px;
+  max-height: 80vh;
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.settings-dialog-sm {
+  min-width: 320px;
+  max-width: 380px;
+}
+
+.settings-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.settings-dialog-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-dialog-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.settings-dialog-close:hover {
+  background: var(--hover-overlay);
+}
+
+.settings-dialog-close .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.settings-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+/* ── Account Dialog Profile ── */
+.account-dialog-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.account-dialog-avatar {
+  font-size: 40px;
+  color: var(--on-surface-variant);
+}
+
+.account-dialog-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.account-dialog-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-dialog-email {
+  font-size: 0.82rem;
+  color: var(--on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

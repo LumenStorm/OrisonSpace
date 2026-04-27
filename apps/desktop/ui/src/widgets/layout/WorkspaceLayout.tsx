@@ -3,31 +3,33 @@ import { useShallow } from 'zustand/react/shallow';
 import { EditorArea } from '../../features/editor/EditorArea';
 import { InspectorPanel } from '../../features/inspector/InspectorPanel';
 import { SideNav } from '../../features/side-nav/SideNav';
+import { ProjectTree } from '../../features/project-tree/ProjectTree';
 import { TaskFeedPanel } from '../../features/tasks/TaskFeedPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { useAppStore } from '../../shared/store/appStore';
-import { BREAKPOINT_COLLAPSE_INSPECTOR } from '../../shared/constants';
+import { ICON_RAIL_WIDTH, BREAKPOINT_COLLAPSE_INSPECTOR } from '../../shared/constants';
 
 export function WorkspaceLayout() {
   const {
-    sidebarWidth, setSidebarWidth,
+    projectTreeOpen, projectTreeWidth, setProjectTreeWidth,
     inspectorWidth, setInspectorWidth,
     inspectorOpen, toggleInspector,
   } = useAppStore(useShallow((s) => ({
-    sidebarWidth: s.sidebarWidth,
-    setSidebarWidth: s.setSidebarWidth,
+    projectTreeOpen: s.projectTreeOpen,
+    projectTreeWidth: s.projectTreeWidth,
+    setProjectTreeWidth: s.setProjectTreeWidth,
     inspectorWidth: s.inspectorWidth,
     setInspectorWidth: s.setInspectorWidth,
     inspectorOpen: s.inspectorOpen,
     toggleInspector: s.toggleInspector,
   })));
 
-  const handleSidebarResize = useCallback(
+  const handleTreeResize = useCallback(
     (delta: number) => {
-      const w = useAppStore.getState().sidebarWidth;
-      setSidebarWidth(w + delta);
+      const w = useAppStore.getState().projectTreeWidth;
+      setProjectTreeWidth(w + delta);
     },
-    [setSidebarWidth],
+    [setProjectTreeWidth],
   );
 
   const handleInspectorResize = useCallback(
@@ -38,7 +40,6 @@ export function WorkspaceLayout() {
     [setInspectorWidth],
   );
 
-  // Responsive: auto-collapse inspector on narrow windows
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     const onResize = () => {
@@ -56,15 +57,26 @@ export function WorkspaceLayout() {
     };
   }, [inspectorOpen, toggleInspector]);
 
-  const gridColumns = inspectorOpen
-    ? `${sidebarWidth}px 4px 1fr 4px ${inspectorWidth}px`
-    : `${sidebarWidth}px 4px 1fr`;
+  const treeCols = projectTreeOpen
+    ? `${projectTreeWidth}px 4px `
+    : '';
+
+  const inspectorCols = inspectorOpen
+    ? ` 4px ${inspectorWidth}px`
+    : '';
+
+  const gridColumns = `${ICON_RAIL_WIDTH}px ${treeCols}1fr${inspectorCols}`;
 
   return (
     <div className="workspace-shell">
       <div className="workspace-body" style={{ gridTemplateColumns: gridColumns }}>
         <SideNav />
-        <ResizeHandle onResize={handleSidebarResize} />
+        {projectTreeOpen && (
+          <>
+            <ProjectTree />
+            <ResizeHandle onResize={handleTreeResize} />
+          </>
+        )}
         <main className="workspace-main">
           <EditorArea />
         </main>

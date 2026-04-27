@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { storyboardFrames } from '../../shared/data/workspaceData';
 import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 import { OutlineEditor } from './OutlineEditor';
 import { ScriptEditor } from './ScriptEditor';
 import { VideoEditor } from './VideoEditor';
@@ -36,18 +38,60 @@ function AcceptedPatchesView() {
   );
 }
 
-const editors = {
+type SubTab = 'content' | 'creative';
+
+function NovelScriptWithCreative({ ContentEditor }: { ContentEditor: React.FC }) {
+  const [subTab, setSubTab] = useState<SubTab>('content');
+  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
+  const activeModule = useAppStore((s) => s.activeModule);
+  const { t } = useI18n(resolvedLocale);
+
+  const contentLabel = activeModule === 'novel' ? t('nav.novel') : t('nav.script');
+
+  return (
+    <div className="editor-with-creative">
+      <nav className="editor-sub-tabs" aria-label="Editor Sub Tabs">
+        <button
+          type="button"
+          className={`editor-sub-tab${subTab === 'content' ? ' editor-sub-tabActive' : ''}`}
+          onClick={() => setSubTab('content')}
+        >
+          {contentLabel}
+        </button>
+        <button
+          type="button"
+          className={`editor-sub-tab${subTab === 'creative' ? ' editor-sub-tabActive' : ''}`}
+          onClick={() => setSubTab('creative')}
+        >
+          {t('nav.creative')}
+        </button>
+      </nav>
+      <div className="editor-sub-content">
+        {subTab === 'content' ? <ContentEditor /> : <CreativeFieldsEditor />}
+      </div>
+    </div>
+  );
+}
+
+const simpleEditors = {
   outline: OutlineEditor,
-  novel: ScriptEditor,
-  script: ScriptEditor,
   storyboard: StoryboardCanvas,
   video: VideoEditor,
-  creative: CreativeFieldsEditor,
 } as const;
 
 export function EditorArea() {
   const activeModule = useAppStore((s) => s.activeModule);
-  const Editor = editors[activeModule];
+
+  if (activeModule === 'novel' || activeModule === 'script') {
+    return (
+      <div className="workspace-content">
+        <AcceptedPatchesView />
+        <NovelScriptWithCreative ContentEditor={ScriptEditor} />
+      </div>
+    );
+  }
+
+  const Editor = simpleEditors[activeModule];
 
   return (
     <div className="workspace-content">

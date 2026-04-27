@@ -9,16 +9,7 @@ export function TaskFeedPanel() {
   const { t } = useI18n(resolvedLocale);
 
   if (!currentTask) {
-    return (
-      <div className="task-feed">
-        <button
-          type="button"
-          onClick={() => submitRewrite('Make the opening darker.')}
-        >
-          {t('tasks.runRewrite')}
-        </button>
-      </div>
-    );
+    return <div className="task-feed" />;
   }
 
   const { result } = currentTask;

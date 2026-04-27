@@ -5,10 +5,11 @@ import { createSettingsSlice, type SettingsSlice } from './settingsSlice';
 import { createPanelsSlice, type PanelsSlice } from './panelsSlice';
 import { createTasksSlice, type TasksSlice } from './tasksSlice';
 import { createCreativeFieldsSlice, type CreativeFieldsSlice } from './creativeFieldsSlice';
+import { createEditorSlice, type EditorSlice } from './editorSlice';
 
 export type { WorkspaceModule, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo } from './types';
 
-type AppState = AuthSlice & ProjectSlice & SettingsSlice & PanelsSlice & TasksSlice & CreativeFieldsSlice;
+type AppState = AuthSlice & ProjectSlice & SettingsSlice & PanelsSlice & TasksSlice & CreativeFieldsSlice & EditorSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
   ...createAuthSlice(...a),
@@ -17,4 +18,5 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createPanelsSlice(...a),
   ...createTasksSlice(...a),
   ...createCreativeFieldsSlice(...a),
+  ...createEditorSlice(...a),
 }));

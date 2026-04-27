@@ -42,8 +42,8 @@
 
 /* ── Responsive ── */
 @media (max-width: 960px) {
-  .workspace-sidebar {
-    max-width: 220px;
+  .project-tree-panel {
+    max-width: 180px;
   }
 
   .workspace-right {
@@ -52,7 +52,7 @@
 }
 
 @media (max-width: 720px) {
-  .workspace-sidebar,
+  .project-tree-panel,
   .workspace-inspector,
   .workspace-right {
     display: none;

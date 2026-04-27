@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
@@ -9,26 +9,72 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const openProject = useAppStore((s) => s.openProject);
   const closeProject = useAppStore((s) => s.closeProject);
   const currentProject = useAppStore((s) => s.currentProject);
+  const saveProject = useAppStore((s) => s.saveProject);
+  const saveChaptersToProject = useAppStore((s) => s.saveChaptersToProject);
+  const undo = useAppStore((s) => s.undo);
+  const redo = useAppStore((s) => s.redo);
+  const undoLen = useAppStore((s) => s.undoStack.length);
+  const redoLen = useAppStore((s) => s.redoStack.length);
   const { t } = useI18n(resolvedLocale);
   const [showNewDialog, setShowNewDialog] = useState(false);
 
   const handleOpen = async () => {
-    if (window.orisonDesktop?.pickProjectDirectory) {
-      const dir = await window.orisonDesktop.pickProjectDirectory();
-      if (dir) openProject({ name: dir.split(/[\\/]/).pop() || 'Project', path: dir, type: 'script' });
+    const dir = await window.orisonDesktop?.pickProjectDirectory();
+    if (!dir) return;
+    const meta = await window.orisonDesktop?.loadProjectMeta(dir);
+    if (meta) {
+      openProject({
+        name: (meta.name as string) || dir.split(/[\\/]/).pop() || 'Project',
+        path: dir,
+        type: (meta.type as 'novel' | 'script') || 'script',
+        coverImage: (meta.coverImage as string) || undefined,
+      });
+    } else {
+      openProject({ name: dir.split(/[\\/]/).pop() || 'Project', path: dir, type: 'script' });
     }
   };
 
-  const actions: { icon: string; handler: () => void; disabled?: boolean }[][] = [
+  const handleSave = useCallback(async () => {
+    await saveProject();
+    await saveChaptersToProject();
+  }, [saveProject, saveChaptersToProject]);
+
+  const handleUndo = useCallback(() => undo(), [undo]);
+  const handleRedo = useCallback(() => redo(), [redo]);
+
+  // 全局快捷键
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      } else if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [handleSave, handleUndo, handleRedo]);
+
+  const hasSavePath = !!currentProject?.path;
+
+  const actions: { icon: string; handler: () => void; disabled?: boolean; title?: string }[][] = [
     [
-      { icon: 'add', handler: () => setShowNewDialog(true) },
-      { icon: 'folder_open', handler: handleOpen },
-      { icon: 'save', handler: () => {}, disabled: true },
-      { icon: 'ios_share', handler: () => {}, disabled: true },
+      { icon: 'add', handler: () => setShowNewDialog(true), title: t('projects.newProject') },
+      { icon: 'folder_open', handler: handleOpen, title: t('projects.openProject') },
+      { icon: 'save', handler: handleSave, disabled: !hasSavePath, title: `${t('topbar.save')} (${isMac ? '⌘' : 'Ctrl+'}S)` },
+      { icon: 'ios_share', handler: () => {}, disabled: true, title: t('topbar.export') },
     ],
     [
-      { icon: 'undo', handler: () => {}, disabled: true },
-      { icon: 'redo', handler: () => {}, disabled: true },
+      { icon: 'undo', handler: handleUndo, disabled: undoLen === 0, title: `${t('topbar.undo')} (${isMac ? '⌘' : 'Ctrl+'}Z)` },
+      { icon: 'redo', handler: handleRedo, disabled: redoLen === 0, title: `${t('topbar.redo')} (${isMac ? '⌘⇧' : 'Ctrl+Shift+'}Z)` },
     ],
   ];
 
@@ -51,7 +97,15 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
             {actions.map((group, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {group.map((action) => (
-                  <button key={action.icon} className="workspace-action" type="button" aria-label={action.icon} onClick={action.handler} disabled={action.disabled} title={action.disabled ? 'Coming soon' : undefined}>
+                  <button
+                    key={action.icon}
+                    className="workspace-action"
+                    type="button"
+                    aria-label={action.icon}
+                    onClick={action.handler}
+                    disabled={action.disabled}
+                    title={action.title}
+                  >
                     <span className="material-symbols-outlined">{action.icon}</span>
                   </button>
                 ))}

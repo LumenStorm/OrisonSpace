@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
-export type WorkspaceModule = 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'creative';
+export type WorkspaceModule = 'outline' | 'novel' | 'script' | 'storyboard' | 'video';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
 export type LocaleSetting = 'system' | (string & {});
 export type TaskRequest = z.infer<typeof taskRequestSchema>;
@@ -18,6 +18,7 @@ export type ProjectMeta = {
   name: string;
   path: string;
   type: 'novel' | 'script';
+  coverImage?: string;
 };
 
 export type TaskAdapter = {

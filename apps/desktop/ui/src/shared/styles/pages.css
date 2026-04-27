@@ -210,3 +210,110 @@
 .projects-cancel:hover {
   background: var(--hover-overlay);
 }
+
+/* ── New Project Dialog: Directory Picker ── */
+.new-project-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.new-project-dir-input {
+  flex: 1;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: 0 !important;
+}
+
+.new-project-dir-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-left: 0;
+  border-radius: 0 0.35rem 0.35rem 0;
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.new-project-dir-btn:hover {
+  background: var(--hover-overlay);
+}
+
+.new-project-dir-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* ── New Project Dialog: Cover Image ── */
+.new-project-cover-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1.2rem;
+  border: 2px dashed var(--outline-variant);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.new-project-cover-pick:hover {
+  border-color: var(--accent);
+  background: var(--hover-overlay);
+}
+
+.new-project-cover-pick .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.new-project-cover-preview {
+  position: relative;
+  display: inline-block;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+}
+
+.new-project-cover-img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.new-project-cover-remove {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.new-project-cover-remove .material-symbols-outlined {
+  font-size: 14px;
+}
+
+/* ── Project Card Cover Image ── */
+.projects-grid-card-cover {
+  width: 100%;
+  height: 60%;
+  object-fit: cover;
+  border-radius: 0.4rem 0.4rem 0 0;
+}

@@ -309,6 +309,13 @@
   min-height: 400px;
 }
 
+/* Pure mode: no sidebar, full-width editor */
+.script-editor.script-editor-pure {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+}
+
 .script-sidebar {
   display: flex;
   flex-direction: column;
@@ -481,4 +488,46 @@
 
 .video-clip .material-symbols-outlined {
   font-size: 14px;
+}
+
+/* ── Editor Sub-Tabs (novel/script + creative merge) ── */
+.editor-with-creative {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-sub-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  flex-shrink: 0;
+}
+
+.editor-sub-tab {
+  padding: 0.5rem 1.2rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.editor-sub-tab:hover {
+  color: var(--on-surface);
+}
+
+.editor-sub-tabActive {
+  color: var(--on-surface);
+  border-bottom-color: var(--accent);
+}
+
+.editor-sub-content {
+  flex: 1;
+  overflow: auto;
 }
