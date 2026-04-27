@@ -42,4 +42,15 @@ export async function initDatabase(): Promise<void> {
       created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS projects (
+      project_id        VARCHAR(5) PRIMARY KEY,
+      project_name      VARCHAR(255) NOT NULL,
+      project_type      VARCHAR(32) NOT NULL,
+      local_fingerprint VARCHAR(255) NOT NULL UNIQUE,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 }
