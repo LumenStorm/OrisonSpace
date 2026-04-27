@@ -53,4 +53,56 @@ export async function initDatabase(): Promise<void> {
       updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      task_id         VARCHAR(32) PRIMARY KEY,
+      project_id      VARCHAR(5) NOT NULL REFERENCES projects(project_id),
+      target_id       VARCHAR(128),
+      task_type       VARCHAR(64) NOT NULL,
+      name            VARCHAR(255) NOT NULL,
+      description     TEXT NOT NULL,
+      input_text      TEXT NOT NULL,
+      status          VARCHAR(32) NOT NULL,
+      output_type     VARCHAR(32),
+      output_payload  JSONB,
+      result_summary  TEXT,
+      rationale       TEXT NOT NULL DEFAULT '',
+      review_hint     TEXT NOT NULL DEFAULT '',
+      retryable       BOOLEAN NOT NULL DEFAULT TRUE,
+      error_message   TEXT,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      started_at      TIMESTAMPTZ,
+      finished_at     TIMESTAMPTZ,
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_asset_refs (
+      task_id    VARCHAR(32) NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+      asset_id   VARCHAR(128) NOT NULL,
+      PRIMARY KEY (task_id, asset_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_created_at
+    ON tasks (project_id, created_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_status_created_at
+    ON tasks (project_id, status, created_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_target_created_at
+    ON tasks (project_id, target_id, created_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_task_asset_refs_asset_id
+    ON task_asset_refs (asset_id)
+  `);
 }

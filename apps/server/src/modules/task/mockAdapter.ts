@@ -4,11 +4,11 @@ import { taskRequestSchema, taskResultSchema } from '@orison/shared-contracts';
 type TaskRequest = z.infer<typeof taskRequestSchema>;
 type TaskResult = z.infer<typeof taskResultSchema>;
 
-export async function runMockTask(request: TaskRequest): Promise<TaskResult> {
+export async function runMockTask(taskId: string, request: TaskRequest): Promise<TaskResult> {
   await new Promise((resolve) => setTimeout(resolve, 10));
 
   return taskResultSchema.parse({
-    taskId: request.taskId,
+    taskId,
     status: 'completed',
     outputType: 'patch',
     outputPayload: {
@@ -16,7 +16,7 @@ export async function runMockTask(request: TaskRequest): Promise<TaskResult> {
         {
           op: 'replace',
           path: 'outline.acts[0].summary',
-          value: `Rewritten: ${request.userInstruction}`
+          value: `Rewritten: ${request.input}`
         }
       ]
     },
