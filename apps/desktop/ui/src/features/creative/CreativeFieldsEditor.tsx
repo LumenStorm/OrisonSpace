@@ -11,10 +11,11 @@ import { OutlineV2View } from './OutlineV2View';
 import { EpisodeOutlinesList } from './EpisodeOutlinesList';
 import { CurvesView } from './CurvesView';
 import { CreativeBriefView } from './CreativeBriefView';
+import { ForeshadowRegistryView } from './ForeshadowRegistryView';
 
 const TAB_ORDER: CreativeFieldKey[] = [
   'world_setting', 'asset_cards', 'relationship_graph',
-  'outline', 'episode_outlines',
+  'outline', 'episode_outlines', 'foreshadow_registry',
   'growth_curve', 'pacing_curve', 'emotion_curve',
   'creative_brief'
 ];
@@ -29,6 +30,7 @@ const fieldViews: Record<CreativeFieldKey, React.FC> = {
   growth_curve: () => <CurvesView curveType="growth_curve" />,
   pacing_curve: () => <CurvesView curveType="pacing_curve" />,
   emotion_curve: () => <CurvesView curveType="emotion_curve" />,
+  foreshadow_registry: ForeshadowRegistryView,
 };
 
 export function CreativeFieldsEditor() {

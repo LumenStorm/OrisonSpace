@@ -48,6 +48,9 @@ export const createCreativeFieldsSlice: StateCreator<CreativeFieldsSlice, [], []
   loadCreativeFields: (doc) => {
     const fields: Partial<Record<CreativeFieldKey, unknown>> = {};
     for (const key of creativeFieldKeys) {
+      // Map creative field key 'outline' → document key 'outline_v2'.
+      // The old 'outline' schema in projectDocumentSchema is deprecated;
+      // all new data uses outline_v2. See project.ts for details.
       const docKey = key === 'outline' ? 'outline_v2' : key;
       const value = (doc as Record<string, unknown>)[docKey];
       if (value !== undefined) {

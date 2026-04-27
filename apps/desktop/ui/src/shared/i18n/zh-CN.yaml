@@ -23,6 +23,11 @@ projects:
   create: "创建"
   cancel: "取消"
   recentProjects: "最近项目"
+  location: "存储位置"
+  locationPlaceholder: "选择项目文件夹..."
+  coverImage: "封面图"
+  optional: "（可选）"
+  pickCover: "选择封面图片"
 
 nav:
   project: "项目"
@@ -35,6 +40,11 @@ nav:
   settings: "设置"
   account: "个人中心"
   logout: "退出登录"
+
+projectTree:
+  title: "项目文件"
+  assets: "素材"
+  config: "配置"
 
 outline:
   projectTitle: "项目标题"
@@ -54,6 +64,13 @@ script:
   chapterDefault: "第 {n} 章"
   startWriting: "开始撰写本章..."
   selectChapter: "选择一个章节开始编辑"
+  addChapter: "添加章节"
+
+topbar:
+  save: "保存"
+  undo: "撤回"
+  redo: "恢复"
+  export: "导出"
 
 storyboard:
   cameraLens: "镜头焦距"
@@ -172,6 +189,9 @@ creative:
     growth_curve: "成长曲线"
     pacing_curve: "节奏曲线"
     emotion_curve: "情感曲线"
+    foreshadow_registry: "伏笔登记"
+  foreshadow:
+    empty: "暂无伏笔条目"
   field:
     version: "版本 {v}"
     stale: "需要重新生成"

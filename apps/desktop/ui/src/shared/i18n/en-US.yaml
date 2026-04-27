@@ -23,6 +23,11 @@ projects:
   create: "Create"
   cancel: "Cancel"
   recentProjects: "Recent Projects"
+  location: "Location"
+  locationPlaceholder: "Choose project folder..."
+  coverImage: "Cover Image"
+  optional: "(optional)"
+  pickCover: "Choose cover image"
 
 nav:
   project: "Project"
@@ -35,6 +40,11 @@ nav:
   settings: "Settings"
   account: "Account"
   logout: "Logout"
+
+projectTree:
+  title: "Project Files"
+  assets: "Assets"
+  config: "Config"
 
 outline:
   projectTitle: "Project Title"
@@ -54,6 +64,13 @@ script:
   chapterDefault: "Chapter {n}"
   startWriting: "Start writing this chapter..."
   selectChapter: "Select a chapter to start editing"
+  addChapter: "Add Chapter"
+
+topbar:
+  save: "Save"
+  undo: "Undo"
+  redo: "Redo"
+  export: "Export"
 
 storyboard:
   cameraLens: "Camera Lens"
@@ -172,6 +189,9 @@ creative:
     growth_curve: "Growth"
     pacing_curve: "Pacing"
     emotion_curve: "Emotion"
+    foreshadow_registry: "Foreshadow"
+  foreshadow:
+    empty: "No foreshadowing entries yet"
   field:
     version: "v{v}"
     stale: "Needs regeneration"
