@@ -6,18 +6,28 @@ export const patchOperationSchema = z.object({
   value: z.unknown()
 });
 
+export const projectIdSchema = z.string().regex(/^\d{5}$/);
+
 export const taskRequestSchema = z.object({
-  taskId: z.string().min(1),
-  taskType: z.string().min(1),
-  projectFingerprint: z.string().min(1),
-  selectedScope: z.object({
-    module: z.enum(['outline', 'detailed_outline', 'novel', 'script', 'storyboard', 'video']),
-    entityId: z.string().optional()
-  }),
-  contextPayload: z.record(z.string(), z.unknown()),
-  userInstruction: z.string().min(1),
-  privacyLevel: z.enum(['minimal', 'standard']),
-  expectedOutputType: z.enum(['patch', 'candidate'])
+  projectId: projectIdSchema,
+  targetId: z.string().min(1).optional(),
+  assetIds: z.array(z.string().min(1)).default([]),
+  type: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().min(1),
+  input: z.string().min(1)
+});
+
+export const projectCreateRequestSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(['novel', 'script']),
+  localFingerprint: z.string().min(1)
+});
+
+export const projectCreateResponseSchema = z.object({
+  projectId: projectIdSchema,
+  name: z.string().min(1),
+  type: z.enum(['novel', 'script'])
 });
 
 export const taskResultSchema = z.object({

@@ -2,33 +2,26 @@ import { describe, expect, it } from 'vitest';
 import {
   loginResponseSchema,
   projectDocumentSchema,
+  projectCreateRequestSchema,
+  projectCreateResponseSchema,
   taskRequestSchema,
   taskResultSchema
 } from '../src';
 
 describe('shared contracts', () => {
-  it('accepts a valid task request and result pair', () => {
+  it('accepts a simplified task request and result pair', () => {
     const taskRequest = {
-      taskId: 'task_123',
-      taskType: 'outline.rewrite',
-      projectFingerprint: 'project_abc',
-      selectedScope: {
-        module: 'outline',
-        entityId: 'act_1'
-      },
-      contextPayload: {
-        outline: {
-          title: 'Cold City',
-          acts: [{ id: 'act_1', title: 'Arrival', summary: 'A detective arrives.' }]
-        }
-      },
-      userInstruction: 'Make it darker.',
-      privacyLevel: 'minimal',
-      expectedOutputType: 'patch'
+      projectId: '00001',
+      targetId: 'act_1',
+      assetIds: ['char_001', 'loc_002'],
+      type: 'outline.rewrite',
+      name: '重写第一幕冲突',
+      description: '强化主角和对手第一次正面冲突',
+      input: '这里是提交给任务处理的文本内容'
     };
 
     const taskResult = {
-      taskId: 'task_123',
+      taskId: '20260427214530123_48321',
       status: 'completed',
       outputType: 'patch',
       outputPayload: {
@@ -48,6 +41,23 @@ describe('shared contracts', () => {
 
     expect(() => taskRequestSchema.parse(taskRequest)).not.toThrow();
     expect(() => taskResultSchema.parse(taskResult)).not.toThrow();
+  });
+
+  it('accepts project create request and response payloads', () => {
+    const request = {
+      name: 'Cold City',
+      type: 'novel',
+      localFingerprint: 'local_project_cold_city'
+    };
+
+    const response = {
+      projectId: '00001',
+      name: 'Cold City',
+      type: 'novel'
+    };
+
+    expect(() => projectCreateRequestSchema.parse(request)).not.toThrow();
+    expect(() => projectCreateResponseSchema.parse(response)).not.toThrow();
   });
 
   it('requires the login response to include a bearer token and user id', () => {
