@@ -41,6 +41,7 @@ describe('review flow', () => {
         displayName: 'Creator'
       },
       currentProject: {
+        projectId: '00001',
         name: 'Cold City',
         path: 'C:/Projects/ColdCity',
         type: 'novel'

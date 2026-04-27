@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
+import { ensureProjectRegistration } from '../api/projects';
 
 type Props = {
   onClose: () => void;
@@ -8,6 +9,7 @@ type Props = {
 
 export function NewProjectDialog({ onClose }: Props) {
   const openProject = useAppStore((s) => s.openProject);
+  const token = useAppStore((s) => s.token);
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
 
@@ -42,10 +44,27 @@ export function NewProjectDialog({ onClose }: Props) {
         coverImage = await window.orisonDesktop.copyCoverImage(coverSrc, projectDir);
       }
 
-      const meta = { name: name.trim(), type, coverImage: coverImage ?? null };
+      let projectId: string | undefined;
+      if (token) {
+        try {
+          projectId = await ensureProjectRegistration({
+            token,
+            project: { name: name.trim(), type, path: projectDir }
+          });
+        } catch {
+          projectId = undefined;
+        }
+      }
+
+      const meta = {
+        name: name.trim(),
+        type,
+        coverImage: coverImage ?? null,
+        projectId: projectId ?? null
+      };
       await window.orisonDesktop.saveProjectMeta(projectDir, meta);
 
-      openProject({ name: name.trim(), path: projectDir, type, coverImage });
+      openProject({ projectId, name: name.trim(), path: projectDir, type, coverImage });
       onClose();
     } catch {
       setCreating(false);

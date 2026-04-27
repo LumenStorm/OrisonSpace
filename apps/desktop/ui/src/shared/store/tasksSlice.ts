@@ -11,7 +11,12 @@ export type TasksSlice = {
   acceptedPatches: PatchOperation[];
 };
 
-export const createTasksSlice: StateCreator<TasksSlice, [], [], TasksSlice> = (set, get) => {
+export const createTasksSlice: StateCreator<
+  TasksSlice & { currentProject: { projectId?: string } | null },
+  [],
+  [],
+  TasksSlice
+> = (set, get) => {
   let abortController: AbortController | null = null;
 
   return {
@@ -27,16 +32,15 @@ export const createTasksSlice: StateCreator<TasksSlice, [], [], TasksSlice> = (s
 
     async submitRewrite(instruction: string) {
       const adapter = get().taskAdapter;
-      if (!adapter) return;
-
       const currentProject = get().currentProject;
+      if (!adapter || !currentProject?.projectId) return;
 
       abortController?.abort();
       abortController = new AbortController();
       const signal = abortController.signal;
 
       const request: TaskRequest = {
-        projectId: currentProject?.projectId ?? '00001',
+        projectId: currentProject.projectId,
         targetId: 'act_1',
         assetIds: [],
         type: 'outline.rewrite',
