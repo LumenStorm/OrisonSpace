@@ -1,13 +1,14 @@
 import type { z } from 'zod';
 import {
   orchestrationRunSchema,
-  startOrchestrationRunSchema
+  startOrchestrationRunSchema,
+  DEFAULT_API_BASE
 } from '@orison/shared-contracts';
 
 type StartRunCommand = z.infer<typeof startOrchestrationRunSchema>;
 type RunSnapshot = z.infer<typeof orchestrationRunSchema>;
 
-const BASE_URL = 'http://localhost:4000';
+const BASE_URL = DEFAULT_API_BASE;
 
 export function createOrchestrationClient() {
   return {

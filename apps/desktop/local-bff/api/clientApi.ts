@@ -2,14 +2,15 @@ import type { z } from 'zod';
 import {
   taskRequestSchema,
   taskResultSchema,
-  loginResponseSchema
+  loginResponseSchema,
+  DEFAULT_API_BASE
 } from '@orison/shared-contracts';
 
 type TaskRequest = z.infer<typeof taskRequestSchema>;
 type TaskResult = z.infer<typeof taskResultSchema>;
 type LoginResponse = z.infer<typeof loginResponseSchema>;
 
-const BASE_URL = 'http://localhost:4000';
+const BASE_URL = DEFAULT_API_BASE;
 
 async function request<T>(
   path: string,

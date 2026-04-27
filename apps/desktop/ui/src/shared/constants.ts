@@ -1,9 +1,14 @@
-export const API_BASE = 'http://localhost:4000';
+import { DEFAULT_API_BASE } from '@orison/shared-contracts';
 
-// Panel size constraints
-export const SIDEBAR_WIDTH_DEFAULT = 260;
-export const SIDEBAR_WIDTH_MIN = 180;
-export const SIDEBAR_WIDTH_MAX = 400;
+export const API_BASE = DEFAULT_API_BASE;
+
+// Icon rail (fixed width, no resize)
+export const ICON_RAIL_WIDTH = 48;
+
+// Project tree panel size constraints
+export const PROJECT_TREE_WIDTH_DEFAULT = 220;
+export const PROJECT_TREE_WIDTH_MIN = 160;
+export const PROJECT_TREE_WIDTH_MAX = 400;
 
 export const INSPECTOR_WIDTH_DEFAULT = 300;
 export const INSPECTOR_WIDTH_MIN = 200;
