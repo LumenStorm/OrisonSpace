@@ -1,4 +1,8 @@
-import { useOrchestrationStore } from '../../shared/store/orchestrationStore';
+import { useEffect } from 'react';
+import { useOrchestrationStore, type PatchDeliveredCallback } from '../../shared/store/orchestrationStore';
+import { useAppStore } from '../../shared/store/appStore';
+import type { z } from 'zod';
+import type { orchestrationRunSchema } from '@orison/shared-contracts';
 
 function NodeProgress({ completedNodes, pendingNodes, currentNodeId }: {
   completedNodes: string[];
@@ -40,7 +44,9 @@ function ReviewActions() {
   );
 }
 
-function DeliveryView({ run }: { run: NonNullable<ReturnType<typeof useOrchestrationStore>['run']> }) {
+type RunSnapshot = z.infer<typeof orchestrationRunSchema>;
+
+function DeliveryView({ run }: { run: RunSnapshot }) {
   return (
     <div className="orchestration-delivery" aria-label="Delivery Output">
       <p>已交付 — {run.delivery?.summary}</p>
@@ -51,7 +57,23 @@ function DeliveryView({ run }: { run: NonNullable<ReturnType<typeof useOrchestra
 }
 
 export function OrchestrationPanel() {
-  const { run, loading, error, startRun } = useOrchestrationStore();
+  const { run, loading, error, startRun, setOnPatchDelivered } = useOrchestrationStore();
+
+  // Bridge: when a patch is delivered, push it into appStore
+  useEffect(() => {
+    const handler: PatchDeliveredCallback = (patch) => {
+      const appState = useAppStore.getState();
+      appState.setPendingPatch(patch);
+      if (appState.autoApplyPatches) {
+        for (const entry of patch.patches) {
+          appState.togglePatchSelection(entry.field);
+        }
+        appState.applySelectedPatches();
+      }
+    };
+    setOnPatchDelivered(handler);
+    return () => setOnPatchDelivered(null);
+  }, [setOnPatchDelivered]);
 
   return (
     <section className="task-feed" aria-label="Orchestration Panel">
