@@ -105,4 +105,28 @@ export async function initDatabase(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_task_asset_refs_asset_id
     ON task_asset_refs (asset_id)
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS project_assets (
+      asset_id        VARCHAR(128) PRIMARY KEY,
+      project_id      VARCHAR(5) NOT NULL REFERENCES projects(project_id),
+      asset_type      VARCHAR(32) NOT NULL,
+      asset_name      VARCHAR(255) NOT NULL,
+      asset_status    VARCHAR(32) NOT NULL,
+      source_task_id  VARCHAR(32),
+      summary         TEXT,
+      version         INTEGER NOT NULL DEFAULT 1,
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_project_assets_project_type_updated
+    ON project_assets (project_id, asset_type, updated_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_project_assets_project_name
+    ON project_assets (project_id, asset_name)
+  `);
 }

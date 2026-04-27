@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { taskRequestSchema } from '@orison/shared-contracts';
-import { enqueueTask, ProjectNotFoundError } from './service';
+import { enqueueTask, listProjectAssets, listProjectTasks, ProjectNotFoundError } from './service';
 import { postgresTaskRepository } from './repositories/postgresTaskRepository';
 
 export async function registerTaskRoutes(app: FastifyInstance) {
@@ -29,5 +29,31 @@ export async function registerTaskRoutes(app: FastifyInstance) {
     }
 
     return reply.send(stored);
+  });
+
+  app.get('/v1/projects/:projectId/tasks', async (request, reply) => {
+    const { projectId } = request.params as { projectId: string };
+
+    try {
+      return reply.send(await listProjectTasks(projectId));
+    } catch (error) {
+      if (error instanceof ProjectNotFoundError) {
+        return reply.code(404).send({ message: error.message });
+      }
+      throw error;
+    }
+  });
+
+  app.get('/v1/projects/:projectId/assets', async (request, reply) => {
+    const { projectId } = request.params as { projectId: string };
+
+    try {
+      return reply.send(await listProjectAssets(projectId));
+    } catch (error) {
+      if (error instanceof ProjectNotFoundError) {
+        return reply.code(404).send({ message: error.message });
+      }
+      throw error;
+    }
   });
 }

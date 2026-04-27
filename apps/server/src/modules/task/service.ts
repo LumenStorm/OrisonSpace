@@ -54,3 +54,38 @@ export async function enqueueTask(request: TaskRequest) {
 
   return queuedResult;
 }
+
+export async function listProjectTasks(projectId: string) {
+  const projectExists = await postgresProjectRepository.existsById(projectId);
+  if (!projectExists) {
+    throw new ProjectNotFoundError(projectId);
+  }
+
+  const tasks = await postgresTaskRepository.listByProject(projectId);
+  const refs = await postgresTaskRepository.listAssetRefsForTaskIds(tasks.map((task) => task.taskId));
+  const grouped = new Map<string, string[]>();
+
+  for (const ref of refs) {
+    const current = grouped.get(ref.taskId) ?? [];
+    current.push(ref.assetId);
+    grouped.set(ref.taskId, current);
+  }
+
+  return {
+    items: tasks.map((task) => ({
+      ...task,
+      assetIds: grouped.get(task.taskId) ?? []
+    }))
+  };
+}
+
+export async function listProjectAssets(projectId: string) {
+  const projectExists = await postgresProjectRepository.existsById(projectId);
+  if (!projectExists) {
+    throw new ProjectNotFoundError(projectId);
+  }
+
+  return {
+    items: await postgresTaskRepository.listProjectAssets(projectId)
+  };
+}

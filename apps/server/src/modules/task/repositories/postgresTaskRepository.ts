@@ -1,7 +1,13 @@
 import type { z } from 'zod';
 import { taskResultSchema } from '@orison/shared-contracts';
 import { pool } from '../../../common/db';
-import type { TaskReadRepository, TaskResultRecord } from './taskReadRepository';
+import type {
+  ProjectAssetListItem,
+  TaskAssetRefRecord,
+  TaskListItem,
+  TaskReadRepository,
+  TaskResultRecord
+} from './taskReadRepository';
 import type { TaskCreateInput, TaskWriteRepository } from './taskWriteRepository';
 
 type TaskResult = z.infer<typeof taskResultSchema>;
@@ -17,6 +23,33 @@ function mapTaskRowToResult(row: Record<string, unknown>): TaskResultRecord {
     reviewHint: row.review_hint ?? '',
     retryable: row.retryable ?? true
   });
+}
+
+function mapTaskListRow(row: Record<string, unknown>): TaskListItem {
+  return {
+    taskId: String(row.task_id),
+    projectId: String(row.project_id),
+    targetId: row.target_id ? String(row.target_id) : undefined,
+    type: String(row.task_type),
+    name: String(row.name),
+    description: String(row.description),
+    status: row.status as TaskListItem['status'],
+    createdAt: new Date(String(row.created_at)).toISOString()
+  };
+}
+
+function mapProjectAssetRow(row: Record<string, unknown>): ProjectAssetListItem {
+  return {
+    assetId: String(row.asset_id),
+    projectId: String(row.project_id),
+    assetType: String(row.asset_type),
+    assetName: String(row.asset_name),
+    assetStatus: String(row.asset_status),
+    sourceTaskId: row.source_task_id ? String(row.source_task_id) : undefined,
+    summary: row.summary ? String(row.summary) : undefined,
+    version: Number(row.version),
+    updatedAt: new Date(String(row.updated_at)).toISOString()
+  };
 }
 
 class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository {
@@ -43,7 +76,7 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
           input.request.input,
           input.result.status,
           input.result.outputType ?? null,
-          input.result.outputPayload ? JSON.stringify(input.result.outputPayload) : null,
+          input.result.outputPayload ?? null,
           input.result.summary,
           input.result.rationale,
           input.result.reviewHint,
@@ -99,7 +132,7 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
         taskId,
         result.status,
         result.outputType ?? null,
-        result.outputPayload ? JSON.stringify(result.outputPayload) : null,
+        result.outputPayload ?? null,
         result.summary,
         result.rationale,
         result.reviewHint,
@@ -118,6 +151,46 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
     );
 
     return result.rowCount ? mapTaskRowToResult(result.rows[0]) : null;
+  }
+
+  async listByProject(projectId: string): Promise<TaskListItem[]> {
+    const result = await pool.query(
+      `SELECT task_id, project_id, target_id, task_type, name, description, status, created_at
+       FROM tasks
+       WHERE project_id = $1
+       ORDER BY created_at DESC`,
+      [projectId]
+    );
+
+    return result.rows.map(mapTaskListRow);
+  }
+
+  async listAssetRefsForTaskIds(taskIds: string[]): Promise<TaskAssetRefRecord[]> {
+    if (taskIds.length === 0) return [];
+
+    const result = await pool.query(
+      `SELECT task_id, asset_id
+       FROM task_asset_refs
+       WHERE task_id = ANY($1::varchar[])`,
+      [taskIds]
+    );
+
+    return result.rows.map((row) => ({
+      taskId: String(row.task_id),
+      assetId: String(row.asset_id)
+    }));
+  }
+
+  async listProjectAssets(projectId: string): Promise<ProjectAssetListItem[]> {
+    const result = await pool.query(
+      `SELECT asset_id, project_id, asset_type, asset_name, asset_status, source_task_id, summary, version, updated_at
+       FROM project_assets
+       WHERE project_id = $1
+       ORDER BY updated_at DESC, asset_id ASC`,
+      [projectId]
+    );
+
+    return result.rows.map(mapProjectAssetRow);
   }
 }
 
