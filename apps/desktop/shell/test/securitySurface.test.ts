@@ -9,16 +9,22 @@ import { exposedDesktopApi } from '../preload/index';
 
 describe('preload security surface', () => {
   it('only exposes the whitelisted desktop api', () => {
-    expect(Object.keys(exposedDesktopApi)).toEqual([
-      'pickProjectDirectory',
-      'getLocale',
-      'minimize',
-      'maximize',
+    expect(Object.keys(exposedDesktopApi).sort()).toEqual([
       'close',
+      'copyCoverImage',
+      'createProjectDirectory',
+      'getLocale',
       'isMaximized',
-      'platform',
       'loadModelConfig',
-      'saveModelConfig'
+      'loadProjectMeta',
+      'maximize',
+      'minimize',
+      'pickCoverImage',
+      'pickProjectDirectory',
+      'platform',
+      'saveModelConfig',
+      'saveProjectMeta',
+      'syncField',
     ]);
   });
 });
