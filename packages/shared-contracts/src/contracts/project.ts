@@ -28,6 +28,8 @@ export const projectMetaSchema = z.object({
 });
 
 // ── Outline ──
+// @deprecated — Use outlineV2Schema from creative-fields.ts instead.
+// Kept for backward compatibility with existing project files.
 
 export const beatSchema = z.object({
   id: z.string().min(1),
@@ -195,6 +197,7 @@ export const assetsSchema = z.object({
 
 export const projectDocumentSchema = z.object({
   meta: projectMetaSchema,
+  /** @deprecated Use outline_v2 instead. Kept for migration compatibility. */
   outline: outlineSchema,
   detailed_outline: detailedOutlineSchema.optional(),
   novel: novelSchema.optional(),

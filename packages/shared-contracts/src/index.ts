@@ -7,3 +7,4 @@ export * from './contracts/agent-contract';
 export * from './contracts/workflow-sync';
 export * from './ipc';
 export * from './orchestration';
+export * from './config';
