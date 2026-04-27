@@ -14,3 +14,4 @@ __pycache__/
 .omc/
 .env
 .env.local
+.env.agent

@@ -70,7 +70,14 @@ export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 
 The server reads `.env` through `tsx --env-file=.env`. The agent service reads `apps/agent/.env.agent`.
 
-Server defaults:
+Copy the example files before first run:
+
+```bash
+cp apps/server/.env.example apps/server/.env
+cp apps/agent/.env.agent.example apps/agent/.env.agent
+```
+
+Server defaults (`apps/server/.env`):
 
 ```text
 PORT=4000
@@ -80,7 +87,7 @@ JWT_SECRET=orison-dev-secret-key-NOT-FOR-PRODUCTION
 DEMO_ACCESS_TOKEN=demo-access-token
 ```
 
-Agent defaults:
+Agent defaults (`apps/agent/.env.agent`):
 
 ```text
 PORT=18422
