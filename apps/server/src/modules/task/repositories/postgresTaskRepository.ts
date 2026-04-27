@@ -215,12 +215,11 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
     });
 
     await pool.query(
-      `INSERT INTO project_assets (
+       `INSERT INTO project_assets (
          asset_id, project_id, asset_type, asset_name, asset_status, source_task_id, summary
        ) VALUES ${values.join(', ')}
-       ON CONFLICT (asset_id) DO UPDATE
-       SET project_id = EXCLUDED.project_id,
-           asset_type = EXCLUDED.asset_type,
+       ON CONFLICT (project_id, asset_id) DO UPDATE
+       SET asset_type = EXCLUDED.asset_type,
            asset_name = EXCLUDED.asset_name,
            asset_status = EXCLUDED.asset_status,
            source_task_id = EXCLUDED.source_task_id,

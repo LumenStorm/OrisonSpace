@@ -94,7 +94,7 @@ describe('task list routes', () => {
       headers: { authorization: `Bearer ${token}` }
     });
 
-    for (let attempt = 0; attempt < 10 && response.json().items.length === 0; attempt++) {
+    for (let attempt = 0; attempt < 10 && response.json().items.length < 2; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 10));
       response = await app.inject({
         method: 'GET',
@@ -108,6 +108,12 @@ describe('task list routes', () => {
       items: expect.arrayContaining([
         expect.objectContaining({
           assetId: 'char_001',
+          projectId,
+          assetType: 'unknown',
+          sourceTaskId: expect.any(String)
+        }),
+        expect.objectContaining({
+          assetId: 'loc_002',
           projectId,
           assetType: 'unknown',
           sourceTaskId: expect.any(String)

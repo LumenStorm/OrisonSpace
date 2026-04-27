@@ -28,7 +28,7 @@ export function TaskFeedPanel() {
         <p>{t('tasks.failed', { summary: result.summary })}</p>
         <button
           type="button"
-          onClick={() => submitRewrite(currentTask.request.userInstruction)}
+          onClick={() => submitRewrite(currentTask.request.input)}
         >
           {t('tasks.retry')}
         </button>

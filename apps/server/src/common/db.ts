@@ -108,7 +108,7 @@ export async function initDatabase(): Promise<void> {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS project_assets (
-      asset_id        VARCHAR(128) PRIMARY KEY,
+      asset_id        VARCHAR(128) NOT NULL,
       project_id      VARCHAR(5) NOT NULL REFERENCES projects(project_id),
       asset_type      VARCHAR(32) NOT NULL,
       asset_name      VARCHAR(255) NOT NULL,
@@ -118,6 +118,27 @@ export async function initDatabase(): Promise<void> {
       version         INTEGER NOT NULL DEFAULT 1,
       updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE project_assets
+    DROP CONSTRAINT IF EXISTS project_assets_pkey
+  `);
+
+  await pool.query(`
+    ALTER TABLE project_assets
+    DROP CONSTRAINT IF EXISTS project_assets_project_id_fkey
+  `);
+
+  await pool.query(`
+    ALTER TABLE project_assets
+    ADD CONSTRAINT project_assets_pkey PRIMARY KEY (project_id, asset_id)
+  `);
+
+  await pool.query(`
+    ALTER TABLE project_assets
+    ADD CONSTRAINT project_assets_project_id_fkey
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
   `);
 
   await pool.query(`

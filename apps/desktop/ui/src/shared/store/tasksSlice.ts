@@ -29,20 +29,20 @@ export const createTasksSlice: StateCreator<TasksSlice, [], [], TasksSlice> = (s
       const adapter = get().taskAdapter;
       if (!adapter) return;
 
-      // Cancel any existing polling
+      const currentProject = get().currentProject;
+
       abortController?.abort();
       abortController = new AbortController();
       const signal = abortController.signal;
 
       const request: TaskRequest = {
-        taskId: `task_${Date.now()}`,
-        taskType: 'outline.rewrite',
-        projectFingerprint: 'local_project',
-        selectedScope: { module: 'outline', entityId: 'act_1' },
-        contextPayload: { outline: { title: 'Current Story' } },
-        userInstruction: instruction,
-        privacyLevel: 'minimal',
-        expectedOutputType: 'patch',
+        projectId: currentProject?.projectId ?? '00001',
+        targetId: 'act_1',
+        assetIds: [],
+        type: 'outline.rewrite',
+        name: 'Rewrite Current Passage',
+        description: instruction,
+        input: instruction
       };
 
       const { taskId } = await adapter.submitTask(request);
@@ -54,7 +54,7 @@ export const createTasksSlice: StateCreator<TasksSlice, [], [], TasksSlice> = (s
         if (signal.aborted) return;
         set({ currentTask: { request, result } });
         if (result.status !== 'completed' && result.status !== 'failed') {
-          await new Promise((r) => setTimeout(r, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
           if (!signal.aborted) return poll();
         }
       };

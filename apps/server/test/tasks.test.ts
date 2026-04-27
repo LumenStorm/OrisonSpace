@@ -38,8 +38,7 @@ describe('task routes', () => {
     if (projectId) {
       await query('DELETE FROM task_asset_refs WHERE task_id IN (SELECT task_id FROM tasks WHERE project_id = $1)', [projectId]);
       await query('DELETE FROM tasks WHERE project_id = $1', [projectId]);
-    }
-    if (projectId) {
+      await query('DELETE FROM project_assets WHERE project_id = $1', [projectId]);
       await query('DELETE FROM projects WHERE project_id = $1', [projectId]);
     }
     await query('DELETE FROM users WHERE email = $1', [testEmail]);

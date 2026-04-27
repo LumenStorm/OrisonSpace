@@ -15,6 +15,7 @@ export type UserInfo = {
 };
 
 export type ProjectMeta = {
+  projectId?: string;
   name: string;
   path: string;
   type: 'novel' | 'script';

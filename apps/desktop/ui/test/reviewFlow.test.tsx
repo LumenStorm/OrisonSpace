@@ -6,8 +6,8 @@ import { useAppStore } from '../src/shared/store/appStore';
 import type { TaskAdapter } from '../src/shared/store/appStore';
 
 const mockAdapter: TaskAdapter = {
-  async submitTask(request) {
-    return { taskId: request.taskId, status: 'queued' };
+  async submitTask() {
+    return { taskId: '20260427214530123_48321', status: 'queued' };
   },
   async getTaskResult(taskId) {
     return {
@@ -34,6 +34,17 @@ const mockAdapter: TaskAdapter = {
 describe('review flow', () => {
   beforeEach(() => {
     useAppStore.setState({
+      token: 'token_123',
+      user: {
+        id: 'user_1',
+        email: 'creator@example.com',
+        displayName: 'Creator'
+      },
+      currentProject: {
+        name: 'Cold City',
+        path: 'C:/Projects/ColdCity',
+        type: 'novel'
+      },
       currentTask: null,
       acceptedPatches: [],
       taskAdapter: mockAdapter
@@ -42,6 +53,9 @@ describe('review flow', () => {
 
   it('shows a completed task and applies the patch when accepted', async () => {
     render(<App />);
+
+    const promptInput = await screen.findByPlaceholderText('Describe how to refine the story outline...');
+    await userEvent.type(promptInput, 'Make the opening darker.');
 
     const createTaskButton = await screen.findByRole('button', { name: 'Run AI Rewrite' });
     await userEvent.click(createTaskButton);
