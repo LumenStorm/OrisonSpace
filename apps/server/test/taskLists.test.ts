@@ -53,12 +53,6 @@ describe('task list routes', () => {
       }
     });
 
-    await query(
-      `INSERT INTO project_assets (asset_id, project_id, asset_type, asset_name, asset_status, source_task_id, summary)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (asset_id) DO NOTHING`,
-      ['char_001', projectId, 'character', '主角', 'active', null, '测试资产']
-    );
   });
 
   afterAll(async () => {
@@ -94,21 +88,31 @@ describe('task list routes', () => {
 
   it('lists project assets from the asset index table', async () => {
     const app = buildServer();
-    const response = await app.inject({
+    let response = await app.inject({
       method: 'GET',
       url: `/v1/projects/${projectId}/assets`,
       headers: { authorization: `Bearer ${token}` }
     });
 
+    for (let attempt = 0; attempt < 10 && response.json().items.length === 0; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      response = await app.inject({
+        method: 'GET',
+        url: `/v1/projects/${projectId}/assets`,
+        headers: { authorization: `Bearer ${token}` }
+      });
+    }
+
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      items: [
+      items: expect.arrayContaining([
         expect.objectContaining({
           assetId: 'char_001',
           projectId,
-          assetType: 'character'
+          assetType: 'unknown',
+          sourceTaskId: expect.any(String)
         })
-      ]
+      ])
     });
   });
 });

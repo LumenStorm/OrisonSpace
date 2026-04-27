@@ -50,6 +50,7 @@ export async function enqueueTask(request: TaskRequest) {
 
     const result = await runMockTask(taskId, request);
     await postgresTaskRepository.updateTask(taskId, result);
+    await postgresTaskRepository.upsertProjectAssets(taskId, request);
   });
 
   return queuedResult;

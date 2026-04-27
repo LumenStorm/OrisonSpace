@@ -10,4 +10,5 @@ export type TaskCreateInput = {
 export interface TaskWriteRepository {
   createTask(input: TaskCreateInput): Promise<void>;
   updateTask(taskId: string, result: z.infer<typeof taskResultSchema>): Promise<void>;
+  upsertProjectAssets(taskId: string, request: z.infer<typeof taskRequestSchema>): Promise<void>;
 }

@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { taskResultSchema } from '@orison/shared-contracts';
+import { taskRequestSchema, taskResultSchema } from '@orison/shared-contracts';
 import { pool } from '../../../common/db';
 import type {
   ProjectAssetListItem,
@@ -11,6 +11,7 @@ import type {
 import type { TaskCreateInput, TaskWriteRepository } from './taskWriteRepository';
 
 type TaskResult = z.infer<typeof taskResultSchema>;
+type TaskRequest = z.infer<typeof taskRequestSchema>;
 
 function mapTaskRowToResult(row: Record<string, unknown>): TaskResultRecord {
   return taskResultSchema.parse({
@@ -191,6 +192,43 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
     );
 
     return result.rows.map(mapProjectAssetRow);
+  }
+
+  async upsertProjectAssets(taskId: string, request: TaskRequest): Promise<void> {
+    if (request.assetIds.length === 0) return;
+
+    const values: string[] = [];
+    const params: unknown[] = [];
+
+    request.assetIds.forEach((assetId, index) => {
+      const offset = index * 7;
+      values.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7})`);
+      params.push(
+        assetId,
+        request.projectId,
+        'unknown',
+        assetId,
+        'active',
+        taskId,
+        request.description
+      );
+    });
+
+    await pool.query(
+      `INSERT INTO project_assets (
+         asset_id, project_id, asset_type, asset_name, asset_status, source_task_id, summary
+       ) VALUES ${values.join(', ')}
+       ON CONFLICT (asset_id) DO UPDATE
+       SET project_id = EXCLUDED.project_id,
+           asset_type = EXCLUDED.asset_type,
+           asset_name = EXCLUDED.asset_name,
+           asset_status = EXCLUDED.asset_status,
+           source_task_id = EXCLUDED.source_task_id,
+           summary = EXCLUDED.summary,
+           version = project_assets.version + 1,
+           updated_at = NOW()`,
+      params
+    );
   }
 }
 
