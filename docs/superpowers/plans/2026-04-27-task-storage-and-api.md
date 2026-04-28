@@ -1,5 +1,11 @@
 # Task Storage and API Implementation Plan
 
+> 状态说明（2026-04-28）：本文件保留执行前计划，用于回溯实现过程。当前已落地行为请以 [docs/api/server-api.md](/I:/OneLine2Video-dev/OneLine2Video-git/docs/api/server-api.md) 和 [2026-04-27-task-storage-and-api-design.md](/I:/OneLine2Video-dev/OneLine2Video-git/docs/superpowers/specs/2026-04-27-task-storage-and-api-design.md) 为准。
+>
+> 当前实现和原计划相比，有两处关键更新：
+> 1. `project_assets` 已改为 `(project_id, asset_id)` 复合主键，避免跨项目同名资产互相覆盖。
+> 2. 桌面端已补充项目注册流程：新建或打开项目时会登记服务端 `projectId`，并写回本地项目元数据后再提交任务。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build sequential `project_id`, server-generated `task_id`, simplified task APIs, PostgreSQL-backed task persistence, and lightweight asset indexing without moving full project content out of local plaintext storage.
