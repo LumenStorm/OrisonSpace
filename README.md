@@ -1,83 +1,92 @@
-# Orison Space (OneLine2Video)
+# OneLine2Video / Orison Space
 
-Orison Space is an AI-assisted creative workspace for long-form stories, scripts, storyboards, and video planning.
+一个面向长篇故事、剧本、分镜和视频策划的 AI 创作工作台。
 
-The product direction is a desktop-first creative IDE: AI generates and expands structured creative material, while the user reviews, edits, accepts, rejects, or reruns the result. The local project remains the authority for creative content; server and agent services provide authentication, task intake, orchestration, and generation support.
+当前产品方向是「本地项目为主、服务端和 Agent 提供任务与生成能力」：
 
-## Current Capabilities
+- 本地项目文件仍然是创作内容的权威来源
+- 服务端负责认证、项目登记、任务入库、任务查询和轻量资产索引
+- Agent 服务负责编排与生成
+- 桌面端负责创作、审阅、接收或拒绝 AI 结果
 
-- Desktop workspace built with Electron, React, TypeScript, Zustand, and CSS modules.
-- Local-first project model for novel and script projects.
-- Structured creative fields for brief, world setting, outline, episode outlines, growth curve, pacing curve, emotion curve, asset cards, and relationship graph.
-- Fastify server for authentication, task APIs, database initialization, and orchestration proxying.
-- Agent service for multi-agent orchestration runs, review actions, archive metadata, delivery output, and data feedback.
-- Python node bridge for selected agent nodes.
-- Shared Zod contracts for project documents, patches, creative fields, workflow sync, tasks, auth, IPC, and orchestration.
+## 当前状态
 
-## Repository Layout
+当前仓库已经落地这些核心能力：
+
+- Electron + React + TypeScript 的桌面端工作台
+- 小说 / 剧本项目的本地打开与新建
+- 创作字段编辑：brief、世界观、资产卡、关系图、outline v2、集纲、曲线等
+- Fastify 服务端认证接口
+- 项目注册接口：`POST /v1/projects`
+- 任务接口：
+  - `POST /v1/tasks`
+  - `GET /v1/tasks/:taskId`
+  - `GET /v1/projects/:projectId/tasks`
+  - `GET /v1/projects/:projectId/assets`
+- PostgreSQL 持久化：
+  - `projects`
+  - `tasks`
+  - `task_asset_refs`
+  - `project_assets`
+- 桌面端项目注册联动：
+  - 新建项目时会尝试向服务端登记 `projectId`
+  - 打开旧项目时如果缺少 `projectId`，会尝试补登记
+  - 提交任务时不再依赖客户端自造 `taskId`
+
+## 仓库结构
 
 ```text
 OneLine2Video/
   apps/
-    agent/                Multi-agent orchestration service
-      prompts/            Agent prompt YAML files
-      python/             Python node implementations
-      src/                Fastify app, run engine, registry, contracts
-      test/               Agent and orchestration tests
+    agent/                Agent 编排服务
     desktop/
-      shell/              Electron main, preload, and renderer shell
-      ui/                 React UI, pages, features, Zustand store, styles
-      local-bff/          Local project repository, field sync, desktop adapters
-    server/               Remote API server, auth, tasks, orchestration proxy
+      shell/              Electron 主进程与 preload
+      ui/                 React 桌面 UI
+      local-bff/          桌面端本地桥接与适配层
+    server/               Fastify 服务端
   packages/
-    shared-contracts/     Zod schemas and shared DTOs
-    shared-utils/         Shared pure utilities
-    ui-kit/               Shared UI package
-    eslint-config/        Shared lint configuration
+    shared-contracts/     共享 Zod 契约
+    shared-utils/         共享工具
+    ui-kit/               共享 UI 包
   docs/
-    api/                  Server API notes
-    ipc/                  Desktop IPC notes
-    superpowers/          Design specs and implementation plans
-  run.bat                 Windows development launcher
-  pnpm-workspace.yaml     pnpm workspace definition
-  turbo.json              Turborepo pipeline configuration
+    api/                  服务端接口文档
+    ipc/                  桌面 IPC 文档
+    superpowers/          设计说明与实现计划
+  run.bat                 Windows 本地开发启动器
 ```
 
-## Requirements
+## 环境要求
 
-- Node.js 22 or newer
-- pnpm 10 or newer
-- PostgreSQL 14 or newer
-- Python 3.10 or newer for Python-backed agent nodes
+- Node.js 22+
+- pnpm 10+
+- PostgreSQL 14+
+- Python 3.10+（用于部分 Agent Python 节点）
 
-## Install
+## 安装依赖
 
-```bash
+```powershell
 pnpm install
 ```
 
-If Electron downloads are slow in your network environment, set an Electron mirror before installing dependencies.
+如果 Electron 下载慢，可以先设置镜像再安装：
 
-```bash
-# Windows
-set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
-
-# macOS / Linux
-export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+```powershell
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+pnpm install
 ```
 
-## Environment
+## 环境变量
 
-The server reads `.env` through `tsx --env-file=.env`. The agent service reads `apps/agent/.env.agent`.
+服务端读取 `apps/server/.env`，Agent 服务读取 `apps/agent/.env.agent`。
 
-Copy the example files before first run:
+首次运行前可以先复制示例文件：
 
-```bash
-cp apps/server/.env.example apps/server/.env
-cp apps/agent/.env.agent.example apps/agent/.env.agent
+```powershell
+Copy-Item apps/server/.env.example apps/server/.env
+Copy-Item apps/agent/.env.agent.example apps/agent/.env.agent
 ```
 
-Server defaults (`apps/server/.env`):
+服务端默认配置示例：
 
 ```text
 PORT=4000
@@ -87,142 +96,126 @@ JWT_SECRET=orison-dev-secret-key-NOT-FOR-PRODUCTION
 DEMO_ACCESS_TOKEN=demo-access-token
 ```
 
-Agent defaults (`apps/agent/.env.agent`):
+Agent 默认配置示例：
 
 ```text
 PORT=18422
 LOG_LEVEL=info
 ```
 
-On startup, the server checks whether the target PostgreSQL database exists and creates the `users` table if needed.
+服务端启动时会检查目标数据库是否存在，并自动初始化当前需要的表结构。
 
-## Development
+## 本地开发
 
-Start the full local development stack on Windows:
+Windows 下一键启动：
 
-```bash
+```powershell
 run.bat
 ```
 
-Choose option `1` to start the agent service, server, and Electron desktop app together.
+也可以分别启动：
 
-Common pnpm commands:
-
-```bash
-# Desktop app
+```powershell
+# 桌面端
 pnpm dev
 
-# Server only, default http://localhost:4000
+# 服务端，默认 http://localhost:4000
 pnpm dev:server
 
-# Agent service only, default http://localhost:18422
+# Agent 服务，默认 http://localhost:18422
 pnpm dev:agent
+```
 
-# Build all packages and apps
+构建命令：
+
+```powershell
 pnpm build
-
-# Build desktop app
 pnpm build:desktop
-
-# Build server
 pnpm build:server
 ```
 
-## Testing And Checks
+## 测试
 
-```bash
-# Run all tests through Turbo
+全量命令：
+
+```powershell
 pnpm test
-
-# Type-check all workspaces
-pnpm typecheck
-
-# Run lint scripts
 pnpm lint
+pnpm typecheck
 ```
 
-Targeted examples:
+常用定向测试：
 
-```bash
-pnpm --filter @orison/server test
-pnpm --filter @orison/agent test
-pnpm --filter @orison/desktop-ui test
+```powershell
 pnpm --filter @orison/shared-contracts test
+pnpm --filter @orison/server test
+pnpm --filter @orison/desktop-ui test
+pnpm --filter @orison/agent test
 ```
 
-## Runtime Services
+这次任务已经实测通过的命令：
 
-### Server
+```powershell
+pnpm --filter @orison/shared-contracts test
+pnpm --filter @orison/server test projects.test.ts tasks.test.ts taskLists.test.ts
+pnpm --filter @orison/desktop-ui test reviewFlow.test.tsx
+```
 
-The server is the desktop client's remote API entrypoint. It owns:
+## 当前接口概览
 
-- `/health`
-- `/v1/auth/register`
-- `/v1/auth/login`
-- `/v1/tasks`
-- `/v1/tasks/:taskId`
-- `/v1/orchestration/*` proxy routes to the agent service
+服务端当前暴露的核心接口：
 
-### Agent
+- `GET /health`
+- `POST /v1/auth/register`
+- `POST /v1/auth/login`
+- `POST /v1/projects`
+- `POST /v1/tasks`
+- `GET /v1/tasks/:taskId`
+- `GET /v1/projects/:projectId/tasks`
+- `GET /v1/projects/:projectId/assets`
+- `/v1/orchestration/*` 代理到 Agent 服务
 
-The agent service owns orchestration execution:
+更详细的字段说明见：
 
-- `/v1/orchestration/runs`
-- `/v1/orchestration/runs/:runId`
-- `/v1/orchestration/actions`
+- [服务端接口文档](docs/api/server-api.md)
 
-It supports the legacy orchestration request shape and the newer creative run request shape. Agent outputs are validated through shared contracts before being delivered back to the desktop workflow.
+## 数据方向
 
-### Desktop
+当前的数据边界是：
 
-The Electron shell provides the native host surface and preload bridge. The React UI renders:
+- 本地文件保存完整创作内容
+- PostgreSQL 保存项目元数据、任务流水、任务资产引用、轻量资产索引
 
-- Auth and project entry screens
-- Workspace layout with side navigation, editor area, inspector, and task feed
-- Creative field editors and review panels
-- Orchestration run status and actions
+也就是说：
 
-The local BFF layer handles local project repository logic, field sync, and desktop-side adapters.
+- `outline`、`novel`、`script`、`storyboard`、`creative fields` 等长内容继续本地保存
+- `projects` / `tasks` / `task_asset_refs` / `project_assets` 负责支持任务追踪和检索
 
-## Project Data Model
+## 关键约定
 
-Project documents are validated with `projectDocumentSchema` from `@orison/shared-contracts`.
+- `projectId`：五位顺序号，例如 `00001`
+- `taskId`：服务端生成，格式为 `YYYYMMDDHHmmssSSS_<random5>`
+- `project_assets` 现在按 `(project_id, asset_id)` 复合主键约束，避免不同项目里同名资产互相覆盖
 
-Core project areas:
+## 已知现状
 
-- `meta`: project identity, type, version, timestamps
-- `outline`: classic outline
-- `detailed_outline`: scene or chapter planning
-- `novel`: chapter list and content file references
-- `script`: scene list, dialogue data, and content file references
-- `storyboard`: shots and source references
-- `video`: generated clip metadata
-- `assets`: characters and locations
-- `creative_*`: newer creative field structures used by the agent workflow
+当前实现已经完成任务存储和项目索引主链路，但还有几处后续工作空间：
 
-Agent-generated updates are returned as field-level patches and must be reviewed before they are applied.
+1. `GET /v1/projects/:projectId/tasks` 和 `GET /v1/projects/:projectId/assets` 还没有分页
+2. `GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据
+3. 资产索引目前还是轻量占位值，后面可以逐步补充真实 `assetType` / `assetName`
+4. `apps/desktop/ui` 的 `typecheck` 还存在一批历史类型问题，尚未在这轮里清理完
 
-## Development Conventions
+## 相关文档
 
-- TypeScript strict mode.
-- React function components and hooks.
-- Zustand store split by responsibility.
-- Zod schemas for all cross-process and cross-package contracts.
-- Local project data is authoritative.
-- Server and agent modules must not depend on desktop implementation details.
-- `packages/shared-contracts` must stay framework-neutral.
-- AI output should be structured, reviewable, and reversible.
-
-## Useful Documentation
-
-- [Server API](docs/api/server-api.md)
-- [Desktop IPC](docs/ipc/desktop-ipc.md)
-- [Data Dictionary](docs/data-dictionary.md)
-- [UI Design](docs/ui-design.md)
-- [Development Plan](docs/plan.md)
-- [Design Specs](docs/superpowers/specs)
-- [Implementation Plans](docs/superpowers/plans)
+- [服务端接口文档](docs/api/server-api.md)
+- [桌面 IPC 文档](docs/ipc/desktop-ipc.md)
+- [数据字典](docs/data-dictionary.md)
+- [UI 设计](docs/ui-design.md)
+- [开发计划](docs/plan.md)
+- [任务存储设计说明](docs/superpowers/specs/2026-04-27-task-storage-and-api-design.md)
+- [任务存储开发日志](<docs/任务存储与项目索引开发日志.md>)
 
 ## License
 
-Private.
+Private
