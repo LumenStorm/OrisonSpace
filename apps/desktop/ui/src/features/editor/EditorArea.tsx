@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { storyboardFrames } from '../../shared/data/workspaceData';
-import { useAppStore } from '../../shared/store/appStore';
+import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { OutlineEditor } from './OutlineEditor';
 import { ScriptEditor } from './ScriptEditor';
 import { VideoEditor } from './VideoEditor';
+import { ImageGenEditor } from './ImageGenEditor';
 import { CreativeFieldsEditor } from '../creative/CreativeFieldsEditor';
+import { FileTabBar } from './FileTabBar';
+import { FileEditor } from './FileEditor';
 
 function StoryboardCanvas() {
   return (
@@ -77,26 +80,54 @@ const simpleEditors = {
   outline: OutlineEditor,
   storyboard: StoryboardCanvas,
   video: VideoEditor,
+  image_gen: ImageGenEditor,
 } as const;
 
-export function EditorArea() {
+function ModuleEditor() {
   const activeModule = useAppStore((s) => s.activeModule);
 
   if (activeModule === 'novel' || activeModule === 'script') {
     return (
-      <div className="workspace-content">
+      <>
         <AcceptedPatchesView />
         <NovelScriptWithCreative ContentEditor={ScriptEditor} />
-      </div>
+      </>
     );
   }
 
   const Editor = simpleEditors[activeModule];
 
   return (
-    <div className="workspace-content">
+    <>
       <AcceptedPatchesView />
       <Editor />
-    </div>
+    </>
   );
+}
+
+/** Modules that own a dedicated panel and should never be replaced by file tabs */
+const moduleAlwaysOwnsEditor = new Set<WorkspaceModule>(['image_gen', 'video', 'storyboard']);
+
+export function EditorArea() {
+  const activeModule = useAppStore((s) => s.activeModule);
+  const activeFilePath = useAppStore((s) => s.activeFilePath);
+  const hasOpenFiles = useAppStore((s) => s.openFiles.length > 0);
+
+  // These modules own a dedicated panel, unaffected by file tabs
+  if (moduleAlwaysOwnsEditor.has(activeModule)) {
+    return <ModuleEditor />;
+  }
+
+  if (hasOpenFiles) {
+    return (
+      <div className="editor-area-file">
+        <FileTabBar />
+        <div className="editor-area-file-content">
+          {activeFilePath ? <FileEditor /> : null}
+        </div>
+      </div>
+    );
+  }
+
+  return <ModuleEditor />;
 }

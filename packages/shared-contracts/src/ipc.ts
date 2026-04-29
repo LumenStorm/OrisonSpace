@@ -4,6 +4,14 @@ export const desktopIpcSchema = z.object({
   channel: z.enum(['project:pick-directory', 'config:load-model', 'config:save-model'])
 });
 
+/* ── Shared types ── */
+
+export type ModelConfig = {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+};
+
 /**
  * Canonical type for the preload API surface exposed via contextBridge.
  * Both `shell/preload/index.ts` and `ui/src/shared/preload.d.ts` must
@@ -23,6 +31,8 @@ export type OrisonDesktopApi = {
   isMaximized(): Promise<boolean>;
   platform: string;
   syncField(field: string, data: unknown): Promise<void>;
-  loadModelConfig(): Promise<{ apiKey: string; baseUrl: string; model: string }>;
-  saveModelConfig(config: { apiKey: string; baseUrl: string; model: string }): Promise<void>;
+  loadModelConfig(): Promise<ModelConfig>;
+  saveModelConfig(config: ModelConfig): Promise<void>;
+  showItemInFolder(fullPath: string): void;
+  openPath(fullPath: string): void;
 };

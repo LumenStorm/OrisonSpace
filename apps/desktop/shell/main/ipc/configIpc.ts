@@ -2,12 +2,7 @@ import { ipcMain } from 'electron';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-
-type ModelConfig = {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-};
+import type { ModelConfig } from '@orison/shared-contracts';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
   apiKey: '',

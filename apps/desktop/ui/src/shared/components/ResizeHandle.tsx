@@ -2,23 +2,27 @@ import { useCallback, useEffect, useRef } from 'react';
 
 type Props = {
   onResize: (delta: number) => void;
+  direction?: 'horizontal' | 'vertical';
   className?: string;
 };
 
-export function ResizeHandle({ onResize, className = '' }: Props) {
-  const startX = useRef(0);
+export function ResizeHandle({ onResize, direction = 'horizontal', className = '' }: Props) {
+  const startPos = useRef(0);
   const onResizeRef = useRef(onResize);
 
   useEffect(() => {
     onResizeRef.current = onResize;
   });
 
+  const isVertical = direction === 'vertical';
+
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    startX.current = e.clientX;
+    startPos.current = isVertical ? e.clientY : e.clientX;
     const onMove = (ev: MouseEvent) => {
-      const delta = ev.clientX - startX.current;
-      startX.current = ev.clientX;
+      const pos = isVertical ? ev.clientY : ev.clientX;
+      const delta = pos - startPos.current;
+      startPos.current = pos;
       onResizeRef.current(delta);
     };
     const onUp = () => {
@@ -29,9 +33,11 @@ export function ResizeHandle({ onResize, className = '' }: Props) {
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-    document.body.style.cursor = 'col-resize';
+    document.body.style.cursor = isVertical ? 'row-resize' : 'col-resize';
     document.body.style.userSelect = 'none';
-  }, []);
+  }, [isVertical]);
 
-  return <div className={`resize-handle ${className}`} onMouseDown={onMouseDown} />;
+  const cls = isVertical ? 'resize-handle resize-handle-vertical' : 'resize-handle';
+
+  return <div className={`${cls} ${className}`} onMouseDown={onMouseDown} />;
 }

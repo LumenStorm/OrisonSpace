@@ -1,109 +1,29 @@
-/* ── Right Panel ── */
-.workspace-right {
+/* ── Inspector (inside bottom panel) ── */
+.inspector-content {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  gap: 0.75rem;
 }
 
-/* ── Inspector ── */
-.workspace-inspector {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  border-left: 1px solid var(--outline-variant);
-  background: var(--surface);
-}
-
-.workspace-inspectorHeader {
-  padding: 1rem;
-  border-bottom: 1px solid var(--outline-variant);
-}
-
-.workspace-inspectorHeaderRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.inspector-collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 0.25rem;
-  background: transparent;
-  color: var(--on-surface-variant);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.inspector-collapse-btn:hover {
-  background: var(--hover-overlay);
-}
-
-.inspector-collapse-btn .material-symbols-outlined {
-  font-size: 18px;
-}
-
-/* ── Inspector Expand (collapsed state) ── */
-.inspector-expand-btn {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 48px;
-  border: 1px solid var(--outline-variant);
-  border-right: 0;
-  border-radius: 0.25rem 0 0 0.25rem;
-  background: var(--surface);
-  color: var(--on-surface-variant);
-  cursor: pointer;
-  z-index: 20;
-  transition: background 0.12s;
-}
-
-.inspector-expand-btn:hover {
-  background: var(--hover-overlay);
-}
-
-.inspector-expand-btn .material-symbols-outlined {
-  font-size: 16px;
-}
-
-.workspace-inspectorTitle {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+.inspector-module-label {
+  color: var(--outline);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.workspace-inspectorMeta {
-  margin: 0.35rem 0 0;
-  color: var(--outline);
-  font-size: 0.74rem;
-}
-
-.workspace-inspectorBody {
+.inspector-fields-row {
   display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 1.5rem;
-  overflow: auto;
-  padding: 1rem;
-}
-
-.inspector-group {
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 1rem;
+}
+
+.inspector-field-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  flex: 1;
 }
 
 .inspector-label {
@@ -126,13 +46,13 @@
 }
 
 .inspector-select {
-  padding: 0.65rem 0.75rem;
+  padding: 0.5rem 0.6rem;
 }
 
 .inspector-textarea {
-  min-height: 8rem;
+  min-height: 6rem;
   resize: vertical;
-  padding: 0.9rem;
+  padding: 0.75rem;
   line-height: 1.55;
 }
 
@@ -145,11 +65,12 @@
 
 .inspector-segment {
   flex: 1;
-  padding: 0.65rem;
+  padding: 0.5rem;
   border: 0;
   background: var(--surface);
   color: var(--on-surface);
   font: inherit;
+  font-size: 0.82rem;
   cursor: pointer;
 }
 
@@ -182,9 +103,43 @@
   background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent-strong) 100%);
 }
 
-/* ── Task Feed ── */
+/* ── Task Feed (inside bottom panel) ── */
 .task-feed {
-  padding: 1rem;
-  border-left: 1px solid var(--outline-variant);
-  border-top: 1px solid var(--outline-variant);
+  padding: 0;
+}
+
+.task-feed p {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.task-patch-preview {
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--surface-container-low);
+  font-size: 0.78rem;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.task-actions button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.task-actions button:hover {
+  background: var(--hover-overlay);
 }

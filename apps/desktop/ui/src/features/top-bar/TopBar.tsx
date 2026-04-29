@@ -3,14 +3,13 @@ import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
 import { WindowControls, isMac } from '../../shared/components/WindowControls';
-import { ensureProjectRegistration } from '../../shared/api/projects';
+import { Tooltip } from '../../shared/components/Tooltip';
 
 export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const openProject = useAppStore((s) => s.openProject);
   const closeProject = useAppStore((s) => s.closeProject);
   const currentProject = useAppStore((s) => s.currentProject);
-  const token = useAppStore((s) => s.token);
   const saveProject = useAppStore((s) => s.saveProject);
   const saveChaptersToProject = useAppStore((s) => s.saveChaptersToProject);
   const undo = useAppStore((s) => s.undo);
@@ -24,35 +23,16 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
     const dir = await window.orisonDesktop?.pickProjectDirectory();
     if (!dir) return;
     const meta = await window.orisonDesktop?.loadProjectMeta(dir);
-
-    const project = meta ? {
-      projectId: typeof meta.projectId === 'string' ? meta.projectId : undefined,
-      name: (meta.name as string) || dir.split(/[\\/]/).pop() || 'Project',
-      path: dir,
-      type: (meta.type as 'novel' | 'script') || 'script',
-      coverImage: (meta.coverImage as string) || undefined,
-    } : {
-      name: dir.split(/[\\/]/).pop() || 'Project',
-      path: dir,
-      type: 'script' as const,
-    };
-
-    if (!project.projectId && token) {
-      try {
-        project.projectId = await ensureProjectRegistration({ token, project });
-        await window.orisonDesktop?.saveProjectMeta(dir, {
-          ...(meta ?? {}),
-          name: project.name,
-          type: project.type,
-          coverImage: project.coverImage ?? null,
-          projectId: project.projectId,
-        });
-      } catch {
-        // Keep the local project open even when registration is temporarily unavailable.
-      }
+    if (meta) {
+      openProject({
+        name: (meta.name as string) || dir.split(/[\\/]/).pop() || 'Project',
+        path: dir,
+        type: (meta.type as 'novel' | 'script') || 'script',
+        coverImage: (meta.coverImage as string) || undefined,
+      });
+    } else {
+      openProject({ name: dir.split(/[\\/]/).pop() || 'Project', path: dir, type: 'script' });
     }
-
-    openProject(project);
   };
 
   const handleSave = useCallback(async () => {
@@ -86,16 +66,16 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
 
   const hasSavePath = !!currentProject?.path;
 
-  const actions: { icon: string; handler: () => void; disabled?: boolean; title?: string }[][] = [
+  const actions: { icon: string; handler: () => void; disabled?: boolean; label: string }[][] = [
     [
-      { icon: 'add', handler: () => setShowNewDialog(true), title: t('projects.newProject') },
-      { icon: 'folder_open', handler: handleOpen, title: t('projects.openProject') },
-      { icon: 'save', handler: handleSave, disabled: !hasSavePath, title: `${t('topbar.save')} (${isMac ? '⌘' : 'Ctrl+'}S)` },
-      { icon: 'ios_share', handler: () => {}, disabled: true, title: t('topbar.export') },
+      { icon: 'add', handler: () => setShowNewDialog(true), label: t('projects.newProject') },
+      { icon: 'folder_open', handler: handleOpen, label: t('projects.openProject') },
+      { icon: 'save', handler: handleSave, disabled: !hasSavePath, label: `${t('topbar.save')} (${isMac ? '⌘' : 'Ctrl+'}S)` },
+      { icon: 'ios_share', handler: () => {}, disabled: true, label: t('topbar.export') },
     ],
     [
-      { icon: 'undo', handler: handleUndo, disabled: undoLen === 0, title: `${t('topbar.undo')} (${isMac ? '⌘' : 'Ctrl+'}Z)` },
-      { icon: 'redo', handler: handleRedo, disabled: redoLen === 0, title: `${t('topbar.redo')} (${isMac ? '⌘⇧' : 'Ctrl+Shift+'}Z)` },
+      { icon: 'undo', handler: handleUndo, disabled: undoLen === 0, label: `${t('topbar.undo')} (${isMac ? '⌘' : 'Ctrl+'}Z)` },
+      { icon: 'redo', handler: handleRedo, disabled: redoLen === 0, label: `${t('topbar.redo')} (${isMac ? '⌘⇧' : 'Ctrl+Shift+'}Z)` },
     ],
   ];
 
@@ -109,26 +89,28 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
           <div className="workspace-actions" aria-label="Workspace Actions">
             {currentProject && (
               <>
-                <button className="workspace-action" type="button" aria-label="Projects" onClick={closeProject}>
-                  <span className="material-symbols-outlined">home</span>
-                </button>
+                <Tooltip label={t('projects.brand')} placement="bottom">
+                  <button className="workspace-action" type="button" aria-label="Projects" onClick={closeProject}>
+                    <span className="material-symbols-outlined">home</span>
+                  </button>
+                </Tooltip>
                 <div className="workspace-divider" />
               </>
             )}
             {actions.map((group, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {group.map((action) => (
-                  <button
-                    key={action.icon}
-                    className="workspace-action"
-                    type="button"
-                    aria-label={action.icon}
-                    onClick={action.handler}
-                    disabled={action.disabled}
-                    title={action.title}
-                  >
-                    <span className="material-symbols-outlined">{action.icon}</span>
-                  </button>
+                  <Tooltip key={action.icon} label={action.label} placement="bottom">
+                    <button
+                      className="workspace-action"
+                      type="button"
+                      aria-label={action.label}
+                      onClick={action.handler}
+                      disabled={action.disabled}
+                    >
+                      <span className="material-symbols-outlined">{action.icon}</span>
+                    </button>
+                  </Tooltip>
                 ))}
                 {index < actions.length - 1 ? <div className="workspace-divider" /> : null}
               </div>

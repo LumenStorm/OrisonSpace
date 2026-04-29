@@ -37,6 +37,7 @@ nav:
   script: "Script"
   storyboard: "Storyboard"
   video: "Video"
+  imageGen: "Image Gen"
   settings: "Settings"
   account: "Account"
   logout: "Logout"
@@ -83,6 +84,9 @@ video:
   resolution: "Resolution"
   frameRate: "Frame Rate"
   outputFormat: "Output Format"
+  promptPlaceholder: "Describe the video content to generate..."
+  generate: "Generate Video"
+  clips: "Video Clips"
 
 inspector:
   title: "Inspector"
@@ -133,6 +137,16 @@ inspector:
       resolution: ["1080p", "2K", "4K"]
       frameRate: ["24fps", "30fps", "60fps"]
       outputFormat: ["MP4", "MOV", "WebM"]
+  imageGen:
+    model: "Model"
+    size: "Size"
+    style: "Style"
+    generate: "Generate Image"
+    prompt: "Describe the image to generate..."
+    options:
+      model: ["DALL·E 3", "Midjourney", "Stable Diffusion"]
+      size: ["512×512", "1024×1024", "1024×1792", "1792×1024"]
+      style: ["Realistic", "Anime", "Watercolor", "Oil Painting", "Concept Art"]
 
 tasks:
   runRewrite: "Run AI Rewrite"
@@ -238,3 +252,26 @@ creative:
     turningPoints: "Turning Points"
     targetShape: "Target Shape"
     catharsis: "Catharsis"
+
+imageGen:
+  title: "Image Generation"
+  promptPlaceholder: "Describe the image you want to generate..."
+  generate: "Generate Image"
+  results: "Results"
+
+bottomPanel:
+  properties: "Properties"
+  tasks: "Tasks"
+  output: "Output"
+  noOutput: "No output yet"
+
+fileEditor:
+  readOnly: "This file type is not editable"
+  unsaved: "Unsaved"
+
+contextMenu:
+  newFile: "New File"
+  newFolder: "New Folder"
+  rename: "Rename"
+  delete: "Delete"
+  openInExplorer: "Open in Explorer"

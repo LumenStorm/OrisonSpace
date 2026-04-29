@@ -4,6 +4,7 @@ export const moduleItems: Array<{ key: WorkspaceModule; label: string; icon: str
   { key: 'outline', label: 'Outline', icon: 'auto_stories' },
   { key: 'script', label: 'Script', icon: 'description' },
   { key: 'storyboard', label: 'Storyboard', icon: 'view_quilt' },
+  { key: 'image_gen', label: 'Image Gen', icon: 'image' },
   { key: 'video', label: 'Video', icon: 'movie_filter' }
 ];
 

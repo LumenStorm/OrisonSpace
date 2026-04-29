@@ -37,6 +37,7 @@ nav:
   script: "剧本"
   storyboard: "分镜"
   video: "视频"
+  imageGen: "生图"
   settings: "设置"
   account: "个人中心"
   logout: "退出登录"
@@ -83,6 +84,9 @@ video:
   resolution: "分辨率"
   frameRate: "帧率"
   outputFormat: "输出格式"
+  promptPlaceholder: "描述要生成的视频内容..."
+  generate: "生成视频"
+  clips: "视频片段"
 
 inspector:
   title: "检查器"
@@ -133,6 +137,16 @@ inspector:
       resolution: ["1080p", "2K", "4K"]
       frameRate: ["24fps", "30fps", "60fps"]
       outputFormat: ["MP4", "MOV", "WebM"]
+  imageGen:
+    model: "模型"
+    size: "尺寸"
+    style: "风格"
+    generate: "生成图像"
+    prompt: "描述要生成的图像..."
+    options:
+      model: ["DALL·E 3", "Midjourney", "Stable Diffusion"]
+      size: ["512×512", "1024×1024", "1024×1792", "1792×1024"]
+      style: ["写实", "动漫", "水彩", "油画", "概念艺术"]
 
 tasks:
   runRewrite: "运行 AI 改写"
@@ -238,3 +252,26 @@ creative:
     turningPoints: "转折点"
     targetShape: "目标形态"
     catharsis: "宣泄点"
+
+imageGen:
+  title: "图像生成"
+  promptPlaceholder: "描述要生成的图像内容..."
+  generate: "生成图像"
+  results: "生成结果"
+
+bottomPanel:
+  properties: "属性"
+  tasks: "任务"
+  output: "输出"
+  noOutput: "暂无输出"
+
+fileEditor:
+  readOnly: "此文件类型暂不支持编辑"
+  unsaved: "未保存"
+
+contextMenu:
+  newFile: "新建文件"
+  newFolder: "新建文件夹"
+  rename: "重命名"
+  delete: "删除"
+  openInExplorer: "在资源管理器中打开"

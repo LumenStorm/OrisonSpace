@@ -32,6 +32,11 @@ export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
     { labelKey: 'inspector.video.frameRate', optionsKey: 'inspector.video.options.frameRate', defaultIndex: 0 },
     { labelKey: 'inspector.video.outputFormat', optionsKey: 'inspector.video.options.outputFormat', defaultIndex: 0 },
   ],
+  image_gen: [
+    { labelKey: 'inspector.imageGen.model', optionsKey: 'inspector.imageGen.options.model', defaultIndex: 0 },
+    { labelKey: 'inspector.imageGen.size', optionsKey: 'inspector.imageGen.options.size', defaultIndex: 1 },
+    { labelKey: 'inspector.imageGen.style', optionsKey: 'inspector.imageGen.options.style', defaultIndex: 0 },
+  ],
 };
 
 export const aspectRatios: Record<WorkspaceModule, string[]> = {
@@ -40,6 +45,7 @@ export const aspectRatios: Record<WorkspaceModule, string[]> = {
   script: [],
   storyboard: ['16:9', '2.35:1', '4:3', '9:16'],
   video: ['16:9', '2.35:1', '4:3', '9:16'],
+  image_gen: ['1:1', '16:9', '9:16', '4:3'],
 };
 
 export const promptKeys: Record<WorkspaceModule, string> = {
@@ -48,6 +54,7 @@ export const promptKeys: Record<WorkspaceModule, string> = {
   script: 'inspector.script.prompt',
   storyboard: 'inspector.storyboard.prompt',
   video: 'inspector.video.prompt',
+  image_gen: 'inspector.imageGen.prompt',
 };
 
 export const actionKeys: Record<WorkspaceModule, string> = {
@@ -56,4 +63,5 @@ export const actionKeys: Record<WorkspaceModule, string> = {
   script: 'inspector.script.rewrite',
   storyboard: 'inspector.storyboard.rewrite',
   video: 'inspector.video.rewrite',
+  image_gen: 'inspector.imageGen.generate',
 };

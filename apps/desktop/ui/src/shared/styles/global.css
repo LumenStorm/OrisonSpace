@@ -7,6 +7,7 @@
 @import "./editor.css";
 @import "./pages.css";
 @import "./creative.css";
+@import "./components.css";
 
 /* ── Reset ── */
 #root {

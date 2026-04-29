@@ -148,6 +148,42 @@
   background: var(--active-indicator);
 }
 
+.ptree-label-muted {
+  color: var(--outline);
+  font-style: italic;
+  font-size: 0.78rem;
+}
+
+.ptree-empty {
+  cursor: default;
+}
+
+.ptree-empty:hover {
+  background: transparent;
+}
+
+.ptree-dirty-dot {
+  color: var(--accent);
+  font-size: 0.6rem;
+  line-height: 1;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── Project Tree: Inline rename/create input ── */
+.ptree-inline-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.2rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.82rem;
+  outline: none;
+}
+
 /* ── Sidebar Settings (reused in popover) ── */
 .sidebar-settings-panel,
 .sidebar-account-panel {

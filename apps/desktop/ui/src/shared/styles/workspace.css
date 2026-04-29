@@ -4,6 +4,7 @@
   flex: 1;
   flex-direction: column;
   background: var(--background);
+  position: relative;
 }
 
 /* ── Body Grid ── */
@@ -27,10 +28,17 @@
   background: var(--accent);
 }
 
+.resize-handle-vertical {
+  width: 100%;
+  height: 4px;
+  cursor: row-resize;
+}
+
 /* ── Main Content ── */
 .workspace-main {
   display: flex;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
 }
 
@@ -40,21 +48,136 @@
   padding: 2rem;
 }
 
-/* ── Responsive ── */
-@media (max-width: 960px) {
-  .project-tree-panel {
-    max-width: 180px;
-  }
-
-  .workspace-right {
-    max-width: 280px;
-  }
+/* ── Bottom Panel ── */
+.bottom-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface);
 }
 
+.bottom-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  flex-shrink: 0;
+}
+
+.bottom-panel-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.bottom-panel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.bottom-panel-tab:hover {
+  color: var(--on-surface);
+}
+
+.bottom-panel-tab-active {
+  color: var(--on-surface);
+  border-bottom-color: var(--accent);
+}
+
+.bottom-panel-tab .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.bottom-panel-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.bottom-panel-collapse-btn:hover {
+  background: var(--hover-overlay);
+}
+
+.bottom-panel-collapse-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.bottom-panel-content {
+  flex: 1;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+.bottom-panel-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  color: var(--outline);
+  font-size: 0.85rem;
+}
+
+.bottom-panel-placeholder .material-symbols-outlined {
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+/* ── Bottom Panel Expand (collapsed state) ── */
+.bottom-panel-expand-btn {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 20px;
+  border: 1px solid var(--outline-variant);
+  border-bottom: 0;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: var(--surface);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  z-index: 20;
+  transition: background 0.12s;
+}
+
+.bottom-panel-expand-btn:hover {
+  background: var(--hover-overlay);
+}
+
+.bottom-panel-expand-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* ── Responsive ── */
 @media (max-width: 720px) {
   .project-tree-panel,
-  .workspace-inspector,
-  .workspace-right {
+  .bottom-panel {
     display: none;
   }
 

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { OrisonDesktopApi } from '@orison/shared-contracts';
+import type { OrisonDesktopApi, ModelConfig } from '@orison/shared-contracts';
 
 export const exposedDesktopApi = {
   pickProjectDirectory: () => ipcRenderer.invoke('project:pick-directory'),
@@ -23,8 +23,10 @@ export const exposedDesktopApi = {
   syncField: (field: string, data: unknown) =>
     ipcRenderer.invoke('field:sync', field, data) as Promise<void>,
   // 模型配置
-  loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<{ apiKey: string; baseUrl: string; model: string }>,
-  saveModelConfig: (config: { apiKey: string; baseUrl: string; model: string }) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
+  loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
+  saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
+  showItemInFolder: (fullPath: string) => ipcRenderer.send('shell:show-item-in-folder', fullPath),
+  openPath: (fullPath: string) => ipcRenderer.send('shell:open-path', fullPath),
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);
