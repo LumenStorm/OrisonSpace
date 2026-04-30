@@ -10,6 +10,8 @@ auth:
   pleaseWait: "请稍候..."
   signIn: "登录"
   createAccount: "创建账号"
+  showPassword: "显示密码"
+  hidePassword: "隐藏密码"
 
 projects:
   brand: "Orison Space"
@@ -28,6 +30,8 @@ projects:
   coverImage: "封面图"
   optional: "（可选）"
   pickCover: "选择封面图片"
+  emptyTitle: "还没有项目"
+  emptyHint: "创建一个新项目或打开已有项目开始创作"
 
 nav:
   project: "项目"

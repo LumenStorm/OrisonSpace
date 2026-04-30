@@ -35,8 +35,9 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
       storage.set('token', data.accessToken);
       storage.set('user', data.user);
       set({ token: data.accessToken, user: data.user, authLoading: false });
-    } catch (e: any) {
-      set({ authError: e.message, authLoading: false });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      set({ authError: message, authLoading: false });
     }
   },
 
@@ -56,8 +57,9 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
       storage.set('token', data.accessToken);
       storage.set('user', data.user);
       set({ token: data.accessToken, user: data.user, authLoading: false });
-    } catch (e: any) {
-      set({ authError: e.message, authLoading: false });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      set({ authError: message, authLoading: false });
     }
   },
 

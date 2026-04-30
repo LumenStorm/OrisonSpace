@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const isMac = window.orisonDesktop?.platform === 'darwin';
+function detectIsMac() {
+  if (typeof window === 'undefined') return false;
+  return window.orisonDesktop?.platform === 'darwin';
+}
 
 export function WindowControls() {
   const [maximized, setMaximized] = useState(false);
+  const isMac = detectIsMac();
 
   useEffect(() => {
     window.orisonDesktop?.isMaximized?.().then(setMaximized);
@@ -45,4 +49,4 @@ export function WindowControls() {
   );
 }
 
-export { isMac };
+export { detectIsMac };

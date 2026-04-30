@@ -10,13 +10,13 @@ type TiptapEditorProps = {
 };
 
 const menuItems = [
-  { command: 'toggleBold', icon: 'format_bold', label: 'Bold' },
-  { command: 'toggleItalic', icon: 'format_italic', label: 'Italic' },
-  { command: 'toggleStrike', icon: 'strikethrough_s', label: 'Strikethrough' },
-  { command: 'toggleCodeBlock', icon: 'code', label: 'Code Block' },
-  { command: 'toggleBlockquote', icon: 'format_quote', label: 'Quote' },
-  { command: 'toggleBulletList', icon: 'format_list_bulleted', label: 'Bullet List' },
-  { command: 'toggleOrderedList', icon: 'format_list_numbered', label: 'Ordered List' },
+  { command: 'toggleBold', activeName: 'bold', icon: 'format_bold', label: 'Bold' },
+  { command: 'toggleItalic', activeName: 'italic', icon: 'format_italic', label: 'Italic' },
+  { command: 'toggleStrike', activeName: 'strike', icon: 'strikethrough_s', label: 'Strikethrough' },
+  { command: 'toggleCodeBlock', activeName: 'codeBlock', icon: 'code', label: 'Code Block' },
+  { command: 'toggleBlockquote', activeName: 'blockquote', icon: 'format_quote', label: 'Quote' },
+  { command: 'toggleBulletList', activeName: 'bulletList', icon: 'format_list_bulleted', label: 'Bullet List' },
+  { command: 'toggleOrderedList', activeName: 'orderedList', icon: 'format_list_numbered', label: 'Ordered List' },
 ] as const;
 
 type HeadingLevel = 1 | 2 | 3;
@@ -56,7 +56,7 @@ export function TiptapEditor({ content = '', placeholder = 'Start writing...', o
             <button
               key={item.command}
               type="button"
-              className={`tiptap-toolbar-btn${editor.isActive(item.command.replace('toggle', '').toLowerCase()) ? ' is-active' : ''}`}
+              className={`tiptap-toolbar-btn${editor.isActive(item.activeName) ? ' is-active' : ''}`}
               onClick={() => (editor.chain().focus() as any)[item.command]().run()}
               title={item.label}
             >

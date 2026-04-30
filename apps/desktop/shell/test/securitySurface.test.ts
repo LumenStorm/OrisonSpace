@@ -12,19 +12,27 @@ describe('preload security surface', () => {
     expect(Object.keys(exposedDesktopApi).sort()).toEqual([
       'close',
       'copyCoverImage',
+      'createEntry',
       'createProjectDirectory',
+      'deleteEntry',
       'getLocale',
       'isMaximized',
       'loadModelConfig',
       'loadProjectMeta',
       'maximize',
       'minimize',
+      'openPath',
       'pickCoverImage',
       'pickProjectDirectory',
       'platform',
+      'readDirectory',
+      'readFile',
+      'renameEntry',
       'saveModelConfig',
       'saveProjectMeta',
+      'showItemInFolder',
       'syncField',
+      'writeFile',
     ]);
   });
 });

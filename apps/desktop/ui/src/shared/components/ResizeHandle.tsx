@@ -4,9 +4,10 @@ type Props = {
   onResize: (delta: number) => void;
   direction?: 'horizontal' | 'vertical';
   className?: string;
+  style?: React.CSSProperties;
 };
 
-export function ResizeHandle({ onResize, direction = 'horizontal', className = '' }: Props) {
+export function ResizeHandle({ onResize, direction = 'horizontal', className = '', style }: Props) {
   const startPos = useRef(0);
   const onResizeRef = useRef(onResize);
 
@@ -39,5 +40,5 @@ export function ResizeHandle({ onResize, direction = 'horizontal', className = '
 
   const cls = isVertical ? 'resize-handle resize-handle-vertical' : 'resize-handle';
 
-  return <div className={`${cls} ${className}`} onMouseDown={onMouseDown} />;
+  return <div className={`${cls} ${className}`} style={style} onMouseDown={onMouseDown} />;
 }

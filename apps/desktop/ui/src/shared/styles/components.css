@@ -96,3 +96,53 @@
   margin: 0.25rem 0.4rem;
   background: var(--outline-variant);
 }
+
+/* ── Error Boundary ── */
+.error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 2rem;
+  text-align: center;
+  color: var(--on-surface-variant);
+}
+
+.error-boundary-icon {
+  font-size: 48px;
+  color: var(--error);
+}
+
+.error-boundary-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  margin: 0;
+}
+
+.error-boundary-message {
+  font-size: 0.85rem;
+  max-width: 420px;
+  line-height: 1.5;
+  margin: 0;
+  word-break: break-word;
+}
+
+.error-boundary-btn {
+  margin-top: 0.5rem;
+  padding: 0.45rem 1.2rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.error-boundary-btn:hover {
+  background: var(--hover-overlay);
+}

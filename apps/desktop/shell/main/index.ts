@@ -1,8 +1,22 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import path from 'node:path';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
 import { registerConfigIpc } from './ipc/configIpc';
+
+/* ── CSP ── */
+
+const isDev = !!process.env.ELECTRON_RENDERER_URL;
+
+const CSP = [
+  "default-src 'self'",
+  // Dev: Vite HMR needs 'unsafe-eval' for source maps and inline scripts
+  isDev ? "script-src 'self' 'unsafe-eval'" : "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: https:",
+  `connect-src 'self' ${isDev ? 'http://localhost:4000 ws://localhost:*' : 'https://api.orison.app'}`,
+].join('; ');
 
 function createWindow() {
   const isMac = process.platform === 'darwin';
@@ -22,6 +36,20 @@ function createWindow() {
       sandbox: true
     }
   });
+
+  // Inject CSP via response headers — only in production builds.
+  // In dev mode the renderer is served by Vite dev server on localhost,
+  // and 'self' would not match the dev-server origin, blocking all scripts.
+  if (!isDev) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [CSP],
+        },
+      });
+    });
+  }
 
   registerProjectIpc();
   registerWindowIpc(mainWindow);

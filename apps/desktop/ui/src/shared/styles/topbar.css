@@ -101,6 +101,10 @@
   background: var(--hover-overlay);
 }
 
+.topbar-menu-item.is-focused:not(:disabled) {
+  background: var(--hover-overlay);
+}
+
 .topbar-menu-item:disabled {
   color: var(--outline);
   cursor: default;
@@ -274,4 +278,31 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── About Dialog ── */
+.about-dialog-body {
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+}
+
+.about-dialog-brand {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.about-dialog-version {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+  font-weight: 500;
+}
+
+.about-dialog-desc {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+  line-height: 1.5;
 }

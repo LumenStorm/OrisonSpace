@@ -18,6 +18,12 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 | `project:copy-cover-image` | renderer → main | invoke | Copies cover image `src` into `projectDir`, returns destination path |
 | `project:save-meta` | renderer → main | invoke | Saves project metadata (JSON object) to `projectDir` |
 | `project:load-meta` | renderer → main | invoke | Loads project metadata from `projectDir`, returns object or `null` |
+| `project:read-directory` | renderer → main | invoke | Recursively reads a directory, returns `FileTreeEntry[]`. Accepts optional `maxDepth` (default 5, clamped 1–8). Skips hidden files and `node_modules`. |
+| `project:delete-entry` | renderer → main | invoke | Deletes a file or directory (recursive). Returns `boolean`. |
+| `project:rename-entry` | renderer → main | invoke | Renames a file or directory. Returns `boolean`. |
+| `project:create-entry` | renderer → main | invoke | Creates a file (empty) or directory. Returns `boolean`. |
+| `project:read-file` | renderer → main | invoke | Reads file content as UTF-8 string. Returns `string | null`. |
+| `project:write-file` | renderer → main | invoke | Writes UTF-8 string to file. Creates parent directories if needed. Returns `boolean`. |
 
 ### Window Channels
 
@@ -32,36 +38,60 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 
 | Channel | Direction | Type | Description |
 |---|---|---|---|
-| `shell:show-item-in-folder` | renderer → main | send | Reveals a file in the system file manager; creates parent directory if needed |
-| `shell:open-path` | renderer → main | send | Opens a path with the system default handler |
+| `shell:show-item-in-folder` | renderer → main | send | Reveals a file in the system file manager. No-op if path doesn't exist. |
+| `shell:open-path` | renderer → main | send | Opens a path with the system default handler. No-op if path doesn't exist. |
 
 ### Config Channels
 
 | Channel | Direction | Type | Description |
 |---|---|---|---|
-| `config:load-model` | renderer → main | invoke | Loads model configuration (apiKey, baseUrl, model) from disk |
-| `config:save-model` | renderer → main | invoke | Saves model configuration to disk |
+| `config:load-model` | renderer → main | invoke | Loads model configuration (apiKey, baseUrl, model) from disk. API key is decrypted via `safeStorage`. |
+| `config:save-model` | renderer → main | invoke | Saves model configuration to disk. API key is encrypted via `safeStorage`. |
 
-## Security Constraints
+## Security
+
+### Sandbox & Isolation
 
 - `contextIsolation`: enabled
 - `nodeIntegration`: disabled
 - `sandbox`: enabled
-- Only channels listed above are permitted
-- The preload script exposes a fixed set of methods via `contextBridge`
-- `shell:show-item-in-folder` and `shell:open-path` validate that paths are absolute and safe (descendant of project directory) before executing
+- The preload script exposes a fixed set of 22 methods via `contextBridge`
+
+### Path Validation
+
+All file operation IPC handlers (`project:*` except dialog-based pickers, plus `shell:*`) validate paths using `pathGuard.ts`:
+
+- `assertSafePath(target)` — rejects paths outside the user's home directory
+- `assertWithinProject(projectDir, target)` — rejects paths that escape a specific project directory
+- `shell:show-item-in-folder` and `shell:open-path` silently ignore invalid or non-existent paths (no file/directory creation)
+
+### API Key Encryption
+
+Model configuration is stored at `~/.orison/config.json`. The `apiKey` field is encrypted using Electron's `safeStorage` API (OS keychain) before writing to disk, and decrypted on read.
+
+### Content Security Policy
+
+CSP is injected dynamically by the main process via `session.webRequest.onHeadersReceived` (production builds only). Dev mode skips CSP injection because the Vite dev server origin doesn't match `'self'`.
 
 ## Exposed API
 
 ```typescript
 window.orisonDesktop: {
-  // 项目
+  // 项目（对话框）
   pickProjectDirectory: () => Promise<string | null>
   createProjectDirectory: (parentDir: string, name: string) => Promise<string>
   pickCoverImage: () => Promise<string | null>
   copyCoverImage: (src: string, projectDir: string) => Promise<string>
   saveProjectMeta: (projectDir: string, meta: Record<string, unknown>) => Promise<void>
   loadProjectMeta: (projectDir: string) => Promise<Record<string, unknown> | null>
+
+  // 文件树操作
+  readDirectory: (projectDir: string, maxDepth?: number) => Promise<FileTreeEntry[]>
+  deleteEntry: (fullPath: string) => Promise<boolean>
+  renameEntry: (oldPath: string, newPath: string) => Promise<boolean>
+  createEntry: (fullPath: string, isDir: boolean) => Promise<boolean>
+  readFile: (fullPath: string) => Promise<string | null>
+  writeFile: (fullPath: string, content: string) => Promise<boolean>
 
   // 语言
   getLocale: () => string
@@ -98,6 +128,17 @@ type ModelConfig = {
 };
 ```
 
+### FileTreeEntry
+
+```typescript
+type FileTreeEntry = {
+  name: string;
+  path: string;     // relative to project root, e.g. "/chapters/ch-001.md"
+  isDir: boolean;
+  children?: FileTreeEntry[];
+};
+```
+
 ## Window Control (Custom Title Bar)
 
 The app uses a frameless window with a custom title bar implemented in the renderer:
@@ -114,6 +155,7 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 | `shell/main/ipc/windowIpc.ts` | `window:*`, `shell:*` |
 | `shell/main/ipc/projectIpc.ts` | `project:*` |
 | `shell/main/ipc/configIpc.ts` | `config:*` |
+| `shell/main/ipc/pathGuard.ts` | Path validation utilities (not an IPC handler) |
 
 ## Known Issues
 

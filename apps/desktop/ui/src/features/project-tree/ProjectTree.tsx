@@ -1,19 +1,15 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
 import { mockFileContents } from '../../shared/data/mockFileContents';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
 import { Tooltip } from '../../shared/components/Tooltip';
+import type { FileTreeEntry } from '@orison/shared-contracts';
 
 /* ── Types ── */
 
-type FileEntry = {
-  name: string;
-  path: string;
-  isDir: boolean;
-  children?: FileEntry[];
-};
+type FileEntry = FileTreeEntry;
 
 type CtxState = { x: number; y: number; entry: FileEntry | null } | null;
 
@@ -70,6 +66,30 @@ function buildInitialTree(projectName: string): FileEntry[] {
 }
 
 /* ── Tree mutation helpers (immutable) ── */
+
+function findNode(tree: FileEntry[] | null, targetPath: string): FileEntry | null {
+  if (!tree) return null;
+  for (const node of tree) {
+    if (node.path === targetPath) return node;
+    if (node.children) {
+      const found = findNode(node.children, targetPath);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function updateChildren(tree: FileEntry[], parentPath: string, children: FileEntry[]): FileEntry[] {
+  return tree.map((node) => {
+    if (node.path === parentPath && node.isDir) {
+      return { ...node, children };
+    }
+    if (node.children) {
+      return { ...node, children: updateChildren(node.children, parentPath, children) };
+    }
+    return node;
+  });
+}
 
 function insertChild(tree: FileEntry[], parentPath: string, child: FileEntry): FileEntry[] {
   return tree.map((node) => {
@@ -248,44 +268,48 @@ function FileTreeNode({
             <span className="ptree-label">{mappedName}</span>
           )}
         </div>
-        {isExpanded && entry.children?.map((child) => (
-          <FileTreeNode
-            key={child.path}
-            entry={child}
-            depth={depth + 1}
-            expandedPaths={expandedPaths}
-            onToggle={onToggle}
-            selectedPath={selectedPath}
-            onSelect={onSelect}
-            dirtyPaths={dirtyPaths}
-            onContextMenu={onContextMenu}
-            renamingPath={renamingPath}
-            onRenameConfirm={onRenameConfirm}
-            onRenameCancel={onRenameCancel}
-            creatingIn={creatingIn}
-            creatingType={creatingType}
-            onCreateConfirm={onCreateConfirm}
-            onCreateCancel={onCreateCancel}
-            displayNameMap={displayNameMap}
-          />
-        ))}
-        {isExpanded && isCreatingHere && (
-          <div className="ptree-node ptree-file" style={{ paddingLeft: paddingLeft + 16 }}>
-            <span className="material-symbols-outlined ptree-icon" aria-hidden="true">
-              {creatingType === 'folder' ? 'folder' : 'draft'}
-            </span>
-            <InlineInput
-              defaultValue=""
-              onConfirm={onCreateConfirm}
-              onCancel={onCreateCancel}
-            />
+        <div className={`ptree-children${isExpanded ? ' is-open' : ''}`}>
+          <div className="ptree-children-inner">
+            {entry.children?.map((child) => (
+              <FileTreeNode
+                key={child.path}
+                entry={child}
+                depth={depth + 1}
+                expandedPaths={expandedPaths}
+                onToggle={onToggle}
+                selectedPath={selectedPath}
+                onSelect={onSelect}
+                dirtyPaths={dirtyPaths}
+                onContextMenu={onContextMenu}
+                renamingPath={renamingPath}
+                onRenameConfirm={onRenameConfirm}
+                onRenameCancel={onRenameCancel}
+                creatingIn={creatingIn}
+                creatingType={creatingType}
+                onCreateConfirm={onCreateConfirm}
+                onCreateCancel={onCreateCancel}
+                displayNameMap={displayNameMap}
+              />
+            ))}
+            {isCreatingHere && (
+              <div className="ptree-node ptree-file" style={{ paddingLeft: paddingLeft + 16 }}>
+                <span className="material-symbols-outlined ptree-icon" aria-hidden="true">
+                  {creatingType === 'folder' ? 'folder' : 'draft'}
+                </span>
+                <InlineInput
+                  defaultValue=""
+                  onConfirm={onCreateConfirm}
+                  onCancel={onCreateCancel}
+                />
+              </div>
+            )}
+            {!isCreatingHere && entry.children?.length === 0 && (
+              <div className="ptree-node ptree-empty" style={{ paddingLeft: paddingLeft + 16 }}>
+                <span className="ptree-label ptree-label-muted">(empty)</span>
+              </div>
+            )}
           </div>
-        )}
-        {isExpanded && !isCreatingHere && entry.children?.length === 0 && (
-          <div className="ptree-node ptree-empty" style={{ paddingLeft: paddingLeft + 16 }}>
-            <span className="ptree-label ptree-label-muted">(empty)</span>
-          </div>
-        )}
+        </div>
       </div>
     );
   }
@@ -348,27 +372,92 @@ export function ProjectTree() {
 
   const activeFilePath = useAppStore((s) => s.activeFilePath);
 
-  const dirtyPaths = new Set(
-    openFiles.filter((f) => f.content !== f.savedContent).map((f) => f.path),
+  const dirtyPaths = useMemo(
+    () => new Set(openFiles.filter((f) => f.content !== f.savedContent).map((f) => f.path)),
+    [openFiles],
   );
 
-  // 懒初始化文件树
-  if (!fileTree && currentProject) {
-    setFileTree(buildInitialTree(currentProject.name));
-  }
+  // Load real directory tree via IPC, fall back to mock
+  // Only load depth=1 initially; children are loaded lazily on expand
+  const projectPath = currentProject?.path;
+  useEffect(() => {
+    if (!currentProject) return;
+    let cancelled = false;
+    const loadTree = async () => {
+      if (projectPath && window.orisonDesktop?.readDirectory) {
+        try {
+          const entries = await window.orisonDesktop.readDirectory(projectPath, 1);
+          if (!cancelled && entries && entries.length > 0) {
+            setFileTree([{
+              name: currentProject.name,
+              path: '/',
+              isDir: true,
+              children: entries,
+            }]);
+            return;
+          }
+        } catch {
+          // Fall through to mock
+        }
+      }
+      if (!cancelled) {
+        setFileTree(buildInitialTree(currentProject.name));
+      }
+    };
+    loadTree();
+    return () => { cancelled = true; };
+  }, [currentProject, projectPath]);
+
+  /** Lazily load children of a directory when it is expanded for the first time. */
+  const loadChildrenIfNeeded = useCallback(async (entry: FileEntry) => {
+    if (!projectPath || !entry.isDir) return;
+    // If children are already populated (non-empty), skip
+    if (entry.children && entry.children.length > 0) return;
+    const fullDir = `${projectPath}${entry.path}`;
+    try {
+      const children = await window.orisonDesktop?.readDirectory(fullDir, 1);
+      if (!children) return;
+      // Rewrite relative paths so they are relative to project root
+      const remapped = children.map((c: FileEntry) => ({
+        ...c,
+        path: entry.path === '/' ? `/${c.name}` : `${entry.path}/${c.name}`,
+        children: c.isDir ? (c.children ?? []) : undefined,
+      }));
+      setFileTree((prev) => prev ? updateChildren(prev, entry.path, remapped) : prev);
+    } catch { /* ignore */ }
+  }, [projectPath]);
 
   const handleToggle = useCallback((path: string) => {
     setExpandedPaths((prev) => {
       const next = new Set(prev);
-      next.has(path) ? next.delete(path) : next.add(path);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+        // Trigger lazy load for the toggled directory
+        const entry = findNode(fileTree, path);
+        if (entry) loadChildrenIfNeeded(entry);
+      }
       return next;
     });
-  }, []);
+  }, [fileTree, loadChildrenIfNeeded]);
 
-  const handleSelect = useCallback((entry: FileEntry) => {
-    const content = mockFileContents[entry.path] ?? '';
-    openFile(entry.path, entry.name, content);
-  }, [openFile]);
+  const handleSelect = useCallback(async (entry: FileEntry) => {
+    if (!projectPath) {
+      // Fallback to mock content
+      const content = mockFileContents[entry.path] ?? '';
+      openFile(entry.path, entry.name, content);
+      return;
+    }
+    // Read real file content via IPC
+    const fullPath = `${projectPath}${entry.path}`;
+    try {
+      const content = await window.orisonDesktop?.readFile(fullPath);
+      openFile(entry.path, entry.name, content ?? '');
+    } catch {
+      openFile(entry.path, entry.name, '');
+    }
+  }, [openFile, projectPath]);
 
   /* ── Context menu ── */
 
@@ -380,7 +469,7 @@ export function ProjectTree() {
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
 
-  const ctxItems: ContextMenuItem[] = (() => {
+  const ctxItems: ContextMenuItem[] = useMemo(() => {
     if (!ctxMenu) return [];
     const { entry } = ctxMenu;
     const items: ContextMenuItem[] = [];
@@ -442,7 +531,11 @@ export function ProjectTree() {
       });
       items.push({
         type: 'item', label: t('contextMenu.delete'), icon: 'delete', danger: true,
-        onClick: () => {
+        onClick: async () => {
+          if (projectPath) {
+            const fullPath = `${projectPath}${entry.path}`;
+            await window.orisonDesktop?.deleteEntry(fullPath);
+          }
           setFileTree((prev) => prev ? removeNode(prev, entry.path) : prev);
         },
       });
@@ -465,28 +558,39 @@ export function ProjectTree() {
     });
 
     return items;
-  })();
+  }, [ctxMenu, t, currentProject, projectPath]);
 
   /* ── Rename ── */
 
-  const handleRenameConfirm = useCallback((oldPath: string, newName: string) => {
+  const handleRenameConfirm = useCallback(async (oldPath: string, newName: string) => {
+    if (projectPath) {
+      const oldFull = `${projectPath}${oldPath}`;
+      const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
+      const newRelative = parentDir === '/' ? `/${newName}` : `${parentDir}/${newName}`;
+      const newFull = `${projectPath}${newRelative}`;
+      await window.orisonDesktop?.renameEntry(oldFull, newFull);
+    }
     setFileTree((prev) => prev ? renameNode(prev, oldPath, newName) : prev);
     setRenamingPath(null);
-  }, []);
+  }, [projectPath]);
 
   const handleRenameCancel = useCallback(() => setRenamingPath(null), []);
 
   /* ── Create ── */
 
-  const handleCreateConfirm = useCallback((name: string) => {
+  const handleCreateConfirm = useCallback(async (name: string) => {
     if (!creatingIn || !creatingType) return;
     const isDir = creatingType === 'folder';
     const newPath = creatingIn === '/' ? `/${name}` : `${creatingIn}/${name}`;
+    if (projectPath) {
+      const fullPath = `${projectPath}${newPath}`;
+      await window.orisonDesktop?.createEntry(fullPath, isDir);
+    }
     const child: FileEntry = { name, path: newPath, isDir, children: isDir ? [] : undefined };
     setFileTree((prev) => prev ? insertChild(prev, creatingIn, child) : prev);
     setCreatingIn(null);
     setCreatingType(null);
-  }, [creatingIn, creatingType]);
+  }, [creatingIn, creatingType, projectPath]);
 
   const handleCreateCancel = useCallback(() => {
     setCreatingIn(null);

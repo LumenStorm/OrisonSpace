@@ -140,6 +140,21 @@
   transform: rotate(90deg);
 }
 
+/* ── Project Tree: Children collapse/expand ── */
+.ptree-children {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.15s ease;
+}
+
+.ptree-children.is-open {
+  grid-template-rows: 1fr;
+}
+
+.ptree-children-inner {
+  overflow: hidden;
+}
+
 /* ── Project Tree: Active node ── */
 .ptree-node.is-active {
   background: var(--active-indicator);

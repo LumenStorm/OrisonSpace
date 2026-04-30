@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
-import { WindowControls, isMac } from '../../shared/components/WindowControls';
+import { WindowControls, detectIsMac } from '../../shared/components/WindowControls';
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { AccountDialog } from '../../shared/components/AccountDialog';
+import { AboutDialog } from '../../shared/components/AboutDialog';
+import { useGlobalShortcuts } from '../../shared/hooks/useGlobalShortcuts';
 
 type MenuItem =
   | { type: 'action'; label: string; shortcut?: string; handler: () => void; disabled?: boolean }
@@ -13,11 +15,20 @@ type MenuItem =
 function MenuDropdown({
   items,
   onClose,
+  onPrevMenu,
+  onNextMenu,
 }: {
   items: MenuItem[];
   onClose: () => void;
+  onPrevMenu?: () => void;
+  onNextMenu?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  const actionIndices = items
+    .map((item, i) => (item.type === 'action' && !item.disabled ? i : -1))
+    .filter((i) => i !== -1);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -27,17 +38,72 @@ function MenuDropdown({
     return () => document.removeEventListener('mousedown', onClick);
   }, [onClose]);
 
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown': {
+        e.preventDefault();
+        const pos = actionIndices.indexOf(focusedIndex);
+        const next = pos < actionIndices.length - 1 ? actionIndices[pos + 1] : actionIndices[0];
+        setFocusedIndex(next);
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const pos = actionIndices.indexOf(focusedIndex);
+        const prev = pos > 0 ? actionIndices[pos - 1] : actionIndices[actionIndices.length - 1];
+        setFocusedIndex(prev);
+        break;
+      }
+      case 'ArrowLeft':
+        e.preventDefault();
+        onPrevMenu?.();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        onNextMenu?.();
+        break;
+      case 'Enter':
+      case ' ': {
+        e.preventDefault();
+        const item = items[focusedIndex];
+        if (item?.type === 'action' && !item.disabled) {
+          item.handler();
+          onClose();
+        }
+        break;
+      }
+      case 'Escape':
+        e.preventDefault();
+        onClose();
+        break;
+    }
+  };
+
   return (
-    <div className="topbar-menu-dropdown" ref={ref}>
+    <div
+      className="topbar-menu-dropdown"
+      ref={ref}
+      role="menu"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+    >
       {items.map((item, i) =>
         item.type === 'separator' ? (
-          <div key={i} className="topbar-menu-separator" />
+          <div key={i} className="topbar-menu-separator" role="separator" />
         ) : (
           <button
             key={i}
             type="button"
-            className="topbar-menu-item"
+            className={`topbar-menu-item${i === focusedIndex ? ' is-focused' : ''}`}
+            role="menuitem"
             disabled={item.disabled}
+            tabIndex={-1}
+            onMouseEnter={() => setFocusedIndex(i)}
+            onMouseLeave={() => setFocusedIndex(-1)}
             onClick={() => {
               item.handler();
               onClose();
@@ -53,6 +119,7 @@ function MenuDropdown({
 }
 
 export function TopBar({ minimal = false }: { minimal?: boolean }) {
+  const isMac = detectIsMac();
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const openProject = useAppStore((s) => s.openProject);
   const closeProject = useAppStore((s) => s.closeProject);
@@ -70,6 +137,7 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleOpen = async () => {
@@ -96,33 +164,24 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const handleUndo = useCallback(() => undo(), [undo]);
   const handleRedo = useCallback(() => redo(), [redo]);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = isMac ? e.metaKey : e.ctrlKey;
-      if (!mod) return;
+  const shortcuts = useMemo(() => ({
+    's': handleSave,
+    'z': handleUndo,
+    'Shift+z': handleRedo,
+    'y': handleRedo,
+    'n': () => setShowNewDialog(true),
+    'o': () => handleOpen(),
+  }), [handleSave, handleUndo, handleRedo, handleOpen]);
 
-      if (e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      } else if (e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleSave, handleUndo, handleRedo]);
+  useGlobalShortcuts(shortcuts);
 
   const closeMenu = useCallback(() => setOpenMenu(null), []);
   const hasSavePath = !!currentProject?.path;
   const modKey = isMac ? '⌘' : 'Ctrl+';
 
   const fileItems: MenuItem[] = [
-    { type: 'action', label: t('topbar.newProject'), handler: () => setShowNewDialog(true) },
-    { type: 'action', label: t('topbar.openProject'), handler: handleOpen },
+    { type: 'action', label: t('topbar.newProject'), shortcut: `${modKey}N`, handler: () => setShowNewDialog(true) },
+    { type: 'action', label: t('topbar.openProject'), shortcut: `${modKey}O`, handler: handleOpen },
     { type: 'action', label: t('topbar.save'), shortcut: `${modKey}S`, handler: handleSave, disabled: !hasSavePath },
     { type: 'action', label: t('topbar.export'), handler: () => {}, disabled: true },
     { type: 'separator' },
@@ -145,7 +204,7 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   ];
 
   const helpItems: MenuItem[] = [
-    { type: 'action', label: t('topbar.about'), handler: () => {} },
+    { type: 'action', label: t('topbar.about'), handler: () => setShowAbout(true) },
     { type: 'action', label: t('topbar.shortcuts'), handler: () => {} },
   ];
 
@@ -156,6 +215,15 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
     { key: 'help', label: t('topbar.menuHelp'), items: helpItems },
   ];
 
+  const menuKeys = menus.map((m) => m.key);
+  const switchMenu = useCallback((dir: -1 | 1) => {
+    setOpenMenu((cur) => {
+      if (!cur) return null;
+      const idx = menuKeys.indexOf(cur);
+      return menuKeys[(idx + dir + menuKeys.length) % menuKeys.length];
+    });
+  }, [menuKeys]);
+
   return (
     <>
       <header className="workspace-topbar">
@@ -164,19 +232,27 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
         <div className="workspace-brand">{t('welcome.brand')}</div>
 
         {!minimal && (
-          <nav className="topbar-menu" aria-label="Main Menu">
+          <nav className="topbar-menu" aria-label="Main Menu" role="menubar">
             {menus.map((menu) => (
               <div key={menu.key} className="topbar-menu-group">
                 <button
                   type="button"
                   className={`topbar-menu-trigger${openMenu === menu.key ? ' is-open' : ''}`}
+                  role="menuitem"
+                  aria-haspopup="true"
+                  aria-expanded={openMenu === menu.key}
                   onClick={() => setOpenMenu(openMenu === menu.key ? null : menu.key)}
                   onMouseEnter={() => { if (openMenu) setOpenMenu(menu.key); }}
                 >
                   {menu.label}
                 </button>
                 {openMenu === menu.key && (
-                  <MenuDropdown items={menu.items} onClose={closeMenu} />
+                  <MenuDropdown
+                    items={menu.items}
+                    onClose={closeMenu}
+                    onPrevMenu={() => switchMenu(-1)}
+                    onNextMenu={() => switchMenu(1)}
+                  />
                 )}
               </div>
             ))}
@@ -189,6 +265,7 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
       {showNewDialog && <NewProjectDialog onClose={() => setShowNewDialog(false)} />}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
       {showAccount && <AccountDialog onClose={() => setShowAccount(false)} />}
+      {showAbout && <AboutDialog onClose={() => setShowAbout(false)} />}
     </>
   );
 }

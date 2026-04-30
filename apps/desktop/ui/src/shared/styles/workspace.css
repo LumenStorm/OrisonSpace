@@ -54,6 +54,18 @@
   padding: 2rem;
 }
 
+/* ── Bottom Panel Wrapper (transition) ── */
+.workspace-bottom-wrapper {
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
+.workspace-bottom-wrapper:not(.is-open) {
+  height: 0 !important;
+  pointer-events: none;
+}
+
 /* ── Bottom Panel ── */
 .bottom-panel {
   display: flex;
@@ -188,6 +200,14 @@
   }
 
   .resize-handle {
+    display: none;
+  }
+
+  .workspace-body {
+    grid-template-columns: 48px 1fr !important;
+  }
+
+  .workspace-bottom-wrapper {
     display: none;
   }
 }

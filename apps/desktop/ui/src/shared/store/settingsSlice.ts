@@ -35,6 +35,7 @@ function resolveLocale(locale: LocaleSetting): string {
 }
 
 function applyTheme(theme: ThemeSetting) {
+  if (typeof document === 'undefined') return;
   document.documentElement.dataset.theme = theme;
 }
 

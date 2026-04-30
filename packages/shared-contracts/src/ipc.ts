@@ -35,4 +35,17 @@ export type OrisonDesktopApi = {
   saveModelConfig(config: ModelConfig): Promise<void>;
   showItemInFolder(fullPath: string): void;
   openPath(fullPath: string): void;
+  readDirectory(projectDir: string, maxDepth?: number): Promise<FileTreeEntry[]>;
+  deleteEntry(fullPath: string): Promise<boolean>;
+  renameEntry(oldPath: string, newPath: string): Promise<boolean>;
+  createEntry(fullPath: string, isDir: boolean): Promise<boolean>;
+  readFile(fullPath: string): Promise<string | null>;
+  writeFile(fullPath: string, content: string): Promise<boolean>;
+};
+
+export type FileTreeEntry = {
+  name: string;
+  path: string;
+  isDir: boolean;
+  children?: FileTreeEntry[];
 };

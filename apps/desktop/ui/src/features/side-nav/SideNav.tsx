@@ -48,7 +48,7 @@ export function SideNav() {
 
   return (
     <>
-      <nav className="icon-rail" aria-label="Project Tree">
+      <nav className="icon-rail" aria-label="Main Navigation">
         <div className="icon-rail-top">
           {navItems.map((item) => (
             <Tooltip key={item.key} label={t(item.i18nKey)} placement="right">

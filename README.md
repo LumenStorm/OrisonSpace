@@ -16,6 +16,9 @@
 - Electron + React + TypeScript 的桌面端工作台
 - 小说 / 剧本项目的本地打开与新建
 - 创作字段编辑：brief、世界观、资产卡、关系图、outline v2、集纲、曲线等
+- 项目文件树：通过 IPC 读取真实目录结构，支持懒加载、右键菜单（新建/重命名/删除/在资源管理器中打开）
+- 桌面端 UI：经典菜单栏（键盘导航）、密码可见切换、项目页 header + 空状态、底部面板过渡动画、ErrorBoundary
+- IPC 安全加固：所有文件操作通过 `pathGuard.ts` 校验路径范围，API Key 使用 `safeStorage` 加密存储，CSP 由主进程动态注入
 - Fastify 服务端认证接口
 - 项目注册接口：`POST /v1/projects`
 - 任务接口：
@@ -41,13 +44,14 @@ OneLine2Video/
     agent/                Agent 编排服务
     desktop/
       shell/
-        main/             Electron 主进程（IPC handlers、窗口管理）
-        preload/          contextBridge 预加载脚本
+        main/             Electron 主进程（IPC handlers、窗口管理、CSP 注入）
+        main/ipc/         IPC 处理器（projectIpc、windowIpc、configIpc、pathGuard）
+        preload/          contextBridge 预加载脚本（22 个 API 方法）
         renderer/         React 入口
-        test/             安全测试
+        test/             安全测试（preload 白名单校验）
         resources/        应用资源
       ui/                 React 桌面 UI
-      local-bff/          桌面端本地桥接（预留，尚无实际源码）
+      local-bff/          桌面端本地桥接（API 编排、字段同步、项目仓库）
     server/               Fastify 服务端
   packages/
     shared-contracts/     共享 Zod 契约与 IPC 类型定义
@@ -209,7 +213,8 @@ pnpm --filter @orison/desktop-ui test reviewFlow.test.tsx
 1. `GET /v1/projects/:projectId/tasks` 和 `GET /v1/projects/:projectId/assets` 还没有分页
 2. `GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据
 3. 资产索引目前还是轻量占位值，后面可以逐步补充真实 `assetType` / `assetName`
-4. `apps/desktop/ui` 的 `typecheck` 还存在一批历史类型问题，尚未在这轮里清理完
+4. `apps/desktop/ui` 的 `typecheck` 还存在一批历史类型问题（`rootDir` 与 `shared-contracts` 跨包引用冲突、`zod` 类型声明缺失）
+5. `field:sync` IPC 通道已在 preload 暴露，但主进程尚未实现对应 handler
 
 ## 相关文档
 

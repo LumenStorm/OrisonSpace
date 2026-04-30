@@ -27,6 +27,19 @@ export const exposedDesktopApi = {
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
   showItemInFolder: (fullPath: string) => ipcRenderer.send('shell:show-item-in-folder', fullPath),
   openPath: (fullPath: string) => ipcRenderer.send('shell:open-path', fullPath),
+  // 文件树操作
+  readDirectory: (projectDir: string, maxDepth?: number) =>
+    ipcRenderer.invoke('project:read-directory', projectDir, maxDepth),
+  deleteEntry: (fullPath: string) =>
+    ipcRenderer.invoke('project:delete-entry', fullPath) as Promise<boolean>,
+  renameEntry: (oldPath: string, newPath: string) =>
+    ipcRenderer.invoke('project:rename-entry', oldPath, newPath) as Promise<boolean>,
+  createEntry: (fullPath: string, isDir: boolean) =>
+    ipcRenderer.invoke('project:create-entry', fullPath, isDir) as Promise<boolean>,
+  readFile: (fullPath: string) =>
+    ipcRenderer.invoke('project:read-file', fullPath) as Promise<string | null>,
+  writeFile: (fullPath: string, content: string) =>
+    ipcRenderer.invoke('project:write-file', fullPath, content) as Promise<boolean>,
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

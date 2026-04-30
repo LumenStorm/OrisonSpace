@@ -318,7 +318,16 @@ Inspector Panel（基础字段）
 - Windows/Linux：`frame: false`，TopBar 右侧渲染最小化/最大化/关闭按钮
 - macOS：`titleBarStyle: 'hidden'`，保留原生红绿灯
 - TopBar 整体 `-webkit-app-region: drag` 支持拖拽移动窗口
+- TopBar 支持经典菜单栏（文件/编辑/视图/帮助），带键盘导航（Arrow/Enter/Escape）和全局快捷键（Ctrl+S/Z/N/O）
 - 窗口控制通过 IPC 通道（`window:minimize` / `window:maximize` / `window:close`）
+
+### 8.4 安全策略
+
+- CSP 由主进程通过 `session.webRequest.onHeadersReceived` 动态注入（仅生产构建）
+- 所有 IPC 文件操作通过 `pathGuard.ts` 校验路径范围（限制在用户主目录内）
+- API Key 使用 Electron `safeStorage` API 加密存储
+- `shell:show-item-in-folder` / `shell:open-path` 不再自动创建不存在的文件/目录
+- 渲染层包裹 `ErrorBoundary`，防止未捕获异常导致白屏
 
 ---
 

@@ -12,14 +12,26 @@ export const storage = {
   },
 
   getString(key: string, fallback: string): string {
-    return localStorage.getItem(PREFIX + key) ?? fallback;
+    try {
+      return localStorage.getItem(PREFIX + key) ?? fallback;
+    } catch {
+      return fallback;
+    }
   },
 
   set(key: string, value: unknown): void {
-    localStorage.setItem(PREFIX + key, typeof value === 'string' ? value : JSON.stringify(value));
+    try {
+      localStorage.setItem(PREFIX + key, typeof value === 'string' ? value : JSON.stringify(value));
+    } catch {
+      // Ignore storage write failures so renderer boot can continue.
+    }
   },
 
   remove(key: string): void {
-    localStorage.removeItem(PREFIX + key);
+    try {
+      localStorage.removeItem(PREFIX + key);
+    } catch {
+      // Ignore storage delete failures so renderer boot can continue.
+    }
   },
 };

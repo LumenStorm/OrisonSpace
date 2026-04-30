@@ -59,14 +59,13 @@ export function WorkspaceLayout() {
           <div className="workspace-content">
             <EditorArea />
           </div>
-          {bottomPanelOpen && (
-            <>
-              <ResizeHandle direction="vertical" onResize={handleBottomResize} />
-              <div style={{ height: bottomPanelHeight, flexShrink: 0 }}>
-                <BottomPanel />
-              </div>
-            </>
-          )}
+          <ResizeHandle direction="vertical" onResize={handleBottomResize} style={{ display: bottomPanelOpen ? undefined : 'none' }} />
+          <div
+            className={`workspace-bottom-wrapper${bottomPanelOpen ? ' is-open' : ''}`}
+            style={{ height: bottomPanelOpen ? bottomPanelHeight : 0 }}
+          >
+            <BottomPanel />
+          </div>
         </div>
       </div>
       {!bottomPanelOpen && (

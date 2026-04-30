@@ -10,6 +10,8 @@ auth:
   pleaseWait: "Please wait..."
   signIn: "Sign In"
   createAccount: "Create Account"
+  showPassword: "Show password"
+  hidePassword: "Hide password"
 
 projects:
   brand: "Orison Space"
@@ -28,6 +30,8 @@ projects:
   coverImage: "Cover Image"
   optional: "(optional)"
   pickCover: "Choose cover image"
+  emptyTitle: "No projects yet"
+  emptyHint: "Create a new project or open an existing one to get started"
 
 nav:
   project: "Project"

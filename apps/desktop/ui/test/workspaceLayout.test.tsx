@@ -7,7 +7,7 @@ describe('WorkspaceLayout', () => {
     render(<WorkspaceLayout />);
 
     expect(screen.getByText('Orison Space')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Project Tree' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Main Navigation' })).toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: 'Inspector Panel' })).toBeInTheDocument();
   });
 });
