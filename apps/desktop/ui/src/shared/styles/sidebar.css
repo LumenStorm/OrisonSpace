@@ -4,6 +4,7 @@
   flex-direction: column;
   justify-content: space-between;
   width: 48px;
+  height: 100%;
   background: var(--surface-container-low);
   border-right: 1px solid var(--outline-variant);
   overflow: hidden;
@@ -68,6 +69,7 @@
 .project-tree-panel {
   display: flex;
   flex-direction: column;
+  height: 100%;
   background: var(--surface-container-low);
   overflow-y: auto;
   min-height: 0;
