@@ -2,8 +2,9 @@
 .workspace-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1.5rem;
+  gap: 0.75rem;
+  padding: 0 1.5rem;
+  height: 38px;
   border-bottom: 1px solid var(--outline-variant);
   background: var(--surface);
   backdrop-filter: blur(10px);
@@ -25,41 +26,94 @@
 
 .workspace-brand {
   font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-style: italic;
-  letter-spacing: -0.02em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
 }
 
-.workspace-actions {
+/* ── Menu Bar ── */
+.topbar-menu {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0;
+  flex: 1;
 }
 
-.workspace-action {
+.topbar-menu-group {
+  position: relative;
+}
+
+.topbar-menu-trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  height: 26px;
+  padding: 0 0.6rem;
   border: 0;
-  border-radius: 0.4rem;
+  border-radius: 0.25rem;
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
   font: inherit;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
 }
 
-.workspace-action:hover {
+.topbar-menu-trigger:hover,
+.topbar-menu-trigger.is-open {
   background: var(--hover-overlay);
   color: var(--on-surface);
 }
 
-.workspace-divider {
-  width: 1px;
-  height: 1rem;
+.topbar-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 200;
+  min-width: 200px;
+  padding: 0.25rem 0;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.4rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.topbar-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.35rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  gap: 1.5rem;
+}
+
+.topbar-menu-item:hover:not(:disabled) {
+  background: var(--hover-overlay);
+}
+
+.topbar-menu-item:disabled {
+  color: var(--outline);
+  cursor: default;
+}
+
+.topbar-menu-shortcut {
+  color: var(--on-surface-variant);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.topbar-menu-separator {
+  height: 1px;
+  margin: 0.25rem 0.5rem;
   background: var(--outline-variant);
-  margin: 0 0.5rem;
 }
 
 /* ── Window Controls (Windows/Linux) ── */

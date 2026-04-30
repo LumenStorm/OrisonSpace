@@ -1,9 +1,56 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
 import { WindowControls, isMac } from '../../shared/components/WindowControls';
-import { Tooltip } from '../../shared/components/Tooltip';
+import { SettingsDialog } from '../../shared/components/SettingsDialog';
+import { AccountDialog } from '../../shared/components/AccountDialog';
+
+type MenuItem =
+  | { type: 'action'; label: string; shortcut?: string; handler: () => void; disabled?: boolean }
+  | { type: 'separator' };
+
+function MenuDropdown({
+  items,
+  onClose,
+}: {
+  items: MenuItem[];
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [onClose]);
+
+  return (
+    <div className="topbar-menu-dropdown" ref={ref}>
+      {items.map((item, i) =>
+        item.type === 'separator' ? (
+          <div key={i} className="topbar-menu-separator" />
+        ) : (
+          <button
+            key={i}
+            type="button"
+            className="topbar-menu-item"
+            disabled={item.disabled}
+            onClick={() => {
+              item.handler();
+              onClose();
+            }}
+          >
+            <span>{item.label}</span>
+            {item.shortcut && <span className="topbar-menu-shortcut">{item.shortcut}</span>}
+          </button>
+        ),
+      )}
+    </div>
+  );
+}
 
 export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
@@ -16,8 +63,14 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const redo = useAppStore((s) => s.redo);
   const undoLen = useAppStore((s) => s.undoStack.length);
   const redoLen = useAppStore((s) => s.redoStack.length);
+  const toggleProjectTree = useAppStore((s) => s.toggleProjectTree);
+  const toggleBottomPanel = useAppStore((s) => s.toggleBottomPanel);
   const { t } = useI18n(resolvedLocale);
+
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleOpen = async () => {
     const dir = await window.orisonDesktop?.pickProjectDirectory();
@@ -43,7 +96,6 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const handleUndo = useCallback(() => undo(), [undo]);
   const handleRedo = useCallback(() => redo(), [redo]);
 
-  // 全局快捷键
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = isMac ? e.metaKey : e.ctrlKey;
@@ -64,19 +116,44 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [handleSave, handleUndo, handleRedo]);
 
+  const closeMenu = useCallback(() => setOpenMenu(null), []);
   const hasSavePath = !!currentProject?.path;
+  const modKey = isMac ? '⌘' : 'Ctrl+';
 
-  const actions: { icon: string; handler: () => void; disabled?: boolean; label: string }[][] = [
-    [
-      { icon: 'add', handler: () => setShowNewDialog(true), label: t('projects.newProject') },
-      { icon: 'folder_open', handler: handleOpen, label: t('projects.openProject') },
-      { icon: 'save', handler: handleSave, disabled: !hasSavePath, label: `${t('topbar.save')} (${isMac ? '⌘' : 'Ctrl+'}S)` },
-      { icon: 'ios_share', handler: () => {}, disabled: true, label: t('topbar.export') },
-    ],
-    [
-      { icon: 'undo', handler: handleUndo, disabled: undoLen === 0, label: `${t('topbar.undo')} (${isMac ? '⌘' : 'Ctrl+'}Z)` },
-      { icon: 'redo', handler: handleRedo, disabled: redoLen === 0, label: `${t('topbar.redo')} (${isMac ? '⌘⇧' : 'Ctrl+Shift+'}Z)` },
-    ],
+  const fileItems: MenuItem[] = [
+    { type: 'action', label: t('topbar.newProject'), handler: () => setShowNewDialog(true) },
+    { type: 'action', label: t('topbar.openProject'), handler: handleOpen },
+    { type: 'action', label: t('topbar.save'), shortcut: `${modKey}S`, handler: handleSave, disabled: !hasSavePath },
+    { type: 'action', label: t('topbar.export'), handler: () => {}, disabled: true },
+    { type: 'separator' },
+    ...(currentProject
+      ? [{ type: 'action' as const, label: t('topbar.backToProjects'), handler: closeProject }]
+      : []),
+  ];
+
+  const editItems: MenuItem[] = [
+    { type: 'action', label: t('topbar.undo'), shortcut: `${modKey}Z`, handler: handleUndo, disabled: undoLen === 0 },
+    { type: 'action', label: t('topbar.redo'), shortcut: isMac ? '⌘⇧Z' : 'Ctrl+Shift+Z', handler: handleRedo, disabled: redoLen === 0 },
+  ];
+
+  const viewItems: MenuItem[] = [
+    { type: 'action', label: t('topbar.toggleProjectTree'), handler: toggleProjectTree },
+    { type: 'action', label: t('topbar.toggleBottomPanel'), handler: toggleBottomPanel },
+    { type: 'separator' },
+    { type: 'action', label: t('topbar.settings'), handler: () => setShowSettings(true) },
+    { type: 'action', label: t('topbar.account'), handler: () => setShowAccount(true) },
+  ];
+
+  const helpItems: MenuItem[] = [
+    { type: 'action', label: t('topbar.about'), handler: () => {} },
+    { type: 'action', label: t('topbar.shortcuts'), handler: () => {} },
+  ];
+
+  const menus = [
+    { key: 'file', label: t('topbar.menuFile'), items: fileItems },
+    { key: 'edit', label: t('topbar.menuEdit'), items: editItems },
+    { key: 'view', label: t('topbar.menuView'), items: viewItems },
+    { key: 'help', label: t('topbar.menuHelp'), items: helpItems },
   ];
 
   return (
@@ -85,43 +162,33 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
         {isMac && <div className="topbar-traffic-light-spacer" />}
 
         <div className="workspace-brand">{t('welcome.brand')}</div>
+
         {!minimal && (
-          <div className="workspace-actions" aria-label="Workspace Actions">
-            {currentProject && (
-              <>
-                <Tooltip label={t('projects.brand')} placement="bottom">
-                  <button className="workspace-action" type="button" aria-label="Projects" onClick={closeProject}>
-                    <span className="material-symbols-outlined">home</span>
-                  </button>
-                </Tooltip>
-                <div className="workspace-divider" />
-              </>
-            )}
-            {actions.map((group, index) => (
-              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                {group.map((action) => (
-                  <Tooltip key={action.icon} label={action.label} placement="bottom">
-                    <button
-                      className="workspace-action"
-                      type="button"
-                      aria-label={action.label}
-                      onClick={action.handler}
-                      disabled={action.disabled}
-                    >
-                      <span className="material-symbols-outlined">{action.icon}</span>
-                    </button>
-                  </Tooltip>
-                ))}
-                {index < actions.length - 1 ? <div className="workspace-divider" /> : null}
+          <nav className="topbar-menu" aria-label="Main Menu">
+            {menus.map((menu) => (
+              <div key={menu.key} className="topbar-menu-group">
+                <button
+                  type="button"
+                  className={`topbar-menu-trigger${openMenu === menu.key ? ' is-open' : ''}`}
+                  onClick={() => setOpenMenu(openMenu === menu.key ? null : menu.key)}
+                  onMouseEnter={() => { if (openMenu) setOpenMenu(menu.key); }}
+                >
+                  {menu.label}
+                </button>
+                {openMenu === menu.key && (
+                  <MenuDropdown items={menu.items} onClose={closeMenu} />
+                )}
               </div>
             ))}
-          </div>
+          </nav>
         )}
 
         <WindowControls />
       </header>
 
       {showNewDialog && <NewProjectDialog onClose={() => setShowNewDialog(false)} />}
+      {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
+      {showAccount && <AccountDialog onClose={() => setShowAccount(false)} />}
     </>
   );
 }

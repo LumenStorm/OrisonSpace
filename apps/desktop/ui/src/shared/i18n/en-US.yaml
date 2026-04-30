@@ -46,6 +46,10 @@ projectTree:
   title: "Project Files"
   assets: "Assets"
   config: "Config"
+  chapters: "Chapters"
+  scenes: "Scenes"
+  assetsDir: "Assets"
+  projectConfig: "Project Config"
 
 outline:
   projectTitle: "Project Title"
@@ -72,6 +76,19 @@ topbar:
   undo: "Undo"
   redo: "Redo"
   export: "Export"
+  menuFile: "File"
+  menuEdit: "Edit"
+  menuView: "View"
+  menuHelp: "Help"
+  newProject: "New Project"
+  openProject: "Open Project"
+  backToProjects: "Back to Projects"
+  toggleProjectTree: "Project Files"
+  toggleBottomPanel: "Bottom Panel"
+  settings: "Settings"
+  account: "Account"
+  about: "About"
+  shortcuts: "Shortcuts"
 
 storyboard:
   cameraLens: "Camera Lens"

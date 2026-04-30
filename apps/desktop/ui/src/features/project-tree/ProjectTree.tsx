@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
 import { mockFileContents } from '../../shared/data/mockFileContents';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
+import { Tooltip } from '../../shared/components/Tooltip';
 
 /* ── Types ── */
 
@@ -188,6 +189,7 @@ function FileTreeNode({
   creatingType,
   onCreateConfirm,
   onCreateCancel,
+  displayNameMap,
 }: {
   entry: FileEntry;
   depth?: number;
@@ -204,6 +206,7 @@ function FileTreeNode({
   creatingType: 'file' | 'folder' | null;
   onCreateConfirm: (name: string) => void;
   onCreateCancel: () => void;
+  displayNameMap: Record<string, string>;
 }) {
   const paddingLeft = 8 + depth * 16;
   const isExpanded = expandedPaths.has(entry.path);
@@ -211,6 +214,10 @@ function FileTreeNode({
   const isDirty = dirtyPaths.has(entry.path);
   const isRenaming = renamingPath === entry.path;
   const isCreatingHere = creatingIn === entry.path;
+
+  const rawName = getDisplayName(entry.name);
+  const mappedName = displayNameMap[entry.name] ?? rawName;
+  const showTooltip = mappedName !== rawName;
 
   if (entry.isDir) {
     return (
@@ -233,8 +240,12 @@ function FileTreeNode({
               onConfirm={(v) => onRenameConfirm(entry.path, v)}
               onCancel={onRenameCancel}
             />
+          ) : showTooltip ? (
+            <Tooltip label={rawName} placement="right">
+              <span className="ptree-label">{mappedName}</span>
+            </Tooltip>
           ) : (
-            <span className="ptree-label">{getDisplayName(entry.name)}</span>
+            <span className="ptree-label">{mappedName}</span>
           )}
         </div>
         {isExpanded && entry.children?.map((child) => (
@@ -255,6 +266,7 @@ function FileTreeNode({
             creatingType={creatingType}
             onCreateConfirm={onCreateConfirm}
             onCreateCancel={onCreateCancel}
+            displayNameMap={displayNameMap}
           />
         ))}
         {isExpanded && isCreatingHere && (
@@ -294,8 +306,12 @@ function FileTreeNode({
           onConfirm={(v) => onRenameConfirm(entry.path, v)}
           onCancel={onRenameCancel}
         />
+      ) : showTooltip ? (
+        <Tooltip label={rawName} placement="right">
+          <span className="ptree-label">{mappedName}</span>
+        </Tooltip>
       ) : (
-        <span className="ptree-label">{entry.name}</span>
+        <span className="ptree-label">{mappedName}</span>
       )}
       {isDirty && !isRenaming && <span className="ptree-dirty-dot" aria-label="unsaved">●</span>}
     </div>
@@ -315,6 +331,14 @@ export function ProjectTree() {
   );
 
   const { t } = useI18n(resolvedLocale);
+
+  const displayNameMap = useMemo<Record<string, string>>(() => ({
+    'chapters': t('projectTree.chapters'),
+    'scenes': t('projectTree.scenes'),
+    'assets': t('projectTree.assetsDir'),
+    'project.yaml': t('projectTree.projectConfig'),
+  }), [t]);
+
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(['/']));
   const [fileTree, setFileTree] = useState<FileEntry[] | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxState>(null);
@@ -503,6 +527,7 @@ export function ProjectTree() {
             creatingType={creatingType}
             onCreateConfirm={handleCreateConfirm}
             onCreateCancel={handleCreateCancel}
+            displayNameMap={displayNameMap}
           />
         ))}
       </div>

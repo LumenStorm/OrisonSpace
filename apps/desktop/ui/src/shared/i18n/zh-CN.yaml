@@ -46,6 +46,10 @@ projectTree:
   title: "项目文件"
   assets: "素材"
   config: "配置"
+  chapters: "章节"
+  scenes: "场景"
+  assetsDir: "素材"
+  projectConfig: "项目配置"
 
 outline:
   projectTitle: "项目标题"
@@ -72,6 +76,19 @@ topbar:
   undo: "撤回"
   redo: "恢复"
   export: "导出"
+  menuFile: "文件"
+  menuEdit: "编辑"
+  menuView: "视图"
+  menuHelp: "帮助"
+  newProject: "新建项目"
+  openProject: "打开项目"
+  backToProjects: "返回项目列表"
+  toggleProjectTree: "项目文件树"
+  toggleBottomPanel: "底部面板"
+  settings: "设置"
+  account: "账户"
+  about: "关于"
+  shortcuts: "快捷键"
 
 storyboard:
   cameraLens: "镜头焦距"

@@ -56,49 +56,81 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  [Home] [+] [Open] [Save] [Export] | [Undo] [Redo]     │
-│                   TopBar                                │
-├──────────┬─┬──────────────────────┬─┬───────────────────┤
-│          │↔│                      │↔│                   │
-│ SideNav  │ │     EditorArea       │ │  Inspector  [▶]   │
-│(260px    │ │     (flex: 1)        │ │  (300px 可拉伸)   │
-│ 可拉伸)  │ │                      │ │                   │
-│          │ │                      │ ├───────────────────┤
-│          │ │                      │ │  TaskFeed         │
-└──────────┴─┴──────────────────────┴─┴───────────────────┘
+│  Orison Space  文件  编辑  视图  帮助          [_ □ X]   │
+│                   TopBar (菜单栏)                        │
+├────┬──────────┬─┬───────────────────────────────────────┤
+│    │          │↔│                                       │
+│Icon│ Project  │ │          EditorArea                   │
+│Rail│ Tree     │ │          (flex: 1)                    │
+│48px│(220px    │ │                                       │
+│    │ 可拉伸)  │ ├───────────────────────────────────────┤
+│    │          │↕│  BottomPanel (properties/tasks/output) │
+│    │          │ │  (240px 可拉伸)                        │
+└────┴──────────┴─┴───────────────────────────────────────┘
 ```
 
-- 三栏网格：左侧导航 / 中间编辑区 / 右侧检查器+任务面板
-- 左右面板均可拖拽调整宽度（ResizeHandle 组件，4px 拖拽条）
-  - 侧栏宽度范围：180px ~ 400px，默认 260px
-  - 检查器宽度范围：200px ~ 500px，默认 300px
-- 检查器可折叠/展开（chevron 按钮），折叠后右侧显示展开按钮
-- 窗口宽度 < 960px 时自动折叠检查器
-- TopBar 固定顶部，包含：
-  - Home 按钮（仅在项目打开时显示，点击返回项目选择页）
-  - 操作按钮（新建/打开/保存/撤销/重做/设置）
+- 左侧分为两部分：固定宽度的图标导航栏（IconRail，48px）+ 可选的项目文件树面板
+- 中间为主编辑区，底部可展开 BottomPanel
+- 项目文件树可拖拽调整宽度（ResizeHandle 组件，4px 拖拽条）
+  - 文件树宽度范围：160px ~ 400px，默认 220px
+  - 文件夹名通过 i18n 映射为用户友好的显示名（如 chapters → 章节、scenes → 场景）
+- BottomPanel 可拖拽调整高度
+  - 高度范围：120px ~ 500px，默认 240px
+  - 包含三个 Tab：properties（属性检查器）、tasks（任务列表）、output（输出日志）
+- BottomPanel 可折叠/展开（chevron 按钮），折叠后底部显示展开按钮
+- 窗口宽度 < 720px 时自动折叠所有可选面板
+- TopBar 固定顶部，采用经典菜单栏风格：
+  - 左侧品牌名 "Orison Space"
+  - 四个下拉菜单：文件 | 编辑 | 视图 | 帮助
+  - 文件菜单：新建项目、打开项目、保存、导出、返回项目列表
+  - 编辑菜单：撤销、重做
+  - 视图菜单：项目文件树、底部面板、设置、账户
+  - 帮助菜单：关于、快捷键
+  - 菜单项显示快捷键提示（如 Ctrl+S）
+  - 鼠标悬停时可在已打开的菜单间滑动切换
 - TopBar 同时作为自定义标题栏（隐藏原生标题栏），支持拖拽移动窗口
   - Windows/Linux：右侧显示最小化/最大化/关闭按钮
   - macOS：保留原生红绿灯，左侧 70px 占位避让
 
 ---
 
-## 4. 左侧导航 (SideNav)
+## 4. 左侧导航 (SideNav / IconRail)
 
-垂直模块切换，替代横排 Tab。
+固定宽度 48px 的垂直图标导航栏，根据项目类型显示不同的模块列表。
 
 ### 导航项
 
+#### 小说项目 (novel)
+
 | 模块 | 图标 | 标识 | 说明 |
 |------|------|------|------|
-| 大纲 (Outline) | auto_stories | `story` | 故事结构：幕、冲突、节奏 |
+| 大纲 (Outline) | auto_stories | `outline` | 故事结构：幕、冲突、节奏 |
+| 小说 (Novel) | menu_book | `novel` | 章节正文编辑 |
+| 分镜 (Storyboard) | view_quilt | `storyboard` | 镜头卡片网格 |
+| 图片生成 (Image Gen) | image | `image_gen` | AI 图片生成 |
+| 视频 (Video) | movie_filter | `video` | 片段时间线、预览 |
+
+#### 剧本项目 (script)
+
+| 模块 | 图标 | 标识 | 说明 |
+|------|------|------|------|
+| 大纲 (Outline) | auto_stories | `outline` | 故事结构：幕、冲突、节奏 |
 | 剧本 (Script) | description | `script` | 场景、对白编辑 |
 | 分镜 (Storyboard) | view_quilt | `storyboard` | 镜头卡片网格 |
+| 图片生成 (Image Gen) | image | `image_gen` | AI 图片生成 |
 | 视频 (Video) | movie_filter | `video` | 片段时间线、预览 |
+
+### 底部操作
+
+| 按钮 | 图标 | 说明 |
+|------|------|------|
+| 设置 (Settings) | settings | 打开设置对话框（主题、语言、模型配置） |
+| 账户 (Account) | account_circle | 打开账户对话框 |
 
 ### 交互
 - 点击切换 `activeModule`，高亮当前项（左侧 4px 绿色边框 + 浅绿背景）
 - 悬停时背景微变
+- 所有按钮带 Tooltip 提示
 
 ---
 
@@ -181,19 +213,22 @@
 ```
 ProjectDocument
 ├── meta (id, name, version)          → TopBar 项目名显示
-├── story / outline                   → 大纲模块
-│   ├── title, logline, style         → 顶部编辑区
+├── outline                           → 大纲模块 (activeModule: 'outline')
+│   ├── logline, style                → 顶部编辑区
 │   └── acts[]                        → 幕卡片列表
-├── script                            → 剧本模块
+├── novel (type=novel)                → 小说模块 (activeModule: 'novel')
+│   └── chapters[]                    → 章节编辑
+├── script (type=script)              → 剧本模块 (activeModule: 'script')
 │   └── scenes[]                      → 场景列表
 │       └── dialogues[]               → 对白编辑
-├── storyboard                        → 分镜模块
+├── storyboard                        → 分镜模块 (activeModule: 'storyboard')
 │   └── shots[]                       → 镜头卡片网格
-├── video                             → 视频模块
+├── video                             → 视频模块 (activeModule: 'video')
 │   └── clips[]                       → 时间线片段
+├── image_gen                         → 图片生成模块 (activeModule: 'image_gen')
 └── assets                            → 素材管理
     ├── characters[]                  → 角色卡片
-    └── scenes[]                      → 场景卡片
+    └── locations[]                   → 场景地点卡片
 ```
 
 ---
@@ -233,8 +268,10 @@ ProjectDocument
 | 边框色 | rgba(199,199,191,0.7) |
 | 圆角 | 0.25rem (小) / 0.5rem (中) / 1rem (大) |
 | 阴影 | 0 12px 40px rgba(45,52,51,0.06) |
-| 侧栏宽度 | 260px（可拉伸 180~400px） |
-| 检查器宽度 | 300px（可拉伸 200~500px） |
+| 图标栏宽度 | 48px（固定） |
+| 文件树宽度 | 220px（可拉伸 160~400px） |
+| 底部面板高度 | 240px（可拉伸 120~500px） |
+| 折叠断点 | 720px |
 
 > 注：以上颜色值为 light 主题默认值。所有颜色通过 CSS 自定义属性（`var(--token)`）引用，实际值由主题系统控制。
 
@@ -272,11 +309,12 @@ ProjectDocument
 
 ## 12. 自定义标题栏
 
-隐藏原生标题栏，TopBar 组件同时承担窗口控制功能。
+隐藏原生标题栏，TopBar 组件同时承担菜单栏和窗口控制功能。
 
 | 平台 | 实现方式 |
 |------|----------|
 | Windows/Linux | `frame: false`，TopBar 右侧渲染最小化/最大化/关闭 SVG 按钮 |
 | macOS | `titleBarStyle: 'hidden'`，保留原生红绿灯，TopBar 左侧 70px 占位 |
 
-TopBar 整体设置 `-webkit-app-region: drag` 实现拖拽移动，按钮等交互元素设置 `no-drag`。
+TopBar 采用经典菜单栏布局：品牌名 + 文件/编辑/视图/帮助下拉菜单。
+TopBar 整体设置 `-webkit-app-region: drag` 实现拖拽移动，菜单按钮等交互元素设置 `no-drag`。

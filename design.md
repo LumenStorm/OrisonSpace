@@ -36,7 +36,7 @@ Orison Space 是一款基于 Electron 的桌面应用，定位为：
 代码感 / 结构化文本编辑：Monaco Editor
 表单校验：Zod
 路由：React Router
-数据持久化：先 YAML 本地文件，后期再加 SQLite
+数据持久化：本地 YAML + Markdown 文件保存创作内容；PostgreSQL 保存项目元数据、任务流水和资产索引
 打包发布：先 electron-vite 开发，发布阶段接 Electron Forge 或 electron-builder
 
 ## 二、UI 架构
@@ -52,33 +52,51 @@ Right Panel（Inspector + AI）
 
 ---
 
-### 2.1 Top Bar（顶部栏）
+### 2.1 Top Bar（顶部菜单栏）
 
-功能：
+采用经典桌面应用菜单栏风格，用文字引导替代纯图标：
 
-- 项目管理：New / Open / Save / Export
-- 编辑控制：Undo / Redo
-- 系统入口：AI Assistant / Settings / Help
-- 窗口控制：最小化 / 最大化 / 关闭（自定义标题栏，隐藏原生标题栏）
+菜单结构：
+
+- 文件：新建项目 / 打开项目 / 保存 / 导出 / 返回项目列表
+- 编辑：撤销 / 重做
+- 视图：项目文件树 / 底部面板 / 设置 / 账户
+- 帮助：关于 / 快捷键
 
 设计要求：
 
-- 简洁、工具化
-- 支持状态反馈（保存中 / 生成中）
+- 左侧品牌名 + 四个下拉菜单 + 右侧窗口控制按钮
+- 菜单项显示快捷键提示
 - 整体可拖拽移动窗口（`-webkit-app-region: drag`）
 - Windows/Linux 右侧显示窗口控制按钮，macOS 保留原生红绿灯
 
 ---
 
-### 2.2 左侧：Project Tree（项目结构）
+### 2.2 左侧：Icon Rail + Project Tree（导航与项目文件）
 
 结构：
 
+左侧分为两部分：
+- **Icon Rail**（48px 固定宽度）：垂直图标按钮，按项目类型切换模块
+- **Project Tree**（220px 可拉伸）：文件系统树，展示项目目录下的实际文件和文件夹
+
+文件树中的已知文件夹/文件名通过 i18n 映射为用户友好的显示名：
+
+| 原始名 | 中文显示名 | 英文显示名 |
+|--------|-----------|-----------|
+| chapters | 章节 | Chapters |
+| scenes | 场景 | Scenes |
+| assets | 素材 | Assets |
+| project.yaml | 项目配置 | Project Config |
+
+未映射的文件名保持原样显示。映射名悬停时 tooltip 显示原始文件名。
+
 
 Project
-├─ Story
-├─ Script
+├─ Outline
+├─ Novel / Script（按项目类型）
 ├─ Storyboard
+├─ Image Gen
 ├─ Video
 ├─ Assets
 └─ Meta
@@ -121,8 +139,11 @@ Project
 
 ---
 
-### 2.4 右侧：Inspector Panel（属性面板）
+### 2.4 底部：BottomPanel（属性 / 任务 / 输出）
 
+可折叠的底部面板，包含三个 Tab：
+
+#### properties（属性检查器）
 固定位置，内容动态变化
 
 根据当前选中对象显示：
@@ -142,6 +163,13 @@ Project
 
 #### 无选中
 - AI Assistant 输入面板
+
+#### tasks（任务列表）
+- 显示当前项目的任务流水
+- 任务状态：queued → running → completed / failed
+
+#### output（输出日志）
+- 显示 AI 生成过程的日志输出
 
 ---
 
@@ -211,7 +239,7 @@ assets:
       name: string
       appearance: text
 
-  scenes:
+  locations:
     - id: string
       name: string
       description: text

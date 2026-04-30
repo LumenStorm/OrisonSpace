@@ -3,7 +3,7 @@
 ## 重构：代码解耦与模块化
 
 ### Store 拆分
-- `appStore.ts` 从单文件拆为 6 个 slice：authSlice、projectSlice、settingsSlice、panelsSlice、tasksSlice
+- `appStore.ts` 从单文件拆为 8 个 slice：authSlice、projectSlice、settingsSlice、panelsSlice、tasksSlice、editorSlice、creativeFieldsSlice、fileTabsSlice
 - 新增 `types.ts` 统一类型定义，`storage.ts` 封装 localStorage 访问
 
 ### 组件抽取

@@ -40,12 +40,17 @@ OneLine2Video/
   apps/
     agent/                Agent 编排服务
     desktop/
-      shell/              Electron 主进程与 preload
+      shell/
+        main/             Electron 主进程（IPC handlers、窗口管理）
+        preload/          contextBridge 预加载脚本
+        renderer/         React 入口
+        test/             安全测试
+        resources/        应用资源
       ui/                 React 桌面 UI
-      local-bff/          桌面端本地桥接与适配层
+      local-bff/          桌面端本地桥接（预留，尚无实际源码）
     server/               Fastify 服务端
   packages/
-    shared-contracts/     共享 Zod 契约
+    shared-contracts/     共享 Zod 契约与 IPC 类型定义
     shared-utils/         共享工具
     ui-kit/               共享 UI 包
   docs/
@@ -212,7 +217,7 @@ pnpm --filter @orison/desktop-ui test reviewFlow.test.tsx
 - [桌面 IPC 文档](docs/ipc/desktop-ipc.md)
 - [数据字典](docs/data-dictionary.md)
 - [UI 设计](docs/ui-design.md)
-- [开发计划](docs/plan.md)
+- [开发日志](docs/plan.md)
 - [任务存储设计说明](docs/superpowers/specs/2026-04-27-task-storage-and-api-design.md)
 - [任务存储开发日志](<docs/任务存储与项目索引开发日志.md>)
 
