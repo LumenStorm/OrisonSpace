@@ -133,6 +133,62 @@ describe('local project repository helpers', () => {
     expect(updated.meta.version).toBe(2);
   });
 
+  it('applyFieldPatches 支持 chapter_candidate 类型的补丁', () => {
+    const project = createEmptyProjectDocument('Chapter Candidate Patch');
+    // 预置一个章节
+    const withNovel = {
+      ...project,
+      novel: {
+        chapters: [
+          {
+            id: 'ch_001',
+            title: '旧标题',
+            sort_order: 0,
+            content_file: 'chapters/ch_001.md',
+            status: 'generating',
+            last_run_id: 'run_pre',
+          },
+        ],
+      },
+    };
+    saveProject(TEST_PROJECT_DIR, withNovel as any);
+
+    const chapterPatch = {
+      runId: 'run_candidate_1',
+      createdAt: new Date().toISOString(),
+      patches: [
+        {
+          field: 'chapter_candidate' as any,
+          action: 'set' as const,
+          data: {
+            chapterId: 'ch_001',
+            runId: 'run_candidate_1',
+            candidate: {
+              title: '第1章 新标题',
+              content: '更新后的章节内容。',
+              summary: '新摘要。',
+              wordCount: 42,
+            },
+          },
+          fieldVersion: 1,
+          generatedBy: 'draft-writer-agent',
+        },
+      ],
+    };
+
+    const updated = applyFieldPatches(TEST_PROJECT_DIR, chapterPatch);
+
+    // 验证章节元数据已更新
+    expect(updated.novel).toBeDefined();
+    expect(updated.novel!.chapters[0].title).toBe('第1章 新标题');
+    expect(updated.novel!.chapters[0].summary).toBe('新摘要。');
+    expect(updated.novel!.chapters[0].word_count).toBe(42);
+    expect(updated.novel!.chapters[0].status).toBe('draft');
+
+    // 验证 meta version 递增
+    expect(updated.meta.version).toBe(2);
+  });
+
   it('旧格式文档（含 assets.characters）加载时自动派生 asset_cards', () => {
     const project = createEmptyProjectDocument('Legacy Test');
     const withOldAssets = {

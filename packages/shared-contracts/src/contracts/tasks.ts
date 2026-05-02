@@ -33,7 +33,7 @@ export const projectCreateResponseSchema = z.object({
 export const taskResultSchema = z.object({
   taskId: z.string().min(1),
   status: z.enum(['queued', 'running', 'completed', 'failed']),
-  outputType: z.enum(['patch', 'candidate']).optional(),
+  outputType: z.enum(['patch', 'candidate', 'chapter_candidate']).optional(),
   outputPayload: z
     .object({
       operations: z.array(patchOperationSchema).default([])

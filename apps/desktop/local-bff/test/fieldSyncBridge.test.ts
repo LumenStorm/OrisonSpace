@@ -87,6 +87,48 @@ describe('fieldSyncBridge', () => {
     expect(loaded!.field_metadata!.episode_outlines!.stale).toBe(true);
   });
 
+  it('编辑 foreshadow_registry 后标记 episode_outlines 为 stale', () => {
+    const project = createEmptyProjectDocument('Foreshadow Sync');
+    saveProject(TEST_PROJECT_DIR, project);
+
+    const newForeshadow = {
+      items: [
+        { id: 'fs_001', title: '伏笔线索', content: '一个关键线索...' }
+      ]
+    };
+
+    const { syncEvent, staleFields } = onFieldEdited(
+      TEST_PROJECT_DIR,
+      'foreshadow_registry',
+      newForeshadow
+    );
+
+    expect(syncEvent.field).toBe('foreshadow_registry');
+    expect(syncEvent.toVersion).toBe(1);
+
+    // foreshadow_registry 下游：episode_outlines
+    expect(staleFields).toContain('episode_outlines');
+
+    // 确认持久化：foreshadow_registry 的 key 被正确写入
+    const loaded = loadProject(TEST_PROJECT_DIR);
+    expect(loaded!.foreshadow_registry).toBeDefined();
+    expect(loaded!.field_metadata!.foreshadow_registry!.version).toBe(1);
+    expect(loaded!.field_metadata!.episode_outlines!.stale).toBe(true);
+  });
+
+  it('编辑 asset_cards 后 foreshadow_registry 也应标记为 stale', () => {
+    const project = createEmptyProjectDocument('Asset to Foreshadow');
+    saveProject(TEST_PROJECT_DIR, project);
+
+    const newAssets = [
+      { id: 'c1', type: 'character' as const, name: '新角色', summary: '', tags: [], relationships: [], sourceRefs: [], status: 'active' as const, locked: false }
+    ];
+
+    const { staleFields } = onFieldEdited(TEST_PROJECT_DIR, 'asset_cards', newAssets);
+
+    expect(staleFields).toContain('foreshadow_registry');
+  });
+
   it('编辑 locked 字段时抛出错误', () => {
     const project = createEmptyProjectDocument('Lock Test');
     saveProject(TEST_PROJECT_DIR, project);

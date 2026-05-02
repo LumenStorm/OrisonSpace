@@ -118,10 +118,40 @@ export function applyFieldPatches(
     pacing_curve: 'pacing_curve',
     emotion_curve: 'emotion_curve',
     asset_cards: 'asset_cards',
-    relationship_graph: 'relationship_graph'
+    relationship_graph: 'relationship_graph',
+    foreshadow_registry: 'foreshadow_registry'
   };
 
   for (const patch of fieldPatch.patches) {
+    // 特殊处理：chapter_candidate 补丁需要写入 markdown + 更新章节元数据
+    if ((patch.field as string) === 'chapter_candidate') {
+      const data = patch.data as any;
+      if (data?.chapterId && data?.candidate) {
+        const chapters = next.novel?.chapters;
+        if (chapters && Array.isArray(chapters)) {
+          const chapter = chapters.find((ch: any) => ch.id === data.chapterId);
+          if (chapter) {
+            // 写入 markdown 文件
+            const mdDir = path.dirname(path.join(projectPath, chapter.content_file));
+            if (!existsSync(mdDir)) {
+              mkdirSync(mdDir, { recursive: true });
+            }
+            writeFileSync(path.join(projectPath, chapter.content_file), data.candidate.content, 'utf8');
+
+            // 更新章节元数据
+            const c = data.candidate;
+            if (c.title !== undefined) chapter.title = c.title;
+            if (c.summary !== undefined) chapter.summary = c.summary;
+            if (c.wordCount !== undefined) chapter.word_count = c.wordCount;
+            chapter.status = 'draft';
+            chapter.last_run_id = data.runId ?? fieldPatch.runId;
+            chapter.generated_at = new Date().toISOString();
+          }
+        }
+      }
+      continue;
+    }
+
     const docKey = FIELD_TO_KEY[patch.field];
     if (!docKey) continue;
 

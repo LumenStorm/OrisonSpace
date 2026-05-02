@@ -84,7 +84,7 @@ export const detailedOutlineSchema = z.object({
 
 // ── Novel ──
 
-export const chapterStatusSchema = z.enum(['draft', 'revised', 'final']);
+export const chapterStatusSchema = z.enum(['draft', 'generating', 'revised', 'final']);
 
 export const chapterSchema = z.object({
   id: z.string().min(1),
@@ -94,7 +94,10 @@ export const chapterSchema = z.object({
   summary: z.string().optional(),
   content_file: z.string().min(1),
   word_count: z.number().int().nonnegative().optional(),
-  status: chapterStatusSchema.optional()
+  status: chapterStatusSchema.optional(),
+  last_run_id: z.string().optional(),
+  generated_at: z.string().datetime().optional(),
+  bridge_notes: z.string().optional(),
 });
 
 export const novelSchema = z.object({

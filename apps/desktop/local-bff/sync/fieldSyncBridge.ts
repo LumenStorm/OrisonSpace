@@ -11,7 +11,8 @@ const FIELD_TO_KEY: Record<string, string> = {
   pacing_curve: 'pacing_curve',
   emotion_curve: 'emotion_curve',
   asset_cards: 'asset_cards',
-  relationship_graph: 'relationship_graph'
+  relationship_graph: 'relationship_graph',
+  foreshadow_registry: 'foreshadow_registry'
 };
 
 /**

@@ -5,6 +5,8 @@ export * from './contracts/tasks';
 export * from './contracts/creative-fields';
 export * from './contracts/agent-contract';
 export * from './contracts/workflow-sync';
+export * from './contracts/story-memory';
+export * from './contracts/novel-orchestration';
 export * from './ipc';
 export * from './orchestration';
 export * from './config';
