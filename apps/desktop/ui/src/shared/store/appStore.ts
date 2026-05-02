@@ -7,10 +7,19 @@ import { createTasksSlice, type TasksSlice } from './tasksSlice';
 import { createCreativeFieldsSlice, type CreativeFieldsSlice } from './creativeFieldsSlice';
 import { createEditorSlice, type EditorSlice } from './editorSlice';
 import { createFileTabsSlice, type FileTabsSlice } from './fileTabsSlice';
+import { createNovelChapterSlice, type NovelChapterSlice } from './novelChapterSlice';
 
-export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo } from './types';
+export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter } from './types';
 
-type AppState = AuthSlice & ProjectSlice & SettingsSlice & PanelsSlice & TasksSlice & CreativeFieldsSlice & EditorSlice & FileTabsSlice;
+type AppState = AuthSlice &
+  ProjectSlice &
+  SettingsSlice &
+  PanelsSlice &
+  TasksSlice &
+  CreativeFieldsSlice &
+  EditorSlice &
+  FileTabsSlice &
+  NovelChapterSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
   ...createAuthSlice(...a),
@@ -21,4 +30,5 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createCreativeFieldsSlice(...a),
   ...createEditorSlice(...a),
   ...createFileTabsSlice(...a),
+  ...createNovelChapterSlice(...a),
 }));

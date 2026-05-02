@@ -7,6 +7,7 @@ import { ScriptEditor } from './ScriptEditor';
 import { VideoEditor } from './VideoEditor';
 import { ImageGenEditor } from './ImageGenEditor';
 import { CreativeFieldsEditor } from '../creative/CreativeFieldsEditor';
+import { NovelWorkbench } from '../novel-workbench/NovelWorkbench';
 import { FileTabBar } from './FileTabBar';
 import { FileEditor } from './FileEditor';
 
@@ -41,7 +42,7 @@ function AcceptedPatchesView() {
   );
 }
 
-type SubTab = 'content' | 'creative';
+type SubTab = 'content' | 'creative' | 'workbench';
 
 function NovelScriptWithCreative({ ContentEditor }: { ContentEditor: React.FC }) {
   const [subTab, setSubTab] = useState<SubTab>('content');
@@ -50,6 +51,7 @@ function NovelScriptWithCreative({ ContentEditor }: { ContentEditor: React.FC })
   const { t } = useI18n(resolvedLocale);
 
   const contentLabel = activeModule === 'novel' ? t('nav.novel') : t('nav.script');
+  const isNovel = activeModule === 'novel';
 
   return (
     <div className="editor-with-creative">
@@ -68,9 +70,24 @@ function NovelScriptWithCreative({ ContentEditor }: { ContentEditor: React.FC })
         >
           {t('nav.creative')}
         </button>
+        {isNovel ? (
+          <button
+            type="button"
+            className={`editor-sub-tab${subTab === 'workbench' ? ' editor-sub-tabActive' : ''}`}
+            onClick={() => setSubTab('workbench')}
+          >
+            章节工作台
+          </button>
+        ) : null}
       </nav>
       <div className="editor-sub-content">
-        {subTab === 'content' ? <ContentEditor /> : <CreativeFieldsEditor />}
+        {subTab === 'content' ? (
+          <ContentEditor />
+        ) : subTab === 'creative' ? (
+          <CreativeFieldsEditor />
+        ) : (
+          <NovelWorkbench />
+        )}
       </div>
     </div>
   );
