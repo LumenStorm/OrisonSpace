@@ -1,5 +1,54 @@
 # 开发日志
 
+## Novel Migration Baseline
+
+- chapter generation
+- story sync
+- long-term memory
+- auto mode
+- worldbook / relationships / foreshadowing
+
+### Novel Migration Phase 0
+- Migration execution plan created with resumable phase checkpoints.
+- Baseline feature inventory recorded for future parity checks.
+- Baseline verification completed (2026-05-03):
+  - `pnpm --filter @orison/shared-contracts test` — PASS (36 tests)
+  - `pnpm --filter @orison/agent test agentContracts.test.ts workflowSync.test.ts` — PASS (19 tests)
+  - `pnpm --filter @orison/desktop-ui test reviewFlow.test.tsx orchestrationPanel.test.tsx` — 1 pre-existing failure (reviewFlow, unrelated to migration)
+- Green baseline established, ready for Phase 1.
+
+### Novel Migration Phase 1
+- Added novel contracts for chapter runs, story memory, and candidate patches.
+- Created: `packages/shared-contracts/src/contracts/story-memory.ts` — StoryMemoryEntry + StoryMemoryIndex schemas.
+- Created: `packages/shared-contracts/src/contracts/novel-orchestration.ts` — chapterCandidatePatch, novelChapterRunRequest/Result, novelStorySyncPayload, novelMemoryExtractionPayload schemas.
+- Modified: `project.ts` — chapterStatusSchema extended with 'generating'; chapterSchema gained last_run_id, generated_at, bridge_notes.
+- Modified: `tasks.ts` — outputType enum extended with 'chapter_candidate'.
+- Modified: `index.ts` — exports for story-memory and novel-orchestration modules.
+- Created: `tests/novelContracts.test.ts` — 16 tests covering all new schemas.
+- Green commands:
+  - `pnpm --filter @orison/shared-contracts test` (52 passed, +16 novel contracts)
+  - `pnpm --filter @orison/shared-contracts typecheck` (PASS)
+  - `pnpm --filter @orison/agent test agentContracts.test.ts workflowSync.test.ts` (19 passed)
+
+### Novel Migration Phase 2
+- Chapter markdown and metadata now persist locally via novelProjectRepository.
+- Memory index has a local YAML repository via memoryRepository.
+- Foreshadow registry participates in field sync (FIELD_TO_KEY added in both localProjectRepository.ts and fieldSyncBridge.ts).
+- Chapter candidate patches accepted through applyFieldPatches → inline markdown write + metadata update.
+- Created: `apps/desktop/local-bff/sync/novelProjectRepository.ts` — loadChapterMetadata, loadChapterMarkdown, acceptChapterCandidate.
+- Created: `apps/desktop/local-bff/sync/memoryRepository.ts` — loadMemoryIndex, saveMemoryIndex, addMemoryEntry.
+- Created: `apps/desktop/local-bff/test/novelProjectRepository.test.ts` — 6 tests.
+- Created: `apps/desktop/local-bff/test/memoryRepository.test.ts` — 5 tests.
+- Modified: `localProjectRepository.ts` — FIELD_TO_KEY adds foreshadow_registry; inline chapter_candidate patch handling.
+- Modified: `fieldSyncBridge.ts` — FIELD_TO_KEY adds foreshadow_registry.
+- Modified: `localProjectRepository.test.ts` — added chapter_candidate patch test.
+- Modified: `fieldSyncBridge.test.ts` — added 2 foreshadow_registry tests.
+- Green commands:
+  - `pnpm --filter @orison/desktop-local-bff test` (31 passed, +11 new tests)
+  - `pnpm --filter @orison/shared-contracts test` (52 passed, no regression)
+
+---
+
 ## 重构：代码解耦与模块化
 
 ### Store 拆分
@@ -102,3 +151,59 @@
 - `authSlice` 的 `catch (e: any)` 改为 `catch (e: unknown)` + 类型安全处理
 - ProjectTree 的 `FileEntry` 类型改为复用 `@orison/shared-contracts` 的 `FileTreeEntry`
 - preload 安全白名单测试更新为 22 个方法
+
+### Novel Migration Phase 3
+- Native novel chapter pipeline 上线：6 节点混合 TS+Python 流水线（context-loader → chapter-bridge → draft-writer → multi-review → targeted-revision → chapter-title）。
+- 关键修复：Windows Python 子进程 stdin 编码（`PYTHONIOENCODING=utf-8` + `Buffer.from(payload, 'utf8')` + `io.TextIOWrapper`），避免 cp936 破坏中文路径的反斜杠转义。
+- 新增 `novel_draft_writer_agent.py`，绕开 creative pipeline 的 `planning.storyPlan` 硬依赖。
+- Green commands:
+  - `pnpm --filter @orison/agent test` (22 files / 92 tests passed)
+
+### Novel Migration Phase 4
+- 章节候选后处理：`story-sync-agent` (TS) 输出 `foreshadow_registry` merge patches；`memory-extractor-agent` (TS) 输出 `chapter_summary` / `character_mentions` / `foreshadow_seed` 三类 memory entries。
+- 规则驱动版本，便于审阅与回归；契约定型后可平滑替换为 LLM 节点。
+- locked / 已存在条目自动去重，永不主动覆盖。
+- Green commands:
+  - `pnpm --filter @orison/agent test` (23 files / 98 tests passed)
+
+### Novel Migration Phase 5
+- Desktop novel workbench 落地：`NovelWorkbench` + `ChapterListPanel` + `ChapterResultPanel` + `MemoryPanel`。
+- 新增 store slice `novelChapterSlice`：章节选择、候选 accept/reject、memory entries。
+- 接入 `EditorArea` 在 novel 模块下新增"章节工作台"子 tab。
+- Green commands:
+  - `pnpm --filter @orison/desktop-ui test novelWorkbench.test.tsx` (10/10 passed)
+
+### Novel Migration Phase 6
+- Auto Mode 多章节自动推进：`novelAutoModeRunner` (factory-based runner) + `autoModeService` (进程内会话注册表 + 后台异步推进循环)。
+- 3 条 HTTP 路由：`POST /v1/orchestration/auto-mode`、`POST /v1/orchestration/auto-mode/actions`、`GET /v1/orchestration/auto-mode/:autoModeId`。
+- `AutoModeConsole.tsx` UI（嵌入 NovelWorkbench 侧栏）+ 2s 轮询拉取最新状态。
+- 暂停/恢复/取消 + failed 错误隔离。
+- Green commands:
+  - `pnpm --filter @orison/agent test` (24 files / 106 tests passed)
+  - `pnpm --filter @orison/desktop-ui test autoModeConsole.test.tsx` (8/8 passed)
+
+### Novel Migration Phase 7 — Parity Audit & Cutover
+- Parity 矩阵已完成：`docs/superpowers/specs/2026-05-02-novel-migration-parity-audit.md`。
+- 7 项 Definition of Done 全部满足。
+- 最终测试基线（cutover 时刻）：
+  - `@orison/shared-contracts`: 6 文件 / 52 测试 PASS
+  - `@orison/desktop-local-bff`: 7 文件 / 31 测试 PASS
+  - `@orison/agent`: 24 文件 / 106 测试 PASS
+  - `@orison/desktop-ui`: 5/7 文件 / 32/34 测试 PASS（2 个失败为 Phase 5 之前历史遗留，已 git stash 验证）
+  - **合计 42 个测试文件 / 221 个测试通过**
+
+### Novel Migration Cutover Recommendation
+- Ready for internal dogfood: **yes**
+- Ready to retire standalone app: **yes（建议保留 30 天作为回滚兜底，期间未触发回滚则归档）**
+- Remaining blockers: 无
+- Remaining non-blocking enhancements:
+  1. (P1) `story-sync-agent` 由规则驱动升级为 LLM 节点（contracts 已定型，无需改 schema）
+  2. (P2) Auto Mode 会话持久化（序列化到 `runs/auto-mode/<id>.yaml`）
+  3. (P3) Memory RAG / embedding 检索能力
+  4. (P3) `apps/desktop/ui/tsconfig.json` zod / rootDir 配置缺陷修复（与本次迁移正交）
+  5. (P3) 历史遗留 UI 测试 `workspaceLayout.test.tsx` / `reviewFlow.test.tsx`（与本次迁移正交）
+- 退役清单（建议执行顺序）：
+  1. 在 `H:/小说/backend` 与 `H:/小说/frontend` 仓库 README 顶部加 deprecation notice
+  2. 等待 30 天 dogfood 期，期间收集 issue
+  3. 30 天后将旧仓库改为 `archived` 状态，保留只读访问
+  4. 更新内部 README，将旧仓库从默认入口移除
