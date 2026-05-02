@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import sys
 from pathlib import Path
@@ -6,6 +7,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+# Windows 上 stdin 默认可能用 cp936/ANSI 解码，会破坏中文与反斜杠转义。
+# 强制以 UTF-8 解码 stdin、UTF-8 编码 stdout/stderr。
+if hasattr(sys.stdin, "buffer"):
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="strict")
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="strict")
+if hasattr(sys.stderr, "buffer"):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="strict")
 
 from python_agent.shared.errors import NodeExecutionError
 from python_agent.shared.model_client import set_current_node_id

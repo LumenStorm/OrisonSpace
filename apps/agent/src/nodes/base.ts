@@ -37,3 +37,9 @@ export const createContinuityNode = () =>
 
 export const createTargetedRevisionNode = () =>
   createSimpleNode('targeted-revision-agent', 'draft.revision', () => ({ text: 'Revised draft output.' }));
+
+export { createContextLoaderNode } from './context-loader-agent';
+export { createChapterBridgeNode } from './chapter-bridge-agent';
+export { createChapterTitleNode } from './chapter-title-agent';
+export { createStorySyncNode } from './story-sync-agent';
+export { createMemoryExtractorNode } from './memory-extractor-agent';

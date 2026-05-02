@@ -1,6 +1,8 @@
 import type { PythonNodeConfig } from '../contracts/pythonExecutor';
 import type { AgentContract } from '@orison/shared-contracts';
 import { getAgentContract } from './agentContracts';
+import { createContextLoaderNode, createChapterBridgeNode, createChapterTitleNode, createStorySyncNode, createMemoryExtractorNode } from '../nodes/base';
+import type { OrchestrationNode } from '../nodes/base';
 
 export type PythonRegistryNode = {
   id: string;
@@ -199,4 +201,74 @@ export function createExtendedNodeRegistry(reviewMode: 'pass' | 'revise' | 'esca
   ];
 
   return [...base.slice(0, insertIdx), ...newNodes, ...base.slice(insertIdx)];
+}
+
+/**
+ * 小说章节流水线注册表：返回 TypeScript 节点和 Python 节点的混合配置。
+ * TS 节点处理上下文加载、桥接和标题生成。
+ * Python 节点处理 AI 驱动的草稿写作、评审和修订。
+ */
+export function createNovelNodeRegistry(
+  chapterId: string,
+  projectPath: string,
+  reviewMode: 'pass' | 'revise' | 'escalate' = 'pass',
+  model?: string
+): {
+  tsNodes: {
+    contextLoader: OrchestrationNode;
+    chapterBridge: OrchestrationNode;
+    chapterTitle: OrchestrationNode;
+    storySync: OrchestrationNode;
+    memoryExtractor: OrchestrationNode;
+  };
+  pythonNodes: PythonRegistryNode[];
+} {
+  const tsNodes = {
+    contextLoader: createContextLoaderNode(chapterId, projectPath),
+    chapterBridge: createChapterBridgeNode(),
+    chapterTitle: createChapterTitleNode(),
+    storySync: createStorySyncNode(),
+    memoryExtractor: createMemoryExtractorNode(),
+  };
+
+  const pythonNodes: PythonRegistryNode[] = [
+    createPythonNode(
+      'draft-writer-agent',
+      'python/nodes/novel_draft_writer_agent.py',
+      'draft.initial',
+      'draft',
+      {
+        system: '你是一位小说作家，根据上下文撰写章节内容。',
+        user: '请根据提供的上下文和桥接指南，撰写章节内容。{{requirement}}',
+      },
+      undefined,
+      model
+    ),
+    createPythonNode(
+      'multi-review-agent',
+      'python/nodes/multi_review_agent.py',
+      'review.latest',
+      'review',
+      {
+        system: '你审查章节质量。',
+        user: `Review mode: ${reviewMode}. {{requirement}}`,
+      },
+      reviewMode,
+      model
+    ),
+    createPythonNode(
+      'targeted-revision-agent',
+      'python/nodes/targeted_revision_agent.py',
+      'draft.revision',
+      'draft_revision',
+      {
+        system: '你根据评审意见修订章节。',
+        user: '{{requirement}}',
+      },
+      undefined,
+      model
+    ),
+  ];
+
+  return { tsNodes, pythonNodes };
 }

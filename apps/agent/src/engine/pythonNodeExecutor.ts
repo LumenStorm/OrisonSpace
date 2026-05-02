@@ -25,6 +25,10 @@ export async function executePythonNode({
     const env: Record<string, string | undefined> = { ...process.env };
     if (modelEnv?.apiKey) env.OPENAI_API_KEY = modelEnv.apiKey;
     if (modelEnv?.baseUrl) env.OPENAI_BASE_URL = modelEnv.baseUrl;
+    // Windows 默认用 ANSI/GBK 解码 stdin，会破坏中文/路径中的反斜杠转义。
+    // 强制 Python 子进程用 UTF-8 读取 stdin/stdout/stderr。
+    env.PYTHONIOENCODING = 'utf-8';
+    env.PYTHONUTF8 = '1';
 
     const child = spawn(pythonCommand, [path.resolve(resolvedWorkspaceRoot, runnerPath)], {
       cwd: resolvedWorkspaceRoot,
@@ -34,6 +38,10 @@ export async function executePythonNode({
 
     let stdout = '';
     let stderr = '';
+
+    // 显式指定 UTF-8 编码，避免 Windows 默认编码导致的字符破坏
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
 
     child.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
@@ -57,7 +65,9 @@ export async function executePythonNode({
       }
     });
 
-    child.stdin.write(JSON.stringify(request));
+    const payload = JSON.stringify(request);
+    // 显式以 UTF-8 字节写入 stdin，避免被 Windows 默认 codepage 转换
+    child.stdin.write(Buffer.from(payload, 'utf8'));
     child.stdin.end();
   });
 }

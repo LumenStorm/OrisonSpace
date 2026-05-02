@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { orchestrationRunSchema } from '@orison/shared-contracts';
-import type { CreativeRunRequest, CreativeRunContext } from '@orison/shared-contracts';
+import type { CreativeRunRequest, CreativeRunContext, NovelChapterRunRequest } from '@orison/shared-contracts';
 import { createNodeRegistry, createExtendedNodeRegistry } from './registry';
 import { executePythonNodeWithTimeout } from './pythonNodeExecutor';
 import { routeReview } from './reviewRouter';
@@ -10,6 +10,7 @@ import { buildFeedback } from './feedbackService';
 import { buildCreativeRunContext } from './contextBuilder';
 import { writeArtifactYaml, buildContextPacket, writeContextPacketYaml } from './artifactYaml';
 import { syncForeshadowRegistryFromEpisodes } from './foreshadowLedger';
+import { runNovelPipeline } from './novelPipeline';
 import { runStore } from '../store/runStore';
 import type { RunSnapshot, StartRunCommand } from '../contracts/run';
 
@@ -333,6 +334,17 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
 
       runStore.save(run);
       return run;
-    }
+    },
+
+    async startNovelChapter(request: NovelChapterRunRequest): Promise<RunSnapshot> {
+      return runNovelPipeline({
+        projectPath: request.projectPath,
+        chapterId: request.chapterId,
+        mode: request.mode,
+        instruction: request.instruction,
+        reviewMode,
+        forcePythonFailure,
+      });
+    },
   };
 }
