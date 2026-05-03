@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
@@ -7,116 +7,7 @@ import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { AccountDialog } from '../../shared/components/AccountDialog';
 import { AboutDialog } from '../../shared/components/AboutDialog';
 import { useGlobalShortcuts } from '../../shared/hooks/useGlobalShortcuts';
-
-type MenuItem =
-  | { type: 'action'; label: string; shortcut?: string; handler: () => void; disabled?: boolean }
-  | { type: 'separator' };
-
-function MenuDropdown({
-  items,
-  onClose,
-  onPrevMenu,
-  onNextMenu,
-}: {
-  items: MenuItem[];
-  onClose: () => void;
-  onPrevMenu?: () => void;
-  onNextMenu?: () => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [focusedIndex, setFocusedIndex] = useState(-1);
-
-  const actionIndices = items
-    .map((item, i) => (item.type === 'action' && !item.disabled ? i : -1))
-    .filter((i) => i !== -1);
-
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, [onClose]);
-
-  useEffect(() => {
-    ref.current?.focus();
-  }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown': {
-        e.preventDefault();
-        const pos = actionIndices.indexOf(focusedIndex);
-        const next = pos < actionIndices.length - 1 ? actionIndices[pos + 1] : actionIndices[0];
-        setFocusedIndex(next);
-        break;
-      }
-      case 'ArrowUp': {
-        e.preventDefault();
-        const pos = actionIndices.indexOf(focusedIndex);
-        const prev = pos > 0 ? actionIndices[pos - 1] : actionIndices[actionIndices.length - 1];
-        setFocusedIndex(prev);
-        break;
-      }
-      case 'ArrowLeft':
-        e.preventDefault();
-        onPrevMenu?.();
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        onNextMenu?.();
-        break;
-      case 'Enter':
-      case ' ': {
-        e.preventDefault();
-        const item = items[focusedIndex];
-        if (item?.type === 'action' && !item.disabled) {
-          item.handler();
-          onClose();
-        }
-        break;
-      }
-      case 'Escape':
-        e.preventDefault();
-        onClose();
-        break;
-    }
-  };
-
-  return (
-    <div
-      className="topbar-menu-dropdown"
-      ref={ref}
-      role="menu"
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
-    >
-      {items.map((item, i) =>
-        item.type === 'separator' ? (
-          <div key={i} className="topbar-menu-separator" role="separator" />
-        ) : (
-          <button
-            key={i}
-            type="button"
-            className={`topbar-menu-item${i === focusedIndex ? ' is-focused' : ''}`}
-            role="menuitem"
-            disabled={item.disabled}
-            tabIndex={-1}
-            onMouseEnter={() => setFocusedIndex(i)}
-            onMouseLeave={() => setFocusedIndex(-1)}
-            onClick={() => {
-              item.handler();
-              onClose();
-            }}
-          >
-            <span>{item.label}</span>
-            {item.shortcut && <span className="topbar-menu-shortcut">{item.shortcut}</span>}
-          </button>
-        ),
-      )}
-    </div>
-  );
-}
+import { MenuDropdown, type MenuItem } from './MenuDropdown';
 
 export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const isMac = detectIsMac();

@@ -18,7 +18,7 @@ vi.mock('electron', () => ({
 
 import { registerFieldSyncIpc } from '../main/ipc/fieldSyncIpc';
 
-const TEST_PROJECT_PATH = path.join(os.homedir(), 'field-sync-project');
+const TEST_PROJECT_PATH = path.join(os.homedir(), 'Documents', 'OrisonSpace', 'field-sync-project');
 
 describe('field sync IPC', () => {
   beforeEach(() => {

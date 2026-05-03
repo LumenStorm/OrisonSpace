@@ -207,3 +207,21 @@
   2. 等待 30 天 dogfood 期，期间收集 issue
   3. 30 天后将旧仓库改为 `archived` 状态，保留只读访问
   4. 更新内部 README，将旧仓库从默认入口移除
+---
+
+## 2026-05-03 Architecture and Config Sync
+
+- Desktop UI pages and subviews were split by ownership:
+  - pages compose route-level screens;
+  - feature entry files coordinate state and layout;
+  - child views, hooks, local types, and pure helpers move to separate files when they carry independent responsibility.
+- Added the active rulebook: `docs/architecture/module-boundaries.md`.
+- Project creation and file IPC now target `~/Documents/OrisonSpace`.
+- Model config is stored at `~/.orison/model/config.json`.
+- User preferences are stored at `~/.orison/user/preferences.json`.
+- User preference scope currently includes theme, locale, and auto-apply-patches. Layout, recent projects, and auth are excluded.
+- Server generation routes were added by provider and capability:
+  - `POST /v1/generation/:provider/text`
+  - `POST /v1/generation/:provider/image`
+- Generation providers are split by provider and by capability for OpenAI-compatible, GCP, and Anthropic formats.
+- Numeric split thresholds are intentionally not defined yet.

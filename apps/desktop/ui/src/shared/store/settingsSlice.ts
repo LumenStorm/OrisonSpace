@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { ThemeSetting, LocaleSetting } from './types';
-import { storage } from './storage';
 import { detectSystemLocale, availableLocales } from '../i18n/useI18n';
+import type { UserPreferencesConfig } from '@orison/shared-contracts';
 
 export type ModelConfig = {
   apiKey: string;
@@ -15,12 +15,19 @@ const DEFAULT_MODEL_CONFIG: ModelConfig = {
   model: 'gpt-5.4'
 };
 
+const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
+  theme: 'system',
+  locale: 'system',
+  autoApplyPatches: true
+};
+
 export type SettingsSlice = {
   theme: ThemeSetting;
   setTheme: (theme: ThemeSetting) => void;
   locale: LocaleSetting;
   resolvedLocale: string;
   setLocale: (locale: LocaleSetting) => void;
+  loadUserPreferences: () => Promise<void>;
   modelConfig: ModelConfig;
   setModelConfig: (config: ModelConfig) => void;
   loadModelConfig: () => Promise<void>;
@@ -39,26 +46,51 @@ function applyTheme(theme: ThemeSetting) {
   document.documentElement.dataset.theme = theme;
 }
 
-const savedTheme = (storage.getString('theme', 'system')) as ThemeSetting;
-const savedLocale = (storage.getString('locale', 'system')) as LocaleSetting;
-const savedAutoApply = storage.get<boolean>('autoApplyPatches', true);
-
 // Apply theme on load
-applyTheme(savedTheme);
+applyTheme(DEFAULT_USER_PREFERENCES.theme as ThemeSetting);
 
-export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSlice> = (set) => ({
-  theme: savedTheme,
+function saveUserPreferencesSnapshot(config: UserPreferencesConfig): void {
+  window.orisonDesktop?.saveUserPreferences?.(config).catch(() => {});
+}
+
+export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSlice> = (set, get) => ({
+  theme: DEFAULT_USER_PREFERENCES.theme as ThemeSetting,
   setTheme(theme) {
-    storage.set('theme', theme);
     applyTheme(theme);
     set({ theme });
+    saveUserPreferencesSnapshot({
+      theme,
+      locale: get().locale,
+      autoApplyPatches: get().autoApplyPatches,
+    });
   },
 
-  locale: savedLocale,
-  resolvedLocale: resolveLocale(savedLocale),
+  locale: DEFAULT_USER_PREFERENCES.locale as LocaleSetting,
+  resolvedLocale: resolveLocale(DEFAULT_USER_PREFERENCES.locale),
   setLocale(locale) {
-    storage.set('locale', locale);
     set({ locale, resolvedLocale: resolveLocale(locale) });
+    saveUserPreferencesSnapshot({
+      theme: get().theme,
+      locale,
+      autoApplyPatches: get().autoApplyPatches,
+    });
+  },
+  async loadUserPreferences() {
+    if (!window.orisonDesktop?.loadUserPreferences) return;
+    try {
+      const config = await window.orisonDesktop.loadUserPreferences();
+      const theme = config.theme as ThemeSetting;
+      const locale = config.locale as LocaleSetting;
+      applyTheme(theme);
+      set({
+        theme,
+        locale,
+        resolvedLocale: resolveLocale(locale),
+        autoApplyPatches: config.autoApplyPatches,
+      });
+    } catch {
+      // Keep defaults when preferences cannot be read.
+    }
   },
 
   modelConfig: { ...DEFAULT_MODEL_CONFIG },
@@ -77,9 +109,13 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
     }
   },
 
-  autoApplyPatches: savedAutoApply,
+  autoApplyPatches: DEFAULT_USER_PREFERENCES.autoApplyPatches,
   setAutoApplyPatches(value) {
-    storage.set('autoApplyPatches', value);
     set({ autoApplyPatches: value });
+    saveUserPreferencesSnapshot({
+      theme: get().theme,
+      locale: get().locale,
+      autoApplyPatches: value,
+    });
   },
 });

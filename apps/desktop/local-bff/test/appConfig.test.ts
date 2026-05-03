@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { saveModelConfig, getModelConfig, loadAppConfig, _setConfigPathForTest } from '../config/appConfig';
 
@@ -50,4 +50,13 @@ describe('appConfig', () => {
     const full = loadAppConfig();
     expect(full.model.apiKey).toBe('k2');
   });
+
+  it('stores model config as a standalone model config file', () => {
+    _setConfigPathForTest(TEST_CONFIG_PATH);
+    saveModelConfig({ apiKey: 'key', baseUrl: 'url', model: 'model' });
+
+    const raw = JSON.parse(readFileSync(TEST_CONFIG_PATH, 'utf-8'));
+    expect(raw).toEqual({ apiKey: 'key', baseUrl: 'url', model: 'model' });
+  });
+
 });

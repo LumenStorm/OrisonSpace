@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
 export const desktopIpcSchema = z.object({
-  channel: z.enum(['project:pick-directory', 'config:load-model', 'config:save-model', 'field:sync'])
+  channel: z.enum([
+    'project:pick-directory',
+    'config:load-model',
+    'config:save-model',
+    'config:load-user-preferences',
+    'config:save-user-preferences',
+    'field:sync'
+  ])
 });
 
 /* ── Shared types ── */
@@ -10,6 +17,12 @@ export type ModelConfig = {
   apiKey: string;
   baseUrl: string;
   model: string;
+};
+
+export type UserPreferencesConfig = {
+  theme: string;
+  locale: string;
+  autoApplyPatches: boolean;
 };
 
 /**
@@ -33,6 +46,8 @@ export type OrisonDesktopApi = {
   syncField(projectPath: string, field: string, data: unknown): Promise<void>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
+  loadUserPreferences(): Promise<UserPreferencesConfig>;
+  saveUserPreferences(config: UserPreferencesConfig): Promise<void>;
   showItemInFolder(fullPath: string): void;
   openPath(fullPath: string): void;
   readDirectory(projectDir: string, maxDepth?: number): Promise<FileTreeEntry[]>;

@@ -243,3 +243,87 @@ Errors:
 - Request body limit: `1 MB`
 - Task execution is currently backed by the mock adapter.
 - `GET /v1/tasks/:taskId` returns task result data only; task list metadata and related asset IDs are exposed through the project list endpoints.
+- Generation provider contracts live in `packages/shared-contracts/src/contracts/generation.ts`.
+
+## Generation APIs
+
+### POST /v1/generation/:provider/text
+
+Generate text through a provider adapter.
+
+Path params:
+- `provider`: `openai`, `gcp`, or `anthropic`
+
+Request body:
+
+```json
+{
+  "model": "gpt-4o",
+  "messages": [
+    { "role": "system", "content": "You are a story editor." },
+    { "role": "user", "content": "Write a short scene outline." }
+  ],
+  "apiKey": "optional-provider-key",
+  "baseUrl": "https://api.openai.com/v1",
+  "temperature": 0.7,
+  "maxTokens": 1000
+}
+```
+
+Response (200):
+
+```json
+{
+  "provider": "openai",
+  "model": "gpt-4o",
+  "text": "Generated text.",
+  "raw": {}
+}
+```
+
+Behavior notes:
+- OpenAI-compatible providers call `chat/completions`.
+- GCP providers call `models/{model}:generateContent`.
+- Anthropic providers call `/v1/messages`.
+
+### POST /v1/generation/:provider/image
+
+Generate images through a provider adapter.
+
+Path params:
+- `provider`: `openai`, `gcp`, or `anthropic`
+
+Request body:
+
+```json
+{
+  "model": "gpt-image-1",
+  "prompt": "A cinematic neon city street at night",
+  "apiKey": "optional-provider-key",
+  "baseUrl": "https://api.openai.com/v1",
+  "size": "1024x1024",
+  "n": 1
+}
+```
+
+Response (200):
+
+```json
+{
+  "provider": "openai",
+  "model": "gpt-image-1",
+  "images": [
+    {
+      "url": "https://example.com/image.png",
+      "b64Json": "optional-base64",
+      "mimeType": "image/png"
+    }
+  ],
+  "raw": {}
+}
+```
+
+Behavior notes:
+- OpenAI-compatible providers call `images/generations`.
+- GCP providers call `models/{model}:predict`.
+- Anthropic image generation is currently unsupported and returns a provider error.

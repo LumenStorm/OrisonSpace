@@ -160,3 +160,36 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 ## Known Issues
 
 - `field:sync` channel is exposed in the preload script but has no corresponding `ipcMain.handle()` in the main process. Calling it will result in a runtime error.
+
+## 2026-05-03 Updates
+
+### Config Channels
+
+| Channel | Direction | Type | Description |
+|---|---|---|---|
+| `config:load-model` | renderer to main | invoke | Loads model configuration from `~/.orison/model/config.json`; API key is decrypted via `safeStorage`. |
+| `config:save-model` | renderer to main | invoke | Saves model configuration to `~/.orison/model/config.json`; API key is encrypted via `safeStorage`. |
+| `config:load-user-preferences` | renderer to main | invoke | Loads user preferences from `~/.orison/user/preferences.json`. |
+| `config:save-user-preferences` | renderer to main | invoke | Saves user preferences to `~/.orison/user/preferences.json`. |
+
+The old model config path `~/.orison/config.json` is intentionally not read for compatibility.
+
+### Path Scope
+
+- New project creation defaults to `~/Documents/OrisonSpace`.
+- File and shell path validation rejects paths outside `~/Documents/OrisonSpace`.
+
+### UserPreferencesConfig
+
+```typescript
+type UserPreferencesConfig = {
+  theme: string;
+  locale: string;
+  autoApplyPatches: boolean;
+};
+```
+
+Preferences intentionally excluded from this global file:
+- layout
+- recent projects
+- auth

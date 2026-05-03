@@ -3,10 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
 const desktopUiSrc = path.resolve(__dirname, '../ui/src');
+const bundledWorkspaceDeps = ['@orison/shared-contracts'];
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: bundledWorkspaceDeps })],
     build: {
       outDir: 'dist/main',
       lib: {
@@ -21,7 +22,7 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: bundledWorkspaceDeps })],
     build: {
       outDir: 'dist/preload',
       lib: {

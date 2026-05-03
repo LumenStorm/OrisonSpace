@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { OrisonDesktopApi, ModelConfig } from '@orison/shared-contracts';
+import type { OrisonDesktopApi, ModelConfig, UserPreferencesConfig } from '@orison/shared-contracts';
 
 export const exposedDesktopApi = {
   pickProjectDirectory: () => ipcRenderer.invoke('project:pick-directory'),
@@ -25,6 +25,10 @@ export const exposedDesktopApi = {
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
+  loadUserPreferences: () =>
+    ipcRenderer.invoke('config:load-user-preferences') as Promise<UserPreferencesConfig>,
+  saveUserPreferences: (config: UserPreferencesConfig) =>
+    ipcRenderer.invoke('config:save-user-preferences', config) as Promise<void>,
   showItemInFolder: (fullPath: string) => ipcRenderer.send('shell:show-item-in-folder', fullPath),
   openPath: (fullPath: string) => ipcRenderer.send('shell:open-path', fullPath),
   // 文件树操作

@@ -360,3 +360,14 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 ## License
 
 Private
+
+---
+
+## Architecture Notes (2026-05-03)
+
+- Desktop UI split rules now live in [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md).
+- Pages should stay route-level; feature files own domain UI; child views, hooks, local types, and pure helpers are split when they carry independent responsibility.
+- Desktop projects are created under `~/Documents/OrisonSpace` and guarded by shell IPC path validation.
+- Model config is stored at `~/.orison/model/config.json`; user preferences are stored at `~/.orison/user/preferences.json`.
+- Server generation APIs are provider-routed: `/v1/generation/:provider/text` and `/v1/generation/:provider/image`.
+- Current provider adapters are split by provider and capability for OpenAI-compatible, GCP, and Anthropic formats.

@@ -1,7 +1,7 @@
 import { dialog, ipcMain } from 'electron';
 import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { assertSafePath, assertWithinProject } from './pathGuard';
+import { assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 
 type FileEntry = {
   name: string;
@@ -49,10 +49,16 @@ function readDirectoryRecursive(dirPath: string, basePath: string, maxDepth: num
 }
 
 export function registerProjectIpc() {
+  const orisonSpaceRoot = getOrisonSpaceRoot();
+  if (!existsSync(orisonSpaceRoot)) {
+    mkdirSync(orisonSpaceRoot, { recursive: true });
+  }
+
   /* ── Dialog-based (user picks path via OS dialog — inherently safe) ── */
 
   ipcMain.handle('project:pick-directory', async () => {
     const result = await dialog.showOpenDialog({
+      defaultPath: orisonSpaceRoot,
       properties: ['openDirectory', 'createDirectory']
     });
     return result.canceled ? null : result.filePaths[0];
@@ -71,12 +77,13 @@ export function registerProjectIpc() {
   /* ── Project-scoped file operations (all paths validated) ── */
 
   ipcMain.handle('project:create-directory', async (_, parentDir: string, name: string) => {
-    assertSafePath(parentDir);
+    const safeParentDir = parentDir && isSafePath(orisonSpaceRoot, parentDir) ? parentDir : orisonSpaceRoot;
+    assertSafePath(safeParentDir);
     // Reject names with path separators to prevent traversal via name
     if (name.includes('/') || name.includes('\\') || name.includes('..')) {
       throw new Error('Invalid project name');
     }
-    const projectDir = path.join(parentDir, name);
+    const projectDir = path.join(safeParentDir, name);
     assertSafePath(projectDir);
     if (!existsSync(projectDir)) {
       mkdirSync(projectDir, { recursive: true });

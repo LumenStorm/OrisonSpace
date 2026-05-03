@@ -31,7 +31,7 @@ export function NewProjectDialog({ onClose }: Props) {
 
   const handleRemoveCover = () => setCoverSrc(null);
 
-  const canCreate = name.trim() && parentDir;
+  const canCreate = name.trim();
 
   const handleCreate = async () => {
     if (!canCreate || creating) return;

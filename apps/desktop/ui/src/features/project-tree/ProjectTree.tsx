@@ -1,365 +1,29 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { useAppStore } from '../../shared/store/appStore';
-import { useI18n } from '../../shared/i18n/useI18n';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { mockFileContents } from '../../shared/data/mockFileContents';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
-import { Tooltip } from '../../shared/components/Tooltip';
-import type { FileTreeEntry } from '@orison/shared-contracts';
-
-/* ── Types ── */
-
-type FileEntry = FileTreeEntry;
-
-type CtxState = { x: number; y: number; entry: FileEntry | null } | null;
-
-/* ── Helpers ── */
-
-function getFileIcon(name: string, isDir: boolean, isOpen: boolean): string {
-  if (isDir) return isOpen ? 'folder_open' : 'folder';
-  if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'data_object';
-  if (name.endsWith('.md')) return 'article';
-  if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.webp')) return 'image';
-  if (name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.webm')) return 'movie';
-  return 'draft';
-}
-
-function getDisplayName(name: string): string {
-  return name.endsWith('/') ? name.slice(0, -1) : name;
-}
-
-function buildInitialTree(projectName: string): FileEntry[] {
-  return [
-    {
-      name: projectName,
-      path: '/',
-      isDir: true,
-      children: [
-        { name: 'project.yaml', path: '/project.yaml', isDir: false },
-        {
-          name: 'chapters',
-          path: '/chapters',
-          isDir: true,
-          children: [
-            { name: 'ch-001.md', path: '/chapters/ch-001.md', isDir: false },
-            { name: 'ch-002.md', path: '/chapters/ch-002.md', isDir: false },
-          ],
-        },
-        {
-          name: 'scenes',
-          path: '/scenes',
-          isDir: true,
-          children: [
-            { name: 'sc-001.md', path: '/scenes/sc-001.md', isDir: false },
-            { name: 'sc-002.md', path: '/scenes/sc-002.md', isDir: false },
-          ],
-        },
-        {
-          name: 'assets',
-          path: '/assets',
-          isDir: true,
-          children: [],
-        },
-      ],
-    },
-  ];
-}
-
-/* ── Tree mutation helpers (immutable) ── */
-
-function findNode(tree: FileEntry[] | null, targetPath: string): FileEntry | null {
-  if (!tree) return null;
-  for (const node of tree) {
-    if (node.path === targetPath) return node;
-    if (node.children) {
-      const found = findNode(node.children, targetPath);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function updateChildren(tree: FileEntry[], parentPath: string, children: FileEntry[]): FileEntry[] {
-  return tree.map((node) => {
-    if (node.path === parentPath && node.isDir) {
-      return { ...node, children };
-    }
-    if (node.children) {
-      return { ...node, children: updateChildren(node.children, parentPath, children) };
-    }
-    return node;
-  });
-}
-
-function insertChild(tree: FileEntry[], parentPath: string, child: FileEntry): FileEntry[] {
-  return tree.map((node) => {
-    if (node.path === parentPath && node.isDir) {
-      const children = [...(node.children ?? []), child];
-      children.sort((a, b) => {
-        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-      return { ...node, children };
-    }
-    if (node.children) {
-      return { ...node, children: insertChild(node.children, parentPath, child) };
-    }
-    return node;
-  });
-}
-
-function removeNode(tree: FileEntry[], targetPath: string): FileEntry[] {
-  return tree
-    .filter((n) => n.path !== targetPath)
-    .map((n) => (n.children ? { ...n, children: removeNode(n.children, targetPath) } : n));
-}
-
-function renameNode(tree: FileEntry[], targetPath: string, newName: string): FileEntry[] {
-  return tree.map((node) => {
-    if (node.path === targetPath) {
-      const parentDir = targetPath.substring(0, targetPath.lastIndexOf('/')) || '/';
-      const newPath = parentDir === '/' ? `/${newName}` : `${parentDir}/${newName}`;
-      const updated: FileEntry = { ...node, name: newName, path: newPath };
-      if (node.isDir && node.children) {
-        updated.children = rebasePaths(node.children, node.path, newPath);
-      }
-      return updated;
-    }
-    if (node.children) {
-      return { ...node, children: renameNode(node.children, targetPath, newName) };
-    }
-    return node;
-  });
-}
-
-function rebasePaths(tree: FileEntry[], oldPrefix: string, newPrefix: string): FileEntry[] {
-  return tree.map((node) => {
-    const newPath = newPrefix + node.path.slice(oldPrefix.length);
-    const updated: FileEntry = { ...node, path: newPath };
-    if (node.children) {
-      updated.children = rebasePaths(node.children, oldPrefix, newPrefix);
-    }
-    return updated;
-  });
-}
-
-function getParentPath(path: string): string {
-  if (path === '/') return '/';
-  const idx = path.lastIndexOf('/');
-  return idx <= 0 ? '/' : path.substring(0, idx);
-}
-
-/* ── Inline rename input ── */
-
-function InlineInput({
-  defaultValue,
-  onConfirm,
-  onCancel,
-}: {
-  defaultValue: string;
-  onConfirm: (value: string) => void;
-  onCancel: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-
-  const handleBlur = () => {
-    const v = ref.current?.value.trim();
-    if (v && v !== defaultValue) onConfirm(v);
-    else onCancel();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const v = ref.current?.value.trim();
-      if (v && v !== defaultValue) onConfirm(v);
-      else onCancel();
-    }
-    if (e.key === 'Escape') onCancel();
-  };
-
-  return (
-    <input
-      ref={ref}
-      className="ptree-inline-input"
-      defaultValue={defaultValue}
-      autoFocus
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onClick={(e) => e.stopPropagation()}
-    />
-  );
-}
-
-/* ── FileTreeNode ── */
-
-function FileTreeNode({
-  entry,
-  depth = 0,
-  expandedPaths,
-  onToggle,
-  selectedPath,
-  onSelect,
-  dirtyPaths,
-  onContextMenu,
-  renamingPath,
-  onRenameConfirm,
-  onRenameCancel,
-  creatingIn,
-  creatingType,
-  onCreateConfirm,
-  onCreateCancel,
-  displayNameMap,
-}: {
-  entry: FileEntry;
-  depth?: number;
-  expandedPaths: Set<string>;
-  onToggle: (path: string) => void;
-  selectedPath: string | null;
-  onSelect: (entry: FileEntry) => void;
-  dirtyPaths: Set<string>;
-  onContextMenu: (e: React.MouseEvent, entry: FileEntry) => void;
-  renamingPath: string | null;
-  onRenameConfirm: (oldPath: string, newName: string) => void;
-  onRenameCancel: () => void;
-  creatingIn: string | null;
-  creatingType: 'file' | 'folder' | null;
-  onCreateConfirm: (name: string) => void;
-  onCreateCancel: () => void;
-  displayNameMap: Record<string, string>;
-}) {
-  const paddingLeft = 8 + depth * 16;
-  const isExpanded = expandedPaths.has(entry.path);
-  const isSelected = entry.path === selectedPath;
-  const isDirty = dirtyPaths.has(entry.path);
-  const isRenaming = renamingPath === entry.path;
-  const isCreatingHere = creatingIn === entry.path;
-
-  const rawName = getDisplayName(entry.name);
-  const mappedName = displayNameMap[entry.name] ?? rawName;
-  const showTooltip = mappedName !== rawName;
-
-  if (entry.isDir) {
-    return (
-      <div className="ptree-group">
-        <div
-          className={`ptree-node ptree-folder${isSelected ? ' is-active' : ''}`}
-          style={{ paddingLeft }}
-          onClick={() => onToggle(entry.path)}
-          onContextMenu={(e) => onContextMenu(e, entry)}
-        >
-          <span className={`material-symbols-outlined ptree-chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">
-            chevron_right
-          </span>
-          <span className="material-symbols-outlined ptree-icon" aria-hidden="true">
-            {getFileIcon(entry.name, true, isExpanded)}
-          </span>
-          {isRenaming ? (
-            <InlineInput
-              defaultValue={getDisplayName(entry.name)}
-              onConfirm={(v) => onRenameConfirm(entry.path, v)}
-              onCancel={onRenameCancel}
-            />
-          ) : showTooltip ? (
-            <Tooltip label={rawName} placement="right">
-              <span className="ptree-label">{mappedName}</span>
-            </Tooltip>
-          ) : (
-            <span className="ptree-label">{mappedName}</span>
-          )}
-        </div>
-        <div className={`ptree-children${isExpanded ? ' is-open' : ''}`}>
-          <div className="ptree-children-inner">
-            {entry.children?.map((child) => (
-              <FileTreeNode
-                key={child.path}
-                entry={child}
-                depth={depth + 1}
-                expandedPaths={expandedPaths}
-                onToggle={onToggle}
-                selectedPath={selectedPath}
-                onSelect={onSelect}
-                dirtyPaths={dirtyPaths}
-                onContextMenu={onContextMenu}
-                renamingPath={renamingPath}
-                onRenameConfirm={onRenameConfirm}
-                onRenameCancel={onRenameCancel}
-                creatingIn={creatingIn}
-                creatingType={creatingType}
-                onCreateConfirm={onCreateConfirm}
-                onCreateCancel={onCreateCancel}
-                displayNameMap={displayNameMap}
-              />
-            ))}
-            {isCreatingHere && (
-              <div className="ptree-node ptree-file" style={{ paddingLeft: paddingLeft + 16 }}>
-                <span className="material-symbols-outlined ptree-icon" aria-hidden="true">
-                  {creatingType === 'folder' ? 'folder' : 'draft'}
-                </span>
-                <InlineInput
-                  defaultValue=""
-                  onConfirm={onCreateConfirm}
-                  onCancel={onCreateCancel}
-                />
-              </div>
-            )}
-            {!isCreatingHere && entry.children?.length === 0 && (
-              <div className="ptree-node ptree-empty" style={{ paddingLeft: paddingLeft + 16 }}>
-                <span className="ptree-label ptree-label-muted">(empty)</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`ptree-node ptree-file${isSelected ? ' is-active' : ''}`}
-      style={{ paddingLeft }}
-      onClick={() => onSelect(entry)}
-      onContextMenu={(e) => onContextMenu(e, entry)}
-    >
-      <span className="material-symbols-outlined ptree-icon" aria-hidden="true">
-        {getFileIcon(entry.name, false, false)}
-      </span>
-      {isRenaming ? (
-        <InlineInput
-          defaultValue={entry.name}
-          onConfirm={(v) => onRenameConfirm(entry.path, v)}
-          onCancel={onRenameCancel}
-        />
-      ) : showTooltip ? (
-        <Tooltip label={rawName} placement="right">
-          <span className="ptree-label">{mappedName}</span>
-        </Tooltip>
-      ) : (
-        <span className="ptree-label">{mappedName}</span>
-      )}
-      {isDirty && !isRenaming && <span className="ptree-dirty-dot" aria-label="unsaved">●</span>}
-    </div>
-  );
-}
-
-/* ── ProjectTree ── */
+import { mockFileContents } from '../../shared/data/mockFileContents';
+import { useI18n } from '../../shared/i18n/useI18n';
+import { useAppStore } from '../../shared/store/appStore';
+import { FileTreeNode } from './FileTreeNode';
+import type { CreatingType, CtxState, FileEntry } from './types';
+import { buildInitialTree, findNode, insertChild, removeNode, renameNode, updateChildren } from './treeUtils';
 
 export function ProjectTree() {
   const { currentProject, resolvedLocale, openFile, openFiles } = useAppStore(
-    useShallow((s) => ({
-      currentProject: s.currentProject,
-      resolvedLocale: s.resolvedLocale,
-      openFile: s.openFile,
-      openFiles: s.openFiles,
+    useShallow((state) => ({
+      currentProject: state.currentProject,
+      resolvedLocale: state.resolvedLocale,
+      openFile: state.openFile,
+      openFiles: state.openFiles,
     })),
   );
-
+  const activeFilePath = useAppStore((state) => state.activeFilePath);
   const { t } = useI18n(resolvedLocale);
 
   const displayNameMap = useMemo<Record<string, string>>(() => ({
-    'chapters': t('projectTree.chapters'),
-    'scenes': t('projectTree.scenes'),
-    'assets': t('projectTree.assetsDir'),
+    chapters: t('projectTree.chapters'),
+    scenes: t('projectTree.scenes'),
+    assets: t('projectTree.assetsDir'),
     'project.yaml': t('projectTree.projectConfig'),
   }), [t]);
 
@@ -368,63 +32,52 @@ export function ProjectTree() {
   const [ctxMenu, setCtxMenu] = useState<CtxState>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
-  const [creatingType, setCreatingType] = useState<'file' | 'folder' | null>(null);
-
-  const activeFilePath = useAppStore((s) => s.activeFilePath);
+  const [creatingType, setCreatingType] = useState<CreatingType>(null);
 
   const dirtyPaths = useMemo(
-    () => new Set(openFiles.filter((f) => f.content !== f.savedContent).map((f) => f.path)),
+    () => new Set(openFiles.filter((file) => file.content !== file.savedContent).map((file) => file.path)),
     [openFiles],
   );
 
-  // Load real directory tree via IPC, fall back to mock
-  // Only load depth=1 initially; children are loaded lazily on expand
   const projectPath = currentProject?.path;
   useEffect(() => {
     if (!currentProject) return;
     let cancelled = false;
+
     const loadTree = async () => {
       if (projectPath && window.orisonDesktop?.readDirectory) {
         try {
           const entries = await window.orisonDesktop.readDirectory(projectPath, 1);
           if (!cancelled && entries && entries.length > 0) {
-            setFileTree([{
-              name: currentProject.name,
-              path: '/',
-              isDir: true,
-              children: entries,
-            }]);
+            setFileTree([{ name: currentProject.name, path: '/', isDir: true, children: entries }]);
             return;
           }
         } catch {
-          // Fall through to mock
+          // Fall through to mock data.
         }
       }
-      if (!cancelled) {
-        setFileTree(buildInitialTree(currentProject.name));
-      }
+      if (!cancelled) setFileTree(buildInitialTree(currentProject.name));
     };
-    loadTree();
+
+    void loadTree();
     return () => { cancelled = true; };
   }, [currentProject, projectPath]);
 
-  /** Lazily load children of a directory when it is expanded for the first time. */
   const loadChildrenIfNeeded = useCallback(async (entry: FileEntry) => {
-    if (!projectPath || !entry.isDir) return;
-    // If children are already populated (non-empty), skip
-    if (entry.children && entry.children.length > 0) return;
+    if (!projectPath || !entry.isDir || (entry.children && entry.children.length > 0)) return;
     const fullDir = `${projectPath}${entry.path}`;
     try {
       const children = await window.orisonDesktop?.readDirectory(fullDir, 1);
       if (!children) return;
-      // Rewrite relative paths so they are relative to project root
-      const remapped = children.map((c: FileEntry) => ({
-        ...c,
-        path: entry.path === '/' ? `/${c.name}` : `${entry.path}/${c.name}`,
-        children: c.isDir ? (c.children ?? []) : undefined,
+      const remapped = children.map((child: FileEntry) => ({
+        ...child,
+        path: entry.path === '/' ? `/${child.name}` : `${entry.path}/${child.name}`,
+        children: child.isDir ? (child.children ?? []) : undefined,
       }));
       setFileTree((prev) => prev ? updateChildren(prev, entry.path, remapped) : prev);
-    } catch { /* ignore */ }
+    } catch {
+      // Ignore lazy-load failures; users can retry by expanding again.
+    }
   }, [projectPath]);
 
   const handleToggle = useCallback((path: string) => {
@@ -434,9 +87,8 @@ export function ProjectTree() {
         next.delete(path);
       } else {
         next.add(path);
-        // Trigger lazy load for the toggled directory
         const entry = findNode(fileTree, path);
-        if (entry) loadChildrenIfNeeded(entry);
+        if (entry) void loadChildrenIfNeeded(entry);
       }
       return next;
     });
@@ -444,12 +96,10 @@ export function ProjectTree() {
 
   const handleSelect = useCallback(async (entry: FileEntry) => {
     if (!projectPath) {
-      // Fallback to mock content
-      const content = mockFileContents[entry.path] ?? '';
-      openFile(entry.path, entry.name, content);
+      openFile(entry.path, entry.name, mockFileContents[entry.path] ?? '');
       return;
     }
-    // Read real file content via IPC
+
     const fullPath = `${projectPath}${entry.path}`;
     try {
       const content = await window.orisonDesktop?.readFile(fullPath);
@@ -459,12 +109,10 @@ export function ProjectTree() {
     }
   }, [openFile, projectPath]);
 
-  /* ── Context menu ── */
-
-  const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileEntry) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCtxMenu({ x: e.clientX, y: e.clientY, entry });
+  const handleContextMenu = useCallback((event: React.MouseEvent, entry: FileEntry) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setCtxMenu({ x: event.clientX, y: event.clientY, entry });
   }, []);
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
@@ -474,7 +122,6 @@ export function ProjectTree() {
     const { entry } = ctxMenu;
     const items: ContextMenuItem[] = [];
 
-    // Blank area right-click: create at project root
     if (!entry) {
       items.push({
         type: 'item', label: t('contextMenu.newFile'), icon: 'note_add',
@@ -523,7 +170,6 @@ export function ProjectTree() {
       items.push({ type: 'separator' });
     }
 
-    // Root node cannot be renamed or deleted
     if (entry.path !== '/') {
       items.push({
         type: 'item', label: t('contextMenu.rename'), icon: 'edit',
@@ -532,10 +178,7 @@ export function ProjectTree() {
       items.push({
         type: 'item', label: t('contextMenu.delete'), icon: 'delete', danger: true,
         onClick: async () => {
-          if (projectPath) {
-            const fullPath = `${projectPath}${entry.path}`;
-            await window.orisonDesktop?.deleteEntry(fullPath);
-          }
+          if (projectPath) await window.orisonDesktop?.deleteEntry(`${projectPath}${entry.path}`);
           setFileTree((prev) => prev ? removeNode(prev, entry.path) : prev);
         },
       });
@@ -546,46 +189,32 @@ export function ProjectTree() {
       type: 'item', label: t('contextMenu.openInExplorer'), icon: 'folder_open',
       onClick: () => {
         const dir = currentProject?.path;
-        if (dir) {
-          const fullPath = entry.path === '/' ? dir : `${dir}${entry.path}`;
-          if (entry.isDir) {
-            window.orisonDesktop?.openPath(fullPath);
-          } else {
-            window.orisonDesktop?.showItemInFolder(fullPath);
-          }
-        }
+        if (!dir) return;
+        const fullPath = entry.path === '/' ? dir : `${dir}${entry.path}`;
+        if (entry.isDir) window.orisonDesktop?.openPath(fullPath);
+        else window.orisonDesktop?.showItemInFolder(fullPath);
       },
     });
 
     return items;
   }, [ctxMenu, t, currentProject, projectPath]);
 
-  /* ── Rename ── */
-
   const handleRenameConfirm = useCallback(async (oldPath: string, newName: string) => {
     if (projectPath) {
       const oldFull = `${projectPath}${oldPath}`;
       const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
       const newRelative = parentDir === '/' ? `/${newName}` : `${parentDir}/${newName}`;
-      const newFull = `${projectPath}${newRelative}`;
-      await window.orisonDesktop?.renameEntry(oldFull, newFull);
+      await window.orisonDesktop?.renameEntry(oldFull, `${projectPath}${newRelative}`);
     }
     setFileTree((prev) => prev ? renameNode(prev, oldPath, newName) : prev);
     setRenamingPath(null);
   }, [projectPath]);
 
-  const handleRenameCancel = useCallback(() => setRenamingPath(null), []);
-
-  /* ── Create ── */
-
   const handleCreateConfirm = useCallback(async (name: string) => {
     if (!creatingIn || !creatingType) return;
     const isDir = creatingType === 'folder';
     const newPath = creatingIn === '/' ? `/${name}` : `${creatingIn}/${name}`;
-    if (projectPath) {
-      const fullPath = `${projectPath}${newPath}`;
-      await window.orisonDesktop?.createEntry(fullPath, isDir);
-    }
+    if (projectPath) await window.orisonDesktop?.createEntry(`${projectPath}${newPath}`, isDir);
     const child: FileEntry = { name, path: newPath, isDir, children: isDir ? [] : undefined };
     setFileTree((prev) => prev ? insertChild(prev, creatingIn, child) : prev);
     setCreatingIn(null);
@@ -597,8 +226,6 @@ export function ProjectTree() {
     setCreatingType(null);
   }, []);
 
-  /* ── Render ── */
-
   if (!currentProject || !fileTree) return null;
 
   return (
@@ -608,10 +235,9 @@ export function ProjectTree() {
       </div>
       <div
         className="ptree-list"
-        onContextMenu={(e) => {
-          // Only fires on blank area; node handlers call stopPropagation
-          e.preventDefault();
-          setCtxMenu({ x: e.clientX, y: e.clientY, entry: null });
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setCtxMenu({ x: event.clientX, y: event.clientY, entry: null });
         }}
       >
         {fileTree.map((entry) => (
@@ -626,7 +252,7 @@ export function ProjectTree() {
             onContextMenu={handleContextMenu}
             renamingPath={renamingPath}
             onRenameConfirm={handleRenameConfirm}
-            onRenameCancel={handleRenameCancel}
+            onRenameCancel={() => setRenamingPath(null)}
             creatingIn={creatingIn}
             creatingType={creatingType}
             onCreateConfirm={handleCreateConfirm}

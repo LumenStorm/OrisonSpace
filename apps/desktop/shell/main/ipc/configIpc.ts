@@ -2,7 +2,7 @@ import { ipcMain, safeStorage } from 'electron';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import type { ModelConfig } from '@orison/shared-contracts';
+import type { ModelConfig, UserPreferencesConfig } from '@orison/shared-contracts';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
   apiKey: '',
@@ -10,8 +10,18 @@ const DEFAULT_MODEL_CONFIG: ModelConfig = {
   model: 'gpt-4o'
 };
 
-function getConfigPath(): string {
-  return path.join(os.homedir(), '.orison', 'config.json');
+const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
+  theme: 'system',
+  locale: 'system',
+  autoApplyPatches: true
+};
+
+function getModelConfigPath(): string {
+  return path.join(os.homedir(), '.orison', 'model', 'config.json');
+}
+
+function getUserPreferencesPath(): string {
+  return path.join(os.homedir(), '.orison', 'user', 'preferences.json');
 }
 
 /** Encrypt a string using Electron's safeStorage (OS keychain). Falls back to plain text if unavailable. */
@@ -38,15 +48,15 @@ function decrypt(value: string): string {
 }
 
 function readModelConfig(): ModelConfig {
-  const p = getConfigPath();
+  const p = getModelConfigPath();
   try {
     if (!existsSync(p)) return { ...DEFAULT_MODEL_CONFIG };
     const raw = JSON.parse(readFileSync(p, 'utf-8'));
-    const encrypted = typeof raw?.model?.apiKey === 'string' ? raw.model.apiKey : '';
+    const encrypted = typeof raw?.apiKey === 'string' ? raw.apiKey : '';
     return {
       apiKey: decrypt(encrypted),
-      baseUrl: typeof raw?.model?.baseUrl === 'string' ? raw.model.baseUrl : DEFAULT_MODEL_CONFIG.baseUrl,
-      model: typeof raw?.model?.model === 'string' ? raw.model.model : DEFAULT_MODEL_CONFIG.model,
+      baseUrl: typeof raw?.baseUrl === 'string' ? raw.baseUrl : DEFAULT_MODEL_CONFIG.baseUrl,
+      model: typeof raw?.model === 'string' ? raw.model : DEFAULT_MODEL_CONFIG.model,
     };
   } catch {
     return { ...DEFAULT_MODEL_CONFIG };
@@ -54,26 +64,49 @@ function readModelConfig(): ModelConfig {
 }
 
 function writeModelConfig(config: ModelConfig): void {
-  const p = getConfigPath();
+  const p = getModelConfigPath();
   const dir = path.dirname(p);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
-  let existing: Record<string, unknown> = {};
-  try {
-    if (existsSync(p)) existing = JSON.parse(readFileSync(p, 'utf-8'));
-  } catch { /* ignore */ }
-
-  existing.model = {
+  const saved = {
     apiKey: encrypt(config.apiKey),
     baseUrl: config.baseUrl,
     model: config.model,
   };
-  writeFileSync(p, JSON.stringify(existing, null, 2), 'utf-8');
+  writeFileSync(p, JSON.stringify(saved, null, 2), 'utf-8');
+}
+
+function readUserPreferences(): UserPreferencesConfig {
+  const p = getUserPreferencesPath();
+  try {
+    if (!existsSync(p)) return { ...DEFAULT_USER_PREFERENCES };
+    const raw = JSON.parse(readFileSync(p, 'utf-8'));
+    return {
+      theme: typeof raw?.theme === 'string' ? raw.theme : DEFAULT_USER_PREFERENCES.theme,
+      locale: typeof raw?.locale === 'string' ? raw.locale : DEFAULT_USER_PREFERENCES.locale,
+      autoApplyPatches: typeof raw?.autoApplyPatches === 'boolean'
+        ? raw.autoApplyPatches
+        : DEFAULT_USER_PREFERENCES.autoApplyPatches,
+    };
+  } catch {
+    return { ...DEFAULT_USER_PREFERENCES };
+  }
+}
+
+function writeUserPreferences(config: UserPreferencesConfig): void {
+  const p = getUserPreferencesPath();
+  const dir = path.dirname(p);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(p, JSON.stringify(config, null, 2), 'utf-8');
 }
 
 export function registerConfigIpc() {
   ipcMain.handle('config:load-model', () => readModelConfig());
   ipcMain.handle('config:save-model', (_, config: ModelConfig) => {
     writeModelConfig(config);
+  });
+  ipcMain.handle('config:load-user-preferences', () => readUserPreferences());
+  ipcMain.handle('config:save-user-preferences', (_, config: UserPreferencesConfig) => {
+    writeUserPreferences(config);
   });
 }

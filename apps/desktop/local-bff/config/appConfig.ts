@@ -19,7 +19,7 @@ const DEFAULT_MODEL_CONFIG: ModelConfig = {
 };
 
 function getConfigDir(): string {
-  return path.join(os.homedir(), '.orison');
+  return path.join(os.homedir(), '.orison', 'model');
 }
 
 function getConfigPath(): string {
@@ -31,28 +31,35 @@ let overridePath: string | null = null;
 export function _setConfigPathForTest(p: string | null) { overridePath = p; }
 function resolvedPath(): string { return overridePath ?? getConfigPath(); }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? value as Record<string, unknown> : {};
+}
+
+function parseModelConfig(raw: unknown): ModelConfig {
+  const source = asRecord(raw);
+  return {
+    apiKey: typeof source?.apiKey === 'string' ? source.apiKey : DEFAULT_MODEL_CONFIG.apiKey,
+    baseUrl: typeof source?.baseUrl === 'string' ? source.baseUrl : DEFAULT_MODEL_CONFIG.baseUrl,
+    model: typeof source?.model === 'string' ? source.model : DEFAULT_MODEL_CONFIG.model,
+  };
+}
+
 export function loadAppConfig(): AppConfig {
   const p = resolvedPath();
   try {
-    if (!existsSync(p)) return { model: { ...DEFAULT_MODEL_CONFIG } };
-    const raw = JSON.parse(readFileSync(p, 'utf-8'));
-    return {
-      model: {
-        apiKey: typeof raw?.model?.apiKey === 'string' ? raw.model.apiKey : DEFAULT_MODEL_CONFIG.apiKey,
-        baseUrl: typeof raw?.model?.baseUrl === 'string' ? raw.model.baseUrl : DEFAULT_MODEL_CONFIG.baseUrl,
-        model: typeof raw?.model?.model === 'string' ? raw.model.model : DEFAULT_MODEL_CONFIG.model,
-      }
-    };
-  } catch {
-    return { model: { ...DEFAULT_MODEL_CONFIG } };
-  }
+    if (existsSync(p)) {
+      return { model: parseModelConfig(JSON.parse(readFileSync(p, 'utf-8'))) };
+    }
+  } catch { /* fall through */ }
+
+  return { model: { ...DEFAULT_MODEL_CONFIG } };
 }
 
 export function saveAppConfig(config: AppConfig): void {
   const p = resolvedPath();
   const dir = path.dirname(p);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(p, JSON.stringify(config, null, 2), 'utf-8');
+  writeFileSync(p, JSON.stringify(config.model, null, 2), 'utf-8');
 }
 
 export function getModelConfig(): ModelConfig {

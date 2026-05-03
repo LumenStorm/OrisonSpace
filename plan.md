@@ -44,3 +44,12 @@
 - [ ] 各 view 表单交互完善
 - [ ] RelationshipGraphEditor SVG 响应式
 - [ ] CurvesView 交互增强
+---
+
+## 2026-05-03 Session Sync
+
+- Synced the desktop UI split rules into `docs/architecture/module-boundaries.md`.
+- Recorded the current project storage rule: new desktop projects live under `~/Documents/OrisonSpace`.
+- Recorded config storage rules: model config lives at `~/.orison/model/config.json`; user preferences live at `~/.orison/user/preferences.json`.
+- Recorded server generation API shape: provider-routed text and image generation under `/v1/generation/:provider/*`.
+- No numeric file-size thresholds are defined yet; the rulebook focuses on ownership, coupling, and split boundaries.

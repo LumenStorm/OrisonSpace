@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
@@ -8,21 +8,18 @@ type Props = { onClose: () => void };
 export function SettingsDialog({ onClose }: Props) {
   const {
     resolvedLocale, theme, setTheme, locale, setLocale,
-    modelConfig, setModelConfig, loadModelConfig,
+    modelConfig, setModelConfig,
     autoApplyPatches, setAutoApplyPatches,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     theme: s.theme, setTheme: s.setTheme,
     locale: s.locale, setLocale: s.setLocale,
     modelConfig: s.modelConfig, setModelConfig: s.setModelConfig,
-    loadModelConfig: s.loadModelConfig,
     autoApplyPatches: s.autoApplyPatches, setAutoApplyPatches: s.setAutoApplyPatches,
   })));
 
   const { t } = useI18n(resolvedLocale);
   const [showApiKey, setShowApiKey] = useState(false);
-
-  useEffect(() => { loadModelConfig(); }, [loadModelConfig]);
 
   const handleModelConfigChange = useCallback((field: 'apiKey' | 'baseUrl' | 'model', value: string) => {
     setModelConfig({ ...modelConfig, [field]: value });
