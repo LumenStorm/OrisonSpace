@@ -36,7 +36,12 @@ const DEFAULT_METADATA: FieldMetadata = {
   stale: false
 };
 
-export const createCreativeFieldsSlice: StateCreator<CreativeFieldsSlice, [], [], CreativeFieldsSlice> = (set, get) => ({
+export const createCreativeFieldsSlice: StateCreator<
+  CreativeFieldsSlice & { currentProject: { path?: string } | null },
+  [],
+  [],
+  CreativeFieldsSlice
+> = (set, get) => ({
   creativeFields: {},
   fieldMetadata: {},
   activeCreativeTab: 'world_setting',
@@ -64,7 +69,7 @@ export const createCreativeFieldsSlice: StateCreator<CreativeFieldsSlice, [], []
   },
 
   updateField: (field, data) => {
-    const { creativeFields, fieldMetadata } = get();
+    const { creativeFields, fieldMetadata, currentProject } = get();
     const meta = fieldMetadata[field] ?? { ...DEFAULT_METADATA };
     set({
       creativeFields: { ...creativeFields, [field]: data },
@@ -74,8 +79,8 @@ export const createCreativeFieldsSlice: StateCreator<CreativeFieldsSlice, [], []
       }
     });
     // 持久化到磁盘：通过 IPC 调用 local-bff 的 fieldSyncBridge.onFieldEdited
-    if (window.orisonDesktop?.syncField) {
-      window.orisonDesktop.syncField(field, data).catch(() => {});
+    if (currentProject?.path && window.orisonDesktop?.syncField) {
+      window.orisonDesktop.syncField(currentProject.path, field, data).catch(() => {});
     }
   },
 

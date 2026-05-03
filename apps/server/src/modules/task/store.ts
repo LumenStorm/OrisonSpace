@@ -33,7 +33,7 @@ function ensureEvictionTimer() {
 export const taskStore = {
   save(request: TaskRequest, result: TaskResult) {
     ensureEvictionTimer();
-    store.set(request.taskId, {
+    store.set(result.taskId, {
       request,
       result,
       createdAt: Date.now()

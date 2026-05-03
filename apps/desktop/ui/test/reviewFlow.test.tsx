@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { App } from '../src/app/App';
@@ -46,22 +47,47 @@ describe('review flow', () => {
         path: 'C:/Projects/ColdCity',
         type: 'novel'
       },
-      currentTask: null,
+      currentTask: {
+        request: {
+          projectId: '00001',
+          targetId: 'act_1',
+          assetIds: [],
+          type: 'outline.rewrite',
+          name: 'Rewrite Current Passage',
+          description: 'Make the opening darker.',
+          input: 'Make the opening darker.'
+        },
+        result: {
+          taskId: '20260427214530123_48321',
+          status: 'completed',
+          outputType: 'patch',
+          outputPayload: {
+            operations: [
+              {
+                op: 'replace' as const,
+                path: 'story.acts[0].summary',
+                value: 'Rewritten: Make the opening darker.'
+              }
+            ]
+          },
+          summary: 'Mock rewrite completed.',
+          rationale: 'The mock adapter echoes the requested direction.',
+          reviewHint: 'Confirm the patch targets the intended act.',
+          retryable: true
+        }
+      },
       acceptedPatches: [],
       taskAdapter: mockAdapter
     });
   });
 
-  it('shows a completed task and applies the patch when accepted', async () => {
+  it('shows a completed task result and surfaces the accepted patch in the editor area', async () => {
     render(<App />);
 
-    const promptInput = await screen.findByPlaceholderText('Describe how to refine the story outline...');
-    await userEvent.type(promptInput, 'Make the opening darker.');
+    const tabs = screen.getByRole('navigation', { name: 'Bottom Panel Tabs' });
+    await userEvent.click(within(tabs).getAllByRole('button')[1]);
 
-    const createTaskButton = await screen.findByRole('button', { name: 'Run AI Rewrite' });
-    await userEvent.click(createTaskButton);
-
-    const acceptButton = await screen.findByRole('button', { name: 'Accept Task Result' });
+    const acceptButton = await screen.findByRole('button', { name: /Accept Task Result|tasks\.accept/ });
     await userEvent.click(acceptButton);
 
     expect(await screen.findByDisplayValue('Rewritten: Make the opening darker.')).toBeInTheDocument();

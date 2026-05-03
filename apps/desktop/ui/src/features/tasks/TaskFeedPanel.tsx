@@ -1,5 +1,6 @@
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
+import type { PatchOperation } from '../../shared/store/types';
 
 export function TaskFeedPanel() {
   const currentTask = useAppStore((s) => s.currentTask);
@@ -39,7 +40,7 @@ export function TaskFeedPanel() {
   return (
     <div className="task-feed">
       <p>{result.summary}</p>
-      {result.outputPayload?.operations.map((op: { path: string; value: unknown }, i: number) => (
+      {result.outputPayload?.operations.map((op: PatchOperation, i: number) => (
         <div key={i} className="task-patch-preview">
           <code>{op.path}: {String(op.value)}</code>
         </div>

@@ -1,3 +1,4 @@
+import type { PoolClient } from 'pg';
 import { pool } from '../../../common/db';
 import type { ProjectReadRepository, ProjectRecord } from './projectReadRepository';
 import type { CreateProjectInput, ProjectWriteRepository } from './projectWriteRepository';
@@ -13,7 +14,7 @@ function mapProjectRow(row: Record<string, unknown>): ProjectRecord {
   };
 }
 
-async function allocateNextProjectId(client: Awaited<ReturnType<typeof pool.connect>>) {
+async function allocateNextProjectId(client: PoolClient) {
   await client.query('SELECT pg_advisory_xact_lock($1)', [41001]);
 
   const result = await client.query<{ project_id: string }>(

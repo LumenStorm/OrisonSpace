@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { WorkspaceLayout } from '../src/widgets/layout/WorkspaceLayout';
 
 describe('WorkspaceLayout', () => {
-  it('renders icon rail, editor area, and inspector', () => {
+  it('renders the navigation rail, editor workspace, and bottom inspector panel', () => {
     render(<WorkspaceLayout />);
 
-    expect(screen.getByText('Orison Space')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Main Navigation' })).toBeInTheDocument();
-    expect(screen.getByRole('complementary', { name: 'Inspector Panel' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Bottom Panel Tabs' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collapse panel' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('outline.projectTitle')).toBeInTheDocument();
+    expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
   });
 });

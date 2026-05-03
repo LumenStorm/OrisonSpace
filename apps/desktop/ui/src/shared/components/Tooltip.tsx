@@ -69,7 +69,7 @@ function calcPos(
 export function Tooltip({ label, placement = 'right', delay = 380, children }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const bubbleRef = useRef<HTMLDivElement>(null);
 
   // Clean up pending timer on unmount

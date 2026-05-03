@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const desktopIpcSchema = z.object({
-  channel: z.enum(['project:pick-directory', 'config:load-model', 'config:save-model'])
+  channel: z.enum(['project:pick-directory', 'config:load-model', 'config:save-model', 'field:sync'])
 });
 
 /* ── Shared types ── */
@@ -30,7 +30,7 @@ export type OrisonDesktopApi = {
   close(): void;
   isMaximized(): Promise<boolean>;
   platform: string;
-  syncField(field: string, data: unknown): Promise<void>;
+  syncField(projectPath: string, field: string, data: unknown): Promise<void>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
   showItemInFolder(fullPath: string): void;

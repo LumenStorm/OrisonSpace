@@ -3,6 +3,7 @@ import path from 'node:path';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
 import { registerConfigIpc } from './ipc/configIpc';
+import { registerFieldSyncIpc } from './ipc/fieldSyncIpc';
 
 /* ── CSP ── */
 
@@ -54,6 +55,7 @@ function createWindow() {
   registerProjectIpc();
   registerWindowIpc(mainWindow);
   registerConfigIpc();
+  registerFieldSyncIpc();
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);

@@ -20,8 +20,8 @@ export const exposedDesktopApi = {
   isMaximized: () => ipcRenderer.invoke('window:is-maximized') as Promise<boolean>,
   platform: process.platform,
   // 字段同步
-  syncField: (field: string, data: unknown) =>
-    ipcRenderer.invoke('field:sync', field, data) as Promise<void>,
+  syncField: (projectPath: string, field: string, data: unknown) =>
+    ipcRenderer.invoke('field:sync', projectPath, field, data) as Promise<void>,
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
