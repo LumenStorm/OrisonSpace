@@ -13,6 +13,16 @@ function mockJsonResponse(body: unknown, status = 200) {
   } as Response;
 }
 
+function mockBinaryResponse(body: string, status = 200, contentType = 'image/png') {
+  const buffer = Buffer.from(body);
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers({ 'content-type': contentType }),
+    arrayBuffer: async () => buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+  } as Response;
+}
+
 describe('generation routes', () => {
   beforeAll(async () => {
     const app = buildServer();
@@ -66,9 +76,9 @@ describe('generation routes', () => {
     );
   });
 
-  it('routes OpenAI-format image generation to image generations', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
-      data: [{ url: 'https://cdn.example.com/image.png' }],
+  it('routes OpenAI-format image generation to image generations as base64', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
+      data: [{ b64_json: 'openai-base64' }],
     }));
 
     const app = buildServer();
@@ -88,8 +98,47 @@ describe('generation routes', () => {
     expect(response.json()).toMatchObject({
       provider: 'openai',
       model: 'gpt-image-1',
-      images: [{ url: 'https://cdn.example.com/image.png' }],
+      images: [{
+        b64Json: 'openai-base64',
+        mimeType: 'image/png',
+        dataUrl: 'data:image/png;base64,openai-base64',
+      }],
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/images/generations',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"response_format":"b64_json"'),
+      }),
+    );
+  });
+
+  it('downloads URL-only image generation results and returns base64 data URLs', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(mockJsonResponse({
+        data: [{ url: 'https://cdn.example.com/image.png' }],
+      }))
+      .mockResolvedValueOnce(mockBinaryResponse('png-bytes'));
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/generation/openai/image',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        model: 'gpt-image-1',
+        apiKey: 'sk-test',
+        prompt: 'A quiet workstation',
+      },
+    });
+
+    const json = response.json();
+    expect(response.statusCode).toBe(200);
+    expect(json.images[0].url).toBe('https://cdn.example.com/image.png');
+    expect(json.images[0].mimeType).toBe('image/png');
+    expect(json.images[0].b64Json).toBe(Buffer.from('png-bytes').toString('base64'));
+    expect(json.images[0].dataUrl).toBe(`data:image/png;base64,${Buffer.from('png-bytes').toString('base64')}`);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://cdn.example.com/image.png');
   });
 
   it('routes Anthropic-format text generation to messages', async () => {
@@ -144,7 +193,11 @@ describe('generation routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().images).toEqual([{ b64Json: 'abc123', mimeType: 'image/png' }]);
+    expect(response.json().images).toEqual([{
+      b64Json: 'abc123',
+      mimeType: 'image/png',
+      dataUrl: 'data:image/png;base64,abc123',
+    }]);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=gcp-key',
       expect.any(Object),

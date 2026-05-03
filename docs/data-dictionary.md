@@ -32,7 +32,10 @@ my-project/
 ├── scenes/                 # 剧本场景正文（type=script）
 │   ├── sc-001.md
 │   └── sc-002.md
+├── temp/
+│   └── images/             # 图片生成临时结果
 └── assets/                 # 素材文件（图片、音频等）
+    └── images/             # 已确认保存的生成图片
 ```
 
 ### 模块关系
@@ -232,7 +235,7 @@ ProjectDocument
 | source_ref | object | 否 | 来源引用，见下表 |
 | description | string | 是 | 镜头描述 |
 | image_prompt | string | 否 | AI 生图提示词 |
-| image_url | string | 否 | 已生成的图片路径 |
+| image_url | string | 否 | 已生成的图片路径；项目内生成图推荐使用 `assets/images/*` 相对路径 |
 | duration | number | 否 | 时长（秒） |
 | camera_lens | enum | 否 | 镜头焦距：`macro` / `portrait` / `wide` / `ultra_wide` |
 | camera_movement | string | 否 | 运镜方式（推/拉/摇/移等） |
@@ -306,6 +309,16 @@ ProjectDocument
 | detailed_outline.act_details[].scene_briefs[].characters[] | assets.characters[].id | 摘要涉及角色 |
 | storyboard.shots[].source_ref.entity_id | novel.chapters[].id 或 script.scenes[].id | 镜头来源 |
 | video.clips[].shot_id | storyboard.shots[].id | 片段对应镜头 |
+| creativeFields.asset_cards[].sourceRefs[] | `assets/images/*` | 图片生成结果保存后的项目相对路径 |
+
+### 10.1 图片生成文件约定
+
+| 路径 | 说明 |
+|------|------|
+| `temp/images/` | 新生成图片的临时落盘位置，可预览但未确认进入素材库 |
+| `assets/images/` | 用户保存后的图片资产目录 |
+
+生成服务返回的图片会在桌面端通过 IPC 写入项目目录。加入素材库时，系统创建 `type: image` 的资产卡，并将 `sourceRefs` 指向 `assets/images/*`。
 
 ---
 

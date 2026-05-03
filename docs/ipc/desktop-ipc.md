@@ -24,6 +24,9 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 | `project:create-entry` | renderer → main | invoke | Creates a file (empty) or directory. Returns `boolean`. |
 | `project:read-file` | renderer → main | invoke | Reads file content as UTF-8 string. Returns `string | null`. |
 | `project:write-file` | renderer → main | invoke | Writes UTF-8 string to file. Creates parent directories if needed. Returns `boolean`. |
+| `project:save-base64-image` | renderer → main | invoke | Saves a base64 image into an allowed project image directory. Returns `{ relativePath, fullPath, fileName }`. |
+| `project:move-file` | renderer → main | invoke | Moves a project-relative file to another project-relative path. Creates parent directories if needed. Returns destination path. |
+| `project:delete-file` | renderer → main | invoke | Deletes a project-relative file. Returns `boolean`. |
 
 ### Window Channels
 
@@ -47,6 +50,8 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 |---|---|---|---|
 | `config:load-model` | renderer → main | invoke | Loads model configuration (apiKey, baseUrl, model) from disk. API key is decrypted via `safeStorage`. |
 | `config:save-model` | renderer → main | invoke | Saves model configuration to disk. API key is encrypted via `safeStorage`. |
+| `config:load-user-preferences` | renderer → main | invoke | Loads user preferences from disk. |
+| `config:save-user-preferences` | renderer → main | invoke | Saves user preferences to disk. |
 
 ## Security
 
@@ -55,7 +60,7 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 - `contextIsolation`: enabled
 - `nodeIntegration`: disabled
 - `sandbox`: enabled
-- The preload script exposes a fixed set of 22 methods via `contextBridge`
+- The preload script exposes a fixed set of 25 methods via `contextBridge`
 
 ### Path Validation
 
@@ -64,6 +69,7 @@ All file operation IPC handlers (`project:*` except dialog-based pickers, plus `
 - `assertSafePath(target)` — rejects paths outside the user's home directory
 - `assertWithinProject(projectDir, target)` — rejects paths that escape a specific project directory
 - `shell:show-item-in-folder` and `shell:open-path` silently ignore invalid or non-existent paths (no file/directory creation)
+- Generated image writes are additionally constrained to `temp/images` and `assets/images`.
 
 ### API Key Encryption
 
@@ -92,6 +98,9 @@ window.orisonDesktop: {
   createEntry: (fullPath: string, isDir: boolean) => Promise<boolean>
   readFile: (fullPath: string) => Promise<string | null>
   writeFile: (fullPath: string, content: string) => Promise<boolean>
+  saveBase64Image: (projectDir: string, input: SaveBase64ImageInput) => Promise<SavedImageFile>
+  moveProjectFile: (projectDir: string, fromRelativePath: string, toRelativePath: string) => Promise<string>
+  deleteProjectFile: (projectDir: string, relativePath: string) => Promise<boolean>
 
   // 语言
   getLocale: () => string
@@ -106,11 +115,13 @@ window.orisonDesktop: {
   platform: string   // 'darwin' | 'win32' | 'linux'
 
   // 字段同步（preload 已暴露，主进程 handler 尚未实现）
-  syncField: (field: string, data: unknown) => Promise<void>
+  syncField: (projectPath: string, field: string, data: unknown) => Promise<void>
 
   // 模型配置
   loadModelConfig: () => Promise<ModelConfig>
   saveModelConfig: (config: ModelConfig) => Promise<void>
+  loadUserPreferences: () => Promise<UserPreferencesConfig>
+  saveUserPreferences: (config: UserPreferencesConfig) => Promise<void>
 
   // 系统 shell
   showItemInFolder: (fullPath: string) => void
@@ -156,6 +167,25 @@ type FileTreeEntry = {
 };
 ```
 
+### Generated Image Files
+
+```typescript
+type SaveBase64ImageInput = {
+  b64Json: string;
+  mimeType: string;
+  directory: 'temp/images' | 'assets/images';
+  fileName?: string;
+};
+
+type SavedImageFile = {
+  relativePath: string;
+  fullPath: string;
+  fileName: string;
+};
+```
+
+Generated images are project-scoped. The image generation UI writes fresh results to `temp/images/`; when the user saves a result, the renderer moves it to `assets/images/` through `moveProjectFile`.
+
 ## Window Control (Custom Title Bar)
 
 The app uses a frameless window with a custom title bar implemented in the renderer:
@@ -190,6 +220,8 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 | `config:save-user-preferences` | renderer to main | invoke | Saves user preferences to `~/.orison/user/preferences.yaml`. |
 
 The old model config path `~/.orison/config.json` is intentionally not read for compatibility. Current model config is YAML-only.
+
+Model slots default to empty `model` values. The settings page fetches provider model lists and chooses a compatible model after refresh instead of relying on baked-in fallback model names.
 
 ### Path Scope
 

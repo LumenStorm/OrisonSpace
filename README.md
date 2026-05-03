@@ -32,6 +32,7 @@
 - **记忆面板**：按章节分组、伏笔徽章
 - **自动模式控制台**：启动/暂停/恢复/取消 + 2s 轮询进度
 - **创作字段编辑器**：所有 creative fields 的可视化编辑
+- **图片生成工作台**：调用服务端图片生成接口，生成结果先保存到项目 `temp/images/`，可预览、转存到 `assets/images/` 并加入资产卡
 - **项目文件树**：通过 IPC 读取真实目录、懒加载、右键菜单
 - **IPC 安全加固**：`pathGuard.ts` 路径越界校验、API Key 用 `safeStorage` 加密、CSP 主进程动态注入
 
@@ -54,6 +55,7 @@
 - 认证（注册/登录/JWT）
 - 项目登记（`POST /v1/projects`）
 - 任务接口（提交、查询、按项目列表）
+- 生成接口（`POST /v1/generation/:provider/text` / `image`，图片响应统一补齐 base64 与 data URL）
 - 轻量资产索引（`(project_id, asset_id)` 复合主键）
 - PostgreSQL 持久化 — 启动时自动建表
 
@@ -111,7 +113,7 @@ OneLine2Video/
 │  │  │     ├─ creative/              创作字段编辑器
 │  │  │     ├─ orchestration/         编排面板
 │  │  │     ├─ tasks/                 任务面板
-│  │  │     └─ editor/                文件 / 大纲 / 剧本 / 视频 / 分镜编辑
+│  │  │     └─ editor/                文件 / 大纲 / 剧本 / 分镜 / 图片生成 / 视频编辑
 │  │  └─ local-bff/
 │  │     └─ sync/
 │  │        ├─ novelProjectRepository.ts  小说章节本地仓库
@@ -266,6 +268,8 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 - `GET /v1/tasks/:taskId`
 - `GET /v1/projects/:projectId/tasks`
 - `GET /v1/projects/:projectId/assets`
+- `POST /v1/generation/:provider/text`
+- `POST /v1/generation/:provider/image`
 - `/v1/orchestration/*` → 代理至 Agent
 
 ### Agent 编排
@@ -290,11 +294,13 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
   - `project.yaml` — 项目元信息、章节列表、世界观、关系图、伏笔注册表、曲线
   - `chapters/<chapter_id>.md` — 章节正文
   - `memory/story-memory.yaml` — 长期记忆索引
+  - `temp/images/` — 图片生成临时结果
+  - `assets/images/` — 已确认保存的生成图片资产
 - **PostgreSQL** 保存项目元数据、任务流水、任务资产引用、轻量资产索引
 
 也就是说：
 
-- `outline` / `novel` / `script` / `storyboard` / `creative fields` 等长内容继续本地保存
+- `outline` / `novel` / `script` / `storyboard` / `creative fields` / 生成图片文件等长内容继续本地保存
 - `projects` / `tasks` / `task_asset_refs` / `project_assets` 负责任务追踪与检索
 
 ---
@@ -369,5 +375,7 @@ Private
 - Pages should stay route-level; feature files own domain UI; child views, hooks, local types, and pure helpers are split when they carry independent responsibility.
 - Desktop projects are created under `~/Documents/OrisonSpace` and guarded by shell IPC path validation.
 - Model config is stored at `~/.orison/model/config.yaml`; user preferences are stored at `~/.orison/user/preferences.yaml`.
+- Model slots start with an empty model name; the settings page refreshes provider model lists and selects the first compatible model when the slot is empty.
 - Server generation APIs are provider-routed: `/v1/generation/:provider/text` and `/v1/generation/:provider/image`.
 - Current provider adapters are split by provider and capability for OpenAI-compatible, GCP, and Anthropic formats.
+- Image generation responses are normalized to include `b64Json`, `mimeType`, and `dataUrl`; the desktop shell exposes project-scoped image save/move/delete IPC for generated assets.

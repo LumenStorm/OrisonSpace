@@ -55,6 +55,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--outline-variant);
@@ -64,6 +65,10 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field-version-badge {
@@ -75,6 +80,8 @@
   color: var(--on-surface-variant);
   font-size: 0.72rem;
   font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .field-stale-badge {
@@ -179,12 +186,14 @@
   border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
   background: var(--surface);
+  min-width: 0;
 }
 
 .asset-card-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   margin-bottom: 0.35rem;
 }
 
@@ -197,16 +206,27 @@
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
+  flex-shrink: 0;
+  max-width: 44%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-card-name {
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-card-summary {
   margin: 0;
   color: var(--on-surface-variant);
   font-size: 0.88rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .asset-card-tags {
@@ -228,6 +248,7 @@
 .graph-toolbar {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
   margin-bottom: 0.75rem;
 }
 
@@ -347,6 +368,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   margin-bottom: 0.35rem;
 }
 
@@ -363,6 +385,8 @@
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .episode-status--planned { background: var(--surface-container-high); color: var(--on-surface-variant); }
@@ -478,6 +502,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   padding: 0.5rem;
   border: 1px solid var(--outline-variant);
   border-radius: 0.35rem;
@@ -496,6 +521,10 @@
 .patch-review-field {
   font-weight: 600;
   font-size: 0.88rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .patch-review-action {
@@ -510,11 +539,13 @@
   margin-left: auto;
   color: var(--outline);
   font-size: 0.74rem;
+  flex-shrink: 0;
 }
 
 .patch-review-actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .patch-review-actions .inspector-cta {

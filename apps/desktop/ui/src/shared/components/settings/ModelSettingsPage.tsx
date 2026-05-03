@@ -8,10 +8,10 @@ type Props = {
   setModelConfig: (config: ModelConfig) => Promise<void>;
 };
 
-const MODEL_TYPES: Array<{ id: ModelType; labelKey: string; capability: 'text' | 'image' | 'video'; fallback: string[] }> = [
-  { id: 'novel', labelKey: 'settings.novelModel', capability: 'text', fallback: ['gpt-4o'] },
-  { id: 'image', labelKey: 'settings.imageModel', capability: 'image', fallback: ['gpt-image-1'] },
-  { id: 'video', labelKey: 'settings.videoModel', capability: 'video', fallback: ['placeholder-video'] },
+const MODEL_TYPES: Array<{ id: ModelType; labelKey: string; capability: 'text' | 'image' | 'video' }> = [
+  { id: 'novel', labelKey: 'settings.novelModel', capability: 'text' },
+  { id: 'image', labelKey: 'settings.imageModel', capability: 'image' },
+  { id: 'video', labelKey: 'settings.videoModel', capability: 'video' },
 ];
 
 const PROVIDERS: GenerationProvider[] = ['openai', 'gcp', 'anthropic'];
@@ -36,13 +36,10 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
 
   const activeMeta = MODEL_TYPES.find((item) => item.id === activeType) ?? MODEL_TYPES[0];
   const activeSlot = draft.models[activeType];
-  const modelOptions = mergeCurrentModel(
-    providerModels[activeType]
-      .filter((model) => model.capabilities.includes(activeMeta.capability))
-      .map((model) => model.id),
-    activeSlot.model,
-    activeMeta.fallback,
-  );
+  const compatibleModelIds = providerModels[activeType]
+    .filter((model) => model.capabilities.includes(activeMeta.capability))
+    .map((model) => model.id);
+  const modelOptions = mergeCurrentModel(compatibleModelIds, activeSlot.model);
 
   function updateActiveSlot(field: keyof ModelSlotConfig, value: string) {
     setDraft((current: ModelConfig) => ({
@@ -55,6 +52,26 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
         },
       },
     }));
+    setSaved(false);
+  }
+
+  function updateActiveSlotValues(values: Partial<ModelSlotConfig>) {
+    setDraft((current: ModelConfig) => ({
+      ...current,
+      models: {
+        ...current.models,
+        [activeType]: {
+          ...current.models[activeType],
+          ...values,
+        },
+      },
+    }));
+    setSaved(false);
+  }
+
+  function handleTypeChange(type: ModelType) {
+    setActiveType(type);
+    setRefreshError(null);
     setSaved(false);
   }
 
@@ -77,7 +94,22 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
         apiKey: activeSlot.apiKey,
         baseUrl: activeSlot.baseUrl,
       });
+      const firstCompatibleModel = response.find((model) =>
+        model.capabilities.includes(activeMeta.capability)
+      )?.id;
       setProviderModels((current) => ({ ...current, [activeType]: response }));
+      if (!activeSlot.model && firstCompatibleModel) {
+        setDraft((current) => ({
+          ...current,
+          models: {
+            ...current.models,
+            [activeType]: {
+              ...current.models[activeType],
+              model: firstCompatibleModel,
+            },
+          },
+        }));
+      }
       setSaved(false);
     } catch (error) {
       setRefreshError(error instanceof Error ? error.message : t('settings.refreshFailed'));
@@ -94,25 +126,19 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
 
       <div className="sidebar-settings-row">
         <span className="sidebar-settings-label">{t('settings.modelType')}</span>
-        <div className="sidebar-settings-options">
+        <select
+          className="sidebar-settings-input"
+          value={activeType}
+          onChange={(e) => handleTypeChange(e.target.value as ModelType)}
+        >
           {MODEL_TYPES.map((type) => (
-            <button
-              key={type.id}
-              type="button"
-              className={`sidebar-settings-option${activeType === type.id ? ' is-active' : ''}`}
-              onClick={() => {
-                setActiveType(type.id);
-                setRefreshError(null);
-              }}
-            >
-              {t(type.labelKey)}
-            </button>
+            <option key={type.id} value={type.id}>{t(type.labelKey)}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div className="sidebar-settings-row">
-        <span className="sidebar-settings-label">{t(activeMeta.labelKey)}</span>
+        <span className="sidebar-settings-label">{t('settings.modelDetails')}</span>
 
         <div className="sidebar-settings-input-row">
           <span className="sidebar-settings-input-label">{t('settings.provider')}</span>
@@ -120,7 +146,7 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
             className="sidebar-settings-input"
             value={activeSlot.provider}
             onChange={(e) => {
-              updateActiveSlot('provider', e.target.value);
+              updateActiveSlotValues({ provider: e.target.value as GenerationProvider, model: '' });
               setProviderModels((current) => ({ ...current, [activeType]: [] }));
             }}
           >
@@ -175,12 +201,13 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
         </div>
 
         <div className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.modelName')}</span>
+          <span className="sidebar-settings-input-label">{t('settings.modelList')}</span>
           <select
             className="sidebar-settings-input"
             value={activeSlot.model}
             onChange={(e) => updateActiveSlot('model', e.target.value)}
           >
+            <option value="">{t('settings.modelSelectPlaceholder')}</option>
             {modelOptions.map((model) => (
               <option key={model} value={model}>{model}</option>
             ))}
@@ -206,8 +233,8 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
   );
 }
 
-function mergeCurrentModel(models: string[], current: string, fallback: string[]): string[] {
-  const merged = new Set([...models, ...fallback]);
+function mergeCurrentModel(models: string[], current: string): string[] {
+  const merged = new Set(models);
   if (current) merged.add(current);
   return [...merged];
 }

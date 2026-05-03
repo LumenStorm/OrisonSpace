@@ -163,6 +163,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   background: rgba(0, 0, 0, 0.3);
 }
 
@@ -186,10 +187,11 @@
 .settings-dialog {
   display: flex;
   flex-direction: column;
-  width: min(720px, calc(100vw - 2rem));
+  width: min(760px, calc(100vw - 2rem));
   min-width: 400px;
-  max-width: 720px;
-  max-height: 80vh;
+  max-width: 760px;
+  height: min(620px, calc(100vh - 2rem));
+  max-height: calc(100vh - 2rem);
   border-radius: 0.5rem;
   background: var(--surface-container-lowest);
   box-shadow: var(--shadow-soft);
@@ -199,12 +201,15 @@
 .settings-dialog-sm {
   min-width: 320px;
   max-width: 380px;
+  height: auto;
+  max-height: calc(100vh - 2rem);
 }
 
 .settings-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--outline-variant);
 }
@@ -213,6 +218,10 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-dialog-close {
@@ -240,6 +249,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
   padding: 1.25rem;
   overflow-y: auto;
 }
@@ -248,6 +259,8 @@
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
   gap: 1rem;
+  flex: 1;
+  min-height: 0;
   padding: 0;
   overflow: hidden;
 }
@@ -256,9 +269,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-height: 0;
   padding: 1rem 0.75rem;
   border-right: 1px solid var(--outline-variant);
   background: var(--surface-container);
+  overflow-y: auto;
 }
 
 .settings-dialog-nav-item {
@@ -277,6 +292,13 @@
   cursor: pointer;
 }
 
+.settings-dialog-nav-item span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-dialog-nav-item:hover {
   background: var(--hover-overlay);
 }
@@ -292,6 +314,7 @@
 
 .settings-dialog-page {
   min-width: 0;
+  min-height: 0;
   padding: 1.25rem;
   overflow-y: auto;
 }
@@ -300,6 +323,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-height: 100%;
 }
 
 .settings-page-header {
@@ -321,6 +345,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
+  margin-top: auto;
   padding-top: 0.5rem;
 }
 
@@ -345,6 +370,7 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  width: 100%;
 }
 
 .settings-refresh-row .sidebar-settings-input {
@@ -381,6 +407,7 @@
 @media (max-width: 640px) {
   .settings-dialog {
     width: calc(100vw - 1rem);
+    height: calc(100vh - 1rem);
     min-width: 0;
   }
 

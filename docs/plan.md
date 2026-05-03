@@ -120,7 +120,8 @@
 - 仅生产构建注入（dev 模式下 Vite dev server origin 与 `'self'` 不匹配，跳过注入）
 
 ### 默认模型名修正
-- `configIpc.ts` 默认模型从 `gpt-5.4` 改为 `gpt-4o`
+- `configIpc.ts` 曾将默认小说模型从 `gpt-5.4` 改为 `gpt-4o`。
+- 最新模型配置策略改为默认模型名置空，设置页刷新供应商模型列表后再选择兼容模型。
 
 ---
 
@@ -220,8 +221,21 @@
 - Model config is stored at `~/.orison/model/config.yaml`.
 - User preferences are stored at `~/.orison/user/preferences.yaml`.
 - User preference scope currently includes theme, locale, and auto-apply-patches. Layout, recent projects, and auth are excluded.
+- Model slots start with empty model names; provider/model changes clear the selected model until the model list is refreshed or the user selects one.
 - Server generation routes were added by provider and capability:
   - `POST /v1/generation/:provider/text`
   - `POST /v1/generation/:provider/image`
 - Generation providers are split by provider and by capability for OpenAI-compatible, GCP, and Anthropic formats.
 - Numeric split thresholds are intentionally not defined yet.
+
+## 2026-05-03 Image Generation and Asset Sync
+
+- `ImageGenEditor` now calls the server image generation route with the configured image model slot instead of rendering mock result cards.
+- The editor supports size selection (`1024x1024`, `1024x1792`, `1792x1024`) and count selection (`1`, `2`, `4`).
+- Server image responses are normalized to `b64Json`, `mimeType`, and `dataUrl`; OpenAI-compatible requests ask for base64 directly, and URL-only provider responses are downloaded and converted.
+- Desktop shell IPC gained project-scoped generated-image file operations:
+  - `project:save-base64-image`
+  - `project:move-file`
+  - `project:delete-file`
+- Generated images are first written under project `temp/images/`; saving moves them to `assets/images/`.
+- Adding a result to assets appends an `image` asset card with `sourceRefs` pointing at the saved relative image path.

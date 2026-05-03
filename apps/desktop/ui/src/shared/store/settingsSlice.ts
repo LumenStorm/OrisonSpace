@@ -10,19 +10,19 @@ const DEFAULT_MODEL_CONFIG: ModelConfig = {
       provider: 'openai',
       apiKey: '',
       baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4o',
+      model: '',
     },
     image: {
       provider: 'openai',
       apiKey: '',
       baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-image-1',
+      model: '',
     },
     video: {
       provider: 'openai',
       apiKey: '',
       baseUrl: 'https://api.openai.com/v1',
-      model: 'placeholder-video',
+      model: '',
     },
   },
 };

@@ -35,6 +35,7 @@ export const imageGenerationRequestSchema = z.object({
 export const generatedImageSchema = z.object({
   url: z.string().optional(),
   b64Json: z.string().optional(),
+  dataUrl: z.string().optional(),
   mimeType: z.string().optional(),
 });
 

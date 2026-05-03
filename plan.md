@@ -27,7 +27,7 @@
 - [x] CSP 主进程动态注入（仅 prod）
 - [x] ErrorBoundary 包裹 App
 - [x] authSlice catch 类型安全
-- [x] 默认模型名修正为 gpt-4o
+- [x] 默认模型名置空，改为刷新供应商模型列表后选择兼容模型
 
 ### 性能优化
 - [x] dirtyPaths / ctxItems useMemo 缓存
@@ -50,6 +50,13 @@
 
 - Synced the desktop UI split rules into `docs/architecture/module-boundaries.md`.
 - Recorded the current project storage rule: new desktop projects live under `~/Documents/OrisonSpace`.
-- Recorded config storage rules: model config lives at `~/.orison/model/config.json`; user preferences live at `~/.orison/user/preferences.json`.
+- Recorded config storage rules: model config lives at `~/.orison/model/config.yaml`; user preferences live at `~/.orison/user/preferences.yaml`.
 - Recorded server generation API shape: provider-routed text and image generation under `/v1/generation/:provider/*`.
 - No numeric file-size thresholds are defined yet; the rulebook focuses on ownership, coupling, and split boundaries.
+
+## 2026-05-03 Image Generation Sync
+
+- 图片生成编辑器已接入 `POST /v1/generation/:provider/image`，使用设置页中当前 `image` 模型槽的 provider / apiKey / baseUrl / model。
+- 服务端图片响应统一归一化为 `b64Json`、`mimeType`、`dataUrl`；OpenAI-compatible 请求显式使用 `response_format: "b64_json"`，URL-only 结果会下载后转 base64。
+- 桌面 IPC 新增 `project:save-base64-image`、`project:move-file`、`project:delete-file`，生成图先落到项目 `temp/images/`，保存后移动到 `assets/images/`。
+- 图片生成结果可预览、保存文件，并写入 creative `asset_cards`，`sourceRefs` 指向项目内图片相对路径。

@@ -1,6 +1,7 @@
 import { dialog, ipcMain } from 'electron';
 import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
+import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 
 type FileEntry = {
@@ -12,6 +13,13 @@ type FileEntry = {
 
 /** Max entries per directory level to prevent memory blow-up on huge repos. */
 const MAX_ENTRIES_PER_DIR = 500;
+const ALLOWED_IMAGE_DIRS = new Set(['temp/images', 'assets/images']);
+const MIME_EXT: Record<string, string> = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
 
 function readDirectoryRecursive(dirPath: string, basePath: string, maxDepth: number, depth = 0): FileEntry[] {
   if (depth >= maxDepth) return [];
@@ -46,6 +54,31 @@ function readDirectoryRecursive(dirPath: string, basePath: string, maxDepth: num
   } catch {
     return [];
   }
+}
+
+function normalizeRelativePath(relativePath: string): string {
+  const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalized || normalized.split('/').some((part) => part === '..')) {
+    throw new Error('Invalid relative path');
+  }
+  return normalized;
+}
+
+function buildProjectPath(projectDir: string, relativePath: string): string {
+  const fullPath = path.join(projectDir, normalizeRelativePath(relativePath));
+  assertWithinProject(projectDir, fullPath);
+  return fullPath;
+}
+
+function sanitizeFileName(value: string): string {
+  const sanitized = value.replace(/[<>:"/\\|?*\x00-\x1F]/g, '-').replace(/\s+/g, '-').slice(0, 80);
+  return sanitized || 'image';
+}
+
+function createImageFileName(input: SaveBase64ImageInput): string {
+  const ext = MIME_EXT[input.mimeType] ?? '.png';
+  const rawName = input.fileName ? sanitizeFileName(input.fileName) : `image-${Date.now()}`;
+  return rawName.toLowerCase().endsWith(ext) ? rawName : `${rawName}${ext}`;
 }
 
 export function registerProjectIpc() {
@@ -186,6 +219,44 @@ export function registerProjectIpc() {
       const dir = path.dirname(fullPath);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       writeFileSync(fullPath, content, 'utf-8');
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle('project:save-base64-image', async (_, projectDir: string, input: SaveBase64ImageInput) => {
+    assertSafePath(projectDir);
+    if (!ALLOWED_IMAGE_DIRS.has(input.directory)) {
+      throw new Error('Invalid image directory');
+    }
+
+    const fileName = createImageFileName(input);
+    const relativePath = `${input.directory}/${fileName}`;
+    const fullPath = buildProjectPath(projectDir, relativePath);
+    const dir = path.dirname(fullPath);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+    writeFileSync(fullPath, Buffer.from(input.b64Json, 'base64'));
+    return { relativePath, fullPath, fileName };
+  });
+
+  ipcMain.handle('project:move-file', async (_, projectDir: string, fromRelativePath: string, toRelativePath: string) => {
+    assertSafePath(projectDir);
+    const source = buildProjectPath(projectDir, fromRelativePath);
+    const destination = buildProjectPath(projectDir, toRelativePath);
+    const dir = path.dirname(destination);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    renameSync(source, destination);
+    return destination;
+  });
+
+  ipcMain.handle('project:delete-file', async (_, projectDir: string, relativePath: string) => {
+    assertSafePath(projectDir);
+    const fullPath = buildProjectPath(projectDir, relativePath);
+    try {
+      if (!existsSync(fullPath)) return true;
+      unlinkSync(fullPath);
       return true;
     } catch {
       return false;

@@ -9,9 +9,9 @@ export type AppConfig = {
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
   models: {
-    novel: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
-    image: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-image-1' },
-    video: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'placeholder-video' },
+    novel: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' },
+    image: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' },
+    video: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' },
   },
 };
 

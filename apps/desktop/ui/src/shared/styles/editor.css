@@ -612,6 +612,32 @@
   gap: 0.5rem;
 }
 
+.image-gen-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.image-gen-control {
+  display: flex;
+  flex: 1 1 160px;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--on-surface-variant);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.image-gen-control select {
+  min-height: 34px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+}
+
 .image-gen-btn {
   display: inline-flex;
   align-items: center;
@@ -669,11 +695,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
   aspect-ratio: 1;
   background:
     radial-gradient(circle at center, var(--active-indicator), transparent 60%),
     var(--surface-container-low);
   color: var(--on-surface-variant);
+  cursor: zoom-in;
+}
+
+.image-gen-card-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .image-gen-card-preview .material-symbols-outlined {
@@ -682,10 +718,117 @@
 }
 
 .image-gen-card-label {
-  padding: 0.5rem 0.6rem;
   font-size: 0.78rem;
   color: var(--on-surface-variant);
-  text-align: center;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.image-gen-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+}
+
+.image-gen-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.image-gen-card-actions button {
+  min-height: 28px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.3rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.image-gen-card-actions button:hover:not(:disabled) {
+  background: var(--hover-overlay);
+}
+
+.image-gen-card-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.image-gen-error,
+.image-gen-empty {
+  margin: 0;
+  color: var(--outline);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.image-gen-error {
+  color: var(--error);
+}
+
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.image-preview-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(900px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-soft);
+}
+
+.image-preview-dialog img {
+  max-width: 100%;
+  max-height: calc(100vh - 8rem);
+  object-fit: contain;
+  border-radius: 0.35rem;
+}
+
+.image-preview-dialog p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.image-preview-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 0.3rem;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+}
+
+.image-preview-close .material-symbols-outlined {
+  font-size: 18px;
 }
 
 /* ── Editor Sub-Tabs (novel/script + creative merge) ── */
@@ -728,6 +871,447 @@
 .editor-sub-content {
   flex: 1;
   overflow: auto;
+}
+
+/* ── Novel Workbench ── */
+.novel-workbench {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  background: var(--surface-container-lowest);
+}
+
+.novel-workbench-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.novel-workbench-sidebar-header {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--outline-variant);
+  color: var(--on-surface);
+  font-size: 0.82rem;
+}
+
+.novel-workbench-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.novel-chapter-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0.5rem;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.novel-chapter-list-empty,
+.novel-chapter-actions-empty,
+.novel-chapter-result-hint {
+  margin: 0;
+  padding: 1rem;
+  color: var(--outline);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.novel-chapter-list-empty p,
+.novel-chapter-actions-empty p {
+  margin: 0;
+}
+
+.novel-chapter-item {
+  margin-bottom: 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+}
+
+.novel-chapter-itemActive {
+  border-color: var(--accent);
+  background: var(--active-indicator);
+}
+
+.novel-chapter-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.65rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--on-surface);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.novel-chapter-button:hover {
+  background: var(--hover-overlay);
+}
+
+.novel-chapter-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.novel-chapter-status {
+  align-self: start;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.novel-chapter-item[data-status="generating"] .novel-chapter-status {
+  color: #b38600;
+  background: #e6a70022;
+}
+
+.novel-chapter-item[data-status="final"] .novel-chapter-status {
+  color: var(--accent-strong);
+  background: var(--active-indicator);
+}
+
+.novel-chapter-summary {
+  grid-column: 1 / -1;
+  color: var(--outline);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.novel-chapter-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.novel-chapter-actions-bar button,
+.novel-chapter-actions button,
+.auto-mode-console button {
+  min-height: 30px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.3rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.novel-chapter-actions-bar button:hover:not(:disabled),
+.novel-chapter-actions button:hover,
+.auto-mode-console button:hover {
+  background: var(--hover-overlay);
+}
+
+.novel-chapter-actions-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.novel-chapter-actions button.primary,
+.auto-mode-console button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+}
+
+.novel-chapter-result {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.novel-chapter-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-lowest);
+}
+
+.novel-chapter-result-status {
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.novel-chapter-result-status[data-status="running"] {
+  color: #b38600;
+  background: #e6a70022;
+}
+
+.novel-chapter-result-status[data-status="pending"] {
+  color: #0066cc;
+  background: #0066cc22;
+}
+
+.novel-chapter-result-status[data-status="failed"] {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.novel-chapter-result-progress,
+.novel-chapter-result-error {
+  margin: 1rem;
+  font-size: 0.85rem;
+}
+
+.novel-chapter-result-error {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.35rem;
+  background: var(--error-bg);
+  color: var(--error);
+  overflow-wrap: anywhere;
+}
+
+.novel-chapter-candidate {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.novel-chapter-candidate-title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.novel-chapter-candidate-summary,
+.novel-chapter-candidate-meta {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.novel-chapter-candidate-content {
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.novel-chapter-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.25rem;
+}
+
+.auto-mode-console {
+  flex-shrink: 0;
+  margin: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.45rem;
+  background: var(--surface-container-lowest);
+}
+
+.auto-mode-console-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  margin-bottom: 0.45rem;
+}
+
+.auto-mode-console-id,
+.auto-mode-console-run {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--outline);
+  font-family: monospace;
+  font-size: 0.7rem;
+}
+
+.auto-mode-console p {
+  margin: 0.3rem 0;
+  color: var(--on-surface-variant);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.auto-mode-console-hint {
+  color: var(--outline);
+}
+
+.auto-mode-console-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.auto-mode-console-error {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.35rem;
+  background: var(--error-bg);
+  color: var(--error) !important;
+}
+
+/* ── Memory Panel ── */
+.memory-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.memory-panel-empty {
+  justify-content: center;
+  min-height: 160px;
+  color: var(--outline);
+  text-align: center;
+}
+
+.memory-panel-empty p {
+  margin: 0;
+}
+
+.memory-panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.memory-panel-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  color: var(--on-surface);
+  font-size: 0.84rem;
+}
+
+.memory-panel-group-id {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--outline);
+  font-family: monospace;
+  font-size: 0.72rem;
+}
+
+.memory-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-entry {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.45rem;
+  background: var(--surface);
+}
+
+.memory-entry[data-foreshadow="true"] {
+  border-color: #e6a70066;
+}
+
+.memory-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.memory-entry-header strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+}
+
+.memory-entry-type,
+.memory-entry-fs-badge {
+  flex-shrink: 0;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.memory-entry-fs-badge {
+  background: #e6a70022;
+  color: #b38600;
+}
+
+.memory-entry-content,
+.memory-entry-meta {
+  margin: 0.45rem 0 0;
+  color: var(--on-surface-variant);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.memory-entry-meta {
+  color: var(--outline);
 }
 
 /* ── File Editor Area ── */

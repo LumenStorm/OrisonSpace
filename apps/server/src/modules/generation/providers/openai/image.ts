@@ -15,6 +15,7 @@ export async function generateOpenAiImage(request: ImageGenerationRequest): Prom
       prompt: request.prompt,
       size: request.size,
       n: request.n ?? 1,
+      response_format: 'b64_json',
     },
   });
 

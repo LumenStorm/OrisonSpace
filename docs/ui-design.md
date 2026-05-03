@@ -190,7 +190,22 @@
 | 光影氛围 (Lighting Mood) | 下拉 | Natural / Golden Hour / Noir / Cinematic Blue |
 | AI 生成区 | 文本框 + 按钮 | 描述细节 → "Render Frame" |
 
-### 5.4 视频模块 (Video)
+### 5.4 图片生成模块 (Image Gen)
+
+对应模块：`activeModule: 'image_gen'`
+
+| 元素 | 数据/行为 | 说明 |
+|------|-----------|------|
+| Prompt 输入区 | `prompt` | 输入生成图描述 |
+| 尺寸选择 | `1024x1024` / `1024x1792` / `1792x1024` | 传给服务端图片生成接口 |
+| 数量选择 | `1` / `2` / `4` | 控制单次生成张数 |
+| 生成按钮 | `POST /v1/generation/:provider/image` | 使用设置页当前 `image` 模型槽 |
+| 结果网格 | `temp/images/*` | 生成结果先写入项目临时目录 |
+| 预览弹窗 | 本地文件路径 | 点击结果图查看大图 |
+| 保存文件 | `assets/images/*` | 将临时图片移动到项目素材目录 |
+| 加入素材库 | `creativeFields.asset_cards` | 创建 `type: image` 的资产卡，`sourceRefs` 指向保存后的相对路径 |
+
+### 5.5 视频模块 (Video)
 
 对应数据模型：`ProjectDocument.video` (扩展)
 
@@ -203,7 +218,7 @@
 
 ---
 
-## 6. 素材管理 (Assets)（规划中）
+## 6. 素材管理 (Assets)
 
 对应数据模型：`ProjectDocument.assets`
 
@@ -211,6 +226,8 @@
 |------|----------|------|
 | 角色列表 | `assets.characters[]` | 角色卡片：名称 + 外观描述 |
 | 场景列表 | `assets.scenes[]` | 场景卡片：名称 + 环境描述 |
+| 图片资产卡 | `creativeFields.asset_cards[]` | 图片生成结果可追加为 `type: image` 的资产卡 |
+| 图片文件引用 | `sourceRefs[]` | 指向项目内 `assets/images/*` 相对路径 |
 
 ---
 
@@ -255,6 +272,7 @@ ProjectDocument
 - `story.rewrite` — 大纲改写
 - `script.rewrite` — 剧本改写
 - `storyboard.generate` — 分镜图生成
+- `image.generate` — 图片生成，结果先落项目 `temp/images/`，确认后进入 `assets/images/`
 - `video.generate` — 视频片段生成
 
 ---

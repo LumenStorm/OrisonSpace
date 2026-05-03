@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { saveModelConfig, getModelConfig, loadAppConfig, _setConfigPathForTest } from '../config/appConfig';
 import { parseFlatYaml, stringifyFlatYaml } from '@orison/shared-contracts';
@@ -41,9 +41,9 @@ describe('appConfig', () => {
     _setConfigPathForTest(TEST_CONFIG_PATH);
     const config = getModelConfig();
     expect(config.models.novel.provider).toBe('openai');
-    expect(config.models.novel.model).toBe('gpt-4o');
-    expect(config.models.image.model).toBe('gpt-image-1');
-    expect(config.models.video.model).toBe('placeholder-video');
+    expect(config.models.novel.model).toBe('');
+    expect(config.models.image.model).toBe('');
+    expect(config.models.video.model).toBe('');
   });
 
   it('round-trips model config by model type', () => {
@@ -110,12 +110,13 @@ describe('appConfig', () => {
       baseUrl: 'https://api.anthropic.com',
       model: 'legacy-model',
     };
+    mkdirSync(path.dirname(TEST_CONFIG_PATH), { recursive: true });
     writeFileSync(TEST_CONFIG_PATH, stringifyFlatYaml(legacy), 'utf-8');
 
     const loaded = getModelConfig();
     expect(loaded.models.novel.provider).toBe('anthropic');
     expect(loaded.models.novel.apiKey).toBe('legacy-key');
     expect(loaded.models.novel.model).toBe('legacy-model');
-    expect(loaded.models.image.model).toBe('gpt-image-1');
+    expect(loaded.models.image.model).toBe('');
   });
 });

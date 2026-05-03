@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { OrisonDesktopApi, ModelConfig, UserPreferencesConfig } from '@orison/shared-contracts';
+import type {
+  ModelConfig,
+  OrisonDesktopApi,
+  SaveBase64ImageInput,
+  UserPreferencesConfig,
+} from '@orison/shared-contracts';
 
 export const exposedDesktopApi = {
   pickProjectDirectory: () => ipcRenderer.invoke('project:pick-directory'),
@@ -44,6 +49,12 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:read-file', fullPath) as Promise<string | null>,
   writeFile: (fullPath: string, content: string) =>
     ipcRenderer.invoke('project:write-file', fullPath, content) as Promise<boolean>,
+  saveBase64Image: (projectDir: string, input: SaveBase64ImageInput) =>
+    ipcRenderer.invoke('project:save-base64-image', projectDir, input),
+  moveProjectFile: (projectDir: string, fromRelativePath: string, toRelativePath: string) =>
+    ipcRenderer.invoke('project:move-file', projectDir, fromRelativePath, toRelativePath) as Promise<string>,
+  deleteProjectFile: (projectDir: string, relativePath: string) =>
+    ipcRenderer.invoke('project:delete-file', projectDir, relativePath) as Promise<boolean>,
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

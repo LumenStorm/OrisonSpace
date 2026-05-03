@@ -315,8 +315,9 @@ Response (200):
   "images": [
     {
       "url": "https://example.com/image.png",
-      "b64Json": "optional-base64",
-      "mimeType": "image/png"
+      "b64Json": "base64-image-payload",
+      "mimeType": "image/png",
+      "dataUrl": "data:image/png;base64,base64-image-payload"
     }
   ],
   "raw": {}
@@ -324,9 +325,11 @@ Response (200):
 ```
 
 Behavior notes:
-- OpenAI-compatible providers call `images/generations`.
+- OpenAI-compatible providers call `images/generations` and request `response_format: "b64_json"`.
 - GCP providers call `models/{model}:predict`.
 - Anthropic image generation is currently unsupported and returns a provider error.
+- The server normalizes successful image responses so each image includes `b64Json`, `mimeType`, and `dataUrl`.
+- If a provider returns only a URL, the server downloads the image into `temp/generation-images`, converts it to base64, and keeps the original `url` on the response.
 
 ## Model List Refresh
 
@@ -342,3 +345,5 @@ Headers are selected by provider:
 - `gcp`: `x-goog-api-key: {apiKey}`, with `key` query parameter also included
 
 The desktop interaction starts with the model type (`novel`, `image`, `video`). Each model type has its own provider, API key, base URL, and selected model name. The response is normalized in the desktop UI into model IDs for the currently selected model type.
+
+Model slots default to an empty model name. Refreshing the list selects the first compatible model only when the active slot is empty; changing provider clears the selected model so the next choice comes from the refreshed provider list.

@@ -1,4 +1,10 @@
-import type { GenerationProvider } from '@orison/shared-contracts';
+import {
+  imageGenerationResponseSchema,
+  type GenerationProvider,
+  type ImageGenerationResponse,
+  type ModelSlotConfig,
+} from '@orison/shared-contracts';
+import { API_BASE } from '../constants';
 
 export type RemoteModel = {
   id: string;
@@ -9,6 +15,14 @@ type LoadProviderModelsInput = {
   provider: GenerationProvider;
   apiKey: string;
   baseUrl: string;
+};
+
+type GenerateImageInput = {
+  slot: ModelSlotConfig;
+  prompt: string;
+  size: string;
+  n: number;
+  token: string | null;
 };
 
 type OpenAiModelListResponse = {
@@ -41,6 +55,36 @@ export async function loadProviderModels({
   return provider === 'gcp'
     ? parseGeminiModels(body as GeminiModelListResponse)
     : parseOpenAiModels(body as OpenAiModelListResponse);
+}
+
+export async function generateImage({
+  slot,
+  prompt,
+  size,
+  n,
+  token,
+}: GenerateImageInput): Promise<ImageGenerationResponse> {
+  const response = await fetch(`${API_BASE}/v1/generation/${slot.provider}/image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      model: slot.model,
+      apiKey: slot.apiKey,
+      baseUrl: slot.baseUrl,
+      prompt,
+      size,
+      n,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Image generation failed: ${response.status}`);
+  }
+
+  return imageGenerationResponseSchema.parse(await response.json());
 }
 
 function buildModelsUrl(provider: GenerationProvider, baseUrl: string, apiKey: string): string {

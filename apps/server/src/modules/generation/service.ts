@@ -5,6 +5,7 @@ import type {
   TextGenerationRequest,
   TextGenerationResponse,
 } from '@orison/shared-contracts';
+import { normalizeImageResponseToBase64 } from './imageBase64';
 import { getProvider } from './providers';
 
 export async function generateText(
@@ -18,5 +19,6 @@ export async function generateImage(
   provider: GenerationProvider,
   request: ImageGenerationRequest,
 ): Promise<ImageGenerationResponse> {
-  return getProvider(provider).generateImage(request);
+  const response = await getProvider(provider).generateImage(request);
+  return normalizeImageResponseToBase64(response);
 }

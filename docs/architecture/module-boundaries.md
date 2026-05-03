@@ -26,6 +26,7 @@
 - Renderer code calls the preload API only. It should not import Electron or Node filesystem APIs.
 - `shell/main/ipc/*Ipc.ts` files own IPC handlers by capability. Shared validation logic belongs in helper files such as `pathGuard.ts`.
 - File and shell operations must pass path validation before touching disk.
+- Generated image file operations stay project-scoped and may only write to `temp/images` or `assets/images`.
 - User-created projects live under `~/Documents/OrisonSpace`.
 - Model config lives at `~/.orison/model/config.yaml`.
 - User preferences live at `~/.orison/user/preferences.yaml`.
@@ -50,6 +51,7 @@
 - OpenAI-compatible, GCP, and Anthropic adapters stay in separate provider folders.
 - Text and image capabilities stay in separate files inside each provider folder.
 - Provider adapters should normalize external provider responses into shared contract response shapes.
+- Image generation service responses must include base64-ready image data (`b64Json`, `mimeType`, `dataUrl`) before reaching the desktop UI.
 
 ## Documentation Rule
 

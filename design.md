@@ -324,7 +324,8 @@ Inspector Panel（基础字段）
 ### 8.4 安全策略
 
 - CSP 由主进程通过 `session.webRequest.onHeadersReceived` 动态注入（仅生产构建）
-- 所有 IPC 文件操作通过 `pathGuard.ts` 校验路径范围（限制在用户主目录内）
+- 所有 IPC 文件操作通过 `pathGuard.ts` 校验路径范围；桌面项目文件操作限制在 `~/Documents/OrisonSpace` 项目范围内
+- 图片生成文件操作仅允许写入项目内 `temp/images` 与 `assets/images`
 - API Key 使用 Electron `safeStorage` API 加密存储
 - `shell:show-item-in-folder` / `shell:open-path` 不再自动创建不存在的文件/目录
 - 渲染层包裹 `ErrorBoundary`，防止未捕获异常导致白屏
