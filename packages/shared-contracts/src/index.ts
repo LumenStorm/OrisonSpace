@@ -11,3 +11,4 @@ export * from './contracts/generation';
 export * from './ipc';
 export * from './orchestration';
 export * from './config';
+export * from './config-yaml';

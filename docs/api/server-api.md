@@ -327,3 +327,18 @@ Behavior notes:
 - OpenAI-compatible providers call `images/generations`.
 - GCP providers call `models/{model}:predict`.
 - Anthropic image generation is currently unsupported and returns a provider error.
+
+## Model List Refresh
+
+The desktop model settings page does not use a custom Orison server endpoint for model lists.
+
+It refreshes model choices directly from the configured model provider base URL:
+- OpenAI/New API compatible: `GET {baseUrl}/models`
+- Gemini/GCP compatible: `GET {baseUrl}/models?key={apiKey}`
+
+Headers are selected by provider:
+- `openai`: `Authorization: Bearer {apiKey}`
+- `anthropic`: `x-api-key: {apiKey}` and `anthropic-version: 2023-06-01`
+- `gcp`: `x-goog-api-key: {apiKey}`, with `key` query parameter also included
+
+The desktop interaction starts with the model type (`novel`, `image`, `video`). Each model type has its own provider, API key, base URL, and selected model name. The response is normalized in the desktop UI into model IDs for the currently selected model type.

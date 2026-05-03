@@ -1,9 +1,17 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
+import { GeneralSettingsPage } from './settings/GeneralSettingsPage';
+import { ModelSettingsPage } from './settings/ModelSettingsPage';
 
 type Props = { onClose: () => void };
+type SettingsPageId = 'general' | 'model';
+
+const SETTINGS_PAGES: Array<{ id: SettingsPageId; icon: string; labelKey: string }> = [
+  { id: 'general', icon: 'tune', labelKey: 'settings.general' },
+  { id: 'model', icon: 'smart_toy', labelKey: 'settings.modelConfig' },
+];
 
 export function SettingsDialog({ onClose }: Props) {
   const {
@@ -19,11 +27,7 @@ export function SettingsDialog({ onClose }: Props) {
   })));
 
   const { t } = useI18n(resolvedLocale);
-  const [showApiKey, setShowApiKey] = useState(false);
-
-  const handleModelConfigChange = useCallback((field: 'apiKey' | 'baseUrl' | 'model', value: string) => {
-    setModelConfig({ ...modelConfig, [field]: value });
-  }, [modelConfig, setModelConfig]);
+  const [activePage, setActivePage] = useState<SettingsPageId>('general');
 
   return (
     <div className="topbar-new-dialog-overlay" onClick={onClose}>
@@ -35,101 +39,40 @@ export function SettingsDialog({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="settings-dialog-body">
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">{t('settings.theme')}</span>
-            <div className="sidebar-settings-options">
-              {(['system', 'light', 'dark'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className={`sidebar-settings-option${theme === opt ? ' is-active' : ''}`}
-                  onClick={() => setTheme(opt)}
-                >
-                  {t(`settings.theme${opt[0].toUpperCase()}${opt.slice(1)}`)}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="settings-dialog-body settings-dialog-body-with-nav">
+          <nav className="settings-dialog-nav" aria-label={t('nav.settings')}>
+            {SETTINGS_PAGES.map((page) => (
+              <button
+                key={page.id}
+                type="button"
+                className={`settings-dialog-nav-item${activePage === page.id ? ' is-active' : ''}`}
+                onClick={() => setActivePage(page.id)}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">{page.icon}</span>
+                <span>{t(page.labelKey)}</span>
+              </button>
+            ))}
+          </nav>
 
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">{t('settings.language')}</span>
-            <div className="sidebar-settings-options">
-              {(['system', 'en-US', 'zh-CN'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  className={`sidebar-settings-option${locale === opt ? ' is-active' : ''}`}
-                  onClick={() => setLocale(opt)}
-                >
-                  {opt === 'system' ? t('settings.languageSystem') : opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="sidebar-settings-divider" />
-
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">{t('settings.model')}</span>
-            <div className="sidebar-settings-input-row">
-              <span className="sidebar-settings-input-label">{t('settings.apiKey')}</span>
-              <div className="sidebar-settings-input-wrap">
-                <input
-                  className="sidebar-settings-input"
-                  type={showApiKey ? 'text' : 'password'}
-                  placeholder={t('settings.apiKeyPlaceholder')}
-                  value={modelConfig.apiKey}
-                  onChange={(e) => handleModelConfigChange('apiKey', e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="sidebar-settings-input-toggle"
-                  onClick={() => setShowApiKey((v) => !v)}
-                  aria-label={showApiKey ? t('settings.hideKey') : t('settings.showKey')}
-                >
-                  <span className="material-symbols-outlined">
-                    {showApiKey ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
-              </div>
-            </div>
-            <div className="sidebar-settings-input-row">
-              <span className="sidebar-settings-input-label">{t('settings.baseUrl')}</span>
-              <input
-                className="sidebar-settings-input"
-                type="text"
-                placeholder={t('settings.baseUrlPlaceholder')}
-                value={modelConfig.baseUrl}
-                onChange={(e) => handleModelConfigChange('baseUrl', e.target.value)}
+          <section className="settings-dialog-page">
+            {activePage === 'general' ? (
+              <GeneralSettingsPage
+                t={t}
+                theme={theme}
+                setTheme={setTheme}
+                locale={locale}
+                setLocale={setLocale}
+                autoApplyPatches={autoApplyPatches}
+                setAutoApplyPatches={setAutoApplyPatches}
               />
-            </div>
-            <div className="sidebar-settings-input-row">
-              <span className="sidebar-settings-input-label">{t('settings.modelName')}</span>
-              <input
-                className="sidebar-settings-input"
-                type="text"
-                placeholder={t('settings.modelNamePlaceholder')}
-                value={modelConfig.model}
-                onChange={(e) => handleModelConfigChange('model', e.target.value)}
+            ) : (
+              <ModelSettingsPage
+                t={t}
+                modelConfig={modelConfig}
+                setModelConfig={setModelConfig}
               />
-            </div>
-          </div>
-
-          <div className="sidebar-settings-divider" />
-
-          <div className="sidebar-settings-row">
-            <label className="sidebar-settings-toggle-row">
-              <input
-                type="checkbox"
-                className="sidebar-settings-checkbox"
-                checked={autoApplyPatches}
-                onChange={(e) => setAutoApplyPatches(e.target.checked)}
-              />
-              <span className="sidebar-settings-label">{t('settings.autoApply')}</span>
-            </label>
-            <span className="sidebar-settings-hint">{t('settings.autoApplyDesc')}</span>
-          </div>
+            )}
+          </section>
         </div>
       </div>
     </div>

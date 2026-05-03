@@ -186,8 +186,9 @@
 .settings-dialog {
   display: flex;
   flex-direction: column;
+  width: min(720px, calc(100vw - 2rem));
   min-width: 400px;
-  max-width: 480px;
+  max-width: 720px;
   max-height: 80vh;
   border-radius: 0.5rem;
   background: var(--surface-container-lowest);
@@ -241,6 +242,162 @@
   gap: 0.5rem;
   padding: 1.25rem;
   overflow-y: auto;
+}
+
+.settings-dialog-body-with-nav {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-dialog-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 0.75rem;
+  border-right: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+}
+
+.settings-dialog-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 34px;
+  padding: 0.45rem 0.6rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-dialog-nav-item:hover {
+  background: var(--hover-overlay);
+}
+
+.settings-dialog-nav-item.is-active {
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+}
+
+.settings-dialog-nav-item .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.settings-dialog-page {
+  min-width: 0;
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+.settings-page-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.settings-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.settings-save-button {
+  min-width: 72px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.25rem;
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.settings-save-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-refresh-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.settings-refresh-row .sidebar-settings-input {
+  min-width: 0;
+}
+
+.settings-refresh-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.settings-refresh-button:hover {
+  background: var(--hover-overlay);
+}
+
+.settings-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.settings-refresh-button .material-symbols-outlined {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .settings-dialog {
+    width: calc(100vw - 1rem);
+    min-width: 0;
+  }
+
+  .settings-dialog-body-with-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-dialog-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--outline-variant);
+  }
+
+  .settings-dialog-nav-item {
+    flex: 0 0 auto;
+  }
 }
 
 /* ── Account Dialog Profile ── */

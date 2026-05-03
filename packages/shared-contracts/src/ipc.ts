@@ -13,10 +13,17 @@ export const desktopIpcSchema = z.object({
 
 /* ── Shared types ── */
 
-export type ModelConfig = {
+export type ModelType = 'novel' | 'image' | 'video';
+
+export type ModelSlotConfig = {
+  provider: 'openai' | 'gcp' | 'anthropic';
   apiKey: string;
   baseUrl: string;
   model: string;
+};
+
+export type ModelConfig = {
+  models: Record<ModelType, ModelSlotConfig>;
 };
 
 export type UserPreferencesConfig = {

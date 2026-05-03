@@ -16,7 +16,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  `connect-src 'self' ${isDev ? 'http://localhost:4000 ws://localhost:*' : 'https://api.orison.app'}`,
+  `connect-src 'self' ${isDev ? 'http://localhost:4000 ws://localhost:* https:' : 'https:'}`,
 ].join('; ');
 
 function createWindow() {

@@ -2,17 +2,29 @@ import type { StateCreator } from 'zustand';
 import type { ThemeSetting, LocaleSetting } from './types';
 import { detectSystemLocale, availableLocales } from '../i18n/useI18n';
 import type { UserPreferencesConfig } from '@orison/shared-contracts';
-
-export type ModelConfig = {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
-};
+import type { ModelConfig } from '@orison/shared-contracts';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  apiKey: '',
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'gpt-5.4'
+  models: {
+    novel: {
+      provider: 'openai',
+      apiKey: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o',
+    },
+    image: {
+      provider: 'openai',
+      apiKey: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-image-1',
+    },
+    video: {
+      provider: 'openai',
+      apiKey: '',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'placeholder-video',
+    },
+  },
 };
 
 const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
@@ -29,7 +41,7 @@ export type SettingsSlice = {
   setLocale: (locale: LocaleSetting) => void;
   loadUserPreferences: () => Promise<void>;
   modelConfig: ModelConfig;
-  setModelConfig: (config: ModelConfig) => void;
+  setModelConfig: (config: ModelConfig) => Promise<void>;
   loadModelConfig: () => Promise<void>;
   autoApplyPatches: boolean;
   setAutoApplyPatches: (value: boolean) => void;
@@ -94,10 +106,10 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
   },
 
   modelConfig: { ...DEFAULT_MODEL_CONFIG },
-  setModelConfig(config) {
+  async setModelConfig(config) {
     set({ modelConfig: config });
     if (window.orisonDesktop?.saveModelConfig) {
-      window.orisonDesktop.saveModelConfig(config).catch(() => {});
+      await window.orisonDesktop.saveModelConfig(config);
     }
   },
   async loadModelConfig() {

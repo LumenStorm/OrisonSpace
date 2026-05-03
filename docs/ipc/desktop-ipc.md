@@ -67,7 +67,7 @@ All file operation IPC handlers (`project:*` except dialog-based pickers, plus `
 
 ### API Key Encryption
 
-Model configuration is stored at `~/.orison/config.json`. The `apiKey` field is encrypted using Electron's `safeStorage` API (OS keychain) before writing to disk, and decrypted on read.
+Model configuration is stored at `~/.orison/model/config.yaml`. The `apiKey` field is encrypted using Electron's `safeStorage` API (OS keychain) before writing to disk, and decrypted on read.
 
 ### Content Security Policy
 
@@ -122,9 +122,26 @@ window.orisonDesktop: {
 
 ```typescript
 type ModelConfig = {
-  apiKey: string;
-  baseUrl: string;
-  model: string;
+  models: {
+    novel: {
+      provider: 'openai' | 'gcp' | 'anthropic';
+      apiKey: string;
+      baseUrl: string;
+      model: string;
+    };
+    image: {
+      provider: 'openai' | 'gcp' | 'anthropic';
+      apiKey: string;
+      baseUrl: string;
+      model: string;
+    };
+    video: {
+      provider: 'openai' | 'gcp' | 'anthropic';
+      apiKey: string;
+      baseUrl: string;
+      model: string;
+    };
+  };
 };
 ```
 
@@ -167,12 +184,12 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 
 | Channel | Direction | Type | Description |
 |---|---|---|---|
-| `config:load-model` | renderer to main | invoke | Loads model configuration from `~/.orison/model/config.json`; API key is decrypted via `safeStorage`. |
-| `config:save-model` | renderer to main | invoke | Saves model configuration to `~/.orison/model/config.json`; API key is encrypted via `safeStorage`. |
-| `config:load-user-preferences` | renderer to main | invoke | Loads user preferences from `~/.orison/user/preferences.json`. |
-| `config:save-user-preferences` | renderer to main | invoke | Saves user preferences to `~/.orison/user/preferences.json`. |
+| `config:load-model` | renderer to main | invoke | Loads model configuration from `~/.orison/model/config.yaml`; API key is decrypted via `safeStorage`. |
+| `config:save-model` | renderer to main | invoke | Saves model configuration to `~/.orison/model/config.yaml`; API key is encrypted via `safeStorage`. |
+| `config:load-user-preferences` | renderer to main | invoke | Loads user preferences from `~/.orison/user/preferences.yaml`. |
+| `config:save-user-preferences` | renderer to main | invoke | Saves user preferences to `~/.orison/user/preferences.yaml`. |
 
-The old model config path `~/.orison/config.json` is intentionally not read for compatibility.
+The old model config path `~/.orison/config.json` is intentionally not read for compatibility. Current model config is YAML-only.
 
 ### Path Scope
 

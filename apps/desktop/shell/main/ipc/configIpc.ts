@@ -3,11 +3,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import type { ModelConfig, UserPreferencesConfig } from '@orison/shared-contracts';
+import { parseFlatYaml, stringifyFlatYaml } from '@orison/shared-contracts';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  apiKey: '',
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'gpt-4o'
+  models: {
+    novel: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
+    image: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-image-1' },
+    video: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'placeholder-video' },
+  },
 };
 
 const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
@@ -17,11 +20,11 @@ const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
 };
 
 function getModelConfigPath(): string {
-  return path.join(os.homedir(), '.orison', 'model', 'config.json');
+  return path.join(os.homedir(), '.orison', 'model', 'config.yaml');
 }
 
 function getUserPreferencesPath(): string {
-  return path.join(os.homedir(), '.orison', 'user', 'preferences.json');
+  return path.join(os.homedir(), '.orison', 'user', 'preferences.yaml');
 }
 
 /** Encrypt a string using Electron's safeStorage (OS keychain). Falls back to plain text if unavailable. */
@@ -51,16 +54,44 @@ function readModelConfig(): ModelConfig {
   const p = getModelConfigPath();
   try {
     if (!existsSync(p)) return { ...DEFAULT_MODEL_CONFIG };
-    const raw = JSON.parse(readFileSync(p, 'utf-8'));
-    const encrypted = typeof raw?.apiKey === 'string' ? raw.apiKey : '';
+    const raw = parseFlatYaml(readFileSync(p, 'utf-8'));
     return {
-      apiKey: decrypt(encrypted),
-      baseUrl: typeof raw?.baseUrl === 'string' ? raw.baseUrl : DEFAULT_MODEL_CONFIG.baseUrl,
-      model: typeof raw?.model === 'string' ? raw.model : DEFAULT_MODEL_CONFIG.model,
+      models: {
+        novel: readModelSlot(raw, 'novel'),
+        image: readModelSlot(raw, 'image'),
+        video: readModelSlot(raw, 'video'),
+      },
     };
   } catch {
     return { ...DEFAULT_MODEL_CONFIG };
   }
+}
+
+function readModelSlot(raw: Record<string, unknown>, type: 'novel' | 'image' | 'video') {
+  const fallback = DEFAULT_MODEL_CONFIG.models[type];
+  const encrypted = raw[`${type}.apiKey`];
+  const legacyApiKey = type === 'novel' ? raw.apiKey : undefined;
+  const apiKey = typeof encrypted === 'string'
+    ? decrypt(encrypted)
+    : typeof legacyApiKey === 'string'
+      ? decrypt(legacyApiKey)
+      : fallback.apiKey;
+  const legacyModel = type === 'novel' ? raw.novelModel ?? raw.model : type === 'image' ? raw.imageModel : raw.videoModel;
+
+  return {
+    provider: readProvider(raw[`${type}.provider`] ?? (type === 'novel' ? raw.provider : undefined), fallback.provider),
+    apiKey,
+    baseUrl: readString(raw[`${type}.baseUrl`] ?? (type === 'novel' ? raw.baseUrl : undefined), fallback.baseUrl),
+    model: readString(raw[`${type}.model`] ?? legacyModel, fallback.model),
+  };
+}
+
+function readProvider(value: unknown, fallback: 'openai' | 'gcp' | 'anthropic') {
+  return value === 'gcp' || value === 'anthropic' || value === 'openai' ? value : fallback;
+}
+
+function readString(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
 }
 
 function writeModelConfig(config: ModelConfig): void {
@@ -68,19 +99,25 @@ function writeModelConfig(config: ModelConfig): void {
   const dir = path.dirname(p);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
-  const saved = {
-    apiKey: encrypt(config.apiKey),
-    baseUrl: config.baseUrl,
-    model: config.model,
-  };
-  writeFileSync(p, JSON.stringify(saved, null, 2), 'utf-8');
+  const saved = Object.fromEntries(
+    (['novel', 'image', 'video'] as const).flatMap((type) => {
+      const slot = config.models[type];
+      return [
+        [`${type}.provider`, slot.provider],
+        [`${type}.apiKey`, encrypt(slot.apiKey)],
+        [`${type}.baseUrl`, slot.baseUrl],
+        [`${type}.model`, slot.model],
+      ];
+    }),
+  );
+  writeFileSync(p, stringifyFlatYaml(saved), 'utf-8');
 }
 
 function readUserPreferences(): UserPreferencesConfig {
   const p = getUserPreferencesPath();
   try {
     if (!existsSync(p)) return { ...DEFAULT_USER_PREFERENCES };
-    const raw = JSON.parse(readFileSync(p, 'utf-8'));
+    const raw = parseFlatYaml(readFileSync(p, 'utf-8'));
     return {
       theme: typeof raw?.theme === 'string' ? raw.theme : DEFAULT_USER_PREFERENCES.theme,
       locale: typeof raw?.locale === 'string' ? raw.locale : DEFAULT_USER_PREFERENCES.locale,
@@ -97,7 +134,7 @@ function writeUserPreferences(config: UserPreferencesConfig): void {
   const p = getUserPreferencesPath();
   const dir = path.dirname(p);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(p, JSON.stringify(config, null, 2), 'utf-8');
+  writeFileSync(p, stringifyFlatYaml(config), 'utf-8');
 }
 
 export function registerConfigIpc() {

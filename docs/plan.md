@@ -111,7 +111,7 @@
 - `windowIpc.ts` 的 `shell:show-item-in-folder` / `shell:open-path` 加入路径校验，删除自动创建文件/目录的逻辑
 
 ### API Key 加密
-- `configIpc.ts` 使用 Electron `safeStorage` API 加密 API Key 后写入 `~/.orison/config.json`，读取时解密
+- `configIpc.ts` 使用 Electron `safeStorage` API 加密 API Key 后写入 `~/.orison/model/config.yaml`，读取时解密
 - 不支持 `safeStorage` 的环境自动回退到明文（兼容 CI）
 
 ### CSP 动态注入
@@ -217,8 +217,8 @@
   - child views, hooks, local types, and pure helpers move to separate files when they carry independent responsibility.
 - Added the active rulebook: `docs/architecture/module-boundaries.md`.
 - Project creation and file IPC now target `~/Documents/OrisonSpace`.
-- Model config is stored at `~/.orison/model/config.json`.
-- User preferences are stored at `~/.orison/user/preferences.json`.
+- Model config is stored at `~/.orison/model/config.yaml`.
+- User preferences are stored at `~/.orison/user/preferences.yaml`.
 - User preference scope currently includes theme, locale, and auto-apply-patches. Layout, recent projects, and auth are excluded.
 - Server generation routes were added by provider and capability:
   - `POST /v1/generation/:provider/text`

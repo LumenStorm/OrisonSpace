@@ -27,8 +27,8 @@
 - `shell/main/ipc/*Ipc.ts` files own IPC handlers by capability. Shared validation logic belongs in helper files such as `pathGuard.ts`.
 - File and shell operations must pass path validation before touching disk.
 - User-created projects live under `~/Documents/OrisonSpace`.
-- Model config lives at `~/.orison/model/config.json`.
-- User preferences live at `~/.orison/user/preferences.json`.
+- Model config lives at `~/.orison/model/config.yaml`.
+- User preferences live at `~/.orison/user/preferences.yaml`.
 - No legacy compatibility should be added for the old `~/.orison/config.json` model path.
 - Global user preferences currently include theme, locale, and auto-apply-patches. Layout, recent projects, and auth are intentionally excluded.
 
