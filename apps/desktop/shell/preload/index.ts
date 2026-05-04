@@ -51,6 +51,8 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:create-entry', fullPath, isDir) as Promise<boolean>,
   readFile: (fullPath: string) =>
     ipcRenderer.invoke('project:read-file', fullPath) as Promise<string | null>,
+  readFileBinary: (fullPath: string) =>
+    ipcRenderer.invoke('project:read-file-binary', fullPath) as Promise<{ base64: string; mimeType: string } | null>,
   writeFile: (fullPath: string, content: string) =>
     ipcRenderer.invoke('project:write-file', fullPath, content) as Promise<boolean>,
   saveBase64Image: (projectDir: string, input: SaveBase64ImageInput) =>

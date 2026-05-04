@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CreativeFieldKey } from '@orison/shared-contracts';
 import type { ModelProfile } from '@orison/shared-contracts';
 import { generateImage } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
-
-const IMAGE_SIZES = ['1024x1024', '1024x1792', '1792x1024'] as const;
-const IMAGE_COUNTS = [1, 2, 4] as const;
+import { paramsToRequestPayload } from '../../shared/imageGen/schema';
+import { createImageName, fileNameOf, joinProjectPath, toDataUrl } from './imageGenUtils';
 
 type GeneratedImageItem = {
   id: string;
@@ -20,6 +19,16 @@ type GeneratedImageItem = {
   assetAdded: boolean;
 };
 
+/**
+ * Image-generation workspace.
+ *
+ * Flow: prompt → Generate → preview / save / promote-to-asset.
+ *
+ * Generation parameters (size, n, quality, background, output format,
+ * compression, moderation, user) are owned by the bottom Properties panel via
+ * `imageGenSlice`. This component is intentionally parameter-free; if the user
+ * has the bottom panel collapsed, sensible defaults still apply.
+ */
 export function ImageGenEditor() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const token = useAppStore((s) => s.token);
@@ -29,21 +38,44 @@ export function ImageGenEditor() {
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
+  const imageGenParams = useAppStore((s) => s.imageGenParams);
+  const imageGenFamily = useAppStore((s) => s.imageGenFamily);
+  const reconcileImageGenForModel = useAppStore((s) => s.reconcileImageGenForModel);
+  const bottomPanelOpen = useAppStore((s) => s.bottomPanelOpen);
+  const activeBottomTab = useAppStore((s) => s.activeBottomTab);
+  const toggleBottomPanel = useAppStore((s) => s.toggleBottomPanel);
+  const setActiveBottomTab = useAppStore((s) => s.setActiveBottomTab);
   const { t } = useI18n(resolvedLocale);
 
   const [prompt, setPrompt] = useState('');
-  const [size, setSize] = useState<(typeof IMAGE_SIZES)[number]>('1024x1024');
-  const [count, setCount] = useState<(typeof IMAGE_COUNTS)[number]>(1);
   const [results, setResults] = useState<GeneratedImageItem[]>([]);
   const [preview, setPreview] = useState<GeneratedImageItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canGenerate = !!currentProject?.path && !!prompt.trim() && !loading;
+  // Keep the slice's family in sync with the currently selected profile's
+  // model string. The Inspector also reconciles, but the editor may render
+  // first when the bottom panel is collapsed.
+  useEffect(() => {
+    reconcileImageGenForModel(imageModel?.model ?? null);
+  }, [imageModel?.model, reconcileImageGenForModel]);
+
+  const canGenerate = !!currentProject?.path && !!prompt.trim() && !loading && !!imageModel;
   const assetCards = useMemo(
     () => Array.isArray(creativeFields.asset_cards) ? creativeFields.asset_cards : [],
     [creativeFields.asset_cards],
   );
+
+  function openParameters() {
+    if (!bottomPanelOpen) toggleBottomPanel();
+    setActiveBottomTab('properties');
+  }
+
+  // The button is only useful when the user can't already see the inspector.
+  // If the bottom panel is open AND the properties tab is active, the params
+  // are already on screen — rendering the button would be a no-op and feels
+  // broken when clicked.
+  const inspectorAlreadyVisible = bottomPanelOpen && activeBottomTab === 'properties';
 
   async function handleGenerate() {
     if (!currentProject?.path || !prompt.trim() || !imageModel) return;
@@ -51,19 +83,19 @@ export function ImageGenEditor() {
     setError(null);
 
     try {
+      const payload = paramsToRequestPayload(imageGenParams, imageGenFamily);
       appendOutputEntry({
         scope: 'image',
         level: 'info',
         message: 'Image generation request started',
-        detail: `${imageModel.provider}/${imageModel.model} ${size} x${count}`,
+        detail: `${imageModel.provider}/${imageModel.model} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
       });
 
       const response = await generateImage({
         slot: imageModel,
         prompt: prompt.trim(),
-        size,
-        n: count,
         token,
+        params: payload,
       });
 
       const saved = await Promise.all(
@@ -115,7 +147,7 @@ export function ImageGenEditor() {
 
   async function handleSave(item: GeneratedImageItem) {
     if (!currentProject?.path || item.savedRelativePath) return;
-    const targetRelativePath = `assets/images/${item.tempRelativePath.split('/').pop()}`;
+    const targetRelativePath = `assets/images/${fileNameOf(item.tempRelativePath)}`;
     await window.orisonDesktop.moveProjectFile(currentProject.path, item.tempRelativePath, targetRelativePath);
     appendOutputEntry({
       scope: 'image',
@@ -137,7 +169,7 @@ export function ImageGenEditor() {
     let nextItem = item;
     if (!item.savedRelativePath) {
       await handleSave(item);
-      nextItem = { ...item, savedRelativePath: `assets/images/${item.tempRelativePath.split('/').pop()}` };
+      nextItem = { ...item, savedRelativePath: `assets/images/${fileNameOf(item.tempRelativePath)}` };
     }
 
     const assetCard = {
@@ -162,6 +194,28 @@ export function ImageGenEditor() {
     <div className="image-gen-editor">
       <div className="image-gen-input-section">
         <h3 className="image-gen-section-title">{t('imageGen.title')}</h3>
+
+        <div className="image-gen-profile-chip">
+          {imageModel ? (
+            <>
+              <span className="image-gen-profile-dot" aria-hidden="true" />
+              <span className="image-gen-profile-name">{imageModel.name}</span>
+              <span className="image-gen-profile-model">· {imageModel.model}</span>
+            </>
+          ) : (
+            <span className="image-gen-profile-empty">{t('imageGen.noModel')}</span>
+          )}
+          {!inspectorAlreadyVisible && (
+            <button
+              type="button"
+              className="image-gen-profile-link"
+              onClick={openParameters}
+            >
+              {t('imageGen.openParameters')}
+            </button>
+          )}
+        </div>
+
         <textarea
           className="image-gen-prompt"
           placeholder={t('imageGen.promptPlaceholder')}
@@ -169,21 +223,6 @@ export function ImageGenEditor() {
           onChange={(e) => setPrompt(e.target.value)}
           rows={4}
         />
-
-        <div className="image-gen-controls">
-          <label className="image-gen-control">
-            <span>{t('imageGen.size')}</span>
-            <select value={size} onChange={(e) => setSize(e.target.value as typeof size)}>
-              {IMAGE_SIZES.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
-          </label>
-          <label className="image-gen-control">
-            <span>{t('imageGen.count')}</span>
-            <select value={count} onChange={(e) => setCount(Number(e.target.value) as typeof count)}>
-              {IMAGE_COUNTS.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
-          </label>
-        </div>
 
         <div className="image-gen-actions">
           <button type="button" className="image-gen-btn" disabled={!canGenerate} onClick={() => void handleGenerate()}>
@@ -239,19 +278,6 @@ export function ImageGenEditor() {
   );
 }
 
-function createImageName(prompt: string, index: number): string {
-  const slug = prompt.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 36);
-  return `${slug || 'image'}-${index + 1}-${Date.now()}`;
-}
-
-function joinProjectPath(projectPath: string, relativePath: string): string {
-  return `${projectPath.replace(/[\\/]+$/, '')}\\${relativePath.replace(/\//g, '\\')}`;
-}
-
 function getSelectedProfile(profiles: ModelProfile[], selectedId: string | null): ModelProfile | null {
   return profiles.find((profile) => profile.id === selectedId) ?? null;
-}
-
-function toDataUrl(b64Json: string, mimeType: string): string {
-  return `data:${mimeType};base64,${b64Json}`;
 }

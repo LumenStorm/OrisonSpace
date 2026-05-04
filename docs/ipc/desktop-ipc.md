@@ -23,6 +23,7 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 | `project:rename-entry` | renderer → main | invoke | Renames a file or directory. Returns `boolean`. |
 | `project:create-entry` | renderer → main | invoke | Creates a file (empty) or directory. Returns `boolean`. |
 | `project:read-file` | renderer → main | invoke | Reads file content as UTF-8 string. Returns `string | null`. |
+| `project:read-file-binary` | renderer → main | invoke | Reads an allowed binary file (image extensions only) and returns `{ base64, mimeType }` or `null` if the file is missing or the extension is not whitelisted. |
 | `project:write-file` | renderer → main | invoke | Writes UTF-8 string to file. Creates parent directories if needed. Returns `boolean`. |
 | `project:save-base64-image` | renderer → main | invoke | Saves a base64 image into an allowed project image directory. Returns `{ relativePath, fullPath, fileName }`. |
 | `project:move-file` | renderer → main | invoke | Moves a project-relative file to another project-relative path. Creates parent directories if needed. Returns destination path. |
@@ -52,6 +53,12 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 | `config:save-model` | renderer → main | invoke | Saves model configuration to disk. API key is encrypted via `safeStorage`. |
 | `config:load-user-preferences` | renderer → main | invoke | Loads user preferences from disk. |
 | `config:save-user-preferences` | renderer → main | invoke | Saves user preferences to disk. |
+
+### Field Sync Channel
+
+| Channel | Direction | Type | Description |
+|---|---|---|---|
+| `field:sync` | renderer → main | invoke | Persists a single creative field value back to the project. Routes to the local-bff field sync bridge under `apps/desktop/local-bff/sync/fieldSyncBridge.ts`. |
 
 Model provider list refresh also uses `model:list-provider-models` from renderer to main. The desktop main process performs the provider HTTP request so model list refresh is still a desktop feature while avoiding renderer CORS limits.
 
@@ -102,6 +109,7 @@ window.orisonDesktop: {
   renameEntry: (oldPath: string, newPath: string) => Promise<boolean>
   createEntry: (fullPath: string, isDir: boolean) => Promise<boolean>
   readFile: (fullPath: string) => Promise<string | null>
+  readFileBinary: (fullPath: string) => Promise<BinaryFilePayload | null>
   writeFile: (fullPath: string, content: string) => Promise<boolean>
   saveBase64Image: (projectDir: string, input: SaveBase64ImageInput) => Promise<SavedImageFile>
   moveProjectFile: (projectDir: string, fromRelativePath: string, toRelativePath: string) => Promise<string>
@@ -119,7 +127,7 @@ window.orisonDesktop: {
   // 平台标识
   platform: string   // 'darwin' | 'win32' | 'linux'
 
-  // 字段同步（preload 已暴露，主进程 handler 尚未实现）
+  // 字段同步（preload + 主进程 handler 已闭环）
   syncField: (projectPath: string, field: string, data: unknown) => Promise<void>
 
   // 模型配置
@@ -166,6 +174,17 @@ type FileTreeEntry = {
   children?: FileTreeEntry[];
 };
 ```
+
+### BinaryFilePayload
+
+```typescript
+type BinaryFilePayload = {
+  base64: string;
+  mimeType: string;
+};
+```
+
+`project:read-file-binary` accepts only image extensions (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.bmp`); other extensions return `null` so the renderer cannot use this channel as a generic binary read. The renderer wraps the response into a `data:` URL when previewing image files in the editor area.
 
 ### Generated Image Files
 

@@ -1,35 +1,35 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
-
-const RUN_STATUS_LABEL: Record<string, string> = {
-  idle: '待生成',
-  running: '生成中…',
-  pending: '等待审阅',
-  accepted: '已接受',
-  rejected: '已丢弃',
-  failed: '失败',
-};
+import { useI18n } from '../../shared/i18n/useI18n';
+import { resolveErrorKey } from '../orchestration/errors';
 
 export function ChapterResultPanel() {
-  const candidate = useAppStore((s) => s.chapterCandidate);
-  const status = useAppStore((s) => s.chapterCandidateStatus);
-  const error = useAppStore((s) => s.chapterCandidateError);
-  const accept = useAppStore((s) => s.acceptChapterCandidate);
-  const reject = useAppStore((s) => s.rejectChapterCandidate);
+  const { candidate, status, error, accept, reject, resolvedLocale } = useAppStore(
+    useShallow((s) => ({
+      candidate: s.chapterCandidate,
+      status: s.chapterCandidateStatus,
+      error: s.chapterCandidateError,
+      accept: s.acceptChapterCandidate,
+      reject: s.rejectChapterCandidate,
+      resolvedLocale: s.resolvedLocale,
+    })),
+  );
+  const { t } = useI18n(resolvedLocale);
 
   return (
     <section className="novel-chapter-result" role="region" aria-label="Chapter Result">
       <header className="novel-chapter-result-header">
-        <strong>结果</strong>
+        <strong>{t('novelChapter.result')}</strong>
         <span className="novel-chapter-result-status" data-status={status}>
-          {RUN_STATUS_LABEL[status] ?? status}
+          {t(`novelChapter.runStatusValue.${status}`)}
         </span>
       </header>
 
       {status === 'running' ? (
-        <p className="novel-chapter-result-progress">生成中，请稍候…</p>
+        <p className="novel-chapter-result-progress">{t('novelChapter.generating')}</p>
       ) : null}
 
-      {error ? <p className="novel-chapter-result-error">{error}</p> : null}
+      {error ? <p className="novel-chapter-result-error">{resolveErrorKey(error, t)}</p> : null}
 
       {candidate ? (
         <div className="novel-chapter-candidate">
@@ -39,20 +39,20 @@ export function ChapterResultPanel() {
           ) : null}
           <pre className="novel-chapter-candidate-content">{candidate.content}</pre>
           {typeof candidate.wordCount === 'number' ? (
-            <p className="novel-chapter-candidate-meta">字数：{candidate.wordCount}</p>
+            <p className="novel-chapter-candidate-meta">{t('novelChapter.wordCount', { count: candidate.wordCount })}</p>
           ) : null}
 
           <div className="novel-chapter-actions">
             <button type="button" onClick={() => void accept()} className="primary">
-              接受候选
+              {t('novelChapter.acceptCandidate')}
             </button>
             <button type="button" onClick={reject}>
-              丢弃候选
+              {t('novelChapter.rejectCandidate')}
             </button>
           </div>
         </div>
       ) : status === 'idle' ? (
-        <p className="novel-chapter-result-hint">尚无候选，请先选择章节并触发生成。</p>
+        <p className="novel-chapter-result-hint">{t('novelChapter.empty')}</p>
       ) : null}
     </section>
   );

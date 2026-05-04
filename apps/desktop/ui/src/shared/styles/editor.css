@@ -773,6 +773,72 @@
   color: var(--error);
 }
 
+/* ── Profile chip in the image gen workspace ── */
+.image-gen-profile-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.4rem;
+  background: var(--surface-container-low);
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+}
+
+.image-gen-profile-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.image-gen-profile-name {
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.image-gen-profile-model {
+  color: var(--on-surface-variant);
+}
+
+.image-gen-profile-empty {
+  font-style: italic;
+  color: var(--outline);
+}
+
+.image-gen-profile-link {
+  margin-left: auto;
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.image-gen-profile-link:hover {
+  background: var(--hover-overlay);
+}
+
+/* ── Inspector image-gen specifics ── */
+.image-gen-inspector-hint {
+  font-weight: 400;
+  color: var(--on-surface-variant);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.image-gen-inspector-slider {
+  width: 100%;
+  margin-top: 0.4rem;
+  accent-color: var(--accent);
+}
+
 .image-preview-overlay {
   position: fixed;
   inset: 0;
@@ -1499,4 +1565,31 @@
   white-space: pre-wrap;
   overflow: auto;
   max-height: 400px;
+}
+
+/* ── File Editor: Image preview ── */
+.file-editor-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 1.5rem;
+  background:
+    linear-gradient(45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
+    linear-gradient(-45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
+    linear-gradient(45deg, transparent 75%, var(--surface-container-low) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-container-low) 75%);
+  background-size: 16px 16px;
+  background-color: var(--surface);
+  overflow: auto;
+}
+
+.file-editor-image-content {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 0.35rem;
+  box-shadow: var(--shadow-soft);
+  background: var(--surface-container-lowest);
 }

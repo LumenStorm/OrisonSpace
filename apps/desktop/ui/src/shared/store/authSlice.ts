@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { UserInfo } from './types';
 import { storage } from './storage';
-import { API_BASE } from '../constants';
+import { loginRequest, registerRequest } from '../api/auth';
 
 export type AuthSlice = {
   token: string | null;
@@ -22,16 +22,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
   async login(email, password) {
     set({ authLoading: true, authError: null });
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Login failed');
-      }
-      const data = await res.json();
+      const data = await loginRequest(email, password);
       storage.set('token', data.accessToken);
       storage.set('user', data.user);
       set({ token: data.accessToken, user: data.user, authLoading: false });
@@ -44,16 +35,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set)
   async register(email, password, displayName) {
     set({ authLoading: true, authError: null });
     try {
-      const res = await fetch(`${API_BASE}/v1/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, displayName }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Registration failed');
-      }
-      const data = await res.json();
+      const data = await registerRequest(email, password, displayName);
       storage.set('token', data.accessToken);
       storage.set('user', data.user);
       set({ token: data.accessToken, user: data.user, authLoading: false });

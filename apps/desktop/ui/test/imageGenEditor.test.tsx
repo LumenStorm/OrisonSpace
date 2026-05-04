@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ImageGenEditor } from '../src/features/editor/ImageGenEditor';
 import { useAppStore } from '../src/shared/store/appStore';
+import { defaultParamsFor } from '../src/shared/imageGen/schema';
 
 describe('ImageGenEditor', () => {
   beforeEach(() => {
+    localStorage.clear();
     useAppStore.setState({
       token: 'token-1',
       currentProject: {
@@ -33,6 +35,13 @@ describe('ImageGenEditor', () => {
         },
       },
       creativeFields: {},
+      // Editor reads params from the slice — seed with explicit values so the
+      // outgoing request body is predictable.
+      imageGenFamily: 'gpt-image-1',
+      imageGenParams: {
+        ...defaultParamsFor('gpt-image-1'),
+        size: '1792x1024' /* unused for gpt-image-1, will be sanitized to 'auto' */,
+      },
     } as any);
 
     (globalThis as any).fetch = vi.fn().mockResolvedValue({
@@ -59,22 +68,45 @@ describe('ImageGenEditor', () => {
     vi.restoreAllMocks();
   });
 
-  it('generates images, writes temporary project files, and renders previews', async () => {
+  it('reads parameters from the store and posts gpt-image-1 fields without response_format', async () => {
+    // Inject a fully-specified parameter set as if the Inspector had set it.
+    useAppStore.setState({
+      imageGenFamily: 'gpt-image-1',
+      imageGenParams: {
+        size: '1024x1536',
+        n: 2,
+        quality: 'high',
+        background: 'transparent',
+        outputFormat: 'webp',
+        outputCompression: 80,
+        moderation: 'low',
+        user: 'user-xyz',
+      },
+    } as any);
+
     render(<ImageGenEditor />);
 
     await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
-    await userEvent.selectOptions(screen.getByDisplayValue('1024x1024'), '1792x1024');
-    await userEvent.selectOptions(screen.getByDisplayValue('1'), '1');
     await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
 
     await waitFor(() => expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalled());
-    expect(fetch).toHaveBeenCalledWith(
-      'http://localhost:4000/v1/generation/openai/image',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"size":"1792x1024"'),
-      }),
-    );
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [, init] = (fetch as any).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body).toMatchObject({
+      model: 'gpt-image-1',
+      prompt: 'quiet desk',
+      size: '1024x1536',
+      n: 2,
+      quality: 'high',
+      background: 'transparent',
+      outputFormat: 'webp',
+      outputCompression: 80,
+      moderation: 'low',
+      user: 'user-xyz',
+    });
+    expect(body).not.toHaveProperty('response_format');
     expect(screen.getByAltText('quiet desk')).toBeTruthy();
   });
 
@@ -92,5 +124,54 @@ describe('ImageGenEditor', () => {
       'temp/images/test.png',
       'assets/images/test.png',
     );
+  });
+
+  it('renders the model profile chip but no parameter controls', () => {
+    render(<ImageGenEditor />);
+
+    // The chip surfaces the selected profile.
+    expect(screen.getByText(/Image Model/)).toBeTruthy();
+    expect(screen.getByText(/gpt-image-1/)).toBeTruthy();
+
+    // Size / count selectors must NOT appear in the editor anymore — they live
+    // in the Inspector now.
+    expect(screen.queryByDisplayValue('1024x1024')).toBeNull();
+    expect(screen.queryByDisplayValue('1024x1536')).toBeNull();
+  });
+
+  // Regression: when the bottom panel is already open AND the active tab is
+  // already "properties", clicking an "open parameters" button is a no-op and
+  // feels broken. The button must not render in that state at all.
+  it('hides the open-parameters button when inspector is already visible', () => {
+    useAppStore.setState({ bottomPanelOpen: true, activeBottomTab: 'properties' } as any);
+
+    render(<ImageGenEditor />);
+
+    expect(screen.queryByRole('button', { name: /imageGen\.openParameters|Open parameters/i })).toBeNull();
+  });
+
+  it('shows the open-parameters button when bottom panel is collapsed', async () => {
+    useAppStore.setState({ bottomPanelOpen: false, activeBottomTab: 'properties' } as any);
+
+    render(<ImageGenEditor />);
+
+    const button = screen.getByRole('button', { name: /imageGen\.openParameters|Open parameters/i });
+    expect(button).toBeTruthy();
+
+    await userEvent.click(button);
+    expect(useAppStore.getState().bottomPanelOpen).toBe(true);
+    expect(useAppStore.getState().activeBottomTab).toBe('properties');
+  });
+
+  it('shows the open-parameters button when bottom panel is on a different tab', async () => {
+    useAppStore.setState({ bottomPanelOpen: true, activeBottomTab: 'output' } as any);
+
+    render(<ImageGenEditor />);
+
+    const button = screen.getByRole('button', { name: /imageGen\.openParameters|Open parameters/i });
+    await userEvent.click(button);
+
+    expect(useAppStore.getState().bottomPanelOpen).toBe(true);
+    expect(useAppStore.getState().activeBottomTab).toBe('properties');
   });
 });

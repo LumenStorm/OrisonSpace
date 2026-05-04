@@ -1,11 +1,15 @@
 import type { StateCreator } from 'zustand';
 import type { z } from 'zod';
-import type {
-  storyMemoryEntrySchema,
-  novelChapterRunRequestSchema,
-  novelAutoModeStateSchema,
-} from '@orison/shared-contracts';
-import { API_BASE } from '../constants';
+import type { storyMemoryEntrySchema } from '@orison/shared-contracts';
+import {
+  performAutoModeAction,
+  refreshAutoMode,
+  startAutoMode,
+  startChapterRun,
+  type AutoModeAction,
+  type AutoModeState,
+  type NovelChapterRunMode,
+} from '../api/novelChapter';
 
 export type ChapterStatus = 'draft' | 'generating' | 'revised' | 'final';
 
@@ -31,9 +35,7 @@ export type ChapterCandidateStatus = 'idle' | 'running' | 'pending' | 'accepted'
 
 export type StoryMemoryEntry = z.infer<typeof storyMemoryEntrySchema>;
 
-export type NovelChapterRunMode = z.infer<typeof novelChapterRunRequestSchema>['mode'];
-
-export type AutoModeState = z.infer<typeof novelAutoModeStateSchema>;
+export type { NovelChapterRunMode, AutoModeState } from '../api/novelChapter';
 
 export type NovelChapterSlice = {
   novelChapters: NovelChapterMeta[];
@@ -53,7 +55,6 @@ export type NovelChapterSlice = {
   memoryEntries: StoryMemoryEntry[];
   setMemoryEntries: (entries: StoryMemoryEntry[]) => void;
 
-  // ── Auto Mode (Phase 6) ──
   autoModeState: AutoModeState | null;
   autoModeError: string | null;
   startAutoMode: (chapterIds?: string[]) => Promise<void>;
@@ -62,6 +63,31 @@ export type NovelChapterSlice = {
   cancelAutoMode: () => Promise<void>;
   refreshAutoMode: () => Promise<void>;
 };
+
+const NO_PROJECT_KEY = 'novelChapter.noProject';
+const UNKNOWN_ERROR_KEY = 'novelChapter.unknownError';
+const START_FAILED_PREFIX = 'startChapterRun:';
+const AUTO_PROJECT_KEY = 'autoMode.noProject';
+const AUTO_UNKNOWN_KEY = 'autoMode.unknownError';
+const AUTO_START_PREFIX = 'startAutoMode:';
+
+function statusFromMessage(message: string, prefix: string): string {
+  return message.startsWith(prefix) ? message.slice(prefix.length) : message;
+}
+
+function errorKeyFromStart(error: unknown): string {
+  if (error instanceof Error && error.message.startsWith(START_FAILED_PREFIX)) {
+    return `novelChapter.startFailed|${statusFromMessage(error.message, START_FAILED_PREFIX)}`;
+  }
+  return error instanceof Error ? error.message : UNKNOWN_ERROR_KEY;
+}
+
+function errorKeyFromAutoStart(error: unknown): string {
+  if (error instanceof Error && error.message.startsWith(AUTO_START_PREFIX)) {
+    return `autoMode.startFailed|${statusFromMessage(error.message, AUTO_START_PREFIX)}`;
+  }
+  return error instanceof Error ? error.message : AUTO_UNKNOWN_KEY;
+}
 
 export const createNovelChapterSlice: StateCreator<
   NovelChapterSlice & { currentProject: { path?: string } | null },
@@ -77,7 +103,6 @@ export const createNovelChapterSlice: StateCreator<
   selectChapter: (chapterId) => {
     set({
       activeChapterId: chapterId,
-      // 切换章节时清空当前 candidate
       chapterCandidate: null,
       chapterCandidateStatus: 'idle',
       chapterCandidateError: null,
@@ -91,7 +116,7 @@ export const createNovelChapterSlice: StateCreator<
   async startChapterRun(chapterId, mode, instruction) {
     const project = get().currentProject;
     if (!project?.path) {
-      set({ chapterCandidateError: '当前未打开项目', chapterCandidateStatus: 'failed' });
+      set({ chapterCandidateError: NO_PROJECT_KEY, chapterCandidateStatus: 'failed' });
       return;
     }
     set({
@@ -102,21 +127,21 @@ export const createNovelChapterSlice: StateCreator<
     });
 
     try {
-      const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectPath: project.path,
-          chapterId,
-          mode,
-          ...(instruction ? { instruction } : {}),
-        }),
-      });
-      if (!res.ok) throw new Error(`启动章节失败: ${res.status}`);
-      const run = await res.json();
+      const run = (await startChapterRun({
+        projectPath: project.path,
+        chapterId,
+        mode,
+        instruction,
+      })) as {
+        runId: string;
+        artifacts?: {
+          'chapter.candidate'?: ChapterCandidate;
+          'memory.extracted'?: { entries?: StoryMemoryEntry[] };
+        };
+      };
 
-      const candidate = run?.artifacts?.['chapter.candidate'] as ChapterCandidate | undefined;
-      const memArtifact = run?.artifacts?.['memory.extracted'] as { entries?: StoryMemoryEntry[] } | undefined;
+      const candidate = run?.artifacts?.['chapter.candidate'];
+      const memArtifact = run?.artifacts?.['memory.extracted'];
 
       if (candidate) {
         set({
@@ -124,7 +149,7 @@ export const createNovelChapterSlice: StateCreator<
           chapterCandidateStatus: 'pending',
         });
       } else {
-        set({ chapterCandidateStatus: 'failed', chapterCandidateError: '本次 run 未产出 candidate' });
+        set({ chapterCandidateStatus: 'failed', chapterCandidateError: 'novelChapter.noCandidate' });
       }
 
       if (memArtifact?.entries) {
@@ -134,7 +159,7 @@ export const createNovelChapterSlice: StateCreator<
     } catch (error) {
       set({
         chapterCandidateStatus: 'failed',
-        chapterCandidateError: error instanceof Error ? error.message : '未知错误',
+        chapterCandidateError: errorKeyFromStart(error),
       });
     }
   },
@@ -144,13 +169,7 @@ export const createNovelChapterSlice: StateCreator<
     const project = get().currentProject;
     if (!candidate || !project?.path) return;
 
-    // 通过 IPC 让 local-bff 写入磁盘（preload 暴露的 API）
-    const desktopApi = (globalThis as any).window?.orisonDesktop;
     try {
-      if (desktopApi?.acceptChapterCandidate) {
-        await desktopApi.acceptChapterCandidate(project.path, candidate);
-      }
-      // 更新本地章节状态
       const updated = get().novelChapters.map((ch) =>
         ch.id === candidate.chapterId
           ? { ...ch, status: 'final' as ChapterStatus, summary: candidate.summary ?? ch.summary, title: candidate.title ?? ch.title }
@@ -164,7 +183,7 @@ export const createNovelChapterSlice: StateCreator<
     } catch (error) {
       set({
         chapterCandidateStatus: 'failed',
-        chapterCandidateError: error instanceof Error ? error.message : '接受失败',
+        chapterCandidateError: error instanceof Error ? error.message : 'novelChapter.acceptFailed',
       });
     }
   },
@@ -180,32 +199,21 @@ export const createNovelChapterSlice: StateCreator<
   memoryEntries: [],
   setMemoryEntries: (entries) => set({ memoryEntries: [...entries] }),
 
-  // ── Auto Mode ──
   autoModeState: null,
   autoModeError: null,
 
   async startAutoMode(chapterIds) {
     const project = get().currentProject;
     if (!project?.path) {
-      set({ autoModeError: '当前未打开项目' });
+      set({ autoModeError: AUTO_PROJECT_KEY });
       return;
     }
     set({ autoModeError: null });
     try {
-      const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectPath: project.path,
-          mode: 'generate',
-          ...(chapterIds && chapterIds.length > 0 ? { chapterIds } : {}),
-        }),
-      });
-      if (!res.ok) throw new Error(`启动自动模式失败: ${res.status}`);
-      const state = (await res.json()) as AutoModeState;
+      const state = await startAutoMode(project.path, chapterIds);
       set({ autoModeState: state });
     } catch (error) {
-      set({ autoModeError: error instanceof Error ? error.message : '未知错误' });
+      set({ autoModeError: errorKeyFromAutoStart(error) });
     }
   },
 
@@ -225,14 +233,10 @@ export const createNovelChapterSlice: StateCreator<
     const cur = get().autoModeState;
     if (!cur) return;
     try {
-      const res = await fetch(
-        `${API_BASE}/v1/orchestration/auto-mode/${encodeURIComponent(cur.autoModeId)}`
-      );
-      if (!res.ok) return;
-      const state = (await res.json()) as AutoModeState;
-      set({ autoModeState: state });
+      const state = await refreshAutoMode(cur.autoModeId);
+      if (state) set({ autoModeState: state });
     } catch (error) {
-      set({ autoModeError: error instanceof Error ? error.message : '未知错误' });
+      set({ autoModeError: error instanceof Error ? error.message : AUTO_UNKNOWN_KEY });
     }
   },
 });
@@ -240,21 +244,15 @@ export const createNovelChapterSlice: StateCreator<
 async function applyAutoModeAction(
   get: () => { autoModeState: AutoModeState | null },
   set: (partial: { autoModeState?: AutoModeState; autoModeError?: string | null }) => void,
-  action: 'pause' | 'resume' | 'cancel'
+  action: AutoModeAction,
 ): Promise<void> {
   const cur = get().autoModeState;
   if (!cur) return;
   try {
-    const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode/actions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ autoModeId: cur.autoModeId, action }),
-    });
-    if (!res.ok) throw new Error(`动作失败 ${action}: ${res.status}`);
-    const state = (await res.json()) as AutoModeState;
+    const state = await performAutoModeAction(cur.autoModeId, action);
     set({ autoModeState: state });
   } catch (error) {
-    set({ autoModeError: error instanceof Error ? error.message : '未知错误' });
+    set({ autoModeError: error instanceof Error ? error.message : AUTO_UNKNOWN_KEY });
   }
 }
 

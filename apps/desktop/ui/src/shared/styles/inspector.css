@@ -83,6 +83,51 @@
   color: var(--on-surface);
 }
 
+/* ── Image-gen custom dimensions (gpt-image-2) ── */
+.image-gen-custom-size {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.image-gen-custom-size-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.image-gen-custom-size-input {
+  flex: 1;
+  min-width: 70px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+}
+
+.image-gen-custom-size-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.image-gen-custom-size-x {
+  color: var(--outline);
+  font-weight: 600;
+}
+
+.image-gen-custom-size-hint {
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+  line-height: 1.4;
+}
+
+.image-gen-custom-size-hint.is-invalid {
+  color: var(--error);
+}
+
 .inspector-cta {
   display: inline-flex;
   align-items: center;

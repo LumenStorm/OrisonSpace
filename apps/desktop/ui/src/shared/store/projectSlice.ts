@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { ProjectMeta, WorkspaceModule } from './types';
+import type { RecentProjectsSlice } from './recentProjectsSlice';
 
 export type ProjectSlice = {
   currentProject: ProjectMeta | null;
@@ -12,7 +13,12 @@ export type ProjectSlice = {
 
 export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice> = (set, get) => ({
   currentProject: null,
-  openProject: (project) => set({ currentProject: project }),
+  openProject: (project) => {
+    set({ currentProject: project });
+    // Bridge into the recent-projects slice without coupling slice types.
+    const addRecent = (get() as unknown as RecentProjectsSlice).addRecentProject;
+    if (typeof addRecent === 'function') addRecent(project);
+  },
   closeProject: () => set({ currentProject: null }),
   async saveProject() {
     const project = get().currentProject;

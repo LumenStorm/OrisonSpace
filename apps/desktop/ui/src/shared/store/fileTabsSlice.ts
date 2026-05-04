@@ -1,16 +1,21 @@
 import type { StateCreator } from 'zustand';
 
+export type FileTabKind = 'text' | 'image';
+
 export type FileTab = {
   path: string;
   name: string;
   content: string;
   savedContent: string;
+  kind?: FileTabKind;
+  /** For image tabs: data URL (`data:image/png;base64,...`) used for rendering. */
+  dataUrl?: string;
 };
 
 export type FileTabsSlice = {
   openFiles: FileTab[];
   activeFilePath: string | null;
-  openFile: (path: string, name: string, content: string) => void;
+  openFile: (path: string, name: string, content: string, options?: { kind?: FileTabKind; dataUrl?: string }) => void;
   closeFile: (path: string) => void;
   updateFileContent: (path: string, content: string) => void;
   saveFile: (path: string) => void;
@@ -20,14 +25,21 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   openFiles: [],
   activeFilePath: null,
 
-  openFile: (path, name, content) => {
+  openFile: (path, name, content, options) => {
     const state = get();
     const existing = state.openFiles.find((f) => f.path === path);
     if (existing) {
       set({ activeFilePath: path });
       return;
     }
-    const tab: FileTab = { path, name, content, savedContent: content };
+    const tab: FileTab = {
+      path,
+      name,
+      content,
+      savedContent: content,
+      kind: options?.kind ?? 'text',
+      dataUrl: options?.dataUrl,
+    };
     set({
       openFiles: [...state.openFiles, tab],
       activeFilePath: path,

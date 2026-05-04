@@ -1,29 +1,30 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
 
-const STATUS_LABEL: Record<NovelChapterMeta['status'], string> = {
-  draft: '草稿',
-  generating: '生成中',
-  revised: '已修订',
-  final: '已定稿',
-};
-
 export function ChapterListPanel() {
-  const chapters = useAppStore((s) => s.novelChapters);
-  const activeId = useAppStore((s) => s.activeChapterId);
-  const selectChapter = useAppStore((s) => s.selectChapter);
+  const { chapters, activeId, selectChapter, resolvedLocale } = useAppStore(
+    useShallow((s) => ({
+      chapters: s.novelChapters,
+      activeId: s.activeChapterId,
+      selectChapter: s.selectChapter,
+      resolvedLocale: s.resolvedLocale,
+    })),
+  );
+  const { t } = useI18n(resolvedLocale);
 
   if (chapters.length === 0) {
     return (
       <div className="novel-chapter-list-empty">
-        <p>当前项目暂无章节。</p>
+        <p>{t('novelChapter.emptyList')}</p>
       </div>
     );
   }
 
   return (
     <ul className="novel-chapter-list" aria-label="Chapter List">
-      {chapters.map((ch) => {
+      {chapters.map((ch: NovelChapterMeta) => {
         const active = ch.id === activeId;
         return (
           <li
@@ -37,8 +38,8 @@ export function ChapterListPanel() {
               onClick={() => selectChapter(ch.id)}
               className="novel-chapter-button"
             >
-              <span className="novel-chapter-title">{ch.title || `（未命名 ${ch.id}）`}</span>
-              <span className="novel-chapter-status">{STATUS_LABEL[ch.status]}</span>
+              <span className="novel-chapter-title">{ch.title || t('novelChapter.unnamed', { id: ch.id })}</span>
+              <span className="novel-chapter-status">{t(`novelChapter.statusValue.${ch.status}`)}</span>
               {ch.summary ? (
                 <span className="novel-chapter-summary">{ch.summary}</span>
               ) : null}

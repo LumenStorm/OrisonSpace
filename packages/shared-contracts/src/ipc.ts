@@ -81,6 +81,7 @@ export type OrisonDesktopApi = {
   renameEntry(oldPath: string, newPath: string): Promise<boolean>;
   createEntry(fullPath: string, isDir: boolean): Promise<boolean>;
   readFile(fullPath: string): Promise<string | null>;
+  readFileBinary(fullPath: string): Promise<BinaryFilePayload | null>;
   writeFile(fullPath: string, content: string): Promise<boolean>;
   saveBase64Image(projectDir: string, input: SaveBase64ImageInput): Promise<SavedImageFile>;
   moveProjectFile(projectDir: string, fromRelativePath: string, toRelativePath: string): Promise<string>;
@@ -105,4 +106,10 @@ export type SavedImageFile = {
   relativePath: string;
   fullPath: string;
   fileName: string;
+};
+
+/** Binary file payload returned by `project:read-file-binary`. */
+export type BinaryFilePayload = {
+  base64: string;
+  mimeType: string;
 };

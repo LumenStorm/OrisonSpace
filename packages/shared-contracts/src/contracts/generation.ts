@@ -29,7 +29,23 @@ export const imageGenerationRequestSchema = z.object({
   apiKey: z.string().min(1).optional(),
   baseUrl: z.string().url().optional(),
   size: z.string().optional(),
-  n: z.number().int().positive().max(8).optional(),
+  n: z.number().int().min(1).max(10).optional(),
+  /**
+   * OpenAI image quality.
+   * gpt-image-1: auto | low | medium | high
+   * (dall-e-3: standard | hd — not exposed in this iteration)
+   */
+  quality: z.enum(['auto', 'low', 'medium', 'high']).optional(),
+  /** gpt-image-1 only. Defaults to `auto`. */
+  background: z.enum(['transparent', 'opaque', 'auto']).optional(),
+  /** gpt-image-1 only. Defaults to `png`. */
+  outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
+  /** gpt-image-1 only, only meaningful for jpeg/webp. 0–100. */
+  outputCompression: z.number().int().min(0).max(100).optional(),
+  /** gpt-image-1 only. */
+  moderation: z.enum(['low', 'auto']).optional(),
+  /** Optional end-user identifier forwarded for abuse monitoring. */
+  user: z.string().optional(),
 });
 
 export const generatedImageSchema = z.object({

@@ -1,20 +1,16 @@
 import { useState } from 'react';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
 import { useI18n } from '../../shared/i18n/useI18n';
-import { useAppStore, type ProjectMeta } from '../../shared/store/appStore';
-import { ProjectCard } from './ProjectCard';
-import { ProjectsEmptyState } from './ProjectsEmptyState';
-import { useOpenProject } from './useOpenProject';
+import { useAppStore } from '../../shared/store/appStore';
+import { useOpenProject } from '../../shared/hooks/useOpenProject';
+import { ProjectCard } from '../../widgets/projects/ProjectCard';
+import { ProjectsEmptyState } from '../../widgets/projects/ProjectsEmptyState';
 
 export function ProjectsPage() {
-  const { openProject, resolvedLocale, token, user, logout } = useAppStore();
+  const { openProject, resolvedLocale, user, logout, recentProjects } = useAppStore();
   const { t } = useI18n(resolvedLocale);
   const [showNew, setShowNew] = useState(false);
-  const [recentProjects] = useState<ProjectMeta[]>([
-    { name: 'Cold City', path: '/projects/cold-city', type: 'script' },
-    { name: 'Summer Dream', path: '/projects/summer-dream', type: 'novel' },
-  ]);
-  const handleOpen = useOpenProject({ token, openProject });
+  const handleOpen = useOpenProject();
   const hasRecent = recentProjects.length > 0;
 
   return (

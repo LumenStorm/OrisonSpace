@@ -104,13 +104,161 @@ describe('generation routes', () => {
         dataUrl: 'data:image/png;base64,openai-base64',
       }],
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.openai.com/v1/images/generations',
-      expect.objectContaining({
-        method: 'POST',
-        body: expect.stringContaining('"response_format":"b64_json"'),
-      }),
-    );
+    // gpt-image-1 rejects `response_format` — the server must NOT inject it.
+    const upstreamCall = fetchMock.mock.calls.find(([url]) => url === 'https://api.openai.com/v1/images/generations');
+    expect(upstreamCall).toBeDefined();
+    const upstreamBody = JSON.parse((upstreamCall![1] as RequestInit).body as string);
+    expect(upstreamBody).toMatchObject({
+      model: 'gpt-image-1',
+      prompt: 'A quiet workstation',
+      size: '1024x1024',
+      n: 1,
+    });
+    expect(upstreamBody).not.toHaveProperty('response_format');
+  });
+
+  it('forwards gpt-image-1 specific flags (quality, background, output_format, output_compression, moderation) to OpenAI', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
+      data: [{ b64_json: 'openai-base64' }],
+    }));
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/generation/openai/image',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        model: 'gpt-image-1',
+        apiKey: 'sk-test',
+        prompt: 'A quiet workstation',
+        size: 'auto',
+        n: 2,
+        quality: 'high',
+        background: 'transparent',
+        outputFormat: 'webp',
+        outputCompression: 80,
+        moderation: 'low',
+        user: 'user-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const call = fetchMock.mock.calls.find(([url]) => url === 'https://api.openai.com/v1/images/generations');
+    expect(call).toBeDefined();
+    const upstreamBody = JSON.parse((call![1] as RequestInit).body as string);
+    expect(upstreamBody).toMatchObject({
+      model: 'gpt-image-1',
+      prompt: 'A quiet workstation',
+      size: 'auto',
+      n: 2,
+      quality: 'high',
+      background: 'transparent',
+      output_format: 'webp',
+      output_compression: 80,
+      moderation: 'low',
+      user: 'user-123',
+    });
+    expect(upstreamBody).not.toHaveProperty('response_format');
+    expect(upstreamBody).not.toHaveProperty('outputFormat');
+    expect(upstreamBody).not.toHaveProperty('outputCompression');
+  });
+
+  it('still injects response_format=b64_json for non gpt-image-1 OpenAI-compatible models', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
+      data: [{ b64_json: 'legacy-base64' }],
+    }));
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/generation/openai/image',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        model: 'dall-e-3',
+        apiKey: 'sk-test',
+        prompt: 'A noir skyline',
+        size: '1024x1024',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const call = fetchMock.mock.calls.find(([url]) => url === 'https://api.openai.com/v1/images/generations');
+    expect(call).toBeDefined();
+    const upstreamBody = JSON.parse((call![1] as RequestInit).body as string);
+    expect(upstreamBody).toMatchObject({
+      model: 'dall-e-3',
+      response_format: 'b64_json',
+    });
+    // gpt-image-1-only flags must not leak when the model is something else.
+    expect(upstreamBody).not.toHaveProperty('background');
+    expect(upstreamBody).not.toHaveProperty('output_format');
+    expect(upstreamBody).not.toHaveProperty('output_compression');
+    expect(upstreamBody).not.toHaveProperty('moderation');
+  });
+
+  it('routes gpt-image-2 with new flags (no response_format, accepts custom WxH size)', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
+      data: [{ b64_json: 'gptimage2-base64' }],
+    }));
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/generation/openai/image',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        model: 'gpt-image-2',
+        apiKey: 'sk-test',
+        prompt: 'A clean product shot',
+        size: '1280x720',
+        n: 1,
+        quality: 'high',
+        background: 'opaque',
+        outputFormat: 'webp',
+        outputCompression: 80,
+        moderation: 'auto',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const call = fetchMock.mock.calls.find(([url]) => url === 'https://api.openai.com/v1/images/generations');
+    expect(call).toBeDefined();
+    const upstreamBody = JSON.parse((call![1] as RequestInit).body as string);
+    expect(upstreamBody).toMatchObject({
+      model: 'gpt-image-2',
+      prompt: 'A clean product shot',
+      size: '1280x720',
+      n: 1,
+      quality: 'high',
+      background: 'opaque',
+      output_format: 'webp',
+      output_compression: 80,
+      moderation: 'auto',
+    });
+    // gpt-image-2 must NOT receive response_format (rejected by OpenAI).
+    expect(upstreamBody).not.toHaveProperty('response_format');
+  });
+
+  it('rejects gpt-image-2 + transparent background with a friendly 400', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/generation/openai/image',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        model: 'gpt-image-2',
+        apiKey: 'sk-test',
+        prompt: 'A subject',
+        background: 'transparent',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().message).toMatch(/transparent/i);
+    // Critical: never even hit OpenAI for this case.
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('normalizes OpenAI-compatible image responses that use base64', async () => {

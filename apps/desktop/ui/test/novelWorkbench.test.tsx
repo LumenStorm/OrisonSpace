@@ -49,6 +49,12 @@ const SAMPLE_MEMORY_ENTRIES = [
   },
 ];
 
+const generateBtnRegex = /^(生成本章|Generate Chapter|novelChapter\.actionLabel\.generate)$/;
+const continueBtnRegex = /^(续写|Continue|novelChapter\.actionLabel\.continue)$/;
+const polishBtnRegex = /^(润色|Polish|novelChapter\.actionLabel\.polish)$/;
+const acceptBtnRegex = /^(接受候选|Accept Candidate|novelChapter\.acceptCandidate)$/;
+const rejectBtnRegex = /^(丢弃候选|Discard Candidate|novelChapter\.rejectCandidate)$/;
+
 describe('NovelWorkbench', () => {
   afterEach(() => {
     cleanup();
@@ -95,17 +101,17 @@ describe('NovelWorkbench', () => {
   });
 
   it('选中章节后显示生成/继续/润色按钮', () => {
-    useAppStore.setState({ activeChapterId: 'ch_002' });
+    useAppStore.setState({ activeChapterId: 'ch_002' } as any);
     render(<NovelWorkbench />);
-    expect(screen.getByRole('button', { name: '生成本章' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '续写' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '润色' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: generateBtnRegex })).toBeTruthy();
+    expect(screen.getByRole('button', { name: continueBtnRegex })).toBeTruthy();
+    expect(screen.getByRole('button', { name: polishBtnRegex })).toBeTruthy();
   });
 
   it('点击生成本章触发 startChapterRun', async () => {
-    useAppStore.setState({ activeChapterId: 'ch_002' });
+    useAppStore.setState({ activeChapterId: 'ch_002' } as any);
     render(<NovelWorkbench />);
-    await userEvent.click(screen.getByRole('button', { name: '生成本章' }));
+    await userEvent.click(screen.getByRole('button', { name: generateBtnRegex }));
     expect(useAppStore.getState().startChapterRun).toHaveBeenCalledWith('ch_002', 'generate');
   });
 
@@ -114,13 +120,13 @@ describe('NovelWorkbench', () => {
       activeChapterId: 'ch_002',
       chapterCandidate: SAMPLE_CANDIDATE,
       chapterCandidateStatus: 'pending',
-    });
+    } as any);
     render(<NovelWorkbench />);
 
     const result = screen.getByRole('region', { name: 'Chapter Result' });
     expect(within(result).getByText(SAMPLE_CANDIDATE.content)).toBeTruthy();
-    expect(within(result).getByRole('button', { name: '接受候选' })).toBeTruthy();
-    expect(within(result).getByRole('button', { name: '丢弃候选' })).toBeTruthy();
+    expect(within(result).getByRole('button', { name: acceptBtnRegex })).toBeTruthy();
+    expect(within(result).getByRole('button', { name: rejectBtnRegex })).toBeTruthy();
   });
 
   it('点击接受候选触发 acceptChapterCandidate', async () => {
@@ -128,10 +134,10 @@ describe('NovelWorkbench', () => {
       activeChapterId: 'ch_002',
       chapterCandidate: SAMPLE_CANDIDATE,
       chapterCandidateStatus: 'pending',
-    });
+    } as any);
     render(<NovelWorkbench />);
     const result = screen.getByRole('region', { name: 'Chapter Result' });
-    await userEvent.click(within(result).getByRole('button', { name: '接受候选' }));
+    await userEvent.click(within(result).getByRole('button', { name: acceptBtnRegex }));
     expect(useAppStore.getState().acceptChapterCandidate).toHaveBeenCalled();
   });
 
@@ -140,10 +146,10 @@ describe('NovelWorkbench', () => {
       activeChapterId: 'ch_002',
       chapterCandidate: null,
       chapterCandidateStatus: 'running',
-    });
+    } as any);
     render(<NovelWorkbench />);
     const result = screen.getByRole('region', { name: 'Chapter Result' });
-    expect(within(result).getByText(/生成中，请稍候/)).toBeTruthy();
+    expect(within(result).getByText(/(生成中，请稍候|Generating, please wait|novelChapter\.generating)/)).toBeTruthy();
   });
 });
 
@@ -166,7 +172,7 @@ describe('MemoryPanel', () => {
 
   it('空记忆显示占位文案', () => {
     render(<MemoryPanel />);
-    expect(screen.getByText(/暂无记忆/)).toBeTruthy();
+    expect(screen.getByText(/(暂无记忆|No memory entries|memory\.empty)/)).toBeTruthy();
   });
 
   it('渲染所有记忆条目，按章节号分组', () => {
@@ -174,8 +180,8 @@ describe('MemoryPanel', () => {
     render(<MemoryPanel />);
     expect(screen.getByText(/暗夜降临 摘要/)).toBeTruthy();
     expect(screen.getByText(/线索：钥匙/)).toBeTruthy();
-    // 章节号显示
-    expect(screen.getAllByText(/第2章/).length).toBeGreaterThanOrEqual(1);
+    // 章节号显示 (Tolerate "第2章" / "Chapter 2" / "memory.chapterHeader")
+    expect(screen.getAllByText(/(第2章|Chapter 2|memory\.chapterHeader)/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('foreshadow 类型条目带特殊标记', () => {

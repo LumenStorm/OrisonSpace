@@ -13,7 +13,7 @@
 
 ---
 
-## 当前状态（2026-05-03）
+## 当前状态（2026-05-05）
 
 ### 创作主链路
 
@@ -59,16 +59,17 @@
 - 轻量资产索引（`(project_id, asset_id)` 复合主键）
 - PostgreSQL 持久化 — 启动时自动建表
 
-### 测试基线（2026-05-03）
+### 测试基线（2026-05-05）
 
 | 包 | 文件 | 测试 | 状态 |
 |---|---|---|---|
 | `@orison/shared-contracts` | 6 | 52 | ✅ |
 | `@orison/desktop-local-bff` | 7 | 31 | ✅ |
 | `@orison/agent` | 24 | 106 | ✅ |
-| `@orison/desktop-ui` | 8 | 36 | ✅ |
+| `@orison/desktop-ui` | 11 | 83 | ✅ |
+| `@orison/desktop-shell` | 5 | 7 | ✅ |
 
-**当前 focused verification 已覆盖：desktop-ui 8 文件 / 36 测试，desktop-shell 5 文件 / 7 测试，server 7 文件 / 19 测试，均通过。**
+**`tsc --noEmit` 在 `@orison/desktop-ui` 与 `@orison/desktop-shell` 均通过。**
 
 ---
 
@@ -106,14 +107,30 @@ OneLine2Video/
 │  │  │  ├─ preload/                  contextBridge 预加载
 │  │  │  └─ test/                     IPC 安全测试
 │  │  ├─ ui/
-│  │  │  └─ src/features/
-│  │  │     ├─ novel-workbench/       章节工作台 (Phase 5)
-│  │  │     ├─ memory/                记忆面板 (Phase 5)
-│  │  │     ├─ auto-mode/             自动模式控制台 (Phase 6)
-│  │  │     ├─ creative/              创作字段编辑器
-│  │  │     ├─ orchestration/         编排面板
-│  │  │     ├─ tasks/                 任务面板
-│  │  │     └─ editor/                文件 / 大纲 / 剧本 / 分镜 / 图片生成 / 视频编辑
+│  │  │  └─ src/
+│  │  │     ├─ app/                   App 入口
+│  │  │     ├─ pages/                 路由级 entry（auth/projects/workspace）
+│  │  │     ├─ widgets/               跨 feature 页面布局
+│  │  │     │  ├─ layout/             WorkspaceLayout
+│  │  │     │  └─ projects/           ProjectCard / ProjectsEmptyState
+│  │  │     ├─ features/              领域 UI
+│  │  │     │  ├─ novel-workbench/    章节工作台 (Phase 5)
+│  │  │     │  ├─ memory/             记忆面板 (Phase 5)
+│  │  │     │  ├─ auto-mode/          自动模式控制台 (Phase 6)
+│  │  │     │  ├─ creative/           创作字段编辑器
+│  │  │     │  ├─ orchestration/      编排面板 + errors 工具
+│  │  │     │  ├─ tasks/              任务面板
+│  │  │     │  ├─ inspector/          底部属性面板（含 image-gen-fields/ 子组件）
+│  │  │     │  └─ editor/             文件 / 大纲 / 剧本 / 分镜 / 图片生成 / 视频编辑
+│  │  │     │     └─ file-editor/     Markdown / Code / Image / ReadOnly 子视图
+│  │  │     └─ shared/                跨 feature 复用
+│  │  │        ├─ api/                HTTP 调用封装（auth / orchestration / novelChapter / generation / projects）
+│  │  │        ├─ store/              zustand slices（authSlice / orchestrationSlice / ...）
+│  │  │        ├─ hooks/              通用 hooks（useGlobalShortcuts / useOpenProject / usePanelResize）
+│  │  │        ├─ imageGen/           图片生成参数 schema（跨 feature 共享）
+│  │  │        ├─ i18n/               YAML 语言包 + useI18n hook
+│  │  │        ├─ themes/             YAML 主题 + buildThemes 脚本
+│  │  │        └─ components/         共享 UI 组件（Tooltip / Dialog / Settings / ...）
 │  │  └─ local-bff/
 │  │     └─ sync/
 │  │        ├─ novelProjectRepository.ts  小说章节本地仓库
@@ -335,18 +352,15 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 
 ### 已知历史遗留（不阻塞 cutover）
 
-1. `apps/desktop/ui` 的 `tsc --noEmit` 仍有 zod 模块解析 + rootDir 配置问题（与小说迁移正交，所有 creative 页面同样报错）
-2. `test/workspaceLayout.test.tsx` / `test/reviewFlow.test.tsx` 失败（迁移之前已存在，git stash 可验证）
-3. `GET /v1/projects/:projectId/tasks` 与 `GET /v1/projects/:projectId/assets` 暂未分页
-4. `GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据
-5. `field:sync` IPC 通道已在 preload 与主进程 handler 中闭环；当前无已知 IPC surface mismatch
+1. `GET /v1/projects/:projectId/tasks` 与 `GET /v1/projects/:projectId/assets` 暂未分页
+2. `GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据
+3. `apps/desktop/local-bff` 与 `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` 之间的 sync 角色尚未在 `docs/architecture/module-boundaries.md` 单列章节，仅在 server / desktop shell 章节提及
 
 ### 后续 Enhancement（按优先级）
 
 - **P1** — `story-sync-agent` 由规则驱动升级为 LLM 节点（契约已定型，无需改 schema）
 - **P2** — Auto Mode 会话持久化（序列化 `NovelAutoModeState` 到 `runs/auto-mode/<id>.yaml`）
 - **P3** — Memory RAG / embedding 检索能力
-- **P3** — `apps/desktop/ui/tsconfig.json` 历史遗留 zod / rootDir 整改
 
 ---
 
@@ -369,10 +383,15 @@ Private
 
 ---
 
-## Architecture Notes (2026-05-04)
+## Architecture Notes (2026-05-05)
 
-- Desktop UI split rules now live in [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md).
-- Pages should stay route-level; feature files own domain UI; child views, hooks, local types, and pure helpers are split when they carry independent responsibility.
+- Desktop UI follows a Feature-Sliced–style layering: `app → pages → widgets → features → shared`. Pages stay thin route entries; child views, hooks, local types, and pure helpers split when they carry independent responsibility. The split rules live in [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md).
+- `shared/api/*.ts` owns all HTTP calls to the local server; slices in `shared/store/*` import from there instead of calling `fetch` directly. Auth, orchestration, novel-chapter / auto-mode, project registration, and image generation all follow this pattern.
+- All UI store state lives under a single `useAppStore` composed from slices. Orchestration (run lifecycle + node review) is a slice (`orchestrationSlice.ts`) and integrates with `creativeFieldsSlice` for patch delivery instead of using a side store.
+- Page-level orchestration / auto-mode / chapter-workbench / memory components consume i18n keys exclusively; new keys live under `autoMode.*`, `orchestration.*`, `novelChapter.*`, and `memory.*` in `shared/i18n/{zh-CN,en-US}.yaml`.
+- Image-generation parameter schema lives at `shared/imageGen/schema.ts` because it is consumed by both the inspector (parameter UI) and the editor (request payload + family reconciliation).
+- Page-level project widgets (`ProjectCard`, `ProjectsEmptyState`) live under `widgets/projects/`; pages compose widgets, not the reverse.
+- `WorkspaceLayout` consumes `usePanelResize` for project-tree and bottom-panel resize handlers so the layout component stays composition-only.
 - New desktop projects default to `~/Documents/OrisonSpace`; user-selected project directories are registered as allowed roots for the current Electron session and guarded by shell IPC path validation.
 - Model config is stored as `~/.orison/model/index.yaml` plus one YAML file per model under `~/.orison/model/profiles/`; legacy `~/.orison/model/config.yaml` is migrated on read.
 - The settings page manages a reusable model library and assigns selected profiles to `novel`, `image`, and `video`.

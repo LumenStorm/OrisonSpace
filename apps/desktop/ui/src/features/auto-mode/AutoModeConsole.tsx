@@ -1,24 +1,23 @@
 import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
-import type { AutoModeState } from '../../shared/store/novelChapterSlice';
-
-const STATUS_LABEL: Record<AutoModeState['status'], string> = {
-  idle: '未启动',
-  running: '运行中',
-  paused: '已暂停',
-  completed: '已完成',
-  cancelled: '已取消',
-  failed: '失败',
-};
+import { useI18n } from '../../shared/i18n/useI18n';
+import { resolveErrorKey } from '../orchestration/errors';
 
 export function AutoModeConsole() {
-  const state = useAppStore((s) => s.autoModeState);
-  const error = useAppStore((s) => s.autoModeError);
-  const start = useAppStore((s) => s.startAutoMode);
-  const pause = useAppStore((s) => s.pauseAutoMode);
-  const resume = useAppStore((s) => s.resumeAutoMode);
-  const cancel = useAppStore((s) => s.cancelAutoMode);
-  const refresh = useAppStore((s) => s.refreshAutoMode);
+  const { state, error, start, pause, resume, cancel, refresh, resolvedLocale } = useAppStore(
+    useShallow((s) => ({
+      state: s.autoModeState,
+      error: s.autoModeError,
+      start: s.startAutoMode,
+      pause: s.pauseAutoMode,
+      resume: s.resumeAutoMode,
+      cancel: s.cancelAutoMode,
+      refresh: s.refreshAutoMode,
+      resolvedLocale: s.resolvedLocale,
+    })),
+  );
+  const { t } = useI18n(resolvedLocale);
 
   // 运行中时定时拉取后端最新状态
   useEffect(() => {
@@ -33,15 +32,13 @@ export function AutoModeConsole() {
     return (
       <section className="auto-mode-console" aria-label="Auto Mode Console">
         <header className="auto-mode-console-header">
-          <strong>自动模式</strong>
+          <strong>{t('autoMode.title')}</strong>
         </header>
-        <p className="auto-mode-console-hint">
-          自动模式将依次推进所有未定稿章节。
-        </p>
+        <p className="auto-mode-console-hint">{t('autoMode.hint')}</p>
         <button type="button" onClick={() => void start()} className="primary">
-          启动自动模式
+          {t('autoMode.start')}
         </button>
-        {error ? <p className="auto-mode-console-error">{error}</p> : null}
+        {error ? <p className="auto-mode-console-error">{resolveErrorKey(error, t)}</p> : null}
       </section>
     );
   }
@@ -56,37 +53,37 @@ export function AutoModeConsole() {
   return (
     <section className="auto-mode-console" aria-label="Auto Mode Console">
       <header className="auto-mode-console-header">
-        <strong>自动模式</strong>
+        <strong>{t('autoMode.title')}</strong>
         <span className="auto-mode-console-id">{state.autoModeId}</span>
       </header>
 
-      <p>状态：{STATUS_LABEL[state.status]}</p>
-      <p>进度：{progress}</p>
-      {state.currentChapterId ? <p>当前章节：{state.currentChapterId}</p> : null}
-      {state.currentRunId ? <p className="auto-mode-console-run">Run: {state.currentRunId}</p> : null}
+      <p>{t('autoMode.status', { value: t(`autoMode.statusValue.${state.status}`) })}</p>
+      <p>{t('autoMode.progress', { value: progress })}</p>
+      {state.currentChapterId ? <p>{t('autoMode.currentChapter', { id: state.currentChapterId })}</p> : null}
+      {state.currentRunId ? <p className="auto-mode-console-run">{t('autoMode.currentRun', { id: state.currentRunId })}</p> : null}
 
       <div className="auto-mode-console-actions">
         {showRunningControls ? (
           <button type="button" onClick={() => void pause()}>
-            暂停
+            {t('autoMode.pause')}
           </button>
         ) : null}
         {showResumeControl ? (
           <button type="button" onClick={() => void resume()}>
-            恢复
+            {t('autoMode.resume')}
           </button>
         ) : null}
         {showCancelControl ? (
           <button type="button" onClick={() => void cancel()}>
-            取消
+            {t('autoMode.cancel')}
           </button>
         ) : null}
       </div>
 
       {state.status === 'failed' && state.lastError ? (
-        <p className="auto-mode-console-error">错误：{state.lastError}</p>
+        <p className="auto-mode-console-error">{t('autoMode.errorPrefix', { message: state.lastError })}</p>
       ) : null}
-      {error ? <p className="auto-mode-console-error">{error}</p> : null}
+      {error ? <p className="auto-mode-console-error">{resolveErrorKey(error, t)}</p> : null}
     </section>
   );
 }

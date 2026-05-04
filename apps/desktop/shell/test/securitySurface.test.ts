@@ -31,6 +31,7 @@ describe('preload security surface', () => {
       'platform',
       'readDirectory',
       'readFile',
+      'readFileBinary',
       'renameEntry',
       'saveBase64Image',
       'saveModelConfig',

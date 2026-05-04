@@ -1,13 +1,22 @@
-import { ensureProjectRegistration } from '../../shared/api/projects';
-import type { ProjectMeta } from '../../shared/store/appStore';
+import { useCallback } from 'react';
+import { useAppStore, type ProjectMeta } from '../store/appStore';
+import { ensureProjectRegistration } from '../api/projects';
 
-type UseOpenProjectInput = {
-  token: string | null;
-  openProject: (project: ProjectMeta) => void;
-};
+/**
+ * Shared hook for "Open Project" flow:
+ * 1. Pick a directory through the desktop shell.
+ * 2. Load (or fall back to) project metadata.
+ * 3. Register the project with the server when it has no projectId.
+ * 4. Persist the registered projectId back to project.json.
+ * 5. Push the result into the app store.
+ *
+ * Used by both `ProjectsPage` and `TopBar` to keep the open-project behavior consistent.
+ */
+export function useOpenProject(): () => Promise<void> {
+  const token = useAppStore((s) => s.token);
+  const openProject = useAppStore((s) => s.openProject);
 
-export function useOpenProject({ token, openProject }: UseOpenProjectInput) {
-  return async () => {
+  return useCallback(async () => {
     const dir = await window.orisonDesktop?.pickProjectDirectory();
     if (!dir) return;
 
@@ -40,5 +49,5 @@ export function useOpenProject({ token, openProject }: UseOpenProjectInput) {
     }
 
     openProject(project);
-  };
+  }, [token, openProject]);
 }

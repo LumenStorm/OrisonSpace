@@ -4,6 +4,7 @@ import { ContextMenu, type ContextMenuItem } from '../../shared/components/Conte
 import { mockFileContents } from '../../shared/data/mockFileContents';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useAppStore } from '../../shared/store/appStore';
+import { isImageFileName } from '../../shared/utils/fileType';
 import { FileTreeNode } from './FileTreeNode';
 import type { CreatingType, CtxState, FileEntry } from './types';
 import { buildInitialTree, findNode, insertChild, removeNode, renameNode, updateChildren } from './treeUtils';
@@ -95,12 +96,29 @@ export function ProjectTree() {
   }, [fileTree, loadChildrenIfNeeded]);
 
   const handleSelect = useCallback(async (entry: FileEntry) => {
+    if (entry.isDir) return;
+
     if (!projectPath) {
       openFile(entry.path, entry.name, mockFileContents[entry.path] ?? '');
       return;
     }
 
     const fullPath = `${projectPath}${entry.path}`;
+    if (isImageFileName(entry.name)) {
+      try {
+        const payload = await window.orisonDesktop?.readFileBinary?.(fullPath);
+        if (payload) {
+          const dataUrl = `data:${payload.mimeType};base64,${payload.base64}`;
+          openFile(entry.path, entry.name, '', { kind: 'image', dataUrl });
+          return;
+        }
+      } catch {
+        // Fall through to placeholder text below.
+      }
+      openFile(entry.path, entry.name, '', { kind: 'image' });
+      return;
+    }
+
     try {
       const content = await window.orisonDesktop?.readFile(fullPath);
       openFile(entry.path, entry.name, content ?? '');

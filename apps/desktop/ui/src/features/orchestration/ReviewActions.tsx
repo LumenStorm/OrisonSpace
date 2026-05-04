@@ -1,23 +1,31 @@
-import { useOrchestrationStore } from '../../shared/store/orchestrationStore';
+import { useShallow } from 'zustand/react/shallow';
+import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 
 export function ReviewActions() {
-  const { performAction, loading } = useOrchestrationStore();
+  const { performAction, loading, resolvedLocale } = useAppStore(useShallow((s) => ({
+    performAction: s.performOrchestrationAction,
+    loading: s.orchestrationLoading,
+    resolvedLocale: s.resolvedLocale,
+  })));
+  const { t } = useI18n(resolvedLocale);
+
   return (
     <div className="orchestration-actions" aria-label="Review Actions">
-      <p>流程需要人工介入</p>
+      <p>{t('orchestration.needsHumanReview')}</p>
       <button
         type="button"
         disabled={loading}
         onClick={() => void performAction({ action: 'accept_current' })}
       >
-        接受当前结果
+        {t('orchestration.acceptCurrent')}
       </button>
       <button
         type="button"
         disabled={loading}
         onClick={() => void performAction({ action: 'abort_run' })}
       >
-        终止流程
+        {t('orchestration.abortRun')}
       </button>
     </div>
   );

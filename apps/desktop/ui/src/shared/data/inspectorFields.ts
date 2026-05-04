@@ -5,9 +5,6 @@ export type FieldDef = {
   labelKey: string;
   optionsKey: string;
   defaultIndex: number;
-} | {
-  kind: 'imageModel';
-  labelKey: string;
 };
 
 const scriptFields: FieldDef[] = [
@@ -36,11 +33,8 @@ export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
     { labelKey: 'inspector.video.frameRate', optionsKey: 'inspector.video.options.frameRate', defaultIndex: 0 },
     { labelKey: 'inspector.video.outputFormat', optionsKey: 'inspector.video.options.outputFormat', defaultIndex: 0 },
   ],
-  image_gen: [
-    { kind: 'imageModel', labelKey: 'inspector.imageGen.model' },
-    { labelKey: 'inspector.imageGen.size', optionsKey: 'inspector.imageGen.options.size', defaultIndex: 1 },
-    { labelKey: 'inspector.imageGen.style', optionsKey: 'inspector.imageGen.options.style', defaultIndex: 0 },
-  ],
+  // image_gen renders the dedicated <ImageGenInspector />; no static fields here.
+  image_gen: [],
 };
 
 export const aspectRatios: Record<WorkspaceModule, string[]> = {
@@ -49,7 +43,7 @@ export const aspectRatios: Record<WorkspaceModule, string[]> = {
   script: [],
   storyboard: ['16:9', '2.35:1', '4:3', '9:16'],
   video: ['16:9', '2.35:1', '4:3', '9:16'],
-  image_gen: ['1:1', '16:9', '9:16', '4:3'],
+  image_gen: [],
 };
 
 export const promptKeys: Record<WorkspaceModule, string> = {

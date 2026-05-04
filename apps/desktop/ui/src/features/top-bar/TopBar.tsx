@@ -7,12 +7,12 @@ import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { AccountDialog } from '../../shared/components/AccountDialog';
 import { AboutDialog } from '../../shared/components/AboutDialog';
 import { useGlobalShortcuts } from '../../shared/hooks/useGlobalShortcuts';
+import { useOpenProject } from '../../shared/hooks/useOpenProject';
 import { MenuDropdown, type MenuItem } from './MenuDropdown';
 
 export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const isMac = detectIsMac();
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
-  const openProject = useAppStore((s) => s.openProject);
   const closeProject = useAppStore((s) => s.closeProject);
   const currentProject = useAppStore((s) => s.currentProject);
   const saveProject = useAppStore((s) => s.saveProject);
@@ -24,28 +24,13 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const toggleProjectTree = useAppStore((s) => s.toggleProjectTree);
   const toggleBottomPanel = useAppStore((s) => s.toggleBottomPanel);
   const { t } = useI18n(resolvedLocale);
+  const handleOpen = useOpenProject();
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  const handleOpen = async () => {
-    const dir = await window.orisonDesktop?.pickProjectDirectory();
-    if (!dir) return;
-    const meta = await window.orisonDesktop?.loadProjectMeta(dir);
-    if (meta) {
-      openProject({
-        name: (meta.name as string) || dir.split(/[\\/]/).pop() || 'Project',
-        path: dir,
-        type: (meta.type as 'novel' | 'script') || 'script',
-        coverImage: (meta.coverImage as string) || undefined,
-      });
-    } else {
-      openProject({ name: dir.split(/[\\/]/).pop() || 'Project', path: dir, type: 'script' });
-    }
-  };
 
   const handleSave = useCallback(async () => {
     await saveProject();

@@ -1,22 +1,25 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterRunMode } from '../../shared/store/novelChapterSlice';
 
-const ACTIONS: Array<{ mode: NovelChapterRunMode; label: string }> = [
-  { mode: 'generate', label: '生成本章' },
-  { mode: 'continue', label: '续写' },
-  { mode: 'polish', label: '润色' },
-  { mode: 'review', label: '复审' },
-];
+const ACTION_MODES: NovelChapterRunMode[] = ['generate', 'continue', 'polish', 'review'];
 
 export function ChapterActionsBar() {
-  const activeId = useAppStore((state) => state.activeChapterId);
-  const startRun = useAppStore((state) => state.startChapterRun);
-  const status = useAppStore((state) => state.chapterCandidateStatus);
+  const { activeId, startRun, status, resolvedLocale } = useAppStore(
+    useShallow((s) => ({
+      activeId: s.activeChapterId,
+      startRun: s.startChapterRun,
+      status: s.chapterCandidateStatus,
+      resolvedLocale: s.resolvedLocale,
+    })),
+  );
+  const { t } = useI18n(resolvedLocale);
 
   if (!activeId) {
     return (
       <div className="novel-chapter-actions-bar novel-chapter-actions-empty">
-        <p>请选择一个章节以触发生成。</p>
+        <p>{t('novelChapter.selectChapter')}</p>
       </div>
     );
   }
@@ -25,14 +28,14 @@ export function ChapterActionsBar() {
 
   return (
     <div className="novel-chapter-actions-bar" aria-label="Chapter Actions">
-      {ACTIONS.map((action) => (
+      {ACTION_MODES.map((mode) => (
         <button
-          key={action.mode}
+          key={mode}
           type="button"
           disabled={isRunning}
-          onClick={() => void startRun(activeId, action.mode)}
+          onClick={() => void startRun(activeId, mode)}
         >
-          {action.label}
+          {t(`novelChapter.actionLabel.${mode}`)}
         </button>
       ))}
     </div>
