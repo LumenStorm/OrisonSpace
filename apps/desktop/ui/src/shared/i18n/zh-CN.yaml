@@ -165,7 +165,6 @@ inspector:
     generate: "生成图像"
     prompt: "描述要生成的图像..."
     options:
-      model: ["DALL·E 3", "Midjourney", "Stable Diffusion"]
       size: ["512×512", "1024×1024", "1024×1792", "1792×1024"]
       style: ["写实", "动漫", "水彩", "油画", "概念艺术"]
 
@@ -214,6 +213,7 @@ settings:
   modelList: "模型列表"
   modelSelectPlaceholder: "请先获取模型列表"
   modelNamePlaceholder: "gpt-5.4"
+  addModel: "添加模型"
   novelModel: "小说模型"
   imageModel: "图像模型"
   videoModel: "视频模型"

@@ -113,6 +113,31 @@ describe('generation routes', () => {
     );
   });
 
+  it('normalizes OpenAI-compatible image responses that use base64', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
+      data: [{ base64: 'data:image/webp;base64,relay-base64' }],
+    }));
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/generation/openai/image',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        model: 'gpt-image-1',
+        apiKey: 'sk-test',
+        prompt: 'A quiet workstation',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().images[0]).toMatchObject({
+      b64Json: 'relay-base64',
+      mimeType: 'image/webp',
+      dataUrl: 'data:image/webp;base64,relay-base64',
+    });
+  });
+
   it('downloads URL-only image generation results and returns base64 data URLs', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(mockJsonResponse({

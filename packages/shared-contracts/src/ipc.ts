@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { GenerationProvider } from './contracts/generation';
 
 export const desktopIpcSchema = z.object({
   channel: z.enum([
@@ -7,6 +8,7 @@ export const desktopIpcSchema = z.object({
     'config:save-model',
     'config:load-user-preferences',
     'config:save-user-preferences',
+    'model:list-provider-models',
     'field:sync'
   ])
 });
@@ -14,17 +16,33 @@ export const desktopIpcSchema = z.object({
 /* ── Shared types ── */
 
 export type ModelType = 'novel' | 'image' | 'video';
+export type ModelCapability = 'text' | 'image' | 'video';
+
+export type ModelProfile = {
+  id: string;
+  name: string;
+  provider: GenerationProvider;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  capabilities: ModelCapability[];
+};
 
 export type ModelSlotConfig = {
-  provider: 'openai' | 'gcp' | 'anthropic';
+  provider: GenerationProvider;
   apiKey: string;
   baseUrl: string;
   model: string;
 };
 
 export type ModelConfig = {
-  models: Record<ModelType, ModelSlotConfig>;
+  profiles: ModelProfile[];
+  selected: Record<ModelType, string | null>;
 };
+
+export type ProviderModel = Pick<ModelProfile, 'id' | 'capabilities'>;
+
+export type ProviderModelListRequest = Pick<ModelSlotConfig, 'provider' | 'apiKey' | 'baseUrl'>;
 
 export type UserPreferencesConfig = {
   theme: string;
@@ -53,6 +71,7 @@ export type OrisonDesktopApi = {
   syncField(projectPath: string, field: string, data: unknown): Promise<void>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
+  listProviderModels(request: ProviderModelListRequest): Promise<ProviderModel[]>;
   loadUserPreferences(): Promise<UserPreferencesConfig>;
   saveUserPreferences(config: UserPreferencesConfig): Promise<void>;
   showItemInFolder(fullPath: string): void;

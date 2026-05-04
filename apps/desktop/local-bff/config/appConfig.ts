@@ -8,10 +8,11 @@ export type AppConfig = {
 };
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  models: {
-    novel: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' },
-    image: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' },
-    video: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' },
+  profiles: [],
+  selected: {
+    novel: null,
+    image: null,
+    video: null,
   },
 };
 
@@ -34,17 +35,42 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function parseModelConfig(raw: unknown): ModelConfig {
   const source = asRecord(raw);
+  if (typeof source.profilesJson === 'string') {
+    try {
+      const parsed = JSON.parse(source.profilesJson) as ModelConfig;
+      return {
+        profiles: Array.isArray(parsed.profiles) ? parsed.profiles : [],
+        selected: {
+          novel: parsed.selected?.novel ?? null,
+          image: parsed.selected?.image ?? null,
+          video: parsed.selected?.video ?? null,
+        },
+      };
+    } catch { /* fall through to legacy */ }
+  }
+
+  const profiles: ModelConfig['profiles'] = [];
+  const selected: ModelConfig['selected'] = { novel: null, image: null, video: null };
+  for (const type of ['novel', 'image', 'video'] as const) {
+    const slot = readModelSlot(source, type);
+    if (!slot.apiKey && !slot.model && slot.baseUrl === 'https://api.openai.com/v1') continue;
+    const id = `model_${String(profiles.length + 1).padStart(3, '0')}`;
+    profiles.push({
+      id,
+      name: `${type} ${slot.model || slot.provider}`,
+      ...slot,
+      capabilities: [type === 'image' ? 'image' : type === 'video' ? 'video' : 'text'],
+    });
+    selected[type] = id;
+  }
   return {
-    models: {
-      novel: readModelSlot(source, 'novel'),
-      image: readModelSlot(source, 'image'),
-      video: readModelSlot(source, 'video'),
-    },
+    profiles,
+    selected,
   };
 }
 
 function readModelSlot(source: Record<string, unknown>, type: 'novel' | 'image' | 'video') {
-  const fallback = DEFAULT_MODEL_CONFIG.models[type];
+  const fallback = { provider: 'openai' as const, apiKey: '', baseUrl: 'https://api.openai.com/v1', model: '' };
   const legacyModel = type === 'novel' ? source.novelModel ?? source.model : type === 'image' ? source.imageModel : source.videoModel;
   return {
     provider: readProvider(source[`${type}.provider`] ?? (type === 'novel' ? source.provider : undefined), fallback.provider),
@@ -77,17 +103,7 @@ export function saveAppConfig(config: AppConfig): void {
   const p = resolvedPath();
   const dir = path.dirname(p);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const flat = Object.fromEntries(
-    (['novel', 'image', 'video'] as const).flatMap((type) => {
-      const slot = config.model.models[type];
-      return [
-        [`${type}.provider`, slot.provider],
-        [`${type}.apiKey`, slot.apiKey],
-        [`${type}.baseUrl`, slot.baseUrl],
-        [`${type}.model`, slot.model],
-      ];
-    }),
-  );
+  const flat = { profilesJson: JSON.stringify(config.model) };
   writeFileSync(p, stringifyFlatYaml(flat), 'utf-8');
 }
 

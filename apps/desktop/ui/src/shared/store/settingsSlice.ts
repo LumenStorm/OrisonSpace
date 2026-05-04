@@ -5,25 +5,11 @@ import type { UserPreferencesConfig } from '@orison/shared-contracts';
 import type { ModelConfig } from '@orison/shared-contracts';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  models: {
-    novel: {
-      provider: 'openai',
-      apiKey: '',
-      baseUrl: 'https://api.openai.com/v1',
-      model: '',
-    },
-    image: {
-      provider: 'openai',
-      apiKey: '',
-      baseUrl: 'https://api.openai.com/v1',
-      model: '',
-    },
-    video: {
-      provider: 'openai',
-      apiKey: '',
-      baseUrl: 'https://api.openai.com/v1',
-      model: '',
-    },
+  profiles: [],
+  selected: {
+    novel: null,
+    image: null,
+    video: null,
   },
 };
 

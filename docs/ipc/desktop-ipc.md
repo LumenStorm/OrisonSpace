@@ -53,6 +53,8 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 | `config:load-user-preferences` | renderer → main | invoke | Loads user preferences from disk. |
 | `config:save-user-preferences` | renderer → main | invoke | Saves user preferences to disk. |
 
+Model provider list refresh also uses `model:list-provider-models` from renderer to main. The desktop main process performs the provider HTTP request so model list refresh is still a desktop feature while avoiding renderer CORS limits.
+
 ## Security
 
 ### Sandbox & Isolation
@@ -60,20 +62,23 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 - `contextIsolation`: enabled
 - `nodeIntegration`: disabled
 - `sandbox`: enabled
-- The preload script exposes a fixed set of 25 methods via `contextBridge`
+- The preload script exposes a fixed allowlisted API surface via `contextBridge`.
 
 ### Path Validation
 
 All file operation IPC handlers (`project:*` except dialog-based pickers, plus `shell:*`) validate paths using `pathGuard.ts`:
 
-- `assertSafePath(target)` — rejects paths outside the user's home directory
-- `assertWithinProject(projectDir, target)` — rejects paths that escape a specific project directory
-- `shell:show-item-in-folder` and `shell:open-path` silently ignore invalid or non-existent paths (no file/directory creation)
+Current behavior:
+- `allowPath(target)` registers a user-selected path as an allowed root for the current Electron main-process session.
+- `project:pick-directory`, `project:pick-cover-image`, and `project:create-directory` register the selected or created path before returning it to the renderer.
+- `assertSafePath(target)` rejects paths outside the default project root and current-session allowed roots.
+- `assertWithinProject(projectDir, target)` rejects paths that escape a specific project directory.
+- `shell:show-item-in-folder` and `shell:open-path` silently ignore invalid or non-existent paths (no file/directory creation).
 - Generated image writes are additionally constrained to `temp/images` and `assets/images`.
 
 ### API Key Encryption
 
-Model configuration is stored at `~/.orison/model/config.yaml`. The `apiKey` field is encrypted using Electron's `safeStorage` API (OS keychain) before writing to disk, and decrypted on read.
+Model configuration is stored at `~/.orison/model/index.yaml` plus one YAML file per profile under `~/.orison/model/profiles/`. Legacy `~/.orison/model/config.yaml` is read for migration. The `apiKey` field is encrypted using Electron's `safeStorage` API (OS keychain) before writing profile files, and decrypted on read.
 
 ### Content Security Policy
 
@@ -120,6 +125,7 @@ window.orisonDesktop: {
   // 模型配置
   loadModelConfig: () => Promise<ModelConfig>
   saveModelConfig: (config: ModelConfig) => Promise<void>
+  listProviderModels: (request: ProviderModelListRequest) => Promise<ProviderModel[]>
   loadUserPreferences: () => Promise<UserPreferencesConfig>
   saveUserPreferences: (config: UserPreferencesConfig) => Promise<void>
 
@@ -133,25 +139,19 @@ window.orisonDesktop: {
 
 ```typescript
 type ModelConfig = {
-  models: {
-    novel: {
-      provider: 'openai' | 'gcp' | 'anthropic';
-      apiKey: string;
-      baseUrl: string;
-      model: string;
-    };
-    image: {
-      provider: 'openai' | 'gcp' | 'anthropic';
-      apiKey: string;
-      baseUrl: string;
-      model: string;
-    };
-    video: {
-      provider: 'openai' | 'gcp' | 'anthropic';
-      apiKey: string;
-      baseUrl: string;
-      model: string;
-    };
+  profiles: Array<{
+    id: string;
+    name: string;
+    provider: 'openai' | 'gcp' | 'anthropic';
+    apiKey: string;
+    baseUrl: string;
+    model: string;
+    capabilities: Array<'text' | 'image' | 'video'>;
+  }>;
+  selected: {
+    novel: string | null;
+    image: string | null;
+    video: string | null;
   };
 };
 ```
@@ -186,6 +186,8 @@ type SavedImageFile = {
 
 Generated images are project-scoped. The image generation UI writes fresh results to `temp/images/`; when the user saves a result, the renderer moves it to `assets/images/` through `moveProjectFile`.
 
+The renderer sends a canonical base64 payload (`b64Json`) to `saveBase64Image`. Provider responses may arrive as `b64Json`, `b64_json`, `base64`, or a `data:image/*;base64,...` payload, but those forms are normalized before this IPC call. The shell converts the base64 payload to bytes and writes the image file inside the project directory.
+
 ## Window Control (Custom Title Bar)
 
 The app uses a frameless window with a custom title bar implemented in the renderer:
@@ -202,11 +204,13 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 | `shell/main/ipc/windowIpc.ts` | `window:*`, `shell:*` |
 | `shell/main/ipc/projectIpc.ts` | `project:*` |
 | `shell/main/ipc/configIpc.ts` | `config:*` |
+| `shell/main/ipc/fieldSyncIpc.ts` | `field:sync` |
+| `shell/main/ipc/modelProviderIpc.ts` | `model:list-provider-models` |
 | `shell/main/ipc/pathGuard.ts` | Path validation utilities (not an IPC handler) |
 
 ## Known Issues
 
-- `field:sync` channel is exposed in the preload script but has no corresponding `ipcMain.handle()` in the main process. Calling it will result in a runtime error.
+- No known IPC surface mismatch at this time; preload and shared `OrisonDesktopApi` are the source of truth.
 
 ## 2026-05-03 Updates
 
@@ -214,19 +218,21 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 
 | Channel | Direction | Type | Description |
 |---|---|---|---|
-| `config:load-model` | renderer to main | invoke | Loads model configuration from `~/.orison/model/config.yaml`; API key is decrypted via `safeStorage`. |
-| `config:save-model` | renderer to main | invoke | Saves model configuration to `~/.orison/model/config.yaml`; API key is encrypted via `safeStorage`. |
+| `config:load-model` | renderer to main | invoke | Loads model profile configuration from `~/.orison/model/index.yaml` and `profiles/*.yaml`; API keys are decrypted via `safeStorage`. |
+| `config:save-model` | renderer to main | invoke | Saves model profile configuration to `~/.orison/model/index.yaml` and `profiles/*.yaml`; API keys are encrypted via `safeStorage`. |
 | `config:load-user-preferences` | renderer to main | invoke | Loads user preferences from `~/.orison/user/preferences.yaml`. |
 | `config:save-user-preferences` | renderer to main | invoke | Saves user preferences to `~/.orison/user/preferences.yaml`. |
 
 The old model config path `~/.orison/config.json` is intentionally not read for compatibility. Current model config is YAML-only.
 
-Model slots default to empty `model` values. The settings page fetches provider model lists and chooses a compatible model after refresh instead of relying on baked-in fallback model names.
+The settings page manages a reusable model library and assigns profiles to `novel`, `image`, and `video`.
 
 ### Path Scope
 
 - New project creation defaults to `~/Documents/OrisonSpace`.
-- File and shell path validation rejects paths outside `~/Documents/OrisonSpace`.
+- User-selected project directories and cover images are registered as allowed roots for the current Electron session.
+- File and shell path validation rejects paths outside the default root and current-session allowed roots.
+- Project-relative file operations still call `assertWithinProject`, so an allowed project cannot write to sibling directories.
 
 ### UserPreferencesConfig
 

@@ -4,6 +4,7 @@ import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
 import { registerConfigIpc } from './ipc/configIpc';
 import { registerFieldSyncIpc } from './ipc/fieldSyncIpc';
+import { registerModelProviderIpc } from './ipc/modelProviderIpc';
 
 /* ── CSP ── */
 
@@ -55,6 +56,7 @@ function createWindow() {
   registerProjectIpc();
   registerWindowIpc(mainWindow);
   registerConfigIpc();
+  registerModelProviderIpc();
   registerFieldSyncIpc();
 
   if (process.env.ELECTRON_RENDERER_URL) {

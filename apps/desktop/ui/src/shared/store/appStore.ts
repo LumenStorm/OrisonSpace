@@ -8,6 +8,7 @@ import { createCreativeFieldsSlice, type CreativeFieldsSlice } from './creativeF
 import { createEditorSlice, type EditorSlice } from './editorSlice';
 import { createFileTabsSlice, type FileTabsSlice } from './fileTabsSlice';
 import { createNovelChapterSlice, type NovelChapterSlice } from './novelChapterSlice';
+import { createOutputSlice, type OutputSlice } from './outputSlice';
 
 export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter } from './types';
 
@@ -19,7 +20,8 @@ type AppState = AuthSlice &
   CreativeFieldsSlice &
   EditorSlice &
   FileTabsSlice &
-  NovelChapterSlice;
+  NovelChapterSlice &
+  OutputSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
   ...createAuthSlice(...a),
@@ -31,4 +33,5 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createEditorSlice(...a),
   ...createFileTabsSlice(...a),
   ...createNovelChapterSlice(...a),
+  ...createOutputSlice(...a),
 }));

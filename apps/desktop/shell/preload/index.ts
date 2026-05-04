@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   ModelConfig,
   OrisonDesktopApi,
+  ProviderModel,
+  ProviderModelListRequest,
   SaveBase64ImageInput,
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
@@ -30,6 +32,8 @@ export const exposedDesktopApi = {
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
+  listProviderModels: (request: ProviderModelListRequest) =>
+    ipcRenderer.invoke('model:list-provider-models', request) as Promise<ProviderModel[]>,
   loadUserPreferences: () =>
     ipcRenderer.invoke('config:load-user-preferences') as Promise<UserPreferencesConfig>,
   saveUserPreferences: (config: UserPreferencesConfig) =>

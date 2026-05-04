@@ -11,13 +11,42 @@ const tabs: { key: BottomPanelTab; icon: string; i18nKey: string }[] = [
 ];
 
 function OutputPanel() {
-  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
-  const { t } = useI18n(resolvedLocale);
+  const {
+    outputEntries,
+    clearOutputEntries,
+    resolvedLocale,
+  } = useAppStore(useShallow((s) => ({
+    outputEntries: s.outputEntries,
+    clearOutputEntries: s.clearOutputEntries,
+    resolvedLocale: s.resolvedLocale,
+  })));
 
   return (
-    <div className="bottom-panel-placeholder">
-      <span className="material-symbols-outlined" aria-hidden="true">output</span>
-      <p>{t('bottomPanel.noOutput')}</p>
+    <div className="output-console" role="log" aria-live="polite">
+      <div className="output-console-toolbar">
+        <span className="output-console-title">Console</span>
+        <button type="button" className="output-console-clear" onClick={clearOutputEntries}>
+          <span className="material-symbols-outlined" aria-hidden="true">backspace</span>
+        </button>
+      </div>
+      <div className="output-console-stream">
+        {outputEntries.length === 0 ? (
+          <div className="output-console-line" data-level="info">
+            <span className="output-console-time">{formatTime(new Date().toISOString(), resolvedLocale)}</span>
+            <span className="output-console-scope">system</span>
+            <span className="output-console-message">Ready</span>
+          </div>
+        ) : (
+          outputEntries.map((entry) => (
+            <div key={entry.id} className="output-console-line" data-level={entry.level}>
+              <span className="output-console-time">{formatTime(entry.timestamp, resolvedLocale)}</span>
+              <span className="output-console-scope">{entry.scope}</span>
+              <span className="output-console-message">{entry.message}</span>
+              {entry.detail ? <span className="output-console-detail">{entry.detail}</span> : null}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -67,4 +96,13 @@ export function BottomPanel() {
       </div>
     </div>
   );
+}
+
+function formatTime(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date(value));
 }

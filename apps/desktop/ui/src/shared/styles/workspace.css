@@ -147,20 +147,102 @@
   padding: 0.75rem;
 }
 
-.bottom-panel-placeholder {
+.output-console {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
   height: 100%;
-  color: var(--outline);
-  font-size: 0.85rem;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface-container-lowest);
 }
 
-.bottom-panel-placeholder .material-symbols-outlined {
-  font-size: 32px;
-  opacity: 0.5;
+.output-console-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.output-console-title {
+  color: var(--on-surface-variant);
+  font-family: monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.output-console-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.output-console-clear:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.output-console-clear .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.output-console-stream {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.35rem 0;
+}
+
+.output-console-line {
+  display: grid;
+  grid-template-columns: 72px 72px minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.18rem 0.65rem;
+  color: var(--on-surface-variant);
+  font-family: monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.output-console-line[data-level="success"] {
+  color: var(--accent-strong);
+}
+
+.output-console-line[data-level="error"] {
+  color: var(--error);
+}
+
+.output-console-time,
+.output-console-scope {
+  color: var(--outline);
+  white-space: nowrap;
+}
+
+.output-console-scope {
+  text-transform: uppercase;
+}
+
+.output-console-message,
+.output-console-detail {
+  overflow-wrap: anywhere;
+}
+
+.output-console-detail {
+  grid-column: 3;
+  color: var(--outline);
 }
 
 /* ── Bottom Panel Expand (collapsed state) ── */

@@ -329,13 +329,15 @@ Behavior notes:
 - GCP providers call `models/{model}:predict`.
 - Anthropic image generation is currently unsupported and returns a provider error.
 - The server normalizes successful image responses so each image includes `b64Json`, `mimeType`, and `dataUrl`.
+- OpenAI-compatible relay responses may return `b64_json`, `b64Json`, `base64`, or a `data:image/*;base64,...` payload. The shared contract and server normalizer collapse these forms into the canonical `b64Json` field.
 - If a provider returns only a URL, the server downloads the image into `temp/generation-images`, converts it to base64, and keeps the original `url` on the response.
+- The desktop renderer previews generated images via `dataUrl`; project file creation is performed by the desktop shell through `project:save-base64-image`.
 
 ## Model List Refresh
 
 The desktop model settings page does not use a custom Orison server endpoint for model lists.
 
-It refreshes model choices directly from the configured model provider base URL:
+It asks the Electron desktop main process to refresh model choices from the configured model provider base URL, avoiding renderer CORS limits:
 - OpenAI/New API compatible: `GET {baseUrl}/models`
 - Gemini/GCP compatible: `GET {baseUrl}/models?key={apiKey}`
 
@@ -344,6 +346,8 @@ Headers are selected by provider:
 - `anthropic`: `x-api-key: {apiKey}` and `anthropic-version: 2023-06-01`
 - `gcp`: `x-goog-api-key: {apiKey}`, with `key` query parameter also included
 
-The desktop interaction starts with the model type (`novel`, `image`, `video`). Each model type has its own provider, API key, base URL, and selected model name. The response is normalized in the desktop UI into model IDs for the currently selected model type.
+The desktop settings page stores reusable model profiles. The response is normalized by the desktop shell into model IDs and capabilities, then saved as profiles that can be assigned to `novel`, `image`, and `video`.
 
-Model slots default to an empty model name. Refreshing the list selects the first compatible model only when the active slot is empty; changing provider clears the selected model so the next choice comes from the refreshed provider list.
+Model profile config is stored as `~/.orison/model/index.yaml` plus one YAML file per model under `~/.orison/model/profiles/`.
+
+The bottom Properties panel reads the selected image model from this same profile library. The server does not expose or own a model-list endpoint.

@@ -425,3 +425,6 @@ assets:
       name: "远征号飞船内部"
       description: "紧凑的飞船舱室，仪表密布，窗外是深邃的星空"
 ```
+## 2026-05-04 Image Payload Normalization Note
+
+Provider responses may arrive as `b64Json`, `b64_json`, `base64`, or `data:image/*;base64,...`. The shared generation contract normalizes these into canonical `b64Json`, `mimeType`, and `dataUrl`. Desktop IPC writes canonical `b64Json` to bytes in the project directory.

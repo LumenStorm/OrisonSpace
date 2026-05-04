@@ -8,25 +8,30 @@ import type { ModelConfig } from '@orison/shared-contracts';
 const TEST_CONFIG_PATH = path.join(process.cwd(), 'test-tmp-config', 'config.yaml');
 
 const SAMPLE_CONFIG: ModelConfig = {
-  models: {
-    novel: {
+  profiles: [
+    {
+      id: 'model_001',
+      name: 'Novel relay',
       provider: 'openai',
       apiKey: 'novel-key',
       baseUrl: 'https://api.novel.example/v1',
       model: 'gpt-5.5',
+      capabilities: ['text'],
     },
-    image: {
+    {
+      id: 'model_002',
+      name: 'Image model',
       provider: 'gcp',
       apiKey: 'image-key',
       baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
       model: 'imagen-3.0-generate-001',
+      capabilities: ['image'],
     },
-    video: {
-      provider: 'openai',
-      apiKey: 'video-key',
-      baseUrl: 'https://api.video.example/v1',
-      model: 'placeholder-video',
-    },
+  ],
+  selected: {
+    novel: 'model_001',
+    image: 'model_002',
+    video: null,
   },
 };
 
@@ -40,22 +45,19 @@ describe('appConfig', () => {
   it('returns defaults when the config file does not exist', () => {
     _setConfigPathForTest(TEST_CONFIG_PATH);
     const config = getModelConfig();
-    expect(config.models.novel.provider).toBe('openai');
-    expect(config.models.novel.model).toBe('');
-    expect(config.models.image.model).toBe('');
-    expect(config.models.video.model).toBe('');
+    expect(config.profiles).toEqual([]);
+    expect(config.selected).toEqual({ novel: null, image: null, video: null });
   });
 
-  it('round-trips model config by model type', () => {
+  it('round-trips model profiles', () => {
     _setConfigPathForTest(TEST_CONFIG_PATH);
     saveModelConfig(SAMPLE_CONFIG);
 
     const loaded = getModelConfig();
-    expect(loaded.models.novel.apiKey).toBe('novel-key');
-    expect(loaded.models.novel.model).toBe('gpt-5.5');
-    expect(loaded.models.image.provider).toBe('gcp');
-    expect(loaded.models.image.model).toBe('imagen-3.0-generate-001');
-    expect(loaded.models.video.baseUrl).toBe('https://api.video.example/v1');
+    expect(loaded.profiles[0]?.apiKey).toBe('novel-key');
+    expect(loaded.profiles[0]?.model).toBe('gpt-5.5');
+    expect(loaded.profiles[1]?.provider).toBe('gcp');
+    expect(loaded.selected.image).toBe('model_002');
   });
 
   it('creates the config directory automatically', () => {
@@ -70,39 +72,30 @@ describe('appConfig', () => {
     _setConfigPathForTest(TEST_CONFIG_PATH);
     saveModelConfig(SAMPLE_CONFIG);
     saveModelConfig({
-      models: {
-        ...SAMPLE_CONFIG.models,
-        novel: { ...SAMPLE_CONFIG.models.novel, apiKey: 'latest-key', model: 'latest-model' },
-      },
+      ...SAMPLE_CONFIG,
+      profiles: [
+        { ...SAMPLE_CONFIG.profiles[0]!, apiKey: 'latest-key', model: 'latest-model' },
+        SAMPLE_CONFIG.profiles[1]!,
+      ],
     });
 
     const full = loadAppConfig();
-    expect(full.model.models.novel.apiKey).toBe('latest-key');
-    expect(full.model.models.novel.model).toBe('latest-model');
+    expect(full.model.profiles[0]?.apiKey).toBe('latest-key');
+    expect(full.model.profiles[0]?.model).toBe('latest-model');
   });
 
-  it('stores model config as a standalone YAML model config file', () => {
+  it('stores model config as JSON in the standalone YAML config file', () => {
     _setConfigPathForTest(TEST_CONFIG_PATH);
     saveModelConfig(SAMPLE_CONFIG);
 
     const raw = parseFlatYaml(readFileSync(TEST_CONFIG_PATH, 'utf-8'));
-    expect(raw).toEqual({
-      'novel.provider': 'openai',
-      'novel.apiKey': 'novel-key',
-      'novel.baseUrl': 'https://api.novel.example/v1',
-      'novel.model': 'gpt-5.5',
-      'image.provider': 'gcp',
-      'image.apiKey': 'image-key',
-      'image.baseUrl': 'https://generativelanguage.googleapis.com/v1beta',
-      'image.model': 'imagen-3.0-generate-001',
-      'video.provider': 'openai',
-      'video.apiKey': 'video-key',
-      'video.baseUrl': 'https://api.video.example/v1',
-      'video.model': 'placeholder-video',
+    expect(typeof raw.profilesJson).toBe('string');
+    expect(JSON.parse(raw.profilesJson as string)).toMatchObject({
+      selected: { novel: 'model_001', image: 'model_002', video: null },
     });
   });
 
-  it('maps legacy model config to the novel slot on read', () => {
+  it('maps legacy model config to model profiles on read', () => {
     _setConfigPathForTest(TEST_CONFIG_PATH);
     const legacy = {
       apiKey: 'legacy-key',
@@ -114,9 +107,13 @@ describe('appConfig', () => {
     writeFileSync(TEST_CONFIG_PATH, stringifyFlatYaml(legacy), 'utf-8');
 
     const loaded = getModelConfig();
-    expect(loaded.models.novel.provider).toBe('anthropic');
-    expect(loaded.models.novel.apiKey).toBe('legacy-key');
-    expect(loaded.models.novel.model).toBe('legacy-model');
-    expect(loaded.models.image.model).toBe('');
+    expect(loaded.profiles[0]).toMatchObject({
+      provider: 'anthropic',
+      apiKey: 'legacy-key',
+      model: 'legacy-model',
+      capabilities: ['text'],
+    });
+    expect(loaded.selected.novel).toBe('model_001');
+    expect(loaded.selected.image).toBeNull();
   });
 });

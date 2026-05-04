@@ -107,11 +107,11 @@
 
 ### IPC 路径校验
 - 新增 `shell/main/ipc/pathGuard.ts`，提供 `isSafePath`、`assertSafePath`、`assertWithinProject` 三个工具函数
-- `projectIpc.ts` 所有 12 个文件操作 handler 加入路径校验，拒绝用户主目录以外的路径
+- `projectIpc.ts` 所有文件操作 handler 加入路径校验；默认允许 `~/Documents/OrisonSpace`，并允许用户通过系统 picker 显式选择的项目/封面路径
 - `windowIpc.ts` 的 `shell:show-item-in-folder` / `shell:open-path` 加入路径校验，删除自动创建文件/目录的逻辑
 
 ### API Key 加密
-- `configIpc.ts` 使用 Electron `safeStorage` API 加密 API Key 后写入 `~/.orison/model/config.yaml`，读取时解密
+- `configIpc.ts` 使用 Electron `safeStorage` API 加密 API Key 后写入 `~/.orison/model/profiles/*.yaml`，读取时解密；`index.yaml` 保存模型顺序和用途选择
 - 不支持 `safeStorage` 的环境自动回退到明文（兼容 CI）
 
 ### CSP 动态注入
@@ -151,7 +151,7 @@
 - 新增 `ErrorBoundary` 组件包裹 `<App />`，防止渲染异常白屏
 - `authSlice` 的 `catch (e: any)` 改为 `catch (e: unknown)` + 类型安全处理
 - ProjectTree 的 `FileEntry` 类型改为复用 `@orison/shared-contracts` 的 `FileTreeEntry`
-- preload 安全白名单测试更新为 22 个方法
+- preload 安全白名单测试覆盖当前 `OrisonDesktopApi` 暴露方法
 
 ### Novel Migration Phase 3
 - Native novel chapter pipeline 上线：6 节点混合 TS+Python 流水线（context-loader → chapter-bridge → draft-writer → multi-review → targeted-revision → chapter-title）。
@@ -218,10 +218,10 @@
   - child views, hooks, local types, and pure helpers move to separate files when they carry independent responsibility.
 - Added the active rulebook: `docs/architecture/module-boundaries.md`.
 - Project creation and file IPC now target `~/Documents/OrisonSpace`.
-- Model config is stored at `~/.orison/model/config.yaml`.
+- Model config is stored at `~/.orison/model/index.yaml` plus one YAML file per model under `~/.orison/model/profiles/`; legacy `~/.orison/model/config.yaml` is migrated on read.
 - User preferences are stored at `~/.orison/user/preferences.yaml`.
 - User preference scope currently includes theme, locale, and auto-apply-patches. Layout, recent projects, and auth are excluded.
-- Model slots start with empty model names; provider/model changes clear the selected model until the model list is refreshed or the user selects one.
+- The settings page manages reusable model profiles and assigns selected profile IDs to `novel`, `image`, and `video`.
 - Server generation routes were added by provider and capability:
   - `POST /v1/generation/:provider/text`
   - `POST /v1/generation/:provider/image`
@@ -239,3 +239,23 @@
   - `project:delete-file`
 - Generated images are first written under project `temp/images/`; saving moves them to `assets/images/`.
 - Adding a result to assets appends an `image` asset card with `sourceRefs` pointing at the saved relative image path.
+
+## 2026-05-04 Desktop Model Library, Output Console, and Image Payload Fixes
+
+- The model settings page now manages a reusable model library in desktop YAML storage:
+  - `~/.orison/model/index.yaml`
+  - `~/.orison/model/profiles/*.yaml`
+- Model list refresh is handled by Electron main IPC (`model:list-provider-models`) against the configured provider `baseUrl`, avoiding renderer CORS and avoiding a server model-list endpoint.
+- The bottom Properties panel uses the selected image-capable profile from `modelConfig.selected.image`; static placeholder image models were removed.
+- The bottom Output tab is now a real console backed by `outputSlice`, with events for model refresh/save and image generation/save flows.
+- Image generation accepts provider payloads shaped as `b64Json`, `b64_json`, `base64`, or data URLs and normalizes them to canonical `b64Json`, `mimeType`, and `dataUrl`.
+- The desktop renderer previews generated images through `dataUrl`; Electron main converts canonical base64 to bytes through `project:save-base64-image`.
+- `pathGuard.ts` now keeps the default `~/Documents/OrisonSpace` root and also registers user-selected project directories and cover image files as current-session allowed roots. Project-relative operations still reject sibling traversal through `assertWithinProject`.
+- Focused verification passed:
+  - `pnpm --filter @orison/shared-contracts typecheck`
+  - `pnpm --filter @orison/server test`
+  - `pnpm --filter @orison/server build`
+  - `pnpm --filter @orison/desktop-shell typecheck`
+  - `pnpm --filter @orison/desktop-shell test`
+  - `pnpm --filter @orison/desktop-ui typecheck`
+  - `pnpm --filter @orison/desktop-ui test`

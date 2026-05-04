@@ -27,11 +27,14 @@ async function normalizeGeneratedImage(
   index: number,
 ): Promise<GeneratedImage> {
   if (image.b64Json) {
-    const mimeType = image.mimeType ?? DEFAULT_MIME_TYPE;
+    const payload = readBase64Payload(image.b64Json);
+    const b64Json = payload?.b64Json ?? image.b64Json;
+    const mimeType = image.mimeType ?? payload?.mimeType ?? DEFAULT_MIME_TYPE;
     return {
       ...image,
+      b64Json,
       mimeType,
-      dataUrl: toDataUrl(image.b64Json, mimeType),
+      dataUrl: toDataUrl(b64Json, mimeType),
     };
   }
 
@@ -97,4 +100,13 @@ function mimeTypeToExtension(mimeType: string): string {
 
 function toDataUrl(b64Json: string, mimeType: string): string {
   return `data:${mimeType};base64,${b64Json}`;
+}
+
+function readBase64Payload(value: string): { mimeType?: string; b64Json: string } | null {
+  const match = value.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  if (!match) return null;
+  return {
+    mimeType: match[1],
+    b64Json: match[2],
+  };
 }

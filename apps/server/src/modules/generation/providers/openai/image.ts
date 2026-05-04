@@ -2,7 +2,7 @@ import type { ImageGenerationRequest, ImageGenerationResponse } from '@orison/sh
 import { postJson, trimTrailingSlash } from '../http';
 
 type OpenAiImageResponse = {
-  data?: Array<{ url?: string; b64_json?: string }>;
+  data?: Array<{ url?: string; b64_json?: string; b64Json?: string; base64?: string }>;
 };
 
 export async function generateOpenAiImage(request: ImageGenerationRequest): Promise<ImageGenerationResponse> {
@@ -24,7 +24,7 @@ export async function generateOpenAiImage(request: ImageGenerationRequest): Prom
     model: request.model,
     images: (raw.data ?? []).map((image) => ({
       url: image.url,
-      b64Json: image.b64_json,
+      b64Json: image.b64_json ?? image.b64Json ?? image.base64,
     })),
     raw,
   };

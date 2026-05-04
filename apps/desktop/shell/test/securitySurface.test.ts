@@ -18,6 +18,7 @@ describe('preload security surface', () => {
       'deleteProjectFile',
       'getLocale',
       'isMaximized',
+      'listProviderModels',
       'loadModelConfig',
       'loadProjectMeta',
       'loadUserPreferences',

@@ -66,9 +66,9 @@
 | `@orison/shared-contracts` | 6 | 52 | ✅ |
 | `@orison/desktop-local-bff` | 7 | 31 | ✅ |
 | `@orison/agent` | 24 | 106 | ✅ |
-| `@orison/desktop-ui` | 5/7 | 32/34 | ⚠️ 2 个历史遗留失败（与小说迁移正交） |
+| `@orison/desktop-ui` | 8 | 36 | ✅ |
 
-**合计：42 个测试文件 / 221 个测试通过**
+**当前 focused verification 已覆盖：desktop-ui 8 文件 / 36 测试，desktop-shell 5 文件 / 7 测试，server 7 文件 / 19 测试，均通过。**
 
 ---
 
@@ -339,7 +339,7 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 2. `test/workspaceLayout.test.tsx` / `test/reviewFlow.test.tsx` 失败（迁移之前已存在，git stash 可验证）
 3. `GET /v1/projects/:projectId/tasks` 与 `GET /v1/projects/:projectId/assets` 暂未分页
 4. `GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据
-5. `field:sync` IPC 通道已在 preload 暴露，但主进程对应 handler 尚未实现
+5. `field:sync` IPC 通道已在 preload 与主进程 handler 中闭环；当前无已知 IPC surface mismatch
 
 ### 后续 Enhancement（按优先级）
 
@@ -369,13 +369,18 @@ Private
 
 ---
 
-## Architecture Notes (2026-05-03)
+## Architecture Notes (2026-05-04)
 
 - Desktop UI split rules now live in [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md).
 - Pages should stay route-level; feature files own domain UI; child views, hooks, local types, and pure helpers are split when they carry independent responsibility.
-- Desktop projects are created under `~/Documents/OrisonSpace` and guarded by shell IPC path validation.
-- Model config is stored at `~/.orison/model/config.yaml`; user preferences are stored at `~/.orison/user/preferences.yaml`.
-- Model slots start with an empty model name; the settings page refreshes provider model lists and selects the first compatible model when the slot is empty.
+- New desktop projects default to `~/Documents/OrisonSpace`; user-selected project directories are registered as allowed roots for the current Electron session and guarded by shell IPC path validation.
+- Model config is stored as `~/.orison/model/index.yaml` plus one YAML file per model under `~/.orison/model/profiles/`; legacy `~/.orison/model/config.yaml` is migrated on read.
+- The settings page manages a reusable model library and assigns selected profiles to `novel`, `image`, and `video`.
+- The bottom Properties panel reads the selected image model from the same model library; placeholder image model choices have been removed.
+- The bottom Output panel is a real console fed by model refresh/save and image generation/save events.
 - Server generation APIs are provider-routed: `/v1/generation/:provider/text` and `/v1/generation/:provider/image`.
+- Model-list refresh is handled by the desktop shell against the configured provider base URL, avoiding renderer CORS limits without adding a server endpoint.
 - Current provider adapters are split by provider and capability for OpenAI-compatible, GCP, and Anthropic formats.
-- Image generation responses are normalized to include `b64Json`, `mimeType`, and `dataUrl`; the desktop shell exposes project-scoped image save/move/delete IPC for generated assets.
+- Image generation responses accept `b64Json`, `b64_json`, `base64`, or data URL payloads and normalize to `b64Json`, `mimeType`, and `dataUrl`.
+- The renderer previews generated images with data URLs, while the desktop shell converts base64 payloads into project-scoped files through `project:save-base64-image`.
+- Latest focused verification: `@orison/shared-contracts typecheck`, `@orison/server test/build`, `@orison/desktop-shell typecheck/test`, and `@orison/desktop-ui typecheck/test` pass.

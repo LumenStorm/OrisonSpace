@@ -35,8 +35,24 @@ export const imageGenerationRequestSchema = z.object({
 export const generatedImageSchema = z.object({
   url: z.string().optional(),
   b64Json: z.string().optional(),
+  b64_json: z.string().optional(),
+  base64: z.string().optional(),
   dataUrl: z.string().optional(),
   mimeType: z.string().optional(),
+}).transform((image) => {
+  const dataUrl = parseDataUrl(image.dataUrl);
+  const payload =
+    readBase64Payload(image.b64Json) ??
+    readBase64Payload(image.b64_json) ??
+    readBase64Payload(image.base64) ??
+    dataUrl;
+
+  return {
+    url: image.url,
+    b64Json: payload?.b64Json,
+    dataUrl: image.dataUrl ?? (payload?.mimeType ? toDataUrl(payload.b64Json, payload.mimeType) : undefined),
+    mimeType: image.mimeType ?? dataUrl?.mimeType ?? payload?.mimeType,
+  };
 });
 
 export const imageGenerationResponseSchema = z.object({
@@ -52,3 +68,21 @@ export type TextGenerationRequest = z.infer<typeof textGenerationRequestSchema>;
 export type TextGenerationResponse = z.infer<typeof textGenerationResponseSchema>;
 export type ImageGenerationRequest = z.infer<typeof imageGenerationRequestSchema>;
 export type ImageGenerationResponse = z.infer<typeof imageGenerationResponseSchema>;
+
+function parseDataUrl(value: string | undefined): { mimeType: string; b64Json: string } | null {
+  const match = value?.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  if (!match) return null;
+  return {
+    mimeType: match[1],
+    b64Json: match[2],
+  };
+}
+
+function readBase64Payload(value: string | undefined): { mimeType?: string; b64Json: string } | null {
+  if (!value) return null;
+  return parseDataUrl(value) ?? { b64Json: value };
+}
+
+function toDataUrl(b64Json: string, mimeType: string): string {
+  return `data:${mimeType};base64,${b64Json}`;
+}

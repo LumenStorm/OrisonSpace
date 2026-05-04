@@ -27,11 +27,13 @@
 - `shell/main/ipc/*Ipc.ts` files own IPC handlers by capability. Shared validation logic belongs in helper files such as `pathGuard.ts`.
 - File and shell operations must pass path validation before touching disk.
 - Generated image file operations stay project-scoped and may only write to `temp/images` or `assets/images`.
-- User-created projects live under `~/Documents/OrisonSpace`.
-- Model config lives at `~/.orison/model/config.yaml`.
+- New user-created projects default to `~/Documents/OrisonSpace`.
+- User-selected project directories and selected cover image files are registered by the desktop shell as allowed roots for the current Electron session; this supports projects outside the default root without weakening project-relative escape checks.
+- Model config lives at `~/.orison/model/index.yaml` and `~/.orison/model/profiles/*.yaml`; legacy `~/.orison/model/config.yaml` is migration-only.
 - User preferences live at `~/.orison/user/preferences.yaml`.
 - No legacy compatibility should be added for the old `~/.orison/config.json` model path.
 - Global user preferences currently include theme, locale, and auto-apply-patches. Layout, recent projects, and auth are intentionally excluded.
+- Model-list refresh is a desktop shell responsibility (`model:list-provider-models`), not a server route.
 
 ## Server
 
@@ -52,6 +54,7 @@
 - Text and image capabilities stay in separate files inside each provider folder.
 - Provider adapters should normalize external provider responses into shared contract response shapes.
 - Image generation service responses must include base64-ready image data (`b64Json`, `mimeType`, `dataUrl`) before reaching the desktop UI.
+- Image response contracts accept OpenAI-style `b64_json`, camelCase `b64Json`, relay-style `base64`, and `data:image/*;base64,...` payloads, but UI code should consume the normalized `b64Json` and `dataUrl` fields.
 
 ## Documentation Rule
 

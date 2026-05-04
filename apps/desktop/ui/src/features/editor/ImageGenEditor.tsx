@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { CreativeFieldKey } from '@orison/shared-contracts';
+import type { ModelProfile } from '@orison/shared-contracts';
 import { generateImage } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -12,6 +13,7 @@ type GeneratedImageItem = {
   prompt: string;
   b64Json: string;
   mimeType: string;
+  dataUrl: string;
   tempRelativePath: string;
   tempFullPath: string;
   savedRelativePath?: string;
@@ -22,9 +24,11 @@ export function ImageGenEditor() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const token = useAppStore((s) => s.token);
   const currentProject = useAppStore((s) => s.currentProject);
-  const imageModel = useAppStore((s) => s.modelConfig.models.image);
+  const modelConfig = useAppStore((s) => s.modelConfig);
+  const imageModel = getSelectedProfile(modelConfig.profiles, modelConfig.selected.image);
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
+  const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
   const { t } = useI18n(resolvedLocale);
 
   const [prompt, setPrompt] = useState('');
@@ -42,11 +46,18 @@ export function ImageGenEditor() {
   );
 
   async function handleGenerate() {
-    if (!currentProject?.path || !prompt.trim()) return;
+    if (!currentProject?.path || !prompt.trim() || !imageModel) return;
     setLoading(true);
     setError(null);
 
     try {
+      appendOutputEntry({
+        scope: 'image',
+        level: 'info',
+        message: 'Image generation request started',
+        detail: `${imageModel.provider}/${imageModel.model} ${size} x${count}`,
+      });
+
       const response = await generateImage({
         slot: imageModel,
         prompt: prompt.trim(),
@@ -73,6 +84,7 @@ export function ImageGenEditor() {
             prompt: prompt.trim(),
             b64Json: image.b64Json,
             mimeType: image.mimeType ?? 'image/png',
+            dataUrl: image.dataUrl ?? toDataUrl(image.b64Json, image.mimeType ?? 'image/png'),
             tempRelativePath: file.relativePath,
             tempFullPath: file.fullPath,
             assetAdded: false,
@@ -81,8 +93,21 @@ export function ImageGenEditor() {
       );
 
       setResults((current) => [...saved, ...current]);
+      appendOutputEntry({
+        scope: 'image',
+        level: 'success',
+        message: `Saved ${saved.length} generated image${saved.length === 1 ? '' : 's'} to temp/images`,
+        detail: saved.map((item) => item.tempRelativePath).join(', '),
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('imageGen.generateFailed'));
+      const message = err instanceof Error ? err.message : t('imageGen.generateFailed');
+      setError(message);
+      appendOutputEntry({
+        scope: 'image',
+        level: 'error',
+        message: 'Image generation failed',
+        detail: message,
+      });
     } finally {
       setLoading(false);
     }
@@ -92,6 +117,12 @@ export function ImageGenEditor() {
     if (!currentProject?.path || item.savedRelativePath) return;
     const targetRelativePath = `assets/images/${item.tempRelativePath.split('/').pop()}`;
     await window.orisonDesktop.moveProjectFile(currentProject.path, item.tempRelativePath, targetRelativePath);
+    appendOutputEntry({
+      scope: 'image',
+      level: 'success',
+      message: 'Moved generated image to assets/images',
+      detail: targetRelativePath,
+    });
     setResults((current) =>
       current.map((entry) =>
         entry.id === item.id
@@ -173,7 +204,7 @@ export function ImageGenEditor() {
             {results.map((item) => (
               <article key={item.id} className="image-gen-card">
                 <button type="button" className="image-gen-card-preview" onClick={() => setPreview(item)}>
-                  <img src={`file://${item.tempFullPath}`} alt={item.prompt} />
+                  <img src={item.dataUrl} alt={item.prompt} />
                 </button>
                 <div className="image-gen-card-body">
                   <span className="image-gen-card-label">{item.prompt}</span>
@@ -199,7 +230,7 @@ export function ImageGenEditor() {
             <button type="button" className="image-preview-close" onClick={() => setPreview(null)} aria-label="Close">
               <span className="material-symbols-outlined">close</span>
             </button>
-            <img src={`file://${preview.tempFullPath}`} alt={preview.prompt} />
+            <img src={preview.dataUrl} alt={preview.prompt} />
             <p>{preview.prompt}</p>
           </div>
         </div>
@@ -215,4 +246,12 @@ function createImageName(prompt: string, index: number): string {
 
 function joinProjectPath(projectPath: string, relativePath: string): string {
   return `${projectPath.replace(/[\\/]+$/, '')}\\${relativePath.replace(/\//g, '\\')}`;
+}
+
+function getSelectedProfile(profiles: ModelProfile[], selectedId: string | null): ModelProfile | null {
+  return profiles.find((profile) => profile.id === selectedId) ?? null;
+}
+
+function toDataUrl(b64Json: string, mimeType: string): string {
+  return `data:${mimeType};base64,${b64Json}`;
 }

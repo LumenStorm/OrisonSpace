@@ -15,10 +15,21 @@ describe('ImageGenEditor', () => {
         type: 'novel',
       },
       modelConfig: {
-        models: {
-          novel: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o' },
-          image: { provider: 'openai', apiKey: 'sk-test', baseUrl: 'https://api.openai.com/v1', model: 'gpt-image-1' },
-          video: { provider: 'openai', apiKey: '', baseUrl: 'https://api.openai.com/v1', model: 'placeholder-video' },
+        profiles: [
+          {
+            id: 'model_001',
+            name: 'Image Model',
+            provider: 'openai',
+            apiKey: 'sk-test',
+            baseUrl: 'https://api.openai.com/v1',
+            model: 'gpt-image-1',
+            capabilities: ['image'],
+          },
+        ],
+        selected: {
+          novel: null,
+          image: 'model_001',
+          video: null,
         },
       },
       creativeFields: {},
@@ -29,7 +40,7 @@ describe('ImageGenEditor', () => {
       json: async () => ({
         provider: 'openai',
         model: 'gpt-image-1',
-        images: [{ b64Json: 'abc123', mimeType: 'image/png', dataUrl: 'data:image/png;base64,abc123' }],
+        images: [{ base64: 'abc123', mimeType: 'image/png' }],
       }),
     });
 
@@ -51,10 +62,10 @@ describe('ImageGenEditor', () => {
   it('generates images, writes temporary project files, and renders previews', async () => {
     render(<ImageGenEditor />);
 
-    await userEvent.type(screen.getByPlaceholderText('imageGen.promptPlaceholder'), 'quiet desk');
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
     await userEvent.selectOptions(screen.getByDisplayValue('1024x1024'), '1792x1024');
     await userEvent.selectOptions(screen.getByDisplayValue('1'), '1');
-    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate/ }));
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
 
     await waitFor(() => expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalled());
     expect(fetch).toHaveBeenCalledWith(
@@ -70,10 +81,10 @@ describe('ImageGenEditor', () => {
   it('moves the temporary image to assets when saving', async () => {
     render(<ImageGenEditor />);
 
-    await userEvent.type(screen.getByPlaceholderText('imageGen.promptPlaceholder'), 'quiet desk');
-    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate/ }));
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
 
-    const saveButton = await screen.findByRole('button', { name: 'imageGen.saveToFile' });
+    const saveButton = await screen.findByRole('button', { name: /imageGen.saveToFile|Save File/ });
     await userEvent.click(saveButton);
 
     expect(window.orisonDesktop.moveProjectFile).toHaveBeenCalledWith(

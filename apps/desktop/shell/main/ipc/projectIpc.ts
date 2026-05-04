@@ -2,7 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
-import { assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
+import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 
 type FileEntry = {
   name: string;
@@ -94,7 +94,7 @@ export function registerProjectIpc() {
       defaultPath: orisonSpaceRoot,
       properties: ['openDirectory', 'createDirectory']
     });
-    return result.canceled ? null : result.filePaths[0];
+    return result.canceled ? null : allowPath(result.filePaths[0]);
   });
 
   ipcMain.handle('project:pick-cover-image', async () => {
@@ -104,7 +104,7 @@ export function registerProjectIpc() {
         { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }
       ]
     });
-    return result.canceled ? null : result.filePaths[0];
+    return result.canceled ? null : allowPath(result.filePaths[0]);
   });
 
   /* ── Project-scoped file operations (all paths validated) ── */
@@ -121,7 +121,7 @@ export function registerProjectIpc() {
     if (!existsSync(projectDir)) {
       mkdirSync(projectDir, { recursive: true });
     }
-    return projectDir;
+    return allowPath(projectDir);
   });
 
   ipcMain.handle('project:copy-cover-image', async (_, src: string, projectDir: string) => {

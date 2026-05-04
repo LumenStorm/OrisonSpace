@@ -342,3 +342,8 @@ ProjectDocument
 
 TopBar 采用经典菜单栏布局：品牌名 + 文件/编辑/视图/帮助下拉菜单。
 TopBar 整体设置 `-webkit-app-region: drag` 实现拖拽移动，菜单按钮等交互元素设置 `no-drag`。
+## 2026-05-04 Model Config and Output Console Notes
+
+- The bottom Properties panel reads image-capable profiles from the settings model library; static placeholder model options are removed.
+- The image generator previews results from `dataUrl`, then asks desktop IPC to write the normalized base64 payload into `temp/images/`.
+- The bottom Output tab is a real console for model refresh/save and image generation/save events.

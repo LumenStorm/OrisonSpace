@@ -165,7 +165,6 @@ inspector:
     generate: "Generate Image"
     prompt: "Describe the image to generate..."
     options:
-      model: ["DALL·E 3", "Midjourney", "Stable Diffusion"]
       size: ["512×512", "1024×1024", "1024×1792", "1792×1024"]
       style: ["Realistic", "Anime", "Watercolor", "Oil Painting", "Concept Art"]
 
@@ -214,6 +213,7 @@ settings:
   modelList: "Model List"
   modelSelectPlaceholder: "Fetch models first"
   modelNamePlaceholder: "gpt-5.4"
+  addModel: "Add model"
   novelModel: "Novel Model"
   imageModel: "Image Model"
   videoModel: "Video Model"

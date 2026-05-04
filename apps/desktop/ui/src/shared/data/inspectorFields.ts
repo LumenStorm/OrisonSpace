@@ -1,9 +1,13 @@
 import type { WorkspaceModule } from '../store/types';
 
 export type FieldDef = {
+  kind?: 'select';
   labelKey: string;
   optionsKey: string;
   defaultIndex: number;
+} | {
+  kind: 'imageModel';
+  labelKey: string;
 };
 
 const scriptFields: FieldDef[] = [
@@ -33,7 +37,7 @@ export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
     { labelKey: 'inspector.video.outputFormat', optionsKey: 'inspector.video.options.outputFormat', defaultIndex: 0 },
   ],
   image_gen: [
-    { labelKey: 'inspector.imageGen.model', optionsKey: 'inspector.imageGen.options.model', defaultIndex: 0 },
+    { kind: 'imageModel', labelKey: 'inspector.imageGen.model' },
     { labelKey: 'inspector.imageGen.size', optionsKey: 'inspector.imageGen.options.size', defaultIndex: 1 },
     { labelKey: 'inspector.imageGen.style', optionsKey: 'inspector.imageGen.options.style', defaultIndex: 0 },
   ],
