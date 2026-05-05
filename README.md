@@ -45,8 +45,8 @@
   - `multi-review-agent` (Python) — 多维评审
   - `targeted-revision-agent` (Python) — 定向修订
   - `chapter-title-agent` (TS) — 标题归一化
-- **Story Sync** + **Memory Extractor**（TS, 规则驱动）
-- **Auto Mode**：进程内会话注册表 + 后台异步推进循环
+- **Story Sync**（TS, 规则驱动 + 可选 LLM 模式，受 `ORISON_STORY_SYNC_MODE` 控制） + **Memory Extractor**（TS, 规则驱动）
+- **Auto Mode**：进程内会话注册表 + 后台异步推进循环 + YAML 持久化（`runs/auto-mode/<id>.yaml`，支持崩溃恢复）
 - Windows 下 Python 子进程 stdin/stdout 强制 UTF-8（避免 cp936 破坏中文与路径转义）
 
 ### 服务端
@@ -90,8 +90,11 @@ OneLine2Video/
 │  │  │  ├─ context-loader-agent/
 │  │  │  ├─ chapter-bridge-agent/
 │  │  │  ├─ chapter-title-agent/
-│  │  │  ├─ story-sync-agent/         规则驱动的故事同步
+│  │  │  ├─ story-sync-agent/         规则 + 可选 LLM 模式（rules.ts/prompt.ts/parser.ts/index.ts dispatcher）
 │  │  │  └─ memory-extractor-agent/   规则驱动的长期记忆提取
+│  │  ├─ src/engine/
+│  │  │  └─ llmClient.ts              通过 server `/v1/generation/:provider/text` 走 LLM 的轻量客户端
+│  │  ├─ src/engine/memory/           Memory RAG 预埋（embeddingProvider / memoryRetriever）
 │  │  ├─ python/
 │  │  │  ├─ runner/main.py            Python 节点入口（UTF-8 stdin/stdout）
 │  │  │  ├─ nodes/                    Python LLM 节点
@@ -220,6 +223,15 @@ PORT=18422
 LOG_LEVEL=info
 OPENAI_API_KEY=<your-key>
 OPENAI_BASE_URL=<optional-proxy>
+
+# story-sync-agent LLM 升级（可选；默认 rules）
+ORISON_STORY_SYNC_MODE=rules            # rules | llm
+ORISON_LLM_SERVER_URL=http://localhost:4000
+ORISON_LLM_PROVIDER=openai               # openai | gcp | anthropic
+ORISON_LLM_MODEL=gpt-4o-mini
+ORISON_LLM_API_KEY=<provider-key>
+ORISON_LLM_BASE_URL=<optional-provider-proxy>
+ORISON_STORY_SYNC_LLM_TIMEOUT_MS=45000
 ```
 
 ---
@@ -282,9 +294,10 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 - `POST /v1/auth/login`
 - `POST /v1/projects`
 - `POST /v1/tasks`
-- `GET /v1/tasks/:taskId`
-- `GET /v1/projects/:projectId/tasks`
-- `GET /v1/projects/:projectId/assets`
+- `GET /v1/tasks/:taskId` — 仅返回 `TaskResult`
+- `GET /v1/tasks/:taskId/detail` — 返回 `{ task, result }`，包含任务元数据与关联 assetIds
+- `GET /v1/projects/:projectId/tasks?limit&cursor&sort` — keyset 分页（按 `createdAt`）
+- `GET /v1/projects/:projectId/assets?limit&cursor&sort` — keyset 分页（按 `updatedAt`）
 - `POST /v1/generation/:provider/text`
 - `POST /v1/generation/:provider/image`
 - `/v1/orchestration/*` → 代理至 Agent
@@ -300,6 +313,7 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 - `POST /v1/orchestration/auto-mode` — 启动多章节自动模式
 - `POST /v1/orchestration/auto-mode/actions` — `pause` / `resume` / `cancel`
 - `GET /v1/orchestration/auto-mode/:autoModeId` — 查询自动模式状态
+- `POST /v1/orchestration/auto-mode/restore` — 从 `runs/auto-mode/*.yaml` 还原项目内已持久化的 auto mode 会话
 
 详见 [`docs/api/server-api.md`](docs/api/server-api.md)。
 
@@ -350,17 +364,26 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
 
 ## 已知现状与 Backlog
 
-### 已知历史遗留（不阻塞 cutover）
+### 已知历史遗留（已收尾）
 
-1. `GET /v1/projects/:projectId/tasks` 与 `GET /v1/projects/:projectId/assets` 暂未分页
-2. `GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据
-3. `apps/desktop/local-bff` 与 `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` 之间的 sync 角色尚未在 `docs/architecture/module-boundaries.md` 单列章节，仅在 server / desktop shell 章节提及
+1. ~~`GET /v1/projects/:projectId/tasks` 与 `GET /v1/projects/:projectId/assets` 暂未分页~~ → 2026-05-05 完成 keyset 分页（`limit/cursor/sort`）
+2. ~~`GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据~~ → 2026-05-05 新增 `GET /v1/tasks/:taskId/detail` 返回 `{ task, result }`，原路由保持仅 result 兼容 desktop local-bff
+3. ~~`apps/desktop/local-bff` 与 `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` 之间的 sync 角色尚未在 `docs/architecture/module-boundaries.md` 单列章节~~ → 2026-05-05 在 module-boundaries 新增 “Desktop Local BFF (Sync Layer)” 章节
 
-### 后续 Enhancement（按优先级）
+### Enhancement 进度
 
-- **P1** — `story-sync-agent` 由规则驱动升级为 LLM 节点（契约已定型，无需改 schema）
-- **P2** — Auto Mode 会话持久化（序列化 `NovelAutoModeState` 到 `runs/auto-mode/<id>.yaml`）
-- **P3** — Memory RAG / embedding 检索能力
+- ✅ **P1** — `story-sync-agent` 由规则驱动升级为 LLM 节点（2026-05-05）
+  - 默认仍走 rules，向后兼容
+  - 设置 `ORISON_STORY_SYNC_MODE=llm` + `ORISON_LLM_SERVER_URL` 后走 LLM 主路径，失败自动回退 rules
+  - 共享安全约束：白名单字段、merge-only、`fieldVersion` 校验、`generatedBy` 强制
+- ✅ **P2** — Auto Mode 会话持久化（2026-05-05）
+  - `NovelAutoModeState` 序列化到 `runs/auto-mode/<id>.yaml`，每次状态变更顺序写盘
+  - `POST /v1/orchestration/auto-mode/restore` 从项目目录还原会话
+- 🟡 **P3** — Memory RAG / embedding 检索能力（已预埋，待选型）
+  - `StoryMemoryEntry` 已支持 optional `embedding/embeddingDim/embeddingModel`
+  - `apps/agent/src/engine/memory/{embeddingProvider,memoryRetriever}.ts` 提供接口与 keyword fallback retriever
+  - 章节上下文新增 `memoryHits: []`，下游节点必须容忍空数组
+  - 默认运行路径不依赖任何 embedding provider 或向量库
 
 ---
 

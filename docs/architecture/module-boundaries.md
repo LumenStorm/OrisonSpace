@@ -42,6 +42,36 @@
 - Global user preferences currently include theme, locale, and auto-apply-patches. Layout, recent projects, and auth are intentionally excluded.
 - Model-list refresh is a desktop shell responsibility (`model:list-provider-models`), not a server route.
 
+## Desktop Local BFF (Sync Layer)
+
+- `apps/desktop/local-bff` is the desktop process local backend for project-directory persistence. It owns YAML-backed project data such as `project.yaml`, chapter files, sync state, and `memory/story-memory.yaml`.
+- Renderer code must not import `local-bff` directly. Renderer writes flow through preload IPC, then `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` validates the project path and creative field key before calling `local-bff` sync entry points such as `onFieldEdited(...)`.
+- `local-bff` repositories stay Electron-agnostic and path-oriented so they can be tested outside the shell process and later extracted into a standalone service if needed.
+- Field sync writes must pass `assertSafePath(projectPath)` and `creativeFieldKeySchema` validation before touching disk.
+- The agent process may read project files for orchestration context, but desktop-originated writes remain owned by the shell IPC plus `local-bff` sync layer.
+
+## Memory & RAG
+
+- Story memory persists as `memory/story-memory.yaml` under each project and uses `StoryMemoryEntry` from `packages/shared-contracts` as its durable entry contract.
+- Embedding fields on memory entries are optional. The default runtime path must keep working without embedding vectors, an embedding provider, or a vector database.
+- Retrieval integrations should depend on the `MemoryRetriever` interface under `apps/agent/src/engine/memory/`, not on a specific embedding provider or storage engine.
+- Chapter context may include `memoryHits`, but downstream nodes must tolerate an empty array until a concrete embedding provider and ranking strategy are selected.
+
+## Story Sync Agent (Rules + Optional LLM)
+
+- `apps/agent/src/nodes/story-sync-agent/` owns the chapter→creative-fields sync. It is split by responsibility: `rules.ts` (pure heuristic), `prompt.ts` (LLM messages), `parser.ts` (LLM JSON extraction + safety), and `index.ts` (dispatcher).
+- Mode is selected by `ORISON_STORY_SYNC_MODE` (`rules` | `llm`, default `rules`). The default path remains rules-driven and zero-dependency for backward compatibility.
+- LLM mode requires `ORISON_LLM_SERVER_URL` and routes through the server's `POST /v1/generation/:provider/text` adapter. LLM calls live in `apps/agent/src/engine/llmClient.ts` and never bypass the server's provider routing.
+- Any LLM failure (network, HTTP, JSON, schema, or whitelist rejection) must fall back to the rules path; the node never surfaces an LLM error as a node failure.
+- Both modes share the same safety contract on emitted patches: `action` is always `merge`; `field` must be in `creativeFieldKeys`; `fieldVersion` must equal the current context version for that field; `generatedBy` is forced to `'story-sync-agent'`; `runId`/`chapterId` are forced from the caller, never from the LLM.
+
+## Auto Mode Persistence
+
+- Auto mode session state is owned by `apps/agent/src/engine/autoMode/`. `novelAutoModeRunner.ts` is the per-session state machine; `autoModeService.ts` is the in-process registry plus background driver; `autoModeStore.ts` is the YAML persistence layer.
+- Each session is serialized as `<projectPath>/runs/auto-mode/<autoModeId>.yaml` and stamped with `schemaVersion`. State transitions persist sequentially through `pendingPersist` to avoid interleaved writes.
+- `POST /v1/orchestration/auto-mode/restore` rehydrates persisted sessions from a project path on demand. The route is the only public entry point for cross-process recovery; restored sessions are validated against `novelAutoModeStateSchema` and broken YAMLs are skipped.
+- Persistence is additive: live `getState` always prefers the in-memory runner; the disk store is consulted only when no runner is registered for that `autoModeId`.
+
 ## Server
 
 - Routes stay thin: validate input, select provider or service, and translate expected errors into HTTP responses.

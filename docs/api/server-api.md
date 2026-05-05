@@ -145,7 +145,7 @@ Errors:
 
 ### GET /v1/tasks/:taskId
 
-Retrieve the persisted task result.
+Retrieve the persisted task result. **Returns the bare `TaskResult` for backward compatibility with the desktop local-bff.** For metadata + result together, use `GET /v1/tasks/:taskId/detail`.
 
 Response (validated by `taskResultSchema`):
 
@@ -173,11 +173,53 @@ Response (validated by `taskResultSchema`):
 Errors:
 - `404`: Task not found
 
+### GET /v1/tasks/:taskId/detail
+
+Retrieve task metadata and result together.
+
+Response (validated by `taskDetailResponseSchema`):
+
+```json
+{
+  "task": {
+    "taskId": "20260427214530123_48321",
+    "projectId": "00001",
+    "targetId": "act_1",
+    "type": "outline.rewrite",
+    "name": "重写第一幕冲突",
+    "description": "强化主角和对手第一次正面冲突",
+    "status": "completed",
+    "createdAt": "2026-04-27T14:45:30.123Z",
+    "assetIds": ["char_001", "loc_002"]
+  },
+  "result": {
+    "taskId": "20260427214530123_48321",
+    "status": "completed",
+    "outputType": "patch",
+    "outputPayload": { "operations": [] },
+    "summary": "Mock rewrite completed.",
+    "retryable": true
+  }
+}
+```
+
+Behavior notes:
+- `result` is `null` when no execution result has been persisted yet (task still queued/running).
+- `task.assetIds` is hydrated through a single `task_asset_refs` lookup.
+
+Errors:
+- `404`: Task not found
+
 ### GET /v1/projects/:projectId/tasks
 
-List persisted tasks for a project.
+List persisted tasks for a project (keyset pagination).
 
-Response (200):
+Query params (validated by `taskListQuerySchema`):
+- `limit`: 1–200, default `50`
+- `cursor`: opaque base64url cursor returned by a previous page (omit for first page)
+- `sort`: `createdDesc` (default) or `createdAsc`
+
+Response (validated by `taskListResponseSchema`, 200):
 
 ```json
 {
@@ -193,22 +235,28 @@ Response (200):
       "createdAt": "2026-04-27T14:45:30.123Z",
       "assetIds": ["char_001", "loc_002"]
     }
-  ]
+  ],
+  "nextCursor": "eyJ0cyI6IjIwMjYtMDQtMjdUMTQ6NDU6MzAuMTIzWiIsImlkIjoiMjAyNjA0MjcyMTQ1MzAxMjNfNDgzMjEifQ"
 }
 ```
 
 Behavior notes:
-- Asset IDs are hydrated with a batched lookup from `task_asset_refs`, avoiding per-task N+1 queries.
-- The current implementation returns the full project task list ordered by `createdAt desc`; pagination is not implemented yet.
+- Keyset pagination on `(created_at, task_id)`. Pass `nextCursor` from the previous response to fetch the next page; `nextCursor` is `null` when there are no more rows.
+- Asset IDs are hydrated with a single batched lookup, avoiding per-task N+1 queries.
 
 Errors:
 - `404`: Project not found
 
 ### GET /v1/projects/:projectId/assets
 
-List lightweight asset index entries for a project.
+List lightweight asset index entries for a project (keyset pagination).
 
-Response (200):
+Query params (validated by `projectAssetListQuerySchema`):
+- `limit`: 1–200, default `50`
+- `cursor`: opaque base64url cursor (omit for first page)
+- `sort`: `updatedDesc` (default) or `updatedAsc`
+
+Response (validated by `projectAssetListResponseSchema`, 200):
 
 ```json
 {
@@ -224,11 +272,13 @@ Response (200):
       "version": 1,
       "updatedAt": "2026-04-27T14:45:30.456Z"
     }
-  ]
+  ],
+  "nextCursor": null
 }
 ```
 
 Behavior notes:
+- Keyset pagination on `(updated_at, asset_id)`.
 - The current server writes placeholder index metadata for task-linked assets:
   - `assetType = "unknown"`
   - `assetName = assetId`
@@ -242,7 +292,8 @@ Errors:
 
 - Request body limit: `1 MB`
 - Task execution is currently backed by the mock adapter.
-- `GET /v1/tasks/:taskId` returns task result data only; task list metadata and related asset IDs are exposed through the project list endpoints.
+- `GET /v1/tasks/:taskId` returns the bare `TaskResult` for backward compatibility; use `GET /v1/tasks/:taskId/detail` to fetch task metadata + result together.
+- Project task and asset list endpoints use keyset pagination — pass `nextCursor` from the previous response to fetch the next page.
 - Generation provider contracts live in `packages/shared-contracts/src/contracts/generation.ts`.
 
 ## Generation APIs
