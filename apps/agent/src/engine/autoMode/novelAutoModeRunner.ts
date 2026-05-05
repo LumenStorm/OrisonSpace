@@ -15,6 +15,12 @@ export type NovelAutoModeStartParams = {
   reviewMode?: 'pass' | 'revise' | 'escalate';
 };
 
+export type NovelAutoModePersist = (state: NovelAutoModeState) => void | Promise<void>;
+
+export type NovelAutoModeRunnerOptions = {
+  persist?: NovelAutoModePersist;
+};
+
 export type NovelAutoModeRunner = {
   /** 初始化一个 auto-mode 会话，决定 pending 章节，状态置 running。 */
   start(params: NovelAutoModeStartParams): Promise<NovelAutoModeState>;
@@ -28,6 +34,8 @@ export type NovelAutoModeRunner = {
   cancel(): void;
   /** 获取当前状态快照（不可变）。 */
   getState(): NovelAutoModeState;
+  /** 直接载入既有状态（用于崩溃恢复）。 */
+  hydrate(state: NovelAutoModeState): void;
 };
 
 /**
@@ -53,8 +61,10 @@ function nowIso(): string {
 /**
  * 工厂：创建一个 auto mode 运行器实例。每个实例维护独立的会话状态。
  */
-export function createNovelAutoModeRunner(): NovelAutoModeRunner {
+export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = {}): NovelAutoModeRunner {
   let state: NovelAutoModeState | null = null;
+  const persist = options.persist;
+  let pendingPersist: Promise<void> = Promise.resolve();
 
   function ensureStarted(): NovelAutoModeState {
     if (!state) {
@@ -63,15 +73,28 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
     return state;
   }
 
+  function commit(next: NovelAutoModeState): NovelAutoModeState {
+    state = next;
+    if (persist) {
+      pendingPersist = pendingPersist.then(() => Promise.resolve(persist(next))).catch(() => undefined);
+    }
+    return next;
+  }
+
+  async function commitAsync(next: NovelAutoModeState): Promise<NovelAutoModeState> {
+    commit(next);
+    await pendingPersist;
+    return next;
+  }
+
   function setStatus(status: NovelAutoModeStatus, patch: Partial<NovelAutoModeState> = {}): NovelAutoModeState {
     const base = ensureStarted();
-    state = {
+    return commit({
       ...base,
       ...patch,
       status,
       updatedAt: nowIso(),
-    };
-    return state;
+    });
   }
 
   return {
@@ -91,7 +114,7 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
       }
 
       const startedAt = nowIso();
-      state = {
+      return commitAsync({
         autoModeId: `auto_${crypto.randomUUID()}`,
         projectPath,
         status: 'running',
@@ -104,11 +127,9 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
         updatedAt: startedAt,
         finishedAt: undefined,
         lastError: null,
-      };
-      // 保存为参数闭包，便于后续 runOnce 复用
-      (state as any).__mode = mode;
-      (state as any).__reviewMode = params.reviewMode ?? 'pass';
-      return state;
+        mode,
+        reviewMode: params.reviewMode ?? 'pass',
+      });
     },
 
     async runOnce(): Promise<NovelAutoModeState> {
@@ -121,22 +142,26 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
 
       // 没有更多章节 → completed
       if (cur.pendingChapterIds.length === 0) {
-        return setStatus('completed', { finishedAt: nowIso(), currentChapterId: null, currentRunId: null });
+        return commitAsync({
+          ...cur,
+          status: 'completed',
+          finishedAt: nowIso(),
+          currentChapterId: null,
+          currentRunId: null,
+          updatedAt: nowIso(),
+        });
       }
 
       const [nextChapter, ...rest] = cur.pendingChapterIds;
-      const mode = ((cur as any).__mode ?? 'generate') as 'generate' | 'continue' | 'polish';
-      const reviewMode = ((cur as any).__reviewMode ?? 'pass') as 'pass' | 'revise' | 'escalate';
+      const mode = cur.mode ?? 'generate';
+      const reviewMode = cur.reviewMode ?? 'pass';
 
       // 标记当前章节
-      state = {
+      commit({
         ...cur,
         currentChapterId: nextChapter,
         updatedAt: nowIso(),
-      };
-      // 保留闭包字段
-      (state as any).__mode = mode;
-      (state as any).__reviewMode = reviewMode;
+      });
 
       try {
         const run = await runNovelPipeline({
@@ -147,7 +172,7 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
         });
 
         const completed = [...cur.completedChapterIds, nextChapter];
-        const after: NovelAutoModeState = {
+        return commitAsync({
           ...cur,
           pendingChapterIds: rest,
           completedChapterIds: completed,
@@ -157,16 +182,17 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
           finishedAt: rest.length === 0 ? nowIso() : undefined,
           updatedAt: nowIso(),
           lastError: null,
-        };
-        state = after;
-        (state as any).__mode = mode;
-        (state as any).__reviewMode = reviewMode;
-        return after;
+          mode,
+          reviewMode,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        return setStatus('failed', {
+        return commitAsync({
+          ...ensureStarted(),
+          status: 'failed',
           lastError: message,
           finishedAt: nowIso(),
+          updatedAt: nowIso(),
         });
       }
     },
@@ -194,6 +220,10 @@ export function createNovelAutoModeRunner(): NovelAutoModeRunner {
 
     getState(): NovelAutoModeState {
       return ensureStarted();
+    },
+
+    hydrate(loaded: NovelAutoModeState): void {
+      state = loaded;
     },
   };
 }

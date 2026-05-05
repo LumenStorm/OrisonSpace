@@ -94,6 +94,9 @@ export const novelAutoModeStateSchema = z.object({
   updatedAt: z.string().datetime().optional(),
   finishedAt: z.string().datetime().optional(),
   lastError: z.string().nullable().default(null),
+  mode: z.enum(['generate', 'continue', 'polish']).optional(),
+  reviewMode: z.enum(['pass', 'revise', 'escalate']).optional(),
+  schemaVersion: z.number().int().nonnegative().optional(),
 });
 
 export type NovelAutoModeState = z.infer<typeof novelAutoModeStateSchema>;

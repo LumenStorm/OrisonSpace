@@ -7,6 +7,11 @@ import {
   createNovelAutoModeRunner,
   type NovelAutoModeRunner,
 } from './novelAutoModeRunner';
+import {
+  listProjectAutoModeStates,
+  loadAutoModeState,
+  saveAutoModeState,
+} from './autoModeStore';
 
 /**
  * 进程内 auto-mode 会话注册表 + 控制器。
@@ -19,15 +24,24 @@ import {
  * 设计要点：
  *  - 后台循环不阻塞 HTTP，HTTP 响应只返回当前快照。
  *  - cancel/pause 通过 runner.getState().status 自检，循环每次推进前都看一眼，避免抢锁。
+ *  - 状态变更通过 runner persist 钩子写入 <projectPath>/runs/auto-mode/<id>.yaml，
+ *    支持崩溃恢复和跨进程读盘。
  */
 export type AutoModeService = {
   start(input: unknown): Promise<NovelAutoModeState>;
   applyAction(input: unknown): Promise<NovelAutoModeState>;
   getState(autoModeId: string): NovelAutoModeState | null;
+  restoreFromProject(projectPath: string): NovelAutoModeState[];
 };
 
 export function createAutoModeService(): AutoModeService {
   const runners = new Map<string, NovelAutoModeRunner>();
+  const sessionProjectPaths = new Map<string, string>();
+
+  function trackSession(state: NovelAutoModeState, runner: NovelAutoModeRunner) {
+    runners.set(state.autoModeId, runner);
+    sessionProjectPaths.set(state.autoModeId, state.projectPath);
+  }
 
   async function backgroundDrive(autoModeId: string) {
     const runner = runners.get(autoModeId);
@@ -47,13 +61,13 @@ export function createAutoModeService(): AutoModeService {
   return {
     async start(input: unknown): Promise<NovelAutoModeState> {
       const parsed = novelAutoModeStartRequestSchema.parse(input);
-      const runner = createNovelAutoModeRunner();
+      const runner = createNovelAutoModeRunner({ persist: saveAutoModeState });
       const initial = await runner.start({
         projectPath: parsed.projectPath,
         chapterIds: parsed.chapterIds,
         mode: parsed.mode,
       });
-      runners.set(initial.autoModeId, runner);
+      trackSession(initial, runner);
       // 不 await：后台异步推进
       void backgroundDrive(initial.autoModeId);
       return initial;
@@ -83,8 +97,23 @@ export function createAutoModeService(): AutoModeService {
 
     getState(autoModeId: string): NovelAutoModeState | null {
       const runner = runners.get(autoModeId);
-      if (!runner) return null;
-      return runner.getState();
+      if (runner) {
+        return runner.getState();
+      }
+      const projectPath = sessionProjectPaths.get(autoModeId);
+      if (!projectPath) return null;
+      return loadAutoModeState(projectPath, autoModeId);
+    },
+
+    restoreFromProject(projectPath: string): NovelAutoModeState[] {
+      const states = listProjectAutoModeStates(projectPath);
+      for (const state of states) {
+        if (runners.has(state.autoModeId)) continue;
+        const runner = createNovelAutoModeRunner({ persist: saveAutoModeState });
+        runner.hydrate(state);
+        trackSession(state, runner);
+      }
+      return states;
     },
   };
 }

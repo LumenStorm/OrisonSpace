@@ -84,4 +84,14 @@ export async function registerOrchestrationRoutes(app: FastifyInstance) {
     }
     return reply.send(state);
   });
+
+  app.post('/v1/orchestration/auto-mode/restore', async (request, reply) => {
+    const body = request.body as { projectPath?: unknown };
+    const projectPath = typeof body?.projectPath === 'string' ? body.projectPath : '';
+    if (!projectPath) {
+      return reply.code(400).send({ error: 'projectPath is required' });
+    }
+    const states = autoModeService.restoreFromProject(projectPath);
+    return reply.send({ restored: states });
+  });
 }
