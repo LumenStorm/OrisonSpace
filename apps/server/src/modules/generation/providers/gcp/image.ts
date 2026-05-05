@@ -22,8 +22,10 @@ export async function generateGcpImage(request: ImageGenerationRequest): Promise
     provider: 'gcp',
     model: request.model,
     images: (raw.predictions ?? []).map((prediction) => ({
+      url: undefined,
       b64Json: prediction.bytesBase64Encoded,
       mimeType: prediction.mimeType,
+      dataUrl: undefined,
     })),
     raw,
   };

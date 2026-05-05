@@ -71,6 +71,8 @@ export async function generateOpenAiImage(request: ImageGenerationRequest): Prom
     images: (raw.data ?? []).map((image) => ({
       url: image.url,
       b64Json: image.b64_json ?? image.b64Json ?? image.base64,
+      mimeType: undefined,
+      dataUrl: undefined,
     })),
     raw,
   };
