@@ -16,6 +16,8 @@ export const storyMemoryEntrySchema = z.object({
   isForeshadow: z.boolean().default(false),
   sourceExcerpt: z.string().optional(),
   embeddingModel: z.string().optional(),
+  embedding: z.array(z.number()).optional(),
+  embeddingDim: z.number().int().positive().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 });

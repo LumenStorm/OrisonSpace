@@ -102,10 +102,16 @@ describe('novel migration contracts', () => {
       isForeshadow: false,
       sourceExcerpt: '他脱下外套，露出满身伤疤...',
       createdAt: '2026-05-03T10:00:00Z',
+      embeddingModel: 'placeholder-embedding-model',
+      embedding: [0.1, 0.2, 0.3],
+      embeddingDim: 3,
     });
     expect(entry.memoryType).toBe('character');
     expect(entry.importanceScore).toBe(0.8);
     expect(entry.relatedCharacters).toContain('char_main');
+    expect(entry.embeddingModel).toBe('placeholder-embedding-model');
+    expect(entry.embedding).toEqual([0.1, 0.2, 0.3]);
+    expect(entry.embeddingDim).toBe(3);
   });
 
   it('storyMemoryEntrySchema 使用默认值', () => {

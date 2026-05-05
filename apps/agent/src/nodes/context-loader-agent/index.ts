@@ -90,6 +90,7 @@ export function createContextLoaderNode(chapterId: string, projectPath: string):
         bridgeNotes: targetChapter.bridge_notes ?? null,
         lastRunId: targetChapter.last_run_id ?? null,
         status: targetChapter.status ?? 'draft',
+        memoryHits: [],
       };
 
       return {
