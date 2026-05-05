@@ -2,9 +2,12 @@ import type { z } from 'zod';
 import { taskRequestSchema, taskResultSchema } from '@orison/shared-contracts';
 import { pool } from '../../../common/db';
 import type {
+  PaginatedResult,
   ProjectAssetListItem,
+  ProjectAssetListOptions,
   TaskAssetRefRecord,
   TaskListItem,
+  TaskListOptions,
   TaskReadRepository,
   TaskResultRecord
 } from './taskReadRepository';
@@ -52,6 +55,8 @@ function mapProjectAssetRow(row: Record<string, unknown>): ProjectAssetListItem 
     updatedAt: new Date(String(row.updated_at)).toISOString()
   };
 }
+
+import { decodeCursor, paginateRows } from './pagination';
 
 class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository {
   async createTask(input: TaskCreateInput): Promise<void> {
@@ -154,16 +159,40 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
     return result.rowCount ? mapTaskRowToResult(result.rows[0]) : null;
   }
 
-  async listByProject(projectId: string): Promise<TaskListItem[]> {
+  async getTaskMeta(taskId: string): Promise<TaskListItem | null> {
+    const result = await pool.query(
+      `SELECT task_id, project_id, target_id, task_type, name, description, status, created_at
+       FROM tasks
+       WHERE task_id = $1`,
+      [taskId]
+    );
+
+    return result.rowCount ? mapTaskListRow(result.rows[0]) : null;
+  }
+
+  async listByProject(projectId: string, options: TaskListOptions): Promise<PaginatedResult<TaskListItem>> {
+    const cursor = decodeCursor(options.cursor);
+    const isDesc = options.sort === 'createdDesc';
+    const comparator = isDesc ? '<' : '>';
+    const order = isDesc ? 'DESC' : 'ASC';
+    const cursorClause = cursor ? `AND (created_at, task_id) ${comparator} ($2::timestamptz, $3::varchar)` : '';
+    const params = cursor ? [projectId, cursor.ts, cursor.id, options.limit + 1] : [projectId, options.limit + 1];
+    const limitParam = cursor ? '$4' : '$2';
+
     const result = await pool.query(
       `SELECT task_id, project_id, target_id, task_type, name, description, status, created_at
        FROM tasks
        WHERE project_id = $1
-       ORDER BY created_at DESC`,
-      [projectId]
+       ${cursorClause}
+       ORDER BY created_at ${order}, task_id ${order}
+       LIMIT ${limitParam}`,
+      params
     );
 
-    return result.rows.map(mapTaskListRow);
+    return paginateRows(result.rows, options.limit, mapTaskListRow, (row) => ({
+      ts: new Date(String(row.created_at)).toISOString(),
+      id: String(row.task_id)
+    }));
   }
 
   async listAssetRefsForTaskIds(taskIds: string[]): Promise<TaskAssetRefRecord[]> {
@@ -182,16 +211,29 @@ class PostgresTaskRepository implements TaskReadRepository, TaskWriteRepository 
     }));
   }
 
-  async listProjectAssets(projectId: string): Promise<ProjectAssetListItem[]> {
+  async listProjectAssets(projectId: string, options: ProjectAssetListOptions): Promise<PaginatedResult<ProjectAssetListItem>> {
+    const cursor = decodeCursor(options.cursor);
+    const isDesc = options.sort === 'updatedDesc';
+    const comparator = isDesc ? '<' : '>';
+    const order = isDesc ? 'DESC' : 'ASC';
+    const cursorClause = cursor ? `AND (updated_at, asset_id) ${comparator} ($2::timestamptz, $3::varchar)` : '';
+    const params = cursor ? [projectId, cursor.ts, cursor.id, options.limit + 1] : [projectId, options.limit + 1];
+    const limitParam = cursor ? '$4' : '$2';
+
     const result = await pool.query(
       `SELECT asset_id, project_id, asset_type, asset_name, asset_status, source_task_id, summary, version, updated_at
        FROM project_assets
        WHERE project_id = $1
-       ORDER BY updated_at DESC, asset_id ASC`,
-      [projectId]
+       ${cursorClause}
+       ORDER BY updated_at ${order}, asset_id ${order}
+       LIMIT ${limitParam}`,
+      params
     );
 
-    return result.rows.map(mapProjectAssetRow);
+    return paginateRows(result.rows, options.limit, mapProjectAssetRow, (row) => ({
+      ts: new Date(String(row.updated_at)).toISOString(),
+      id: String(row.asset_id)
+    }));
   }
 
   async upsertProjectAssets(taskId: string, request: TaskRequest): Promise<void> {

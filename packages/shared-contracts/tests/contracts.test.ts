@@ -5,7 +5,14 @@ import {
   projectCreateRequestSchema,
   projectCreateResponseSchema,
   taskRequestSchema,
-  taskResultSchema
+  taskResultSchema,
+  taskListItemSchema,
+  taskListQuerySchema,
+  taskListResponseSchema,
+  projectAssetListItemSchema,
+  projectAssetListQuerySchema,
+  projectAssetListResponseSchema,
+  taskDetailResponseSchema,
 } from '../src';
 
 describe('shared contracts', () => {
@@ -95,5 +102,94 @@ describe('shared contracts', () => {
     });
 
     expect(parsed.meta.name).toBe('Orison Demo');
+  });
+
+  it('parses task list pagination query with defaults and bounds', () => {
+    const defaults = taskListQuerySchema.parse({});
+    expect(defaults).toEqual({ limit: 50, sort: 'createdDesc' });
+    const explicit = taskListQuerySchema.parse({ limit: '25', cursor: 'abc', sort: 'createdAsc' });
+    expect(explicit).toEqual({ limit: 25, cursor: 'abc', sort: 'createdAsc' });
+    expect(() => taskListQuerySchema.parse({ limit: 0 })).toThrow();
+    expect(() => taskListQuerySchema.parse({ limit: 201 })).toThrow();
+  });
+
+  it('parses task list response with assetIds and nullable nextCursor', () => {
+    const parsed = taskListResponseSchema.parse({
+      items: [
+        {
+          taskId: 'task_1',
+          projectId: '00001',
+          type: 'outline.rewrite',
+          name: 'Item',
+          description: 'desc',
+          status: 'queued',
+          createdAt: '2026-05-05T01:00:00.000Z'
+        }
+      ],
+      nextCursor: null
+    });
+    expect(parsed.items[0].assetIds).toEqual([]);
+    expect(parsed.nextCursor).toBeNull();
+    expect(taskListItemSchema.shape.targetId.isOptional()).toBe(true);
+  });
+
+  it('parses project asset list query and response shapes', () => {
+    const defaults = projectAssetListQuerySchema.parse({});
+    expect(defaults).toEqual({ limit: 50, sort: 'updatedDesc' });
+    const parsed = projectAssetListResponseSchema.parse({
+      items: [
+        {
+          assetId: 'asset_1',
+          projectId: '00001',
+          assetType: 'unknown',
+          assetName: 'Asset',
+          assetStatus: 'active',
+          version: 1,
+          updatedAt: '2026-05-05T01:00:00.000Z'
+        }
+      ],
+      nextCursor: 'next-cursor'
+    });
+    expect(parsed.nextCursor).toBe('next-cursor');
+    expect(projectAssetListItemSchema.shape.summary.isOptional()).toBe(true);
+  });
+
+  it('parses task detail response with task metadata and result', () => {
+    const parsed = taskDetailResponseSchema.parse({
+      task: {
+        taskId: 'task_1',
+        projectId: '00001',
+        type: 'outline.rewrite',
+        name: 'Detail',
+        description: 'desc',
+        status: 'completed',
+        createdAt: '2026-05-05T01:00:00.000Z',
+        assetIds: ['char_001']
+      },
+      result: {
+        taskId: 'task_1',
+        status: 'completed',
+        summary: 'done',
+        rationale: 'because',
+        reviewHint: 'lgtm',
+        retryable: true
+      }
+    });
+
+    expect(parsed.task.assetIds).toEqual(['char_001']);
+    expect(parsed.result?.status).toBe('completed');
+    expect(taskDetailResponseSchema.parse({
+      task: {
+        taskId: 'task_2',
+        projectId: '00001',
+        type: 'outline.rewrite',
+        name: 'Detail',
+        description: 'desc',
+        status: 'queued',
+        createdAt: '2026-05-05T01:00:00.000Z',
+        assetIds: []
+      },
+      result: null
+    }).result).toBeNull();
   });
 });

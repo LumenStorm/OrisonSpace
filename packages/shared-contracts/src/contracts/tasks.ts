@@ -44,3 +44,54 @@ export const taskResultSchema = z.object({
   reviewHint: z.string().min(1),
   retryable: z.boolean()
 });
+
+export const taskListItemSchema = z.object({
+  taskId: z.string().min(1),
+  projectId: projectIdSchema,
+  targetId: z.string().min(1).optional(),
+  type: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().min(1),
+  status: z.enum(['queued', 'running', 'completed', 'failed']),
+  createdAt: z.string().datetime(),
+  assetIds: z.array(z.string().min(1)).default([])
+});
+
+export const projectAssetListItemSchema = z.object({
+  assetId: z.string().min(1),
+  projectId: projectIdSchema,
+  assetType: z.string().min(1),
+  assetName: z.string().min(1),
+  assetStatus: z.string().min(1),
+  sourceTaskId: z.string().min(1).optional(),
+  summary: z.string().optional(),
+  version: z.number().int().nonnegative(),
+  updatedAt: z.string().datetime()
+});
+
+export const taskListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  cursor: z.string().min(1).optional(),
+  sort: z.enum(['createdDesc', 'createdAsc']).default('createdDesc')
+});
+
+export const projectAssetListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  cursor: z.string().min(1).optional(),
+  sort: z.enum(['updatedDesc', 'updatedAsc']).default('updatedDesc')
+});
+
+export const taskListResponseSchema = z.object({
+  items: z.array(taskListItemSchema),
+  nextCursor: z.string().nullable()
+});
+
+export const projectAssetListResponseSchema = z.object({
+  items: z.array(projectAssetListItemSchema),
+  nextCursor: z.string().nullable()
+});
+
+export const taskDetailResponseSchema = z.object({
+  task: taskListItemSchema,
+  result: taskResultSchema.nullable()
+});

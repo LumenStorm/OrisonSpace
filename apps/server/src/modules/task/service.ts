@@ -1,15 +1,28 @@
 import type { z } from 'zod';
-import { taskRequestSchema, taskResultSchema } from '@orison/shared-contracts';
+import {
+  projectAssetListQuerySchema,
+  taskListQuerySchema,
+  taskRequestSchema,
+  taskResultSchema,
+} from '@orison/shared-contracts';
 import { runMockTask } from './mockAdapter';
 import { postgresProjectRepository } from '../project/repositories/postgresProjectRepository';
 import { postgresTaskRepository } from './repositories/postgresTaskRepository';
 import { createTaskId } from './taskId';
 
 type TaskRequest = z.infer<typeof taskRequestSchema>;
+type TaskListQuery = z.infer<typeof taskListQuerySchema>;
+type ProjectAssetListQuery = z.infer<typeof projectAssetListQuerySchema>;
 
 export class ProjectNotFoundError extends Error {
   constructor(projectId: string) {
     super(`Project ${projectId} not found`);
+  }
+}
+
+export class TaskNotFoundError extends Error {
+  constructor(taskId: string) {
+    super(`Task ${taskId} not found`);
   }
 }
 
@@ -56,14 +69,14 @@ export async function enqueueTask(request: TaskRequest) {
   return queuedResult;
 }
 
-export async function listProjectTasks(projectId: string) {
+export async function listProjectTasks(projectId: string, options: TaskListQuery) {
   const projectExists = await postgresProjectRepository.existsById(projectId);
   if (!projectExists) {
     throw new ProjectNotFoundError(projectId);
   }
 
-  const tasks = await postgresTaskRepository.listByProject(projectId);
-  const refs = await postgresTaskRepository.listAssetRefsForTaskIds(tasks.map((task) => task.taskId));
+  const page = await postgresTaskRepository.listByProject(projectId, options);
+  const refs = await postgresTaskRepository.listAssetRefsForTaskIds(page.items.map((task) => task.taskId));
   const grouped = new Map<string, string[]>();
 
   for (const ref of refs) {
@@ -73,20 +86,39 @@ export async function listProjectTasks(projectId: string) {
   }
 
   return {
-    items: tasks.map((task) => ({
+    items: page.items.map((task) => ({
       ...task,
       assetIds: grouped.get(task.taskId) ?? []
-    }))
+    })),
+    nextCursor: page.nextCursor
   };
 }
 
-export async function listProjectAssets(projectId: string) {
+export async function listProjectAssets(projectId: string, options: ProjectAssetListQuery) {
   const projectExists = await postgresProjectRepository.existsById(projectId);
   if (!projectExists) {
     throw new ProjectNotFoundError(projectId);
   }
 
+  return postgresTaskRepository.listProjectAssets(projectId, options);
+}
+
+export async function getTaskResult(taskId: string) {
+  return postgresTaskRepository.getTaskResult(taskId);
+}
+
+export async function getTaskDetail(taskId: string) {
+  const meta = await postgresTaskRepository.getTaskMeta(taskId);
+  if (!meta) {
+    throw new TaskNotFoundError(taskId);
+  }
+  const result = await postgresTaskRepository.getTaskResult(taskId);
+  const refs = await postgresTaskRepository.listAssetRefsForTaskIds([taskId]);
   return {
-    items: await postgresTaskRepository.listProjectAssets(projectId)
+    task: {
+      ...meta,
+      assetIds: refs.filter((ref) => ref.taskId === taskId).map((ref) => ref.assetId)
+    },
+    result
   };
 }

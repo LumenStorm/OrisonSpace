@@ -1,7 +1,12 @@
 import type { z } from 'zod';
-import type { taskResultSchema } from '@orison/shared-contracts';
+import type { taskResultSchema, taskListQuerySchema, projectAssetListQuerySchema } from '@orison/shared-contracts';
+import type { PaginatedResult } from './pagination';
+
+export type { PaginatedResult } from './pagination';
 
 export type TaskResultRecord = z.infer<typeof taskResultSchema>;
+export type TaskListOptions = z.infer<typeof taskListQuerySchema>;
+export type ProjectAssetListOptions = z.infer<typeof projectAssetListQuerySchema>;
 
 export type TaskListItem = {
   taskId: string;
@@ -33,7 +38,8 @@ export type ProjectAssetListItem = {
 
 export interface TaskReadRepository {
   getTaskResult(taskId: string): Promise<TaskResultRecord | null>;
-  listByProject(projectId: string): Promise<TaskListItem[]>;
+  getTaskMeta(taskId: string): Promise<TaskListItem | null>;
+  listByProject(projectId: string, options: TaskListOptions): Promise<PaginatedResult<TaskListItem>>;
   listAssetRefsForTaskIds(taskIds: string[]): Promise<TaskAssetRefRecord[]>;
-  listProjectAssets(projectId: string): Promise<ProjectAssetListItem[]>;
+  listProjectAssets(projectId: string, options: ProjectAssetListOptions): Promise<PaginatedResult<ProjectAssetListItem>>;
 }
