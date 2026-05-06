@@ -1,6 +1,7 @@
 import { projectCreateRequestSchema, projectCreateResponseSchema } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
 import type { ProjectMeta } from '../store/types';
+import { throwIfSessionExpired } from './session';
 
 type EnsureProjectRegistrationInput = {
   token: string;
@@ -25,6 +26,8 @@ export async function ensureProjectRegistration({
     },
     body: JSON.stringify(payload),
   });
+
+  throwIfSessionExpired(response);
 
   if (!response.ok) {
     throw new Error(`Project registration failed: ${response.status}`);

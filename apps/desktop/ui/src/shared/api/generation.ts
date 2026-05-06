@@ -6,6 +6,7 @@ import {
   type ProviderModel,
 } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
+import { throwIfSessionExpired } from './session';
 
 export type RemoteModel = ProviderModel;
 
@@ -78,6 +79,8 @@ export async function generateImage({
     },
     body: JSON.stringify(body),
   });
+
+  throwIfSessionExpired(response);
 
   if (!response.ok) {
     throw new Error(`Image generation failed: ${response.status}`);

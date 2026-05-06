@@ -9,7 +9,7 @@ declare module 'fastify' {
   }
 }
 
-const TOKEN_EXPIRY = '2h';
+const TOKEN_EXPIRY = '72h';
 const secret = new TextEncoder().encode(env.JWT_SECRET);
 
 async function verifyToken(token: string): Promise<string | null> {

@@ -385,6 +385,15 @@ pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
   - 章节上下文新增 `memoryHits: []`，下游节点必须容忍空数组
   - 默认运行路径不依赖任何 embedding provider 或向量库
 
+### 2026-05-06 认证与模型接口 TODO
+
+- ✅ **认证会话**：服务端 JWT 过期时间改为 72 小时；桌面端带鉴权 API 收到 `401` 后派发 `orison:auth-expired` 并自动退出登录。
+- ✅ **NewAPI 适配计划**：新增 [`docs/superpowers/plans/2026-05-06-newapi-model-adapter.md`](docs/superpowers/plans/2026-05-06-newapi-model-adapter.md)，明确用 `apiFormat` 选择接口规范，避免仅凭模型 ID 推断协议。
+- TODO：为模型配置增加 `apiFormat`，区分 `openai-chat-completions`、`openai-responses`、`claude-messages`、`gemini-generate-content`、`openai-images`、`gemini-images`、`sora-videos`。
+- TODO：服务端保留统一 `/v1/generation/:provider/*` 入口，内部按 `apiFormat` 分发到不同 protocol adapter，并通过 `providerOptions` 承载模型/供应商专属参数。
+- TODO：桌面端模型列表刷新按 `apiFormat` 选择 URL、headers 和响应解析；NewAPI 中转时以“接口规范”而不是“模型真实供应商”决定调用方式。
+- 暂不做：嵌入（embedding）和重排序（rerank）接口，本阶段只覆盖聊天、图像和视频生成相关能力。
+
 ---
 
 ## 相关文档

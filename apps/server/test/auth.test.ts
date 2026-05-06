@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
+import { decodeJwt } from 'jose';
 import { buildServer } from '../src/app';
 import { query } from '../src/common/db';
+import { createToken } from '../src/modules/auth/plugin';
 
 const testEmail = `test-${Date.now()}@example.com`;
 const testPassword = 'test-password-123';
@@ -81,5 +83,14 @@ describe('auth', () => {
     });
 
     expect(response.statusCode).toBe(401);
+  });
+
+  it('issues tokens that expire after 72 hours', async () => {
+    const token = await createToken('user-123');
+    const payload = decodeJwt(token);
+
+    expect(payload.iat).toBeTypeOf('number');
+    expect(payload.exp).toBeTypeOf('number');
+    expect(payload.exp! - payload.iat!).toBe(72 * 60 * 60);
   });
 });
