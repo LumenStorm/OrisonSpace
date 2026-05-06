@@ -13,6 +13,7 @@
   "dependencies": {
     "@fastify/cors": "^11.0.1",
     "@orison/shared-contracts": "file:../../packages/shared-contracts",
+    "@orison/story-sync": "workspace:*",
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "pino": "^9.7.0",

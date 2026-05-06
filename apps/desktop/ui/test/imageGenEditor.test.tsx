@@ -19,39 +19,35 @@ describe('ImageGenEditor', () => {
       modelConfig: {
         profiles: [
           {
+            schemaVersion: 2 as const,
             id: 'model_001',
             name: 'Image Model',
             provider: 'openai',
             apiKey: 'sk-test',
-            baseUrl: 'https://api.openai.com/v1',
-            model: 'gpt-image-1',
-            capabilities: ['image'],
+            baseUrl: 'https://api.openai.com',
+            models: [
+              {
+                id: 'gpt-image-1',
+                alias: 'GPT Image 1',
+                apiFormat: 'openai-images' as const,
+                capabilities: ['image'],
+              },
+            ],
           },
         ],
         selected: {
           novel: null,
-          image: 'model_001',
+          image: { profileId: 'model_001', modelId: 'gpt-image-1' },
           video: null,
         },
       },
       creativeFields: {},
-      // Editor reads params from the slice — seed with explicit values so the
-      // outgoing request body is predictable.
       imageGenFamily: 'gpt-image-1',
       imageGenParams: {
         ...defaultParamsFor('gpt-image-1'),
-        size: '1792x1024' /* unused for gpt-image-1, will be sanitized to 'auto' */,
+        size: '1792x1024',
       },
     } as any);
-
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        provider: 'openai',
-        model: 'gpt-image-1',
-        images: [{ base64: 'abc123', mimeType: 'image/png' }],
-      }),
-    });
 
     (window as any).orisonDesktop = {
       saveBase64Image: vi.fn().mockResolvedValue({
@@ -60,6 +56,17 @@ describe('ImageGenEditor', () => {
         fileName: 'test.png',
       }),
       moveProjectFile: vi.fn().mockResolvedValue('C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\assets\\images\\test.png'),
+      generateImage: vi.fn().mockResolvedValue({
+        provider: 'openai',
+        model: 'gpt-image-1',
+        images: [
+          {
+            b64Json: 'abc123',
+            mimeType: 'image/png',
+            dataUrl: 'data:image/png;base64,abc123',
+          },
+        ],
+      }),
     };
   });
 
@@ -69,7 +76,6 @@ describe('ImageGenEditor', () => {
   });
 
   it('reads parameters from the store and posts gpt-image-1 fields without response_format', async () => {
-    // Inject a fully-specified parameter set as if the Inspector had set it.
     useAppStore.setState({
       imageGenFamily: 'gpt-image-1',
       imageGenParams: {
@@ -91,10 +97,10 @@ describe('ImageGenEditor', () => {
 
     await waitFor(() => expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalled());
 
-    expect(fetch).toHaveBeenCalledTimes(1);
-    const [, init] = (fetch as any).mock.calls[0];
-    const body = JSON.parse(init.body);
-    expect(body).toMatchObject({
+    expect(window.orisonDesktop.generateImage).toHaveBeenCalledTimes(1);
+    const ipcCall = (window.orisonDesktop.generateImage as any).mock.calls[0][0];
+    expect(ipcCall.slot).toEqual({ profileId: 'model_001', modelId: 'gpt-image-1' });
+    expect(ipcCall.request).toMatchObject({
       model: 'gpt-image-1',
       prompt: 'quiet desk',
       size: '1024x1536',
@@ -106,7 +112,8 @@ describe('ImageGenEditor', () => {
       moderation: 'low',
       user: 'user-xyz',
     });
-    expect(body).not.toHaveProperty('response_format');
+    expect(ipcCall.request).not.toHaveProperty('apiKey');
+    expect(ipcCall.request).not.toHaveProperty('response_format');
     expect(screen.getByAltText('quiet desk')).toBeTruthy();
   });
 
@@ -129,19 +136,15 @@ describe('ImageGenEditor', () => {
   it('renders the model profile chip but no parameter controls', () => {
     render(<ImageGenEditor />);
 
-    // The chip surfaces the selected profile.
-    expect(screen.getByText(/Image Model/)).toBeTruthy();
-    expect(screen.getByText(/gpt-image-1/)).toBeTruthy();
+    // The chip surfaces the selected profile via {provider} · {alias}
+    expect(screen.getByText(/openai/i)).toBeTruthy();
+    expect(screen.getByText(/GPT Image 1/i)).toBeTruthy();
 
-    // Size / count selectors must NOT appear in the editor anymore — they live
-    // in the Inspector now.
+    // Size / count selectors must NOT appear in the editor anymore.
     expect(screen.queryByDisplayValue('1024x1024')).toBeNull();
     expect(screen.queryByDisplayValue('1024x1536')).toBeNull();
   });
 
-  // Regression: when the bottom panel is already open AND the active tab is
-  // already "properties", clicking an "open parameters" button is a no-op and
-  // feels broken. The button must not render in that state at all.
   it('hides the open-parameters button when inspector is already visible', () => {
     useAppStore.setState({ bottomPanelOpen: true, activeBottomTab: 'properties' } as any);
 

@@ -294,111 +294,26 @@ Errors:
 - Task execution is currently backed by the mock adapter.
 - `GET /v1/tasks/:taskId` returns the bare `TaskResult` for backward compatibility; use `GET /v1/tasks/:taskId/detail` to fetch task metadata + result together.
 - Project task and asset list endpoints use keyset pagination — pass `nextCursor` from the previous response to fetch the next page.
-- Generation provider contracts live in `packages/shared-contracts/src/contracts/generation.ts`.
-
-## Generation APIs
-
-### POST /v1/generation/:provider/text
-
-Generate text through a provider adapter.
-
-Path params:
-- `provider`: `openai`, `gcp`, or `anthropic`
-
-Request body:
-
-```json
-{
-  "model": "gpt-4o",
-  "messages": [
-    { "role": "system", "content": "You are a story editor." },
-    { "role": "user", "content": "Write a short scene outline." }
-  ],
-  "apiKey": "optional-provider-key",
-  "baseUrl": "https://api.openai.com/v1",
-  "temperature": 0.7,
-  "maxTokens": 1000
-}
-```
-
-Response (200):
-
-```json
-{
-  "provider": "openai",
-  "model": "gpt-4o",
-  "text": "Generated text.",
-  "raw": {}
-}
-```
-
-Behavior notes:
-- OpenAI-compatible providers call `chat/completions`.
-- GCP providers call `models/{model}:generateContent`.
-- Anthropic providers call `/v1/messages`.
-
-### POST /v1/generation/:provider/image
-
-Generate images through a provider adapter.
-
-Path params:
-- `provider`: `openai`, `gcp`, or `anthropic`
-
-Request body:
-
-```json
-{
-  "model": "gpt-image-1",
-  "prompt": "A cinematic neon city street at night",
-  "apiKey": "optional-provider-key",
-  "baseUrl": "https://api.openai.com/v1",
-  "size": "1024x1024",
-  "n": 1
-}
-```
-
-Response (200):
-
-```json
-{
-  "provider": "openai",
-  "model": "gpt-image-1",
-  "images": [
-    {
-      "url": "https://example.com/image.png",
-      "b64Json": "base64-image-payload",
-      "mimeType": "image/png",
-      "dataUrl": "data:image/png;base64,base64-image-payload"
-    }
-  ],
-  "raw": {}
-}
-```
-
-Behavior notes:
-- OpenAI-compatible providers call `images/generations` and request `response_format: "b64_json"`.
-- GCP providers call `models/{model}:predict`.
-- Anthropic image generation is currently unsupported and returns a provider error.
-- The server normalizes successful image responses so each image includes `b64Json`, `mimeType`, and `dataUrl`.
-- OpenAI-compatible relay responses may return `b64_json`, `b64Json`, `base64`, or a `data:image/*;base64,...` payload. The shared contract and server normalizer collapse these forms into the canonical `b64Json` field.
-- If a provider returns only a URL, the server downloads the image into `temp/generation-images`, converts it to base64, and keeps the original `url` on the response.
-- The desktop renderer previews generated images via `dataUrl`; project file creation is performed by the desktop shell through `project:save-base64-image`.
+- Generation provider contracts live in `packages/shared-contracts/src/contracts/generation.ts`. They describe the request/response shapes that travel **inside the desktop main process** and through the desktop IPC layer; the server itself no longer exposes generation routes (see "Removed in 2026-05-07").
 
 ## Model List Refresh
 
 The desktop model settings page does not use a custom Orison server endpoint for model lists.
 
-It asks the Electron desktop main process to refresh model choices from the configured model provider base URL, avoiding renderer CORS limits:
-- OpenAI/New API compatible: `GET {baseUrl}/models`
-- Gemini/GCP compatible: `GET {baseUrl}/models?key={apiKey}`
+It asks the Electron desktop main process to refresh model choices from the configured model provider base URL, avoiding renderer CORS limits. Listing is **provider-routed** (one HTTP shape per provider), and the request body is delegated to `@orison/model-protocols.listModels(provider, ...)`:
+- OpenAI / NewAPI relay (`provider='openai'`): `GET {baseUrl}/v1/models` with `Authorization: Bearer {apiKey}`
+- Anthropic (`provider='anthropic'`): `GET {baseUrl}/v1/models` with `x-api-key: {apiKey}` and `anthropic-version: 2023-06-01`
+- GCP / Gemini (`provider='gcp'`): `GET {baseUrl}/v1beta/models?key={apiKey}` with `x-goog-api-key: {apiKey}`
 
-Headers are selected by provider:
-- `openai`: `Authorization: Bearer {apiKey}`
-- `anthropic`: `x-api-key: {apiKey}` and `anthropic-version: 2023-06-01`
-- `gcp`: `x-goog-api-key: {apiKey}`, with `key` query parameter also included
+After listing, the user assigns each model entry an `alias` and an `apiFormat` (auto-suggested via `inferApiFormat`). `apiFormat` — not `provider` — is what later drives generation request shape, so a Claude id served via a NewAPI relay can sit in a `provider='openai'` profile while still being marked `apiFormat='openai-chat-completions'`.
 
-The desktop settings page stores reusable model profiles. The response is normalized by the desktop shell into model IDs and capabilities, then saved as profiles that can be assigned to `novel`, `image`, and `video`.
+Model profile config is stored as `~/.orison/model/index.yaml` plus one YAML file per profile under `~/.orison/model/profiles/`. Each profile YAML carries a `models[]` list with `{id, alias, apiFormat, capabilities}` per entry. Slot assignment in `index.yaml` is a `{profileId, modelId}` pair.
 
-Model profile config is stored as `~/.orison/model/index.yaml` plus one YAML file per model under `~/.orison/model/profiles/`.
+## Removed in 2026-05-07
 
-The bottom Properties panel reads the selected image model from this same profile library. The server does not expose or own a model-list endpoint.
+The `/v1/generation/:provider/text` and `/v1/generation/:provider/image` routes were removed by the desktop-direct model gateway migration. Every third-party model HTTP call (text, image, video) now originates on the user's machine in the Electron desktop main process, dispatched via `@orison/model-protocols`. The server no longer holds, forwards, or proxies provider `apiKey`s.
+
+See:
+- `docs/superpowers/specs/2026-05-06-desktop-model-gateway-design.md` — design spec.
+- `docs/superpowers/plans/2026-05-06-desktop-model-gateway-migration.md` — migration plan.
+- `docs/ipc/desktop-ipc.md` — replacement IPC channels (`model:generate-text`, `model:generate-image`, `model:generate-video`, `storySync:run`).

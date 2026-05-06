@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CreativeFieldKey } from '@orison/shared-contracts';
-import type { ModelProfile } from '@orison/shared-contracts';
+import type { CreativeFieldKey, ModelEntry, ModelProfile, SlotAssignment } from '@orison/shared-contracts';
 import { generateImage } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -19,22 +18,22 @@ type GeneratedImageItem = {
   assetAdded: boolean;
 };
 
+type ResolvedSlot = {
+  slot: SlotAssignment;
+  profile: ModelProfile;
+  entry: ModelEntry;
+};
+
 /**
  * Image-generation workspace.
  *
  * Flow: prompt → Generate → preview / save / promote-to-asset.
- *
- * Generation parameters (size, n, quality, background, output format,
- * compression, moderation, user) are owned by the bottom Properties panel via
- * `imageGenSlice`. This component is intentionally parameter-free; if the user
- * has the bottom panel collapsed, sensible defaults still apply.
  */
 export function ImageGenEditor() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
-  const token = useAppStore((s) => s.token);
   const currentProject = useAppStore((s) => s.currentProject);
   const modelConfig = useAppStore((s) => s.modelConfig);
-  const imageModel = getSelectedProfile(modelConfig.profiles, modelConfig.selected.image);
+  const resolvedSlot = resolveImageSlot(modelConfig.profiles, modelConfig.selected.image);
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
@@ -53,14 +52,11 @@ export function ImageGenEditor() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Keep the slice's family in sync with the currently selected profile's
-  // model string. The Inspector also reconciles, but the editor may render
-  // first when the bottom panel is collapsed.
   useEffect(() => {
-    reconcileImageGenForModel(imageModel?.model ?? null);
-  }, [imageModel?.model, reconcileImageGenForModel]);
+    reconcileImageGenForModel(resolvedSlot?.entry.id ?? null);
+  }, [resolvedSlot?.entry.id, reconcileImageGenForModel]);
 
-  const canGenerate = !!currentProject?.path && !!prompt.trim() && !loading && !!imageModel;
+  const canGenerate = !!currentProject?.path && !!prompt.trim() && !loading && !!resolvedSlot;
   const assetCards = useMemo(
     () => Array.isArray(creativeFields.asset_cards) ? creativeFields.asset_cards : [],
     [creativeFields.asset_cards],
@@ -71,14 +67,10 @@ export function ImageGenEditor() {
     setActiveBottomTab('properties');
   }
 
-  // The button is only useful when the user can't already see the inspector.
-  // If the bottom panel is open AND the properties tab is active, the params
-  // are already on screen — rendering the button would be a no-op and feels
-  // broken when clicked.
   const inspectorAlreadyVisible = bottomPanelOpen && activeBottomTab === 'properties';
 
   async function handleGenerate() {
-    if (!currentProject?.path || !prompt.trim() || !imageModel) return;
+    if (!currentProject?.path || !prompt.trim() || !resolvedSlot) return;
     setLoading(true);
     setError(null);
 
@@ -88,13 +80,12 @@ export function ImageGenEditor() {
         scope: 'image',
         level: 'info',
         message: 'Image generation request started',
-        detail: `${imageModel.provider}/${imageModel.model} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
+        detail: `${resolvedSlot.profile.provider} · ${resolvedSlot.entry.alias} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
       });
 
       const response = await generateImage({
-        slot: imageModel,
+        slot: resolvedSlot.slot,
         prompt: prompt.trim(),
-        token,
         params: payload,
       });
 
@@ -196,11 +187,11 @@ export function ImageGenEditor() {
         <h3 className="image-gen-section-title">{t('imageGen.title')}</h3>
 
         <div className="image-gen-profile-chip">
-          {imageModel ? (
+          {resolvedSlot ? (
             <>
               <span className="image-gen-profile-dot" aria-hidden="true" />
-              <span className="image-gen-profile-name">{imageModel.name}</span>
-              <span className="image-gen-profile-model">· {imageModel.model}</span>
+              <span className="image-gen-profile-name">{resolvedSlot.profile.provider}</span>
+              <span className="image-gen-profile-model">· {resolvedSlot.entry.alias}</span>
             </>
           ) : (
             <span className="image-gen-profile-empty">{t('imageGen.noModel')}</span>
@@ -278,6 +269,11 @@ export function ImageGenEditor() {
   );
 }
 
-function getSelectedProfile(profiles: ModelProfile[], selectedId: string | null): ModelProfile | null {
-  return profiles.find((profile) => profile.id === selectedId) ?? null;
+function resolveImageSlot(profiles: ModelProfile[], slot: SlotAssignment | null): ResolvedSlot | null {
+  if (!slot) return null;
+  const profile = profiles.find((p) => p.id === slot.profileId);
+  if (!profile) return null;
+  const entry = profile.models.find((m) => m.id === slot.modelId);
+  if (!entry) return null;
+  return { slot, profile, entry };
 }

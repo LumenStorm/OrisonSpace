@@ -1,5 +1,11 @@
 # NewAPI Model Adapter Implementation Plan
 
+> **Superseded.** Adapter file structure superseded by `2026-05-06-desktop-model-gateway-design.md`. Schema work in Task 1 of this plan was implemented inline in the desktop gateway migration's Phase 0 and remains the source of truth for `apiFormat`. The Phase 0 schemas and the desktop gateway adapters together replace the server-side adapter file paths described below.
+>
+> See:
+> - `docs/superpowers/specs/2026-05-06-desktop-model-gateway-design.md`
+> - `docs/superpowers/plans/2026-05-06-desktop-model-gateway-migration.md`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a NewAPI-compatible model adapter layer that can select the correct upstream API format and forward model-specific parameters without polluting the rest of the app with provider quirks.

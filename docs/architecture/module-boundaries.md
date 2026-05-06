@@ -42,6 +42,22 @@
 - Global user preferences currently include theme, locale, and auto-apply-patches. Layout, recent projects, and auth are intentionally excluded.
 - Model-list refresh is a desktop shell responsibility (`model:list-provider-models`), not a server route.
 
+### Desktop Model Gateway
+
+- `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` (new) owns `model:generate-text`, `model:generate-image`, `model:generate-video`. It is the only place that decrypts `apiKey` for model calls.
+- `apps/desktop/shell/main/ipc/modelProviderIpc.ts` keeps the `model:list-provider-models` channel; body delegates to `@orison/model-protocols.listModels(provider, ...)`.
+- `apps/desktop/shell/main/ipc/configIpc.ts` handles the v2 profile schema. Each profile YAML carries a `models[]` list with `{id, alias, apiFormat, capabilities}`. Slot assignment in `~/.orison/model/index.yaml` is a `{profileId, modelId}` pair. v1 single-model profiles are migrated automatically on first read.
+- `apps/desktop/shell/main/storySync/` (new directory) holds the LLM-driven story-sync extraction lifted out of agent: orchestrates "load slot → resolve profile (decrypt apiKey) → build messages via `@orison/story-sync` → call `model-protocols.generateText` → parse + safety-check → return patches". Renderer triggers it via `storySync:run` IPC.
+- Renderer never sees a raw `apiKey` for the generation flow. Slot model passed across IPC contains only `{profileId, modelId}` plus non-secret display fields.
+
+## Story-Sync
+
+- Shared logic — prompt template, JSON parsing, patch safety validation — lives in `packages/story-sync/` and is imported by both `apps/desktop/shell/main/storySync/` (for execution) and `apps/agent/src/nodes/story-sync-agent/` (for validation of incoming pre-computed patches).
+- The package is pure TS — no Fastify, no Electron, no IO. Allowed dependencies: `@orison/shared-contracts`, `zod`.
+- `parseStorySyncResponse(text, ctx)` is used by desktop main to parse an LLM text response into safe patches.
+- `parseStorySyncPatches(rawPatches, ctx)` is used by agent to revalidate pre-computed patches received in `artifacts['chapter.llmPatches']`. Treats input as untrusted.
+- `enforcePatchSafety(patches, ctx)` is the shared kernel that both entry points share — whitelist field, `action='merge'`, `fieldVersion` matches context, `generatedBy` forced to `'story-sync-agent'`.
+
 ## Desktop Local BFF (Sync Layer)
 
 - `apps/desktop/local-bff` is the desktop process local backend for project-directory persistence. It owns YAML-backed project data such as `project.yaml`, chapter files, sync state, and `memory/story-memory.yaml`.
@@ -57,13 +73,13 @@
 - Retrieval integrations should depend on the `MemoryRetriever` interface under `apps/agent/src/engine/memory/`, not on a specific embedding provider or storage engine.
 - Chapter context may include `memoryHits`, but downstream nodes must tolerate an empty array until a concrete embedding provider and ranking strategy are selected.
 
-## Story Sync Agent (Rules + Optional LLM)
+## Story Sync Agent (Rules + Pre-Computed Patches)
 
-- `apps/agent/src/nodes/story-sync-agent/` owns the chapter→creative-fields sync. It is split by responsibility: `rules.ts` (pure heuristic), `prompt.ts` (LLM messages), `parser.ts` (LLM JSON extraction + safety), and `index.ts` (dispatcher).
-- Mode is selected by `ORISON_STORY_SYNC_MODE` (`rules` | `llm`, default `rules`). The default path remains rules-driven and zero-dependency for backward compatibility.
-- LLM mode requires `ORISON_LLM_SERVER_URL` and routes through the server's `POST /v1/generation/:provider/text` adapter. LLM calls live in `apps/agent/src/engine/llmClient.ts` and never bypass the server's provider routing.
-- Any LLM failure (network, HTTP, JSON, schema, or whitelist rejection) must fall back to the rules path; the node never surfaces an LLM error as a node failure.
-- Both modes share the same safety contract on emitted patches: `action` is always `merge`; `field` must be in `creativeFieldKeys`; `fieldVersion` must equal the current context version for that field; `generatedBy` is forced to `'story-sync-agent'`; `runId`/`chapterId` are forced from the caller, never from the LLM.
+- Desktop owns LLM execution. The story-sync LLM-driven extraction runs in `apps/desktop/shell/main/storySync/` (using `@orison/story-sync` for prompt + parser + safety). Renderer triggers it via the `storySync:run` IPC channel before posting an orchestration run; main returns safe patches that the renderer embeds under `artifacts['chapter.llmPatches']` of the run body.
+- `apps/agent/src/nodes/story-sync-agent/` runs only the rules path **plus** a pre-computed-patches branch. The pre-computed branch reads `artifacts['chapter.llmPatches']` from the run input, validates each patch via `parseStorySyncPatches` from `@orison/story-sync` (whitelist field, `action='merge'`, `fieldVersion` matches context, `generatedBy` forced to `'story-sync-agent'`, `runId/chapterId` forced from caller), and emits the safe subset.
+- Validation failure or missing field → fall back to the rules path. The agent never holds an `apiKey` and never opens an outbound HTTPS connection to a model provider; if a code path tries to, treat it as a regression.
+- Rules path (`rules.ts`) is unchanged from before — pure heuristic, no IO, no LLM. It is the agent's only fallback.
+- The shared safety contract on emitted patches: `action` is always `merge`; `field` must be in `creativeFieldKeys`; `fieldVersion` must equal the current context version for that field; `generatedBy` is forced to `'story-sync-agent'`; `runId`/`chapterId` are forced from the caller, never from the LLM.
 
 ## Auto Mode Persistence
 
@@ -74,24 +90,27 @@
 
 ## Server
 
-- Routes stay thin: validate input, select provider or service, and translate expected errors into HTTP responses.
-- Services own business flow and capability dispatch.
-- Provider implementations live under `apps/server/src/modules/<feature>/providers/<provider>/`.
-- Provider-specific request and response mapping is isolated per provider and per capability.
+- Routes stay thin: validate input, select service, and translate expected errors into HTTP responses.
+- Server owns only resource-state routes (`auth`, `project`, `task`) and the orchestration proxy (`/v1/orchestration/*`). The entire `apps/server/src/modules/generation/` tree was deleted in 2026-05-07; server no longer opens an outbound HTTPS connection to any model provider.
+- The orchestration proxy forwards `runs`, `actions`, `auto-mode`, `auto-mode/actions`, `auto-mode/:id`, and `auto-mode/restore` to `${AGENT_URL}` with `Authorization` preserved.
+- Server is the only public-facing process; agent is reachable only through the proxy. JWT validation runs in `authPlugin` before any proxy forward.
 - Shared request and response schemas live in `packages/shared-contracts`.
-- Unsupported provider capabilities must fail explicitly with a provider error instead of returning partial or fake success.
 
 ## Generation Providers
 
-- Generation routes use provider routing:
-  - `POST /v1/generation/:provider/text`
-  - `POST /v1/generation/:provider/image`
-- Supported providers are `openai`, `gcp`, and `anthropic`.
-- OpenAI-compatible, GCP, and Anthropic adapters stay in separate provider folders.
-- Text and image capabilities stay in separate files inside each provider folder.
-- Provider adapters should normalize external provider responses into shared contract response shapes.
-- Image generation service responses must include base64-ready image data (`b64Json`, `mimeType`, `dataUrl`) before reaching the desktop UI.
-- Image response contracts accept OpenAI-style `b64_json`, camelCase `b64Json`, relay-style `base64`, and `data:image/*;base64,...` payloads, but UI code should consume the normalized `b64Json` and `dataUrl` fields.
+- All provider/protocol adapters live in `packages/model-protocols/`. The package is pure Node — no Fastify, no Electron, no `dotenv`, no filesystem side-effects beyond `node:buffer`. Server **must not** import this package; only `apps/desktop/shell/main` does.
+- The package draws a clear line between two concerns:
+  - **`listModels(provider, ...)`** routes by `provider` (`openai` / `anthropic` / `gcp`). One implementation per provider; NewAPI-style relays piggyback on `provider='openai'`.
+  - **`generate{Text,Image,Video}(profile, request, ctx)`** routes by the model entry's `apiFormat`. One adapter file per format under `protocols/<apiFormat>.ts`.
+- Shipping `apiFormat` values and their owners:
+  - `openai-chat-completions` → `protocols/openaiChat.ts` (text)
+  - `openai-responses` → `protocols/openaiResponses.ts` (text)
+  - `claude-messages` → `protocols/claudeMessages.ts` (text)
+  - `gemini-generate-content` → `protocols/geminiGenerateContent.ts` (text)
+  - `openai-images` → `protocols/openaiImages.ts` (image)
+  - `gemini-images` → `protocols/geminiImages.ts` (image)
+  - `sora-videos` → `protocols/soraVideos.ts` (video; placeholder, throws `ProtocolNotImplementedError`)
+- Each adapter exposes only the verbs that format supports; unsupported verbs throw `ProtocolCapabilityError`. Adapters consume and return shapes from `@orison/shared-contracts`. Image responses are normalized to `b64Json + mimeType + dataUrl` inside the adapter.
 
 ## Documentation Rule
 

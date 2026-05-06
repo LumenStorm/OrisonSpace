@@ -2,6 +2,8 @@ import type { z } from 'zod';
 import type {
   novelChapterRunRequestSchema,
   novelAutoModeStateSchema,
+  RunStorySyncResult,
+  SlotAssignment,
 } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
 
@@ -15,18 +17,66 @@ type StartChapterRunInput = {
   chapterId: string;
   mode: NovelChapterRunMode;
   instruction?: string;
+  /**
+   * `novel` slot used to drive the story-sync LLM extraction locally before
+   * the orchestration request is posted to server. Omitted for `mode='rules'`
+   * runs and when no novel slot is configured.
+   */
+  storySyncSlot?: SlotAssignment | null;
+  storySyncContext?: {
+    runId?: string;
+    candidate?: Record<string, unknown>;
+    context?: Record<string, unknown>;
+    fieldVersions?: Record<string, number>;
+  };
 };
 
+/**
+ * Kick off a chapter orchestration run.
+ *
+ * When `storySyncSlot` is provided: the renderer runs the story-sync LLM
+ * extraction on desktop main first, packs the safe patches into
+ * `artifacts['chapter.llmPatches']`, then POSTs the run to server. Server
+ * proxies to agent unchanged. Agent re-validates the patches via the shared
+ * safety contract.
+ *
+ * When `storySyncSlot` is null/undefined (rules-only run): the request is
+ * posted without `chapter.llmPatches`; agent's rules path runs as the only
+ * source of patches.
+ */
 export async function startChapterRun(input: StartChapterRunInput): Promise<unknown> {
+  const artifacts: Record<string, unknown> = {};
+
+  if (input.storySyncSlot && window.orisonDesktop?.runStorySync) {
+    try {
+      const result: RunStorySyncResult = await window.orisonDesktop.runStorySync({
+        slot: input.storySyncSlot,
+        runId: input.storySyncContext?.runId ?? `desktop-${Date.now()}`,
+        chapterId: input.chapterId,
+        candidate: input.storySyncContext?.candidate ?? {},
+        context: input.storySyncContext?.context ?? {},
+        fieldVersions: input.storySyncContext?.fieldVersions ?? {},
+      });
+      if (!result.fallbackToRules && result.patches.length > 0) {
+        artifacts['chapter.llmPatches'] = result.patches;
+      }
+    } catch {
+      // Story-sync is best-effort; if the IPC throws, fall back to rules path.
+    }
+  }
+
+  const body: Record<string, unknown> = {
+    projectPath: input.projectPath,
+    chapterId: input.chapterId,
+    mode: input.mode,
+  };
+  if (input.instruction) body.instruction = input.instruction;
+  if (Object.keys(artifacts).length > 0) body.artifacts = artifacts;
+
   const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      projectPath: input.projectPath,
-      chapterId: input.chapterId,
-      mode: input.mode,
-      ...(input.instruction ? { instruction: input.instruction } : {}),
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw new Error(`startChapterRun:${res.status}`);

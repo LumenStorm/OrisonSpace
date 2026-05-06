@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseStorySyncResponse } from '../src/nodes/story-sync-agent/parser';
+import { parseStorySyncResponse } from '@orison/story-sync';
 import { deriveStorySyncByRules } from '../src/nodes/story-sync-agent/rules';
 
-describe('story-sync parser', () => {
+describe('story-sync parser (re-exported from @orison/story-sync)', () => {
   it('parses a clean JSON response and keeps allowed patches', () => {
     const text = JSON.stringify({
       runId: 'IGNORED_BY_LLM',
@@ -31,18 +31,6 @@ describe('story-sync parser', () => {
     expect(r.payload.patches[0].generatedBy).toBe('story-sync-agent');
   });
 
-  it('strips fenced markdown around the JSON block', () => {
-    const text = '```json\n{"summary":"ok","patches":[]}\n```';
-    const r = parseStorySyncResponse(text, {
-      runId: 'run_1',
-      chapterId: 'ch_1',
-      fieldVersions: {},
-    });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.payload.patches).toEqual([]);
-  });
-
   it('rejects payload when any patch field is not in creativeFieldKeys whitelist', () => {
     const text = JSON.stringify({
       summary: 'mixed',
@@ -62,52 +50,6 @@ describe('story-sync parser', () => {
       fieldVersions: {},
     });
     expect(r.ok).toBe(false);
-  });
-
-  it('drops patches whose action is not merge', () => {
-    const text = JSON.stringify({
-      summary: 'set',
-      patches: [
-        {
-          field: 'foreshadow_registry',
-          action: 'set',
-          data: { items: [] },
-          fieldVersion: 0,
-          generatedBy: 'story-sync-agent',
-        },
-      ],
-    });
-    const r = parseStorySyncResponse(text, {
-      runId: 'run_1',
-      chapterId: 'ch_1',
-      fieldVersions: { foreshadow_registry: 0 },
-    });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.payload.patches).toEqual([]);
-  });
-
-  it('drops patches whose fieldVersion does not match current context version', () => {
-    const text = JSON.stringify({
-      summary: 'stale',
-      patches: [
-        {
-          field: 'foreshadow_registry',
-          action: 'merge',
-          data: { items: [] },
-          fieldVersion: 1,
-          generatedBy: 'story-sync-agent',
-        },
-      ],
-    });
-    const r = parseStorySyncResponse(text, {
-      runId: 'run_1',
-      chapterId: 'ch_1',
-      fieldVersions: { foreshadow_registry: 5 },
-    });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.payload.patches).toEqual([]);
   });
 
   it('returns ok=false when no JSON can be extracted', () => {

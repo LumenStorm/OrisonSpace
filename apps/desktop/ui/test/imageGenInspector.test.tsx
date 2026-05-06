@@ -6,40 +6,61 @@ import { useAppStore } from '../src/shared/store/appStore';
 import { defaultParamsFor } from '../src/shared/imageGen/schema';
 
 const baseProfile = {
+  schemaVersion: 2 as const,
   id: 'model_001',
   name: 'Image Model',
   provider: 'openai' as const,
   apiKey: 'sk-test',
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'gpt-image-1',
-  capabilities: ['image' as const],
+  baseUrl: 'https://api.openai.com',
+  models: [
+    {
+      id: 'gpt-image-1',
+      alias: 'GPT Image 1',
+      apiFormat: 'openai-images' as const,
+      capabilities: ['image' as const],
+    },
+  ],
 };
 
 const fallbackProfile = {
+  schemaVersion: 2 as const,
   id: 'model_002',
   name: 'Legacy Image',
   provider: 'openai' as const,
   apiKey: 'sk-test',
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'dall-e-3',
-  capabilities: ['image' as const],
+  baseUrl: 'https://api.openai.com',
+  models: [
+    {
+      id: 'dall-e-3',
+      alias: 'DALL-E 3',
+      apiFormat: 'openai-images' as const,
+      capabilities: ['image' as const],
+    },
+  ],
 };
 
 const gptImage2Profile = {
+  schemaVersion: 2 as const,
   id: 'model_003',
   name: 'GPT Image 2',
   provider: 'openai' as const,
   apiKey: 'sk-test',
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'gpt-image-2',
-  capabilities: ['image' as const],
+  baseUrl: 'https://api.openai.com',
+  models: [
+    {
+      id: 'gpt-image-2',
+      alias: 'GPT Image 2',
+      apiFormat: 'openai-images' as const,
+      capabilities: ['image' as const],
+    },
+  ],
 };
 
 function seedStore(extra: Partial<ReturnType<typeof useAppStore.getState>> = {}) {
   useAppStore.setState({
     modelConfig: {
       profiles: [baseProfile, fallbackProfile],
-      selected: { novel: null, image: 'model_001', video: null },
+      selected: { novel: null, image: { profileId: 'model_001', modelId: 'gpt-image-1' }, video: null },
     },
     imageGenFamily: 'gpt-image-1',
     imageGenParams: defaultParamsFor('gpt-image-1'),
@@ -103,7 +124,7 @@ describe('ImageGenInspector', () => {
     render(<ImageGenInspector />);
 
     const profileSelect = screen.getAllByRole('combobox')[0];
-    await userEvent.selectOptions(profileSelect, 'model_002');
+    await userEvent.selectOptions(profileSelect, 'model_002:dall-e-3');
 
     const params = useAppStore.getState().imageGenParams;
     expect(useAppStore.getState().imageGenFamily).toBe('fallback');
@@ -194,16 +215,23 @@ describe('ImageGenInspector', () => {
         modelConfig: {
           profiles: [
             {
+              schemaVersion: 2 as const,
               id: 'novel_only',
               name: 'Novel Model',
               provider: 'openai',
               apiKey: 'sk-test',
-              baseUrl: 'https://api.openai.com/v1',
-              model: 'gpt-4',
-              capabilities: ['text'],
+              baseUrl: 'https://api.openai.com',
+              models: [
+                {
+                  id: 'gpt-4',
+                  alias: 'GPT 4',
+                  apiFormat: 'openai-chat-completions' as const,
+                  capabilities: ['text'],
+                },
+              ],
             },
           ],
-          selected: { novel: 'novel_only', image: null, video: null },
+          selected: { novel: { profileId: 'novel_only', modelId: 'gpt-4' }, image: null, video: null },
         },
       } as any);
 
@@ -245,7 +273,11 @@ describe('ImageGenInspector', () => {
       useAppStore.setState({
         modelConfig: {
           profiles: [gptImage2Profile, baseProfile, fallbackProfile],
-          selected: { novel: null, image: gptImage2Profile.id, video: null },
+          selected: {
+            novel: null,
+            image: { profileId: gptImage2Profile.id, modelId: 'gpt-image-2' },
+            video: null,
+          },
         },
         imageGenFamily: 'gpt-image-2',
         imageGenParams: defaultParamsFor('gpt-image-2'),
@@ -352,7 +384,11 @@ describe('ImageGenInspector', () => {
       useAppStore.setState({
         modelConfig: {
           profiles: [gptImage2Profile, baseProfile],
-          selected: { novel: null, image: baseProfile.id, video: null },
+          selected: {
+            novel: null,
+            image: { profileId: baseProfile.id, modelId: 'gpt-image-1' },
+            video: null,
+          },
         },
         imageGenFamily: 'gpt-image-1',
         imageGenParams: { ...defaultParamsFor('gpt-image-1'), background: 'transparent' },
@@ -362,7 +398,7 @@ describe('ImageGenInspector', () => {
       render(<ImageGenInspector />);
 
       const profileSelect = screen.getAllByRole('combobox')[0];
-      await userEvent.selectOptions(profileSelect, gptImage2Profile.id);
+      await userEvent.selectOptions(profileSelect, `${gptImage2Profile.id}:gpt-image-2`);
 
       const params = useAppStore.getState().imageGenParams;
       expect(useAppStore.getState().imageGenFamily).toBe('gpt-image-2');

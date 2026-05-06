@@ -49,10 +49,20 @@ The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`
 
 | Channel | Direction | Type | Description |
 |---|---|---|---|
-| `config:load-model` | renderer → main | invoke | Loads model configuration (apiKey, baseUrl, model) from disk. API key is decrypted via `safeStorage`. |
-| `config:save-model` | renderer → main | invoke | Saves model configuration to disk. API key is encrypted via `safeStorage`. |
+| `config:load-model` | renderer → main | invoke | Loads v2 model configuration (`profiles[]` with per-profile `models[]`, plus `selected.{novel,image,video}` slot pairs `{profileId, modelId}`) from disk. API key is decrypted via `safeStorage`. v1 single-model profiles are auto-migrated on read. |
+| `config:save-model` | renderer → main | invoke | Saves v2 model configuration to disk. API key is encrypted via `safeStorage`. Always writes the v2 schema. |
 | `config:load-user-preferences` | renderer → main | invoke | Loads user preferences from disk. |
 | `config:save-user-preferences` | renderer → main | invoke | Saves user preferences to disk. |
+
+### Model Gateway Channels
+
+| Channel | Direction | Type | Description |
+|---|---|---|---|
+| `model:list-provider-models` | renderer → main | invoke | Lists available model ids from a provider. Body is delegated to `@orison/model-protocols.listModels(provider, {baseUrl, apiKey})`. NewAPI relays piggyback on `provider='openai'`. |
+| `model:generate-text` | renderer → main | invoke | Generates text. Payload `{slot: {profileId, modelId}, request}`. Main resolves the slot, decrypts `apiKey`, dispatches via `getProtocol(modelEntry.apiFormat).generateText`. Renderer never sees `apiKey`. |
+| `model:generate-image` | renderer → main | invoke | Generates an image with the same payload shape as `model:generate-text`. Dispatches through `apiFormat`-routed image adapter. Response is normalized to `b64Json + mimeType + dataUrl`. |
+| `model:generate-video` | renderer → main | invoke | Generates a video. The `sora-videos` adapter is currently a placeholder that throws `ProtocolNotImplementedError`. Capability/format mismatches reject pre-network. |
+| `storySync:run` | renderer → main | invoke | Runs story-sync LLM extraction locally and returns safe patches. Payload `{slot, runId, chapterId, candidate, context, fieldVersions}`. Result `{patches, summary, fallbackToRules}`. On any LLM-side failure, returns `fallbackToRules: true` with empty patches so the renderer can still submit the orchestration run and let agent's rules path take over. |
 
 ### Field Sync Channel
 
@@ -134,6 +144,15 @@ window.orisonDesktop: {
   loadModelConfig: () => Promise<ModelConfig>
   saveModelConfig: (config: ModelConfig) => Promise<void>
   listProviderModels: (request: ProviderModelListRequest) => Promise<ProviderModel[]>
+
+  // 模型生成（desktop main 直连 provider，apiKey 从未离开 main 进程）
+  generateText: (payload: { slot: SlotAssignment; request: TextGenerationRequest }) => Promise<TextGenerationResponse>
+  generateImage: (payload: { slot: SlotAssignment; request: ImageGenerationRequest }) => Promise<ImageGenerationResponse>
+  generateVideo: (payload: { slot: SlotAssignment; request: VideoGenerationRequest }) => Promise<VideoGenerationResponse>
+
+  // Story-sync 桥（renderer -> desktop main 调 LLM 拿 patches）
+  runStorySync: (payload: RunStorySyncPayload) => Promise<RunStorySyncResult>
+
   loadUserPreferences: () => Promise<UserPreferencesConfig>
   saveUserPreferences: (config: UserPreferencesConfig) => Promise<void>
 
@@ -148,21 +167,35 @@ window.orisonDesktop: {
 ```typescript
 type ModelConfig = {
   profiles: Array<{
+    schemaVersion: 2;
     id: string;
     name: string;
     provider: 'openai' | 'gcp' | 'anthropic';
-    apiKey: string;
+    apiKey: string;       // ciphertext on disk; only renderer<->main IPC carries plaintext
     baseUrl: string;
-    model: string;
-    capabilities: Array<'text' | 'image' | 'video'>;
+    models: Array<{
+      id: string;          // real provider model id, e.g. "gpt-4o"
+      alias: string;       // user-editable display name
+      apiFormat:
+        | 'openai-chat-completions'
+        | 'openai-responses'
+        | 'claude-messages'
+        | 'gemini-generate-content'
+        | 'openai-images'
+        | 'gemini-images'
+        | 'sora-videos';
+      capabilities: Array<'text' | 'image' | 'video'>;
+    }>;
   }>;
   selected: {
-    novel: string | null;
-    image: string | null;
-    video: string | null;
+    novel: { profileId: string; modelId: string } | null;
+    image: { profileId: string; modelId: string } | null;
+    video: { profileId: string; modelId: string } | null;
   };
 };
 ```
+
+`provider` is a UI-grouping hint and the listing-protocol selector. Once the user has picked an `apiFormat` for each model entry, generation request shape is decided by `apiFormat` — not `provider`. This keeps NewAPI relays (which expose Claude / Gemini ids through OpenAI-compatible chat completions) on the same profile UX as direct vendor endpoints.
 
 ### FileTreeEntry
 
@@ -225,11 +258,35 @@ IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
 | `shell/main/ipc/configIpc.ts` | `config:*` |
 | `shell/main/ipc/fieldSyncIpc.ts` | `field:sync` |
 | `shell/main/ipc/modelProviderIpc.ts` | `model:list-provider-models` |
+| `shell/main/ipc/modelGatewayIpc.ts` | `model:generate-text`, `model:generate-image`, `model:generate-video` |
+| `shell/main/ipc/storySyncIpc.ts` | `storySync:run` |
+| `shell/main/storySync/runStorySync.ts` | StorySyncBridge — orchestrates story-sync LLM extraction (loaded by `storySyncIpc`) |
 | `shell/main/ipc/pathGuard.ts` | Path validation utilities (not an IPC handler) |
 
 ## Known Issues
 
 - No known IPC surface mismatch at this time; preload and shared `OrisonDesktopApi` are the source of truth.
+
+## 2026-05-07 Updates — Desktop Direct Model Gateway
+
+The desktop main process now performs every third-party model HTTP call directly. The server's `/v1/generation/*` routes were removed; agent's `llmClient.ts` was deleted. See `docs/superpowers/specs/2026-05-06-desktop-model-gateway-design.md`.
+
+### New IPC Channels
+
+| Channel | Direction | Type | Description |
+|---|---|---|---|
+| `model:generate-text` | renderer → main | invoke | Text generation via the slot's `apiFormat`. |
+| `model:generate-image` | renderer → main | invoke | Image generation via the slot's `apiFormat`; response is normalized to `b64Json + mimeType + dataUrl`. |
+| `model:generate-video` | renderer → main | invoke | Video generation. `sora-videos` adapter is currently a placeholder. |
+| `storySync:run` | renderer → main | invoke | Run the story-sync LLM extraction locally; renderer embeds the returned patches under `artifacts['chapter.llmPatches']` of the next orchestration run. |
+
+### v2 Model Profile Schema
+
+`~/.orison/model/index.yaml` now stores `selected.<slot>.profileId` and `selected.<slot>.modelId` (replaces the v1 single-string `selected.<slot>`). Each profile YAML carries `schemaVersion: 2`, a `models[]` list of `{id, alias, apiFormat, capabilities}` entries, plus the unchanged `provider`, `baseUrl`, and encrypted `apiKey`. v1 single-model profiles are migrated automatically on first read.
+
+### apiKey Boundary
+
+`apiKey` is decrypted only inside the desktop main process. It never travels in renderer-bound IPC payloads for the generation flow (slot pairs only carry `{profileId, modelId}`). It never reaches the server or agent. The `securitySurface.test.ts` regression covers the renderer-side boundary.
 
 ## 2026-05-03 Updates
 

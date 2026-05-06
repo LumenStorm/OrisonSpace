@@ -1,11 +1,19 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
+  GenerateImagePayload,
+  GenerateTextPayload,
+  GenerateVideoPayload,
+  ImageGenerationResponse,
   ModelConfig,
   OrisonDesktopApi,
   ProviderModel,
   ProviderModelListRequest,
+  RunStorySyncPayload,
+  RunStorySyncResult,
   SaveBase64ImageInput,
+  TextGenerationResponse,
   UserPreferencesConfig,
+  VideoGenerationResponse,
 } from '@orison/shared-contracts';
 
 export const exposedDesktopApi = {
@@ -34,6 +42,16 @@ export const exposedDesktopApi = {
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
   listProviderModels: (request: ProviderModelListRequest) =>
     ipcRenderer.invoke('model:list-provider-models', request) as Promise<ProviderModel[]>,
+  // 模型生成（desktop main 直连 provider）
+  generateText: (payload: GenerateTextPayload) =>
+    ipcRenderer.invoke('model:generate-text', payload) as Promise<TextGenerationResponse>,
+  generateImage: (payload: GenerateImagePayload) =>
+    ipcRenderer.invoke('model:generate-image', payload) as Promise<ImageGenerationResponse>,
+  generateVideo: (payload: GenerateVideoPayload) =>
+    ipcRenderer.invoke('model:generate-video', payload) as Promise<VideoGenerationResponse>,
+  // Story-sync 桥（renderer -> desktop main 调 LLM 提补丁）
+  runStorySync: (payload: RunStorySyncPayload) =>
+    ipcRenderer.invoke('storySync:run', payload) as Promise<RunStorySyncResult>,
   loadUserPreferences: () =>
     ipcRenderer.invoke('config:load-user-preferences') as Promise<UserPreferencesConfig>,
   saveUserPreferences: (config: UserPreferencesConfig) =>

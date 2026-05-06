@@ -1,12 +1,14 @@
-import {
-  imageGenerationResponseSchema,
-  type GenerationProvider,
-  type ImageGenerationResponse,
-  type ModelSlotConfig,
-  type ProviderModel,
+import type {
+  GenerationProvider,
+  ImageGenerationRequest,
+  ImageGenerationResponse,
+  ProviderModel,
+  SlotAssignment,
+  TextGenerationRequest,
+  TextGenerationResponse,
+  VideoGenerationRequest,
+  VideoGenerationResponse,
 } from '@orison/shared-contracts';
-import { API_BASE } from '../constants';
-import { throwIfSessionExpired } from './session';
 
 export type RemoteModel = ProviderModel;
 
@@ -17,9 +19,9 @@ type LoadProviderModelsInput = {
 };
 
 /**
- * Optional advanced parameters forwarded to the server. Mirrors a subset of
- * `imageGenerationRequestSchema` so callers can pass whichever fields the
- * Inspector has surfaced.
+ * Optional advanced parameters forwarded to the desktop main process. Mirrors
+ * a subset of `imageGenerationRequestSchema` so callers can pass whichever
+ * fields the Inspector has surfaced.
  */
 export type ImageGenerationParams = {
   size?: string;
@@ -33,10 +35,19 @@ export type ImageGenerationParams = {
 };
 
 type GenerateImageInput = {
-  slot: ModelSlotConfig;
+  slot: SlotAssignment;
   prompt: string;
-  token: string | null;
   params: ImageGenerationParams;
+};
+
+type GenerateTextInput = {
+  slot: SlotAssignment;
+  request: TextGenerationRequest;
+};
+
+type GenerateVideoInput = {
+  slot: SlotAssignment;
+  request: VideoGenerationRequest;
 };
 
 export async function loadProviderModels({
@@ -50,41 +61,44 @@ export async function loadProviderModels({
   throw new Error('Desktop model provider bridge is unavailable');
 }
 
+/**
+ * Image generation through the desktop model gateway. Renderer never sees
+ * `apiKey` or `baseUrl`; main resolves the slot, decrypts the key, and
+ * dispatches via the right `apiFormat` adapter.
+ */
 export async function generateImage({
   slot,
   prompt,
-  token,
   params,
 }: GenerateImageInput): Promise<ImageGenerationResponse> {
-  const body: Record<string, unknown> = {
-    model: slot.model,
-    apiKey: slot.apiKey,
-    baseUrl: slot.baseUrl,
+  if (!window.orisonDesktop?.generateImage) {
+    throw new Error('Desktop model gateway is unavailable');
+  }
+  const request: ImageGenerationRequest = {
+    model: slot.modelId,
     prompt,
   };
-  if (params.size !== undefined) body.size = params.size;
-  if (params.n !== undefined) body.n = params.n;
-  if (params.quality !== undefined) body.quality = params.quality;
-  if (params.background !== undefined) body.background = params.background;
-  if (params.outputFormat !== undefined) body.outputFormat = params.outputFormat;
-  if (params.outputCompression !== undefined) body.outputCompression = params.outputCompression;
-  if (params.moderation !== undefined) body.moderation = params.moderation;
-  if (params.user !== undefined && params.user !== '') body.user = params.user;
+  if (params.size !== undefined) request.size = params.size;
+  if (params.n !== undefined) request.n = params.n;
+  if (params.quality !== undefined) request.quality = params.quality;
+  if (params.background !== undefined) request.background = params.background;
+  if (params.outputFormat !== undefined) request.outputFormat = params.outputFormat;
+  if (params.outputCompression !== undefined) request.outputCompression = params.outputCompression;
+  if (params.moderation !== undefined) request.moderation = params.moderation;
+  if (params.user !== undefined && params.user !== '') request.user = params.user;
+  return window.orisonDesktop.generateImage({ slot, request });
+}
 
-  const response = await fetch(`${API_BASE}/v1/generation/${slot.provider}/image`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-
-  throwIfSessionExpired(response);
-
-  if (!response.ok) {
-    throw new Error(`Image generation failed: ${response.status}`);
+export async function generateText({ slot, request }: GenerateTextInput): Promise<TextGenerationResponse> {
+  if (!window.orisonDesktop?.generateText) {
+    throw new Error('Desktop model gateway is unavailable');
   }
+  return window.orisonDesktop.generateText({ slot, request });
+}
 
-  return imageGenerationResponseSchema.parse(await response.json());
+export async function generateVideo({ slot, request }: GenerateVideoInput): Promise<VideoGenerationResponse> {
+  if (!window.orisonDesktop?.generateVideo) {
+    throw new Error('Desktop model gateway is unavailable');
+  }
+  return window.orisonDesktop.generateVideo({ slot, request });
 }

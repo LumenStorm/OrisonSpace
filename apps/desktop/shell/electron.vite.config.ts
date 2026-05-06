@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
 const desktopUiSrc = path.resolve(__dirname, '../ui/src');
-const bundledWorkspaceDeps = ['@orison/shared-contracts'];
+const bundledWorkspaceDeps = ['@orison/shared-contracts', '@orison/model-protocols', '@orison/story-sync'];
 
 export default defineConfig({
   main: {

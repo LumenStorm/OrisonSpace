@@ -1,9 +1,9 @@
-import type { ModelCapability, ModelConfig, ModelProfile, ModelType } from '@orison/shared-contracts';
+import type { ModelCapability, ModelConfig, ModelProfile, ModelType, SlotAssignment } from '@orison/shared-contracts';
 
 type Props = {
   profiles: ModelProfile[];
   selected: ModelConfig['selected'];
-  onSelect: (type: ModelType, profileId: string | null) => void;
+  onSelect: (type: ModelType, slot: SlotAssignment | null) => void;
   t: (key: string) => string;
 };
 
@@ -13,6 +13,31 @@ const ASSIGNMENT_TYPES: Array<{ id: ModelType; labelKey: string; capability: Mod
   { id: 'video', labelKey: 'settings.videoModel', capability: 'video' },
 ];
 
+type FlatOption = {
+  value: string;
+  slot: SlotAssignment;
+  label: string;
+};
+
+function flattenAssignableModels(profiles: ModelProfile[], capability: ModelCapability): FlatOption[] {
+  const out: FlatOption[] = [];
+  for (const profile of profiles) {
+    for (const model of profile.models) {
+      if (!model.capabilities.includes(capability)) continue;
+      out.push({
+        value: `${profile.id}:${model.id}`,
+        slot: { profileId: profile.id, modelId: model.id },
+        label: `${profile.provider} · ${model.alias}`,
+      });
+    }
+  }
+  return out;
+}
+
+function selectedKey(slot: SlotAssignment | null): string {
+  return slot ? `${slot.profileId}:${slot.modelId}` : '';
+}
+
 export function ProfileAssignmentRow({ profiles, selected, onSelect, t }: Props) {
   return (
     <section className="model-assignment-panel" aria-label={t('settings.modelType')}>
@@ -21,19 +46,22 @@ export function ProfileAssignmentRow({ profiles, selected, onSelect, t }: Props)
       </div>
       <div className="model-assignment-grid">
         {ASSIGNMENT_TYPES.map((type) => {
-          const compatible = profiles.filter((profile) => profile.capabilities.includes(type.capability));
-          const value = selected[type.id] ?? '';
+          const options = flattenAssignableModels(profiles, type.capability);
+          const value = selectedKey(selected[type.id]);
           return (
             <label key={type.id} className="sidebar-settings-input-row">
               <span className="sidebar-settings-input-label">{t(type.labelKey)}</span>
               <select
                 className="sidebar-settings-input"
                 value={value}
-                onChange={(event) => onSelect(type.id, event.target.value || null)}
+                onChange={(event) => {
+                  const next = options.find((opt) => opt.value === event.target.value);
+                  onSelect(type.id, next ? next.slot : null);
+                }}
               >
                 <option value="">{t('settings.noUsage')}</option>
-                {compatible.map((profile) => (
-                  <option key={profile.id} value={profile.id}>{profile.name}</option>
+                {options.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </label>

@@ -16,6 +16,9 @@ describe('preload security surface', () => {
       'createProjectDirectory',
       'deleteEntry',
       'deleteProjectFile',
+      'generateImage',
+      'generateText',
+      'generateVideo',
       'getLocale',
       'isMaximized',
       'listProviderModels',
@@ -33,6 +36,7 @@ describe('preload security surface', () => {
       'readFile',
       'readFileBinary',
       'renameEntry',
+      'runStorySync',
       'saveBase64Image',
       'saveModelConfig',
       'saveProjectMeta',
@@ -41,5 +45,13 @@ describe('preload security surface', () => {
       'syncField',
       'writeFile',
     ]);
+  });
+
+  it('does not expose any apiKey-bearing function on the renderer surface', () => {
+    // The whitelisted IPC handlers move slot pairs (profileId, modelId) across
+    // IPC; apiKey lives in desktop main's safeStorage and is decrypted only
+    // there. Renderer never sees it.
+    const apiKeys = Object.keys(exposedDesktopApi).filter((key) => /apiKey/i.test(key));
+    expect(apiKeys).toEqual([]);
   });
 });

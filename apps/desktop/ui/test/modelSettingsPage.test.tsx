@@ -6,20 +6,27 @@ import { ModelSettingsPage } from '../src/shared/components/settings/ModelSettin
 import { useAppStore } from '../src/shared/store/appStore';
 
 const baseProfile: ModelProfile = {
+  schemaVersion: 2,
   id: 'model_001',
   name: 'GPT-4o',
   provider: 'openai',
   apiKey: 'sk-test',
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'gpt-4o',
-  capabilities: ['text', 'image'],
+  baseUrl: 'https://api.openai.com',
+  models: [
+    {
+      id: 'gpt-4o',
+      alias: 'GPT-4o',
+      apiFormat: 'openai-chat-completions',
+      capabilities: ['text', 'image'],
+    },
+  ],
 };
 
 function buildConfig(overrides: Partial<ModelConfig> = {}): ModelConfig {
   return {
     profiles: overrides.profiles ?? [baseProfile],
     selected: {
-      novel: 'model_001',
+      novel: { profileId: 'model_001', modelId: 'gpt-4o' },
       image: null,
       video: null,
       ...overrides.selected,
@@ -77,7 +84,6 @@ describe('ModelSettingsPage', () => {
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'Renamed');
 
-    // Apply button should be enabled because dirty
     const applyButton = screen.getByRole('button', { name: 'settings.applyChanges' });
     expect(applyButton.hasAttribute('disabled')).toBe(false);
     await userEvent.click(applyButton);
@@ -112,30 +118,37 @@ describe('ModelSettingsPage', () => {
         t={tFake}
         modelConfig={buildConfig({
           profiles: [
-            { ...baseProfile, capabilities: ['text', 'image'] },
+            baseProfile,
             {
+              schemaVersion: 2,
               id: 'model_002',
               name: 'Imagen-3',
               provider: 'gcp',
-              apiKey: '',
-              baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-              model: 'imagen-3',
-              capabilities: ['image'],
+              apiKey: 'gcp-key',
+              baseUrl: 'https://generativelanguage.googleapis.com',
+              models: [
+                {
+                  id: 'imagen-3',
+                  alias: 'Imagen 3',
+                  apiFormat: 'gemini-images',
+                  capabilities: ['image'],
+                },
+              ],
             },
           ],
-          selected: { novel: 'model_001', image: null, video: null },
+          selected: { novel: { profileId: 'model_001', modelId: 'gpt-4o' }, image: null, video: null },
         })}
         setModelConfig={setModelConfig}
       />
     );
 
     const imageSelect = screen.getByRole('combobox', { name: /settings\.imageModel/i });
-    await userEvent.selectOptions(imageSelect, 'model_002');
+    await userEvent.selectOptions(imageSelect, 'model_002:imagen-3');
 
     await waitFor(() => expect(setModelConfig).toHaveBeenCalled());
     const arg = setModelConfig.mock.calls[0][0] as ModelConfig;
-    expect(arg.selected.image).toBe('model_002');
-    expect(arg.selected.novel).toBe('model_001');
+    expect(arg.selected.image).toEqual({ profileId: 'model_002', modelId: 'imagen-3' });
+    expect(arg.selected.novel).toEqual({ profileId: 'model_001', modelId: 'gpt-4o' });
   });
 
   it('refresh failure surfaces banner with error message', async () => {

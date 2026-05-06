@@ -1,8 +1,20 @@
+import { inferApiFormat } from '@orison/model-protocols';
 import type {
   GenerationProvider,
+  ModelApiFormat,
   ModelCapability,
+  ModelEntry,
   ModelProfile,
 } from '@orison/shared-contracts';
+
+export type ProfileDraftModel = {
+  /** Real model id from the provider's catalog. */
+  id: string;
+  /** User-editable display alias. */
+  alias: string;
+  apiFormat: ModelApiFormat;
+  capabilities: ModelCapability[];
+};
 
 export type ProfileDraft = {
   id: string | null;
@@ -10,8 +22,7 @@ export type ProfileDraft = {
   provider: GenerationProvider;
   apiKey: string;
   baseUrl: string;
-  model: string;
-  capabilities: ModelCapability[];
+  models: ProfileDraftModel[];
 };
 
 export type UsedSlot = 'novel' | 'image' | 'video';
@@ -26,14 +37,24 @@ export type ProviderDescriptor = {
 };
 
 export const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
-  { id: 'openai', labelKey: 'settings.providerOpenai', tokenName: 'accent', defaultBaseUrl: 'https://api.openai.com/v1' },
-  { id: 'gcp', labelKey: 'settings.providerGcp', tokenName: 'provider-dot-gcp', defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
-  { id: 'anthropic', labelKey: 'settings.providerAnthropic', tokenName: 'provider-dot-anthropic', defaultBaseUrl: 'https://api.anthropic.com/v1' },
+  { id: 'openai', labelKey: 'settings.providerOpenai', tokenName: 'accent', defaultBaseUrl: 'https://api.openai.com' },
+  { id: 'gcp', labelKey: 'settings.providerGcp', tokenName: 'provider-dot-gcp', defaultBaseUrl: 'https://generativelanguage.googleapis.com' },
+  { id: 'anthropic', labelKey: 'settings.providerAnthropic', tokenName: 'provider-dot-anthropic', defaultBaseUrl: 'https://api.anthropic.com' },
 ];
 
 export const CAPABILITY_OPTIONS: ModelCapability[] = ['text', 'image', 'video'];
 
 export const SUPPORTED_PROVIDERS: GenerationProvider[] = PROVIDER_DESCRIPTORS.map((p) => p.id);
+
+export const API_FORMAT_OPTIONS: ModelApiFormat[] = [
+  'openai-chat-completions',
+  'openai-responses',
+  'claude-messages',
+  'gemini-generate-content',
+  'openai-images',
+  'gemini-images',
+  'sora-videos',
+];
 
 export function getProviderDescriptor(provider: GenerationProvider): ProviderDescriptor {
   return PROVIDER_DESCRIPTORS.find((p) => p.id === provider) ?? PROVIDER_DESCRIPTORS[0];
@@ -45,9 +66,8 @@ export function emptyProfileDraft(): ProfileDraft {
     name: '',
     provider: 'openai',
     apiKey: '',
-    baseUrl: 'https://api.openai.com/v1',
-    model: '',
-    capabilities: ['text'],
+    baseUrl: PROVIDER_DESCRIPTORS[0].defaultBaseUrl,
+    models: [],
   };
 }
 
@@ -58,34 +78,62 @@ export function profileToDraft(profile: ModelProfile): ProfileDraft {
     provider: profile.provider,
     apiKey: profile.apiKey,
     baseUrl: profile.baseUrl,
-    model: profile.model,
-    capabilities: profile.capabilities,
+    models: profile.models.map((m) => ({
+      id: m.id,
+      alias: m.alias,
+      apiFormat: m.apiFormat,
+      capabilities: m.capabilities,
+    })),
   };
 }
 
 export function draftToProfile(draft: ProfileDraft, fallbackId: string): ModelProfile {
+  const id = draft.id ?? fallbackId;
+  const trimmed = draft.models
+    .filter((m) => m.id.trim().length > 0)
+    .map<ModelEntry>((m) => ({
+      id: m.id.trim(),
+      alias: m.alias.trim() || m.id.trim(),
+      apiFormat: m.apiFormat,
+      capabilities: m.capabilities.length > 0 ? m.capabilities : ['text'],
+    }));
+
   return {
-    id: draft.id ?? fallbackId,
-    name: draft.name.trim() || draft.model.trim() || fallbackId,
+    schemaVersion: 2,
+    id,
+    name: draft.name.trim() || fallbackId,
     provider: draft.provider,
     apiKey: draft.apiKey,
     baseUrl: draft.baseUrl,
-    model: draft.model.trim(),
-    capabilities: draft.capabilities.length > 0 ? draft.capabilities : ['text'],
+    models: trimmed.length > 0
+      ? trimmed
+      : [
+        {
+          id: 'default',
+          alias: draft.name || draft.provider,
+          apiFormat: inferApiFormat('default', draft.provider),
+          capabilities: ['text'],
+        },
+      ],
   };
 }
 
 export function isProfileDirty(draft: ProfileDraft, profile: ModelProfile | undefined): boolean {
   if (!profile) {
-    // For a brand-new draft, treat any meaningful field as dirty.
-    return Boolean(draft.name || draft.apiKey || draft.model);
+    return Boolean(draft.name || draft.apiKey || draft.models.some((m) => m.id));
   }
   if (draft.name !== profile.name) return true;
   if (draft.provider !== profile.provider) return true;
   if (draft.apiKey !== profile.apiKey) return true;
   if (draft.baseUrl !== profile.baseUrl) return true;
-  if (draft.model !== profile.model) return true;
-  if (!sameCapabilities(draft.capabilities, profile.capabilities)) return true;
+  if (draft.models.length !== profile.models.length) return true;
+  for (let i = 0; i < draft.models.length; i += 1) {
+    const d = draft.models[i]!;
+    const p = profile.models[i];
+    if (!p) return true;
+    if (d.id !== p.id || d.alias !== p.alias || d.apiFormat !== p.apiFormat) return true;
+    if (!sameCapabilities(d.capabilities, p.capabilities)) return true;
+  }
   return false;
 }
 
@@ -114,14 +162,17 @@ export function toggleCapability(
   return [...next];
 }
 
+/**
+ * Compute which slots reference any model in this profile.
+ */
 export function computeUsedSlots(
   profileId: string,
-  selected: Record<UsedSlot, string | null>,
+  selected: { novel: { profileId: string } | null; image: { profileId: string } | null; video: { profileId: string } | null },
 ): UsedSlot[] {
   const slots: UsedSlot[] = [];
-  if (selected.novel === profileId) slots.push('novel');
-  if (selected.image === profileId) slots.push('image');
-  if (selected.video === profileId) slots.push('video');
+  if (selected.novel?.profileId === profileId) slots.push('novel');
+  if (selected.image?.profileId === profileId) slots.push('image');
+  if (selected.video?.profileId === profileId) slots.push('video');
   return slots;
 }
 
@@ -129,4 +180,14 @@ export function slotI18nKey(slot: UsedSlot): string {
   if (slot === 'novel') return 'settings.usedForNovel';
   if (slot === 'image') return 'settings.usedForImage';
   return 'settings.usedForVideo';
+}
+
+/**
+ * Build the display label used everywhere a model is referenced in the UI.
+ * Returns `{provider} · {alias}` so logs and selectors stay readable when
+ * the same `apiFormat` is served by different providers.
+ */
+export function formatModelLabel(profile: ModelProfile, modelId: string): string {
+  const entry = profile.models.find((m) => m.id === modelId);
+  return `${profile.provider} · ${entry?.alias ?? modelId}`;
 }

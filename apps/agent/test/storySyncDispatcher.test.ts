@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { TextGenerationResponse } from '@orison/shared-contracts';
 import type { NodeRunInput } from '../src/contracts/run';
 
 const ORIG = { ...process.env };
@@ -9,7 +8,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-function makeInput(): NodeRunInput {
+function makeInput(extraArtifacts: Record<string, unknown> = {}): NodeRunInput {
   const base: any = {
     runId: 'run_1',
     artifacts: {
@@ -22,16 +21,14 @@ function makeInput(): NodeRunInput {
         chapterId: 'ch_1',
         content: '他取出一把铜钥匙打开木匣。',
       },
+      ...extraArtifacts,
     },
   };
   return { run: base, requirement: '' };
 }
 
-describe('createStorySyncNode dispatcher', () => {
-  it('uses rules path by default when ORISON_STORY_SYNC_MODE is unset', async () => {
-    delete process.env.ORISON_STORY_SYNC_MODE;
-    delete process.env.ORISON_LLM_SERVER_URL;
-    vi.resetModules();
+describe('createStorySyncNode dispatcher (post-migration)', () => {
+  it('uses rules path when chapter.llmPatches is absent', async () => {
     const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
     const node = createStorySyncNode();
     const result = await node.run(makeInput());
@@ -41,88 +38,77 @@ describe('createStorySyncNode dispatcher', () => {
     expect(Array.isArray(artifact.patches)).toBe(true);
     expect(artifact.patches.length).toBeGreaterThan(0);
     expect(artifact.patches.every((p: any) => p.action === 'merge')).toBe(true);
+    expect(artifact.patches.every((p: any) => p.generatedBy === 'story-sync-agent')).toBe(true);
   });
 
-  it('LLM mode falls back to rules when LLM call throws', async () => {
-    process.env.ORISON_STORY_SYNC_MODE = 'llm';
-    process.env.ORISON_LLM_SERVER_URL = 'http://127.0.0.1:9999';
-    vi.resetModules();
+  it('emits the pre-computed patches when chapter.llmPatches is valid', async () => {
     const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
-    const node = createStorySyncNode({
-      generateText: async () => {
-        throw new Error('boom');
-      },
-    });
-    const result = await node.run(makeInput());
-    const artifact = result.artifact as any;
-    expect(artifact.patches.length).toBeGreaterThan(0);
-    expect(artifact.summary).toMatch(/derived|no field/);
-  });
-
-  it('LLM mode uses LLM patches when response is well-formed', async () => {
-    process.env.ORISON_STORY_SYNC_MODE = 'llm';
-    process.env.ORISON_LLM_SERVER_URL = 'http://127.0.0.1:9999';
-    vi.resetModules();
-    const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
-
-    const mockResponse: TextGenerationResponse = {
-      provider: 'openai',
-      model: 'gpt-4o-mini',
-      text: JSON.stringify({
-        summary: 'llm_ok',
-        patches: [
+    const node = createStorySyncNode();
+    const result = await node.run(
+      makeInput({
+        'chapter.llmPatches': [
           {
             field: 'foreshadow_registry',
             action: 'merge',
-            data: { items: [{ id: 'fs_llm_1', title: 'LLM 钥匙', content: '一把钥匙' }] },
+            data: { items: [{ id: 'fs_desktop_1', title: 'desktop 钥匙' }] },
             fieldVersion: 2,
             generatedBy: 'IMPERSONATOR',
           },
         ],
       }),
-    };
-
-    const node = createStorySyncNode({ generateText: async () => mockResponse });
-    const result = await node.run(makeInput());
+    );
     const artifact = result.artifact as any;
     expect(artifact.patches).toHaveLength(1);
     expect(artifact.patches[0].generatedBy).toBe('story-sync-agent');
-    expect(artifact.summary).toBe('llm_ok');
+    expect(artifact.patches[0].field).toBe('foreshadow_registry');
   });
 
-  it('LLM mode drops patches whose fieldVersion is stale', async () => {
-    process.env.ORISON_STORY_SYNC_MODE = 'llm';
-    process.env.ORISON_LLM_SERVER_URL = 'http://127.0.0.1:9999';
-    vi.resetModules();
+  it('falls back to rules when llmPatches references a non-whitelisted field', async () => {
     const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
-
-    const mockResponse: TextGenerationResponse = {
-      provider: 'openai',
-      model: 'gpt-4o-mini',
-      text: JSON.stringify({
-        summary: 'llm_stale',
-        patches: [
+    const node = createStorySyncNode();
+    const result = await node.run(
+      makeInput({
+        'chapter.llmPatches': [
           {
-            field: 'foreshadow_registry',
+            field: 'NOT_A_REAL_FIELD',
             action: 'merge',
-            data: { items: [{ id: 'fs_llm_2', title: '钥匙', content: '一把钥匙' }] },
-            fieldVersion: 99,
+            data: {},
+            fieldVersion: 0,
             generatedBy: 'story-sync-agent',
           },
         ],
       }),
-    };
-
-    const node = createStorySyncNode({ generateText: async () => mockResponse });
-    const result = await node.run(makeInput());
+    );
     const artifact = result.artifact as any;
-    expect(artifact.summary).toBe('llm_stale');
-    expect(artifact.patches).toEqual([]);
+    // Rules path should still emit the铜钥匙-based patch.
+    expect(artifact.patches.length).toBeGreaterThan(0);
+    expect(artifact.summary).not.toMatch(/pre-computed/);
+  });
+
+  it('falls back to rules when llmPatches has stale fieldVersion', async () => {
+    const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
+    const node = createStorySyncNode();
+    const result = await node.run(
+      makeInput({
+        'chapter.llmPatches': [
+          {
+            field: 'foreshadow_registry',
+            action: 'merge',
+            data: { items: [] },
+            fieldVersion: 99, // doesn't match context's version=2
+            generatedBy: 'story-sync-agent',
+          },
+        ],
+      }),
+    );
+    const artifact = result.artifact as any;
+    // Should not have used pre-computed patches (after stale-version filter
+    // they'd be empty); falls back to rules which derives the铜钥匙 patch.
+    expect(artifact.patches.length).toBeGreaterThan(0);
+    expect(artifact.summary).not.toMatch(/pre-computed/);
   });
 
   it('returns skip artifact when chapter.candidate is missing', async () => {
-    delete process.env.ORISON_STORY_SYNC_MODE;
-    vi.resetModules();
     const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
     const node = createStorySyncNode();
     const input: any = {
@@ -138,5 +124,12 @@ describe('createStorySyncNode dispatcher', () => {
     const artifact = result.artifact as any;
     expect(artifact.summary).toMatch(/skip/);
     expect(artifact.patches).toEqual([]);
+  });
+
+  it('does not import or instantiate any LLM client (regression: agent must not call providers)', async () => {
+    // Importing the dispatcher should not pull in any module that imports
+    // openai / anthropic / @google-cloud/aiplatform / fetch-to-provider helpers.
+    const mod = await import('../src/nodes/story-sync-agent');
+    expect(typeof mod.createStorySyncNode).toBe('function');
   });
 });

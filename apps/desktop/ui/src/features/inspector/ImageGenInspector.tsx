@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import type { ModelProfile, SlotAssignment } from '@orison/shared-contracts';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import {
@@ -52,43 +53,49 @@ export function ImageGenInspector() {
   })));
 
   const { t } = useI18n(resolvedLocale);
-  const imageProfiles = modelConfig.profiles.filter((profile) => profile.capabilities.includes('image'));
-  const selectedProfile = imageProfiles.find((p) => p.id === modelConfig.selected.image) ?? null;
+  const imageProfiles = modelConfig.profiles.filter((profile) =>
+    profile.models.some((m) => m.capabilities.includes('image')),
+  );
+  const selectedSlot = modelConfig.selected.image;
+  const selectedProfile = selectedSlot
+    ? modelConfig.profiles.find((p) => p.id === selectedSlot.profileId) ?? null
+    : null;
+  const selectedModelId = selectedSlot?.modelId ?? null;
 
-  // Placeholder text differs by state so the user gets a useful next step
-  // instead of the misleading "fetch models first" copy that was originally
-  // designed for the settings page's remote-model refresh flow.
   const placeholderText = (() => {
     if (modelConfig.profiles.length === 0) return t('imageGen.params.noProfilesYet');
     if (imageProfiles.length === 0) return t('imageGen.params.noImageProfile');
     return t('imageGen.params.selectModel');
   })();
 
-  // Re-sanitize params whenever the selected model string changes — the user
-  // may have edited the profile's model name in settings without changing the
-  // selection.
+  // Re-sanitize params whenever the selected model id changes — the user
+  // may have edited the profile's model entries in settings without
+  // changing the slot.
   useEffect(() => {
-    reconcile(selectedProfile?.model ?? null);
-  }, [selectedProfile?.model, reconcile]);
+    reconcile(selectedModelId);
+  }, [selectedModelId, reconcile]);
 
   const spec = IMAGE_FAMILIES[family];
   const visible = (field: ImageGenField) => spec.fields.includes(field);
 
-  function handleProfileChange(profileId: string) {
-    const profile = imageProfiles.find((p) => p.id === profileId) ?? null;
+  function handleProfileChange(slot: SlotAssignment | null) {
+    const profile: ModelProfile | null = slot
+      ? imageProfiles.find((p) => p.id === slot.profileId) ?? null
+      : null;
+    const modelEntry = profile?.models.find((m) => m.id === slot?.modelId) ?? null;
     appendOutputEntry({
       scope: 'model',
       level: profile ? 'success' : 'info',
-      message: profile ? `Selected image model: ${profile.name}` : 'Cleared image model selection',
-      detail: profile ? `${profile.provider}/${profile.model}` : undefined,
+      message: profile && modelEntry
+        ? `Selected image model: ${profile.provider} · ${modelEntry.alias}`
+        : 'Cleared image model selection',
+      detail: profile && modelEntry ? `${profile.provider}/${modelEntry.id}` : undefined,
     });
     void setModelConfig({
       ...modelConfig,
-      selected: { ...modelConfig.selected, image: profileId || null },
+      selected: { ...modelConfig.selected, image: slot },
     });
-    // The effect above will reconcile on profile.model change; do it eagerly
-    // here too so the new family is reflected before the next render.
-    reconcile(profile?.model ?? null);
+    reconcile(slot?.modelId ?? null);
   }
 
   return (
@@ -100,7 +107,7 @@ export function ImageGenInspector() {
       <div className="inspector-fields-row">
         <ProfileField
           profiles={imageProfiles}
-          selectedId={modelConfig.selected.image ?? ''}
+          selectedSlot={selectedSlot}
           onChange={handleProfileChange}
           label={t('imageGen.params.model')}
           placeholder={placeholderText}
@@ -208,6 +215,7 @@ export function ImageGenInspector() {
           </label>
         )}
       </div>
+      {selectedProfile ? null : null}
     </div>
   );
 }

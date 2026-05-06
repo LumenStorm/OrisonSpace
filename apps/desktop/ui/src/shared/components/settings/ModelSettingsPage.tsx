@@ -47,6 +47,8 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
               draft={lib.draft}
               isDirty={lib.dirty}
               onChange={lib.updateDraft}
+              onUpdateModelEntry={lib.updateModelEntry}
+              onRemoveModelEntry={lib.removeModelEntry}
               onApply={() => void lib.applyDraft()}
               onDelete={lib.draft.id ? () => lib.requestDelete(lib.draft.id!) : null}
               refreshing={lib.refreshing}

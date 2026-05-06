@@ -38,6 +38,7 @@ export function ProfileList({
         {profiles.map((profile) => {
           const used: UsedSlot[] = computeUsedSlots(profile.id, selected);
           const isActive = activeProfileId === profile.id;
+          const summary = profile.models.map((m) => m.alias).slice(0, 3).join(', ');
           return (
             <button
               key={profile.id}
@@ -50,7 +51,9 @@ export function ProfileList({
                 <span className="model-profile-name">{profile.name}</span>
                 <ProviderBadge provider={profile.provider} t={t} compact />
               </div>
-              <span className="model-profile-meta">{profile.model || t('settings.modelSelectPlaceholder')}</span>
+              <span className="model-profile-meta">
+                {summary || t('settings.modelSelectPlaceholder')}
+              </span>
               {used.length > 0 ? (
                 <div className="model-profile-used">
                   {used.map((slot) => (

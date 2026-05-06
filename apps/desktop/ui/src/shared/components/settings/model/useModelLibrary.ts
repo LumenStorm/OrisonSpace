@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ModelConfig, ModelProfile, ModelType } from '@orison/shared-contracts';
+import { inferApiFormat } from '@orison/model-protocols';
+import type {
+  ModelApiFormat,
+  ModelCapability,
+  ModelConfig,
+  ModelProfile,
+  ModelType,
+  SlotAssignment,
+} from '@orison/shared-contracts';
 import { loadProviderModels, type RemoteModel } from '../../../api/generation';
 import { useAppStore } from '../../../store/appStore';
 import {
@@ -9,6 +17,7 @@ import {
   nextProfileId,
   profileToDraft,
   type ProfileDraft,
+  type ProfileDraftModel,
 } from './utils';
 
 export type ModelLibraryState = {
@@ -25,13 +34,15 @@ export type ModelLibraryState = {
 
 export type ModelLibraryActions = {
   updateDraft: (values: Partial<ProfileDraft>) => void;
+  updateModelEntry: (index: number, values: Partial<ProfileDraftModel>) => void;
+  removeModelEntry: (index: number) => void;
   startNewProfile: () => void;
   selectProfile: (profile: ModelProfile) => void;
   applyDraft: () => Promise<void>;
   requestDelete: (id: string) => void;
   cancelDelete: () => void;
   confirmDelete: () => Promise<void>;
-  updateSelected: (type: ModelType, profileId: string | null) => Promise<void>;
+  updateSelected: (type: ModelType, slot: SlotAssignment | null) => Promise<void>;
   refreshModels: () => Promise<void>;
   dismissNotice: () => void;
 };
@@ -63,7 +74,6 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     [pendingDeleteId, profiles],
   );
 
-  // When the underlying profile is removed externally, fall back to a fresh empty draft.
   useEffect(() => {
     if (draft.id && !profiles.some((profile) => profile.id === draft.id)) {
       setDraft(emptyProfileDraft());
@@ -78,6 +88,20 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
       setRemoteModels([]);
     }
     setDraft((current) => ({ ...current, ...values }));
+  }
+
+  function updateModelEntry(index: number, values: Partial<ProfileDraftModel>) {
+    setDraft((current) => ({
+      ...current,
+      models: current.models.map((entry, idx) => (idx === index ? { ...entry, ...values } : entry)),
+    }));
+  }
+
+  function removeModelEntry(index: number) {
+    setDraft((current) => ({
+      ...current,
+      models: current.models.filter((_, idx) => idx !== index),
+    }));
   }
 
   function resetEditorState() {
@@ -97,7 +121,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   }
 
   async function applyDraft() {
-    if (!draft.model.trim()) return;
+    if (draft.models.length === 0) return;
     const id = draft.id ?? nextProfileId(profiles);
     const profile = draftToProfile(draft, id);
     const exists = profiles.some((item) => item.id === id);
@@ -111,7 +135,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
       scope: 'model',
       level: 'success',
       message: exists ? 'Updated model profile' : 'Added model profile',
-      detail: `${profile.provider} · ${profile.model}`,
+      detail: `${profile.provider} · ${profile.models.length} model(s)`,
     });
   }
 
@@ -129,9 +153,9 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     const next: ModelConfig = {
       profiles: profiles.filter((profile) => profile.id !== id),
       selected: {
-        novel: modelConfig.selected.novel === id ? null : modelConfig.selected.novel,
-        image: modelConfig.selected.image === id ? null : modelConfig.selected.image,
-        video: modelConfig.selected.video === id ? null : modelConfig.selected.video,
+        novel: modelConfig.selected.novel?.profileId === id ? null : modelConfig.selected.novel,
+        image: modelConfig.selected.image?.profileId === id ? null : modelConfig.selected.image,
+        video: modelConfig.selected.video?.profileId === id ? null : modelConfig.selected.video,
       },
     };
     await setModelConfig(next);
@@ -144,10 +168,10 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     appendOutputEntry({ scope: 'model', level: 'info', message: 'Deleted model profile', detail: id });
   }
 
-  async function updateSelected(type: ModelType, profileId: string | null) {
+  async function updateSelected(type: ModelType, slot: SlotAssignment | null) {
     await setModelConfig({
       profiles,
-      selected: { ...modelConfig.selected, [type]: profileId },
+      selected: { ...modelConfig.selected, [type]: slot },
     });
   }
 
@@ -167,13 +191,18 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
         detail: `${draft.provider} ${draft.baseUrl}`,
       });
       setRemoteModels(models);
-      const first = models[0];
-      if (!draft.model && first) {
+      // Pre-fill the model rows with one entry per remote id, defaulting
+      // alias = id, apiFormat = inferApiFormat(id, provider), and
+      // capabilities from the listing.
+      if (draft.models.length === 0 && models.length > 0) {
         setDraft((current) => ({
           ...current,
-          model: first.id,
-          capabilities: first.capabilities,
-          name: current.name || first.id,
+          models: models.map((m) => ({
+            id: m.id,
+            alias: m.id,
+            apiFormat: inferApiFormat(m.id, current.provider) as ModelApiFormat,
+            capabilities: (m.capabilities.length > 0 ? m.capabilities : ['text']) as ModelCapability[],
+          })),
         }));
       }
     } catch (error) {
@@ -205,6 +234,8 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     pendingDeleteId,
     pendingDeleteProfile,
     updateDraft,
+    updateModelEntry,
+    removeModelEntry,
     startNewProfile,
     selectProfile,
     applyDraft,

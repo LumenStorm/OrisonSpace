@@ -1,20 +1,25 @@
-import { useMemo, useState } from 'react';
-import type { GenerationProvider } from '@orison/shared-contracts';
+import { useState } from 'react';
+import { inferApiFormat } from '@orison/model-protocols';
+import type { GenerationProvider, ModelApiFormat } from '@orison/shared-contracts';
 import type { RemoteModel } from '../../../api/generation';
 import { CapabilityToggleGroup } from './CapabilityToggleGroup';
 import { ProviderBadge } from './ProviderBadge';
 import { EditorBanner } from './EditorBanner';
 import { EditorFooter } from './EditorFooter';
 import {
+  API_FORMAT_OPTIONS,
   PROVIDER_DESCRIPTORS,
   getProviderDescriptor,
   type ProfileDraft,
+  type ProfileDraftModel,
 } from './utils';
 
 type Props = {
   draft: ProfileDraft;
   isDirty: boolean;
   onChange: (next: Partial<ProfileDraft>) => void;
+  onUpdateModelEntry: (index: number, values: Partial<ProfileDraftModel>) => void;
+  onRemoveModelEntry: (index: number) => void;
   onApply: () => void;
   onDelete: (() => void) | null;
   refreshing: boolean;
@@ -30,6 +35,8 @@ export function ProfileEditor({
   draft,
   isDirty,
   onChange,
+  onUpdateModelEntry,
+  onRemoveModelEntry,
   onApply,
   onDelete,
   refreshing,
@@ -43,33 +50,17 @@ export function ProfileEditor({
   const [showApiKey, setShowApiKey] = useState(false);
   const isNew = draft.id === null;
 
-  const availableModels = useMemo(() => {
-    const merged = new Set(remoteModels.map((model) => model.id));
-    if (draft.model) merged.add(draft.model);
-    return [...merged];
-  }, [remoteModels, draft.model]);
-
   const handleProviderChange = (next: GenerationProvider) => {
     if (next === draft.provider) return;
     const descriptor = getProviderDescriptor(next);
     onChange({
       provider: next,
-      model: '',
-      capabilities: ['text'],
+      models: [],
       baseUrl: descriptor.defaultBaseUrl,
     });
   };
 
-  const handleModelChange = (modelId: string) => {
-    const remote = remoteModels.find((item) => item.id === modelId);
-    onChange({
-      model: modelId,
-      capabilities: remote?.capabilities ?? draft.capabilities,
-      name: draft.name || modelId,
-    });
-  };
-
-  const canApply = isDirty && draft.model.trim().length > 0;
+  const canApply = isDirty && draft.models.length > 0 && draft.models.every((m) => m.id.trim().length > 0);
 
   return (
     <section className="model-profile-editor" aria-label={t('settings.modelDetails')}>
@@ -95,7 +86,7 @@ export function ProfileEditor({
           <input
             className="sidebar-settings-input"
             value={draft.name}
-            placeholder={draft.model || t('settings.modelNamePlaceholder')}
+            placeholder={t('settings.modelNamePlaceholder')}
             onChange={(event) => onChange({ name: event.target.value })}
           />
         </label>
@@ -170,28 +161,72 @@ export function ProfileEditor({
       <div className="model-editor-section">
         <span className="sidebar-settings-label">{t('settings.modelSection')}</span>
 
-        <label className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.modelName')}</span>
-          <select
-            className="sidebar-settings-input"
-            value={draft.model}
-            onChange={(event) => handleModelChange(event.target.value)}
-          >
-            <option value="">{t('settings.modelSelectPlaceholder')}</option>
-            {availableModels.map((model) => (
-              <option key={model} value={model}>{model}</option>
+        {draft.models.length === 0 ? (
+          <p className="image-gen-empty">
+            {remoteModels.length === 0
+              ? t('settings.refreshModels')
+              : t('settings.modelSelectPlaceholder')}
+          </p>
+        ) : (
+          <div className="model-entry-table">
+            {draft.models.map((entry, index) => (
+              <div key={`${entry.id}_${index}`} className="model-entry-row">
+                <label className="sidebar-settings-input-row">
+                  <span className="sidebar-settings-input-label">{t('settings.modelName')}</span>
+                  <input
+                    className="sidebar-settings-input"
+                    value={entry.id}
+                    onChange={(event) =>
+                      onUpdateModelEntry(index, {
+                        id: event.target.value,
+                        apiFormat: inferApiFormat(event.target.value, draft.provider) as ModelApiFormat,
+                      })
+                    }
+                  />
+                </label>
+                <label className="sidebar-settings-input-row">
+                  <span className="sidebar-settings-input-label">{t('settings.modelAlias')}</span>
+                  <input
+                    className="sidebar-settings-input"
+                    value={entry.alias}
+                    onChange={(event) => onUpdateModelEntry(index, { alias: event.target.value })}
+                  />
+                </label>
+                <label className="sidebar-settings-input-row">
+                  <span className="sidebar-settings-input-label">apiFormat</span>
+                  <select
+                    className="sidebar-settings-input"
+                    value={entry.apiFormat}
+                    onChange={(event) =>
+                      onUpdateModelEntry(index, { apiFormat: event.target.value as ModelApiFormat })
+                    }
+                  >
+                    {API_FORMAT_OPTIONS.map((value) => (
+                      <option key={value} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="sidebar-settings-input-row">
+                  <span className="sidebar-settings-input-label">{t('settings.capabilities')}</span>
+                  <CapabilityToggleGroup
+                    value={entry.capabilities}
+                    onChange={(capabilities) => onUpdateModelEntry(index, { capabilities })}
+                    t={t}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="settings-refresh-button"
+                  onClick={() => onRemoveModelEntry(index)}
+                  aria-label="Remove model"
+                  title="Remove model"
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
+              </div>
             ))}
-          </select>
-        </label>
-
-        <div className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.capabilities')}</span>
-          <CapabilityToggleGroup
-            value={draft.capabilities}
-            onChange={(capabilities) => onChange({ capabilities })}
-            t={t}
-          />
-        </div>
+          </div>
+        )}
       </div>
 
       <EditorFooter
