@@ -171,6 +171,11 @@ export function registerProjectIpc() {
     }
   });
 
+  ipcMain.handle('project:path-exists', async (_, fullPath: string) => {
+    assertSafePath(fullPath);
+    return existsSync(fullPath);
+  });
+
   ipcMain.handle('project:save-base64-image', async (_, projectDir: string, input: SaveBase64ImageInput) => {
     assertSafePath(projectDir);
     if (!ALLOWED_IMAGE_DIRS.has(input.directory)) {

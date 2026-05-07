@@ -1,0 +1,213 @@
+/* ── File Editor Area ── */
+.editor-area-file {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-area-file-content {
+  flex: 1;
+  overflow: auto;
+}
+
+/* ── File Tab Bar ── */
+.file-tab-bar {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  flex-shrink: 0;
+}
+
+.file-tab-bar::-webkit-scrollbar {
+  height: 2px;
+}
+
+.file-tab-bar::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 1px;
+}
+
+.file-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+  border-right: 1px solid var(--outline-variant);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.file-tab:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.file-tab-active {
+  background: var(--surface);
+  color: var(--on-surface);
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: -1px;
+}
+
+.file-tab-icon {
+  font-size: 15px;
+  opacity: 0.7;
+}
+
+.file-tab-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-tab-dirty {
+  color: var(--accent);
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+.file-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 0.2rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.file-tab:hover .file-tab-close,
+.file-tab-active .file-tab-close {
+  opacity: 1;
+}
+
+.file-tab-close:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.file-tab-close .material-symbols-outlined {
+  font-size: 14px;
+}
+
+/* ── File Editor: Markdown ── */
+.file-editor-md {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-editor-md .tiptap-wrapper {
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+}
+
+.file-editor-md .tiptap-content .tiptap {
+  min-height: 300px;
+}
+
+/* ── File Editor: Code (YAML etc.) ── */
+.file-editor-code {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-editor-textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 300px;
+  resize: none;
+  padding: 1rem;
+  border: 0;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.65;
+  tab-size: 2;
+  outline: none;
+}
+
+.code-editor-textarea::selection {
+  background: var(--active-indicator);
+}
+
+/* ── File Editor: Read-only ── */
+.file-editor-readonly {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  color: var(--outline);
+  font-size: 0.85rem;
+  padding: 2rem;
+}
+
+.file-editor-readonly .material-symbols-outlined {
+  font-size: 32px;
+  opacity: 0.5;
+}
+
+.file-editor-readonly p {
+  margin: 0;
+}
+
+.file-editor-readonly-content {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.35rem;
+  background: var(--surface-container-low);
+  font-family: monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 400px;
+}
+
+/* ── File Editor: Image preview ── */
+.file-editor-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 1.5rem;
+  background:
+    linear-gradient(45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
+    linear-gradient(-45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
+    linear-gradient(45deg, transparent 75%, var(--surface-container-low) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-container-low) 75%);
+  background-size: 16px 16px;
+  background-color: var(--surface);
+  overflow: auto;
+}
+
+.file-editor-image-content {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 0.35rem;
+  box-shadow: var(--shadow-soft);
+  background: var(--surface-container-lowest);
+}

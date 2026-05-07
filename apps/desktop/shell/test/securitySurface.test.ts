@@ -29,6 +29,7 @@ describe('preload security surface', () => {
       'minimize',
       'moveProjectFile',
       'openPath',
+      'pathExists',
       'pickCoverImage',
       'pickProjectDirectory',
       'platform',

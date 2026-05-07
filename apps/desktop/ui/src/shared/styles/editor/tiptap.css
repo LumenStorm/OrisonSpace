@@ -1,0 +1,302 @@
+/* ── Tiptap Editor ── */
+.tiptap-wrapper {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  flex-wrap: wrap;
+}
+
+.tiptap-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.3rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tiptap-toolbar-btn:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.tiptap-toolbar-btn.is-active {
+  background: var(--surface-container-high);
+  color: var(--accent);
+}
+
+.tiptap-toolbar-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.tiptap-toolbar-divider {
+  width: 1px;
+  height: 1.2rem;
+  margin: 0 0.25rem;
+  background: var(--outline-variant);
+}
+
+.tiptap-content {
+  flex: 1;
+  overflow: auto;
+}
+
+.tiptap-content .tiptap {
+  padding: 1rem;
+  min-height: 120px;
+  outline: none;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--on-surface);
+}
+
+.tiptap-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--outline);
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap-content .tiptap h1 { font-size: 1.6rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.tiptap-content .tiptap h2 { font-size: 1.3rem; font-weight: 600; margin: 0.8rem 0 0.4rem; }
+.tiptap-content .tiptap h3 { font-size: 1.1rem; font-weight: 600; margin: 0.6rem 0 0.3rem; }
+
+.tiptap-content .tiptap ul,
+.tiptap-content .tiptap ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap-content .tiptap blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0.5rem 0;
+  padding: 0.25rem 1rem;
+  color: var(--on-surface-variant);
+}
+
+.tiptap-content .tiptap pre {
+  background: var(--surface-container-low);
+  border-radius: 0.35rem;
+  padding: 0.75rem 1rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+}
+
+.tiptap-content .tiptap code {
+  background: var(--outline-variant);
+  border-radius: 0.2rem;
+  padding: 0.1rem 0.3rem;
+  font-family: monospace;
+  font-size: 0.88em;
+}
+
+.tiptap-content .tiptap pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ── Outline Editor ── */
+.outline-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.outline-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.outline-title-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid var(--outline-variant);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  padding: 0.25rem 0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.outline-title-input:focus {
+  border-color: var(--accent);
+}
+
+.outline-title-input::placeholder {
+  color: var(--outline);
+}
+
+.outline-logline-input {
+  width: 100%;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--on-surface);
+  padding: 0.65rem 0.75rem;
+  outline: none;
+  resize: none;
+  min-height: 2.5rem;
+}
+
+.outline-logline-input:focus {
+  border-color: var(--accent);
+}
+
+.outline-style-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.outline-style-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.outline-style-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.outline-style-input {
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--on-surface);
+  padding: 0.5rem 0.65rem;
+  outline: none;
+}
+
+.outline-style-input:focus {
+  border-color: var(--accent);
+}
+
+/* ── Acts ── */
+.outline-acts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.outline-acts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.outline-acts-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.outline-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px dashed var(--outline-variant);
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.outline-add-btn:hover {
+  background: var(--hover-overlay);
+  border-color: var(--accent);
+  color: var(--on-surface);
+}
+
+.outline-add-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.outline-act-card {
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.outline-act-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-container-low);
+  cursor: pointer;
+  user-select: none;
+}
+
+.outline-act-header:hover {
+  background: var(--hover-overlay);
+}
+
+.outline-act-toggle {
+  font-size: 18px;
+  color: var(--on-surface-variant);
+  transition: transform 0.15s;
+}
+
+.outline-act-toggle.is-open {
+  transform: rotate(90deg);
+}
+
+.outline-act-title-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--on-surface);
+  outline: none;
+}
+
+.outline-act-body {
+  padding: 0.75rem 0.85rem;
+  border-top: 1px solid var(--outline-variant);
+}
+

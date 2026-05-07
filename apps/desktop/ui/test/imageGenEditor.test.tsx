@@ -51,8 +51,8 @@ describe('ImageGenEditor', () => {
 
     (window as any).orisonDesktop = {
       saveBase64Image: vi.fn().mockResolvedValue({
-        relativePath: 'temp/images/test.png',
-        fullPath: 'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\temp\\images\\test.png',
+        relativePath: 'temp/images/generation/test.png',
+        fullPath: 'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\temp\\images\\generation\\test.png',
         fileName: 'test.png',
       }),
       moveProjectFile: vi.fn().mockResolvedValue('C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\assets\\images\\test.png'),
@@ -67,6 +67,9 @@ describe('ImageGenEditor', () => {
           },
         ],
       }),
+      readDirectory: vi.fn().mockResolvedValue([]),
+      readFileBinary: vi.fn(),
+      deleteProjectFile: vi.fn().mockResolvedValue(true),
     };
   });
 
@@ -117,64 +120,135 @@ describe('ImageGenEditor', () => {
     expect(screen.getByAltText('quiet desk')).toBeTruthy();
   });
 
-  it('moves the temporary image to assets when saving', async () => {
+  it('moves the generated image to assets when adding it to assets', async () => {
     render(<ImageGenEditor />);
 
     await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
     await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
 
-    const saveButton = await screen.findByRole('button', { name: /imageGen.saveToFile|Save File/ });
-    await userEvent.click(saveButton);
+    const addButton = await screen.findByRole('button', { name: /imageGen.addToAssets|Add to Assets/ });
+    await userEvent.click(addButton);
 
     expect(window.orisonDesktop.moveProjectFile).toHaveBeenCalledWith(
       'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject',
-      'temp/images/test.png',
+      'temp/images/generation/test.png',
       'assets/images/test.png',
     );
   });
 
-  it('renders the model profile chip but no parameter controls', () => {
+  it('loads existing generation images from temp/images/generation', async () => {
+    (window.orisonDesktop.readDirectory as any).mockResolvedValue([
+      {
+        name: 'temp',
+        path: '/temp',
+        isDir: true,
+        children: [
+          {
+            name: 'images',
+            path: '/temp/images',
+            isDir: true,
+            children: [
+              {
+                name: 'generation',
+                path: '/temp/images/generation',
+                isDir: true,
+                children: [
+                  {
+                    name: 'loaded.png',
+                    path: '/temp/images/generation/loaded.png',
+                    isDir: false,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    (window.orisonDesktop.readFileBinary as any).mockResolvedValue({
+      base64: 'loaded123',
+      mimeType: 'image/png',
+    });
+
     render(<ImageGenEditor />);
 
-    // The chip surfaces the selected profile via {provider} · {alias}
+    await waitFor(() => expect(window.orisonDesktop.readFileBinary).toHaveBeenCalledWith(
+      'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\temp\\images\\generation\\loaded.png',
+    ));
+    expect(screen.getByAltText('loaded.png')).toBeTruthy();
+  });
+
+  it('renders the model profile chip', () => {
+    render(<ImageGenEditor />);
+
+    // The chip surfaces the selected profile via {provider} · {alias}.
     expect(screen.getByText(/openai/i)).toBeTruthy();
     expect(screen.getByText(/GPT Image 1/i)).toBeTruthy();
 
-    // Size / count selectors must NOT appear in the editor anymore.
+    // Size / count selectors must NOT appear in the editor anymore — they
+    // live exclusively in the BottomPanel properties tab.
     expect(screen.queryByDisplayValue('1024x1024')).toBeNull();
     expect(screen.queryByDisplayValue('1024x1536')).toBeNull();
+    // The "Open parameters" entry point was removed — no lingering button.
+    expect(screen.queryByRole('button', { name: /open parameters/i })).toBeNull();
   });
 
-  it('hides the open-parameters button when inspector is already visible', () => {
-    useAppStore.setState({ bottomPanelOpen: true, activeBottomTab: 'properties' } as any);
+  it('copies prompt to clipboard from the gallery card', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
 
     render(<ImageGenEditor />);
 
-    expect(screen.queryByRole('button', { name: /imageGen\.openParameters|Open parameters/i })).toBeNull();
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+
+    await waitFor(() => expect(screen.getByAltText('quiet desk')).toBeTruthy());
+
+    const copyButton = screen.getAllByRole('button', { name: /imageGen.copyPrompt|Copy prompt/ })[0];
+    await userEvent.click(copyButton);
+
+    expect(writeText).toHaveBeenCalledWith('quiet desk');
   });
 
-  it('shows the open-parameters button when bottom panel is collapsed', async () => {
-    useAppStore.setState({ bottomPanelOpen: false, activeBottomTab: 'properties' } as any);
+  it('deletes a generated image via the delete button', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    (window.orisonDesktop.deleteProjectFile as any).mockResolvedValue(true);
 
     render(<ImageGenEditor />);
 
-    const button = screen.getByRole('button', { name: /imageGen\.openParameters|Open parameters/i });
-    expect(button).toBeTruthy();
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
 
-    await userEvent.click(button);
-    expect(useAppStore.getState().bottomPanelOpen).toBe(true);
-    expect(useAppStore.getState().activeBottomTab).toBe('properties');
+    await waitFor(() => expect(screen.getByAltText('quiet desk')).toBeTruthy());
+
+    const deleteButton = screen.getByRole('button', { name: /imageGen.delete|Delete/ });
+    await userEvent.click(deleteButton);
+
+    expect(confirmSpy).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(window.orisonDesktop.deleteProjectFile).toHaveBeenCalledWith(
+        'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject',
+        'temp/images/generation/test.png',
+      ),
+    );
+    await waitFor(() => expect(screen.queryByAltText('quiet desk')).toBeNull());
   });
 
-  it('shows the open-parameters button when bottom panel is on a different tab', async () => {
-    useAppStore.setState({ bottomPanelOpen: true, activeBottomTab: 'output' } as any);
-
+  it('disables delete for an image that was added to assets', async () => {
     render(<ImageGenEditor />);
 
-    const button = screen.getByRole('button', { name: /imageGen\.openParameters|Open parameters/i });
-    await userEvent.click(button);
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'quiet desk');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
 
-    expect(useAppStore.getState().bottomPanelOpen).toBe(true);
-    expect(useAppStore.getState().activeBottomTab).toBe('properties');
+    const addButton = await screen.findByRole('button', { name: /imageGen.addToAssets|Add to Assets/ });
+    await userEvent.click(addButton);
+
+    await waitFor(() => {
+      const deleteButton = screen.getByRole('button', { name: /imageGen.cannotDeleteAsset|already added/i });
+      expect(deleteButton.getAttribute('disabled')).not.toBeNull();
+    });
   });
 });

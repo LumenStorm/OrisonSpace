@@ -26,8 +26,9 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
   - 项目管理
   - 工作区创作
   - 模型配置
-  - 图片生成结果管理
+  - 图片生成结果管理（画廊 / 预览 / 本地编辑弹窗）
   - Auto Mode 与任务输出展示
+- 全局样式按文件夹分层（`shared/styles/` 下 `base/ layout/ editor/`），`global.css` 为唯一入口
 
 ### 2. 桌面主进程
 
@@ -158,7 +159,7 @@ Story Sync 现在是“两段式”：
 - `chapters/*.md`
 - `scenes/*.md`
 - `memory/story-memory.yaml`
-- `temp/images/*`
+- `temp/images/generation/*`
 - `assets/images/*`
 
 ### 服务端数据库

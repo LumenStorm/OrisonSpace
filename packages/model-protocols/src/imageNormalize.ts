@@ -12,7 +12,7 @@ type GeneratedImage = ImageGenerationResponse['images'][number];
  *
  * Unlike the previous server-side helper, this version does **not** write a
  * copy to disk — the caller (desktop main → renderer) owns the project-scoped
- * `temp/images` / `assets/images` lifecycle through existing IPC channels.
+ * `temp/images/generation` / `assets/images` lifecycle through existing IPC channels.
  */
 export async function normalizeImageResponse(
   response: ImageGenerationResponse,

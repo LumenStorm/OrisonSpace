@@ -40,9 +40,27 @@
 
 已完成：
 
-- 空状态下点击“添加模型”可进入编辑器
+- 空状态下点击"添加模型"可进入编辑器
 - 有 profile 但未选择时显示明确占位态
 - 编辑模式已整理成明确状态机，不再依赖隐式条件
+
+### 3. 图片生成模块 UI
+
+已完成：
+
+- 移除主区参数入口，所有参数收归到 BottomPanel properties tab
+- 画廊改为 1:1 正方形卡片网格 + 分页（每页 12 张），按需懒加载二进制
+- 卡片新增：复制 prompt、删除、已入库徽标、generated / edited 角标
+- 预览弹窗支持左右键盘切换、Esc 关闭
+- 编辑弹窗工具栏分三组、Reset to original、Mask 遮罩可视化叠层、Esc 关闭
+
+### 4. 桌面 UI 样式解耦
+
+已完成：
+
+- 原 2092 行的 `shared/styles/editor.css` 按段拆成 7 个子文件
+- `shared/styles/` 重组为 `base/ layout/ editor/` 三层文件夹结构
+- `global.css` 按原顺序串联所有 `@import`，保留级联顺序
 
 ## 三、当前架构结论
 

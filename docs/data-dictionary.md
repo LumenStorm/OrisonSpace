@@ -100,6 +100,7 @@
 │  └─ story-memory.yaml
 ├─ temp/
 │  └─ images/
+│     └─ generation/
 └─ assets/
    └─ images/
 ```
@@ -109,7 +110,7 @@
 - `project.yaml` 存放结构化字段（大纲、曲线、资产卡等）
 - `chapters/*.md` / `scenes/*.md` 存放正文
 - `memory/story-memory.yaml` 存放长期记忆索引
-- `temp/images` 存放新生成图片（待确认）
+- `temp/images/generation` 存放新生成图片与本地编辑结果（待确认）
 - `assets/images` 存放已确认保存的图片资产
 
 ## 4. 模型配置存储（桌面主进程）

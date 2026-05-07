@@ -1,13 +1,33 @@
 @import "./tokens.css";
-@import "./welcome.css";
-@import "./topbar.css";
-@import "./workspace.css";
-@import "./sidebar.css";
+
+/* Import order matches the original monolithic layout so cascade-sensitive
+ * overrides (e.g. `.image-gen-inspector-*` rules coming after `.image-gen-*`,
+ * or `components.css` sitting last as a reset-like layer) resolve unchanged.
+ *
+ * Organization is folder-based — order is preserved. */
+
+@import "./base/welcome.css";
+
+@import "./layout/topbar.css";
+@import "./layout/workspace.css";
+@import "./layout/sidebar.css";
+
 @import "./inspector.css";
-@import "./editor.css";
-@import "./pages.css";
+
+/* editor/ holds what used to be a single 2000-line editor.css. Split order
+ * mirrors the original section order (tiptap → script → video → image-gen
+ * → image-dialog → novel → file). */
+@import "./editor/tiptap.css";
+@import "./editor/script.css";
+@import "./editor/video.css";
+@import "./editor/image-gen.css";
+@import "./editor/image-dialog.css";
+@import "./editor/novel.css";
+@import "./editor/file.css";
+
+@import "./layout/pages.css";
 @import "./creative.css";
-@import "./components.css";
+@import "./base/components.css";
 
 /* ── Reset ── */
 #root {

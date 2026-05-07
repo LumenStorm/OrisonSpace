@@ -50,6 +50,20 @@
   - `App` 只消费 `authStatus`
 - 用户可见文案统一走 `t()`，禁止新增硬编码显示文本
 
+### 样式文件组织
+
+- `src/shared/styles/` 采用文件夹分层，不再堆叠在单一目录
+  - `tokens.css` / `global.css` 保留在根
+  - `base/` 存放基础原语（`components.css` `welcome.css`）
+  - `layout/` 存放应用外壳样式（`workspace.css` `topbar.css` `sidebar.css` `pages.css`）
+  - `editor/` 存放编辑器相关样式（`tiptap.css` `script.css` `video.css` `image-gen.css` `image-dialog.css` `novel.css` `file.css`）
+  - 叶子文件 `inspector.css` / `creative.css` 暂留根目录
+- `global.css` 是唯一入口，按顺序 `@import` 其他文件
+  - 级联顺序必须保留：`.image-gen-inspector-*` 必须排在 `.image-gen-*` 之后、`components.css` 保持在所有 editor 样式之后
+  - 调整文件位置时不允许顺手改 `@import` 顺序
+- 下游消费方只 import `@desktop-ui/shared/styles/global.css`，不能跨层单独 import 子文件
+- 新增样式需归入上述文件夹；不要在根再新建扁平 CSS 文件
+
 ## 桌面 Shell 与 IPC
 
 - IPC 契约定义在 `packages/shared-contracts/src/ipc.ts`
@@ -59,7 +73,7 @@
 - 共用校验逻辑放辅助文件，例如 `pathGuard.ts`
 - 文件与 shell 操作都必须先通过路径安全校验
 - 生成图片文件只能写入项目内允许目录，例如：
-  - `temp/images`
+  - `temp/images/generation`
   - `assets/images`
 - 新项目默认根目录：`~/Documents/OrisonSpace`
 - 用户主动选择的项目目录和封面图路径，会在当前 Electron 会话里注册为允许根

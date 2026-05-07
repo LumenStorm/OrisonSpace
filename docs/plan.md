@@ -55,7 +55,9 @@
 
 ### 2. 图片生成链路
 
-- 结果先落到项目 `temp/images/`
+- 结果先落到项目 `temp/images/generation/`
+- 生成页读取 `temp/images/generation/` 中已有图片
+- 支持本地图片编辑：可选颜色画笔、画圈、遮罩、裁切
 - 用户确认后移动到 `assets/images/`
 - 生成图片可转成 asset card 写入创作字段
 

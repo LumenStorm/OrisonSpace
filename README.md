@@ -26,7 +26,11 @@
 - 创作字段编辑可在桌面端本地同步
   - 大纲、细纲、世界观、资产卡、关系图、伏笔注册表、成长 / 节奏 / 情绪曲线等
 - 图片生成已改为桌面主进程直接连模型
-  - 生成结果先落到项目 `temp/images/`
+  - 生成结果先落到项目 `temp/images/generation/`
+  - 生成页会读取 `temp/images/generation/` 中已有图片
+  - 画廊支持分页、按需懒加载二进制、复制 prompt、删除、已入库角标
+  - 支持本地图片编辑：画笔、画圈、遮罩、裁切；工具栏分组 + Reset + 遮罩叠层可视化 + Esc 关闭
+  - 预览弹窗支持左右键盘切换
   - 确认保存后移动到 `assets/images/`
 - 模型网关已从服务端迁移到桌面主进程
   - 文本 / 图片 / 视频生成都走 IPC
@@ -71,21 +75,132 @@
 ```text
 OneLine2Video/
 ├─ apps/
-│  ├─ agent/                 Agent 编排与章节流水线
+│  ├─ agent/                          Fastify Agent：编排、章节流水线、Auto Mode、规则回退
+│  │  ├─ src/
+│  │  │  ├─ app.ts                    Agent 入口
+│  │  │  ├─ routes.ts                 orchestration 路由
+│  │  │  ├─ engine/                   运行时引擎
+│  │  │  │  ├─ novelPipeline.ts       章节生成主流水线
+│  │  │  │  ├─ runService.ts          orchestration run 调度
+│  │  │  │  ├─ reviewRouter.ts        复审路由
+│  │  │  │  ├─ workflowSync.ts        与 desktop 的 sync 协议
+│  │  │  │  ├─ autoMode/              Auto Mode 状态机 / runner / store
+│  │  │  │  ├─ memory/                长期记忆抽取
+│  │  │  │  ├─ foreshadowLedger.ts    伏笔登记
+│  │  │  │  └─ promptContractValidator.ts
+│  │  │  ├─ nodes/                    有向工作流的节点（draft-writer / story-planner / story-sync / multi-review 等）
+│  │  │  ├─ store/                    Agent 侧状态持久化
+│  │  │  ├─ contracts/                Agent 对外契约
+│  │  │  └─ common/
+│  │  ├─ prompts/                     节点 prompt 模板
+│  │  └─ python/                      python node executor 辅助
 │  ├─ desktop/
-│  │  ├─ shell/              Electron 主进程、preload、IPC
-│  │  ├─ ui/                 React 桌面界面
-│  │  └─ local-bff/          本地项目读写与字段同步桥
-│  └─ server/                Fastify 服务端
+│  │  ├─ shell/                       Electron 主进程 + preload
+│  │  │  ├─ main/
+│  │  │  │  ├─ index.ts               主进程入口、窗口创建、CSP 注入
+│  │  │  │  ├─ ipc/
+│  │  │  │  │  ├─ projectIpc.ts       项目 / 文件通道
+│  │  │  │  │  ├─ projectIpcHelpers.ts
+│  │  │  │  │  ├─ windowIpc.ts        窗口与系统通道
+│  │  │  │  │  ├─ configIpc.ts        模型配置、用户偏好
+│  │  │  │  │  ├─ modelProviderIpc.ts provider 模型列表
+│  │  │  │  │  ├─ modelGatewayIpc.ts  文本 / 图片 / 视频生成入口
+│  │  │  │  │  ├─ storySyncIpc.ts     本地 story-sync 执行
+│  │  │  │  │  ├─ fieldSyncIpc.ts     创作字段同步
+│  │  │  │  │  └─ pathGuard.ts        路径白名单
+│  │  │  │  └─ storySync/runStorySync.ts
+│  │  │  ├─ preload/index.ts          `window.orisonDesktop` contextBridge
+│  │  │  ├─ renderer/main.tsx         Vite renderer 入口
+│  │  │  └─ resources/
+│  │  ├─ ui/                          React 渲染层
+│  │  │  └─ src/
+│  │  │     ├─ app/App.tsx            页面切换 / bootstrap
+│  │  │     ├─ pages/
+│  │  │     │  ├─ auth/               登录 / 注册
+│  │  │     │  ├─ projects/           项目页
+│  │  │     │  └─ workspace/          工作区
+│  │  │     ├─ widgets/
+│  │  │     │  ├─ layout/             WorkspaceLayout 等跨 feature 外壳
+│  │  │     │  └─ projects/           项目页复用块
+│  │  │     ├─ features/              产品域 feature
+│  │  │     │  ├─ auth/
+│  │  │     │  ├─ editor/             TiptapEditor / OutlineEditor / ScriptEditor
+│  │  │     │  │                      / VideoEditor / ImageGenEditor / ImageEditDialog
+│  │  │     │  │                      / FileEditor / StoryboardCanvas
+│  │  │     │  ├─ bottom-panel/       properties / tasks / output
+│  │  │     │  ├─ inspector/
+│  │  │     │  ├─ project-tree/
+│  │  │     │  ├─ side-nav/
+│  │  │     │  ├─ top-bar/
+│  │  │     │  ├─ novel-workbench/
+│  │  │     │  ├─ orchestration/
+│  │  │     │  ├─ auto-mode/
+│  │  │     │  ├─ creative/           创作字段编辑器
+│  │  │     │  ├─ memory/             长期记忆面板
+│  │  │     │  └─ tasks/
+│  │  │     └─ shared/
+│  │  │        ├─ api/                HTTP helper（唯一 fetch 层）
+│  │  │        ├─ store/              Zustand slice 化 store
+│  │  │        ├─ i18n/               en-US / zh-CN yaml
+│  │  │        ├─ themes/             主题 token 生成
+│  │  │        ├─ imageGen/           图片生成共享逻辑
+│  │  │        ├─ components/         通用 UI 原语
+│  │  │        ├─ hooks/
+│  │  │        ├─ data/
+│  │  │        ├─ utils/
+│  │  │        └─ styles/             全局样式（文件夹分层，见下）
+│  │  │           ├─ tokens.css
+│  │  │           ├─ global.css       唯一入口，按顺序串联所有 @import
+│  │  │           ├─ inspector.css
+│  │  │           ├─ creative.css
+│  │  │           ├─ base/
+│  │  │           │  ├─ components.css
+│  │  │           │  └─ welcome.css
+│  │  │           ├─ layout/
+│  │  │           │  ├─ workspace.css
+│  │  │           │  ├─ topbar.css
+│  │  │           │  ├─ sidebar.css
+│  │  │           │  └─ pages.css
+│  │  │           └─ editor/          原 editor.css 拆分而成
+│  │  │              ├─ tiptap.css    Tiptap + Outline + Acts
+│  │  │              ├─ script.css    Script / Novel 编辑器外壳
+│  │  │              ├─ video.css
+│  │  │              ├─ image-gen.css 图片生成 + 画廊 + 分页 + profile chip
+│  │  │              ├─ image-dialog.css 预览弹窗 + 编辑弹窗
+│  │  │              ├─ novel.css     Novel Workbench + Memory Panel + 子 tab
+│  │  │              └─ file.css      File Editor + Tab Bar + markdown/code/image
+│  │  └─ local-bff/                   本地项目数据读写层
+│  │     ├─ api/                      project.yaml / chapters / memory 读写
+│  │     ├─ sync/                     字段同步桥
+│  │     └─ orchestration/            本地编排辅助
+│  └─ server/                         Fastify 服务端
+│     └─ src/
+│        ├─ app.ts
+│        ├─ common/                   db / error / util
+│        └─ modules/
+│           ├─ auth/                  register / login / me
+│           ├─ project/               项目登记与查询
+│           ├─ task/                  任务表与详情
+│           ├─ orchestration/         转发到 Agent
+│           ├─ asset/ review/ user/ audit/ quota/
 ├─ packages/
-│  ├─ shared-contracts/      共享契约、Zod schema、IPC 类型
-│  ├─ model-protocols/       模型协议适配层
-│  ├─ story-sync/            Story Sync 共享逻辑
+│  ├─ shared-contracts/               Zod schema、IPC 类型、跨进程契约
+│  ├─ model-protocols/                按 `apiFormat` 分发的 provider 适配层
+│  ├─ story-sync/                     story-sync 共享逻辑（prompt / parse / patch）
 │  ├─ shared-utils/
-│  └─ ui-kit/
-├─ docs/                     参考文档、架构规则、API / IPC 说明
-├─ design.md
-├─ plan.md
+│  ├─ ui-kit/
+│  └─ eslint-config/
+├─ docs/
+│  ├─ api/server-api.md               服务端 API 参考
+│  ├─ ipc/desktop-ipc.md              桌面 IPC 参考
+│  ├─ architecture/module-boundaries.md 模块边界规则
+│  ├─ data-dictionary.md
+│  ├─ ui-design.md
+│  └─ plan.md                         开发记录
+├─ design.md                          架构设计说明
+├─ plan.md                            当前进度与计划
+├─ run.bat / run.sh                   开发脚本
+├─ turbo.json / pnpm-workspace.yaml
 └─ README.md
 ```
 
@@ -195,7 +310,7 @@ pnpm lint
 - `project.yaml`
 - `chapters/*.md`
 - `memory/story-memory.yaml`
-- `temp/images/*`
+- `temp/images/generation/*`
 - `assets/images/*`
 
 ### PostgreSQL
@@ -238,6 +353,12 @@ pnpm lint
 - 新建中 -> 编辑器
 - 选择已有 profile -> 编辑器
 - 有 profile 但未选择 -> 提示先选择
+
+### 5. 桌面 UI 样式按文件夹分层
+
+- `shared/styles/` 从扁平的单层文件改为 `base/ layout/ editor/` 三层
+- 原 2092 行的 `editor.css` 拆成 7 个子文件：tiptap / script / video / image-gen / image-dialog / novel / file
+- `global.css` 作为唯一入口串联所有 `@import`，严格保持原级联顺序，下游消费方 `import '@desktop-ui/shared/styles/global.css'` 无感
 
 ---
 

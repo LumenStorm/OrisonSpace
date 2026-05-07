@@ -21,6 +21,7 @@ export type RecentProjectsSlice = {
   recentProjects: ProjectMeta[];
   addRecentProject: (project: ProjectMeta) => void;
   removeRecentProject: (path: string) => void;
+  replaceRecentProjects: (projects: ProjectMeta[]) => void;
   clearRecentProjects: () => void;
 };
 
@@ -37,6 +38,17 @@ export const createRecentProjectsSlice: StateCreator<RecentProjectsSlice, [], []
 
   removeRecentProject(path) {
     const next = get().recentProjects.filter((item) => item.path !== path);
+    persist(next);
+    set({ recentProjects: next });
+  },
+
+  replaceRecentProjects(projects) {
+    const seen = new Set<string>();
+    const next = projects.filter((project) => {
+      if (seen.has(project.path)) return false;
+      seen.add(project.path);
+      return true;
+    }).slice(0, MAX_RECENT);
     persist(next);
     set({ recentProjects: next });
   },

@@ -151,6 +151,7 @@ export type OrisonDesktopApi = {
   readFile(fullPath: string): Promise<string | null>;
   readFileBinary(fullPath: string): Promise<BinaryFilePayload | null>;
   writeFile(fullPath: string, content: string): Promise<boolean>;
+  pathExists(fullPath: string): Promise<boolean>;
   saveBase64Image(projectDir: string, input: SaveBase64ImageInput): Promise<SavedImageFile>;
   moveProjectFile(projectDir: string, fromRelativePath: string, toRelativePath: string): Promise<string>;
   deleteProjectFile(projectDir: string, relativePath: string): Promise<boolean>;
@@ -166,7 +167,7 @@ export type FileTreeEntry = {
 export type SaveBase64ImageInput = {
   b64Json: string;
   mimeType: string;
-  directory: 'temp/images' | 'assets/images';
+  directory: 'temp/images/generation' | 'assets/images';
   fileName?: string;
 };
 

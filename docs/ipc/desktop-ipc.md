@@ -32,9 +32,12 @@
 | `project:read-file` | renderer -> main | invoke | 读取 UTF-8 文本文件 |
 | `project:read-file-binary` | renderer -> main | invoke | 读取白名单图片二进制，返回 `{ base64, mimeType }` |
 | `project:write-file` | renderer -> main | invoke | 写入 UTF-8 文本文件 |
+| `project:path-exists` | renderer -> main | invoke | 检查白名单路径是否存在 |
 | `project:save-base64-image` | renderer -> main | invoke | 保存 base64 图片到项目目录 |
 | `project:move-file` | renderer -> main | invoke | 移动项目内文件 |
 | `project:delete-file` | renderer -> main | invoke | 删除项目内文件 |
+
+`project:save-base64-image` 只允许写入 `temp/images/generation` 或 `assets/images`。
 
 ### 窗口与系统通道
 

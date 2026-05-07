@@ -61,7 +61,10 @@
 | 新建项目卡片 | 打开 `NewProjectDialog` |
 | 打开项目卡片 | 调用系统目录选择器 |
 | 最近项目卡片 | 打开已有项目 |
+| 刷新按钮 | 检测最近项目目录是否存在，并同步 `project.json` 中的名称、类型、封面和 projectId |
 | 空状态 | 没有最近项目时显示引导区 |
+
+项目页进入时会自动刷新一次最近项目列表。若项目目录已不存在，直接从最近项目列表移除；若本地 `project.json` 已修改，则同步更新卡片信息。
 
 ## 4. 工作区总布局
 
@@ -175,15 +178,31 @@
 - 图片生成不再通过服务端 generation route
 - 当前走 desktop main IPC：
   - `model:generate-image`
-- 结果先保存到项目 `temp/images/`
+- 结果先保存到项目 `temp/images/generation/`
+- 页面加载时读取 `temp/images/generation/` 的文件名索引，当前页图片按需分页懒加载二进制
+- 支持本地编辑：可选颜色画笔、画圈、遮罩、裁切
+- 编辑结果直接保存到 `temp/images/generation/`
 - 用户确认后移动到 `assets/images/`
 
-### 相关 UI
+### 主区 UI
 
-- Prompt 输入
-- 图片参数控制（由 inspector 管理）
-- 结果预览网格
-- 保存为项目资产
+- 顶部 profile chip：只显示 `provider · modelAlias`，无参数入口；所有参数（尺寸 / 数量 / 质量 / 输出格式等）集中在 BottomPanel 的 properties tab，主区不再出现任何参数线索
+- Prompt 输入：大尺寸文本区 + 右下角 Generate 主按钮；生成中图标旋转；错误以可关闭的 banner 呈现
+- 画廊：1:1 正方形卡片网格，`object-fit: contain` 保证非方图不被裁切，棋盘纹底色；卡片支持分页，默认每页 12 张
+- 卡片交互：
+  - 顶部浮条（hover/focus）：预览、编辑、加入素材库、删除
+  - 底部浮条（hover/focus）：单行 prompt + `…` 省略，右侧复制 SVG 图标
+  - 状态标识：`generated` / `edited` 角标；已入库卡片右上角换成 check 徽标
+  - 已入库图片的"删除"按钮禁用（需先从素材库移除），未入库可直接删除 temp 目录文件
+- 预览弹窗：居中大图、左右键盘切换（也有左右箭头按钮）、Esc 关闭、底部操作栏（编辑 / 加入素材库）+ prompt 单行显示 + 复制图标
+
+### 编辑弹窗
+
+- 工具栏分三组，竖分隔可视化：Tool（Brush / Circle / Mask / Crop）· Style（color + size 或 crop 专用按钮）· History（Reset to original / Undo / Redo）
+- 右端固定 Cancel / Save 主操作
+- Mask 工具下遮罩以半透明 `mix-blend-mode: screen` 叠加显示，其他工具下隐藏但保留数据
+- Esc 关闭弹窗
+- 小屏下工具组自动换行
 
 ## 7. Story Sync 相关 UI 行为
 
@@ -214,7 +233,18 @@ BottomPanel 当前包含：
 - 模型生成走 desktop main，不走 server generation route
 - story-sync 已变为桌面本地执行 + agent 二次校验
 
-## 10. 后续更新要求
+## 10. 样式组织约定
+
+- 渲染层全局样式位于 `apps/desktop/ui/src/shared/styles/`
+- 采用文件夹分层：
+  - 根：`tokens.css`、`global.css`（唯一入口）、`inspector.css`、`creative.css`
+  - `base/`：`components.css`、`welcome.css`
+  - `layout/`：`workspace.css`、`topbar.css`、`sidebar.css`、`pages.css`
+  - `editor/`：`tiptap.css`、`script.css`、`video.css`、`image-gen.css`、`image-dialog.css`、`novel.css`、`file.css`
+- `global.css` 通过 `@import` 串联所有文件，顺序与原单文件时期一致，级联敏感规则（例如 `.image-gen-inspector-*` 排在 `.image-gen-*` 之后、`components.css` 作为末尾层）必须保留
+- 渲染层只 import 一次 `global.css`，不单独引入子文件
+
+## 11. 后续更新要求
 
 若以下任一行为变化，需要同步更新本文档：
 

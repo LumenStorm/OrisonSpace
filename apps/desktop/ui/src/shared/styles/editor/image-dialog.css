@@ -1,0 +1,371 @@
+/* ── Image Preview & Edit Dialogs ── */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.image-preview-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(900px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-soft);
+}
+
+.image-preview-dialog img {
+  max-width: 100%;
+  max-height: calc(100vh - 8rem);
+  object-fit: contain;
+  border-radius: 0.35rem;
+}
+
+.image-preview-dialog p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.image-preview-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 0.3rem;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+}
+
+.image-preview-close .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.image-preview-nav {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 0.12s;
+}
+
+.image-preview-nav:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.image-preview-nav.is-prev {
+  left: -1.25rem;
+}
+
+.image-preview-nav.is-next {
+  right: -1.25rem;
+}
+
+.image-preview-nav .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.image-preview-prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.1rem 0.25rem;
+}
+
+.image-preview-prompt {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.image-preview-prompt-row .image-gen-card-copy {
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+}
+
+.image-preview-prompt-row .image-gen-card-copy:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.image-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.image-preview-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.4rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.image-preview-actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--hover-overlay);
+}
+
+.image-preview-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.image-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.image-edit-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(1100px, calc(100vw - 2rem));
+  height: min(820px, calc(100vh - 2rem));
+  border-radius: 0.5rem;
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.image-edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  min-height: 48px;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface);
+}
+
+.image-edit-toolbar-group,
+.image-edit-tool-group,
+.image-edit-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.image-edit-toolbar-group:not(:last-child) {
+  padding-right: 0.55rem;
+  border-right: 1px solid var(--outline-variant);
+}
+
+.image-edit-toolbar-style {
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.image-edit-toolbar-group button,
+.image-edit-tool-group button,
+.image-edit-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.3rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: box-shadow 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.image-edit-toolbar-group button.is-active,
+.image-edit-tool-group button.is-active {
+  border-color: var(--accent);
+  background: var(--active-indicator);
+  color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.image-edit-toolbar-group button:disabled,
+.image-edit-tool-group button:disabled,
+.image-edit-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-edit-toolbar-group .material-symbols-outlined,
+.image-edit-tool-group .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.image-edit-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.image-edit-colors button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.image-edit-colors button.is-active {
+  border-color: var(--accent);
+}
+
+.image-edit-colors input {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: transparent;
+}
+
+.image-edit-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 150px;
+  color: var(--on-surface-variant);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.image-edit-size input {
+  width: 110px;
+  accent-color: var(--accent);
+}
+
+.image-edit-history {
+  margin-left: auto;
+}
+
+.image-edit-actions button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+}
+
+.image-edit-actions button.primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+@media (max-width: 760px) {
+  .image-edit-toolbar-group:not(:last-child) {
+    border-right: 0;
+    padding-right: 0;
+  }
+  .image-edit-size {
+    min-width: auto;
+  }
+  .image-edit-size input {
+    width: 80px;
+  }
+}
+
+.image-edit-stage {
+  display: flex;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background:
+    linear-gradient(45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
+    linear-gradient(-45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
+    linear-gradient(45deg, transparent 75%, var(--surface-container-low) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-container-low) 75%);
+  background-size: 16px 16px;
+  background-color: var(--surface-container-lowest);
+  overflow: auto;
+}
+
+.image-edit-canvas-wrap {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  line-height: 0;
+}
+
+.image-edit-canvas-wrap canvas {
+  display: block;
+  max-width: calc(100vw - 4rem);
+  max-height: calc(100vh - 8rem);
+  border-radius: 0.35rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.image-edit-overlay-canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.image-edit-mask-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 0.15s;
+}
+
+.image-edit-mask-canvas.is-visible {
+  visibility: visible;
+  opacity: 0.45;
+}
+

@@ -13,7 +13,7 @@ export type FileEntry = {
 /** Max entries per directory level to prevent memory blow-up on huge repos. */
 export const MAX_ENTRIES_PER_DIR = 500;
 
-export const ALLOWED_IMAGE_DIRS = new Set(['temp/images', 'assets/images']);
+export const ALLOWED_IMAGE_DIRS = new Set(['temp/images/generation', 'assets/images']);
 
 const MIME_EXT: Record<string, string> = {
   'image/png': '.png',
