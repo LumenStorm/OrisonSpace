@@ -1,181 +1,136 @@
-# Desktop IPC Reference
+# 桌面 IPC 参考
 
-## Overview
+## 概览
 
-The desktop shell exposes a minimal IPC surface to the renderer process via `contextBridge`. The renderer accesses it through `window.orisonDesktop`.
+桌面端通过 `contextBridge` 向渲染层暴露 `window.orisonDesktop`。
 
-The canonical type definition lives in `packages/shared-contracts/src/ipc.ts` (`OrisonDesktopApi`). Both the preload script and the renderer type declaration (`preload.d.ts`) reference this single source of truth.
+单一类型源定义在：
 
-## Whitelisted Channels
+- `packages/shared-contracts/src/ipc.ts`
 
-### Project Channels
+实现位置：
 
-| Channel | Direction | Type | Description |
+- preload：`apps/desktop/shell/preload/index.ts`
+- 主进程 handler：`apps/desktop/shell/main/ipc/*.ts`
+
+## 通道分组
+
+### 项目与文件通道
+
+| 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `project:pick-directory` | renderer → main | invoke | Opens native directory picker, returns selected path or `null` |
-| `project:create-directory` | renderer → main | invoke | Creates a new project directory under `parentDir` with given `name`, returns the created path |
-| `project:pick-cover-image` | renderer → main | invoke | Opens native image picker for cover image, returns selected path or `null` |
-| `project:copy-cover-image` | renderer → main | invoke | Copies cover image `src` into `projectDir`, returns destination path |
-| `project:save-meta` | renderer → main | invoke | Saves project metadata (JSON object) to `projectDir` |
-| `project:load-meta` | renderer → main | invoke | Loads project metadata from `projectDir`, returns object or `null` |
-| `project:read-directory` | renderer → main | invoke | Recursively reads a directory, returns `FileTreeEntry[]`. Accepts optional `maxDepth` (default 5, clamped 1–8). Skips hidden files and `node_modules`. |
-| `project:delete-entry` | renderer → main | invoke | Deletes a file or directory (recursive). Returns `boolean`. |
-| `project:rename-entry` | renderer → main | invoke | Renames a file or directory. Returns `boolean`. |
-| `project:create-entry` | renderer → main | invoke | Creates a file (empty) or directory. Returns `boolean`. |
-| `project:read-file` | renderer → main | invoke | Reads file content as UTF-8 string. Returns `string | null`. |
-| `project:read-file-binary` | renderer → main | invoke | Reads an allowed binary file (image extensions only) and returns `{ base64, mimeType }` or `null` if the file is missing or the extension is not whitelisted. |
-| `project:write-file` | renderer → main | invoke | Writes UTF-8 string to file. Creates parent directories if needed. Returns `boolean`. |
-| `project:save-base64-image` | renderer → main | invoke | Saves a base64 image into an allowed project image directory. Returns `{ relativePath, fullPath, fileName }`. |
-| `project:move-file` | renderer → main | invoke | Moves a project-relative file to another project-relative path. Creates parent directories if needed. Returns destination path. |
-| `project:delete-file` | renderer → main | invoke | Deletes a project-relative file. Returns `boolean`. |
+| `project:pick-directory` | renderer -> main | invoke | 打开目录选择器，返回路径或 `null` |
+| `project:create-directory` | renderer -> main | invoke | 在指定父目录下创建项目目录 |
+| `project:pick-cover-image` | renderer -> main | invoke | 选择封面图 |
+| `project:copy-cover-image` | renderer -> main | invoke | 将封面图复制到项目目录 |
+| `project:save-meta` | renderer -> main | invoke | 保存项目元信息 |
+| `project:load-meta` | renderer -> main | invoke | 读取项目元信息 |
+| `project:read-directory` | renderer -> main | invoke | 读取项目目录树 |
+| `project:delete-entry` | renderer -> main | invoke | 删除文件或目录 |
+| `project:rename-entry` | renderer -> main | invoke | 重命名文件或目录 |
+| `project:create-entry` | renderer -> main | invoke | 创建文件或目录 |
+| `project:read-file` | renderer -> main | invoke | 读取 UTF-8 文本文件 |
+| `project:read-file-binary` | renderer -> main | invoke | 读取白名单图片二进制，返回 `{ base64, mimeType }` |
+| `project:write-file` | renderer -> main | invoke | 写入 UTF-8 文本文件 |
+| `project:save-base64-image` | renderer -> main | invoke | 保存 base64 图片到项目目录 |
+| `project:move-file` | renderer -> main | invoke | 移动项目内文件 |
+| `project:delete-file` | renderer -> main | invoke | 删除项目内文件 |
 
-### Window Channels
+### 窗口与系统通道
 
-| Channel | Direction | Type | Description |
+| 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `window:minimize` | renderer → main | send | Minimize the window |
-| `window:maximize` | renderer → main | send | Toggle maximize / restore |
-| `window:close` | renderer → main | send | Close the window |
-| `window:is-maximized` | renderer → main | invoke | Returns `boolean` — whether the window is maximized |
+| `window:minimize` | renderer -> main | send | 最小化窗口 |
+| `window:maximize` | renderer -> main | send | 最大化 / 还原窗口 |
+| `window:close` | renderer -> main | send | 关闭窗口 |
+| `window:is-maximized` | renderer -> main | invoke | 查询当前是否最大化 |
+| `shell:show-item-in-folder` | renderer -> main | send | 在系统文件管理器中定位文件 |
+| `shell:open-path` | renderer -> main | send | 用系统默认方式打开路径 |
 
-### Shell Channels
+### 配置通道
 
-| Channel | Direction | Type | Description |
+| 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `shell:show-item-in-folder` | renderer → main | send | Reveals a file in the system file manager. No-op if path doesn't exist. |
-| `shell:open-path` | renderer → main | send | Opens a path with the system default handler. No-op if path doesn't exist. |
+| `config:load-model` | renderer -> main | invoke | 读取 v2 模型配置 |
+| `config:save-model` | renderer -> main | invoke | 保存 v2 模型配置 |
+| `config:load-user-preferences` | renderer -> main | invoke | 读取用户偏好 |
+| `config:save-user-preferences` | renderer -> main | invoke | 保存用户偏好 |
 
-### Config Channels
+### 模型网关通道
 
-| Channel | Direction | Type | Description |
+| 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `config:load-model` | renderer → main | invoke | Loads v2 model configuration (`profiles[]` with per-profile `models[]`, plus `selected.{novel,image,video}` slot pairs `{profileId, modelId}`) from disk. API key is decrypted via `safeStorage`. v1 single-model profiles are auto-migrated on read. |
-| `config:save-model` | renderer → main | invoke | Saves v2 model configuration to disk. API key is encrypted via `safeStorage`. Always writes the v2 schema. |
-| `config:load-user-preferences` | renderer → main | invoke | Loads user preferences from disk. |
-| `config:save-user-preferences` | renderer → main | invoke | Saves user preferences to disk. |
+| `model:list-provider-models` | renderer -> main | invoke | 请求 provider 模型列表 |
+| `model:generate-text` | renderer -> main | invoke | 文本生成 |
+| `model:generate-image` | renderer -> main | invoke | 图片生成 |
+| `model:generate-video` | renderer -> main | invoke | 视频生成 |
+| `storySync:run` | renderer -> main | invoke | 本地执行 story-sync 提取 |
 
-### Model Gateway Channels
+### 字段同步通道
 
-| Channel | Direction | Type | Description |
+| 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `model:list-provider-models` | renderer → main | invoke | Lists available model ids from a provider. Body is delegated to `@orison/model-protocols.listModels(provider, {baseUrl, apiKey})`. NewAPI relays piggyback on `provider='openai'`. |
-| `model:generate-text` | renderer → main | invoke | Generates text. Payload `{slot: {profileId, modelId}, request}`. Main resolves the slot, decrypts `apiKey`, dispatches via `getProtocol(modelEntry.apiFormat).generateText`. Renderer never sees `apiKey`. |
-| `model:generate-image` | renderer → main | invoke | Generates an image with the same payload shape as `model:generate-text`. Dispatches through `apiFormat`-routed image adapter. Response is normalized to `b64Json + mimeType + dataUrl`. |
-| `model:generate-video` | renderer → main | invoke | Generates a video. The `sora-videos` adapter is currently a placeholder that throws `ProtocolNotImplementedError`. Capability/format mismatches reject pre-network. |
-| `storySync:run` | renderer → main | invoke | Runs story-sync LLM extraction locally and returns safe patches. Payload `{slot, runId, chapterId, candidate, context, fieldVersions}`. Result `{patches, summary, fallbackToRules}`. On any LLM-side failure, returns `fallbackToRules: true` with empty patches so the renderer can still submit the orchestration run and let agent's rules path take over. |
+| `field:sync` | renderer -> main | invoke | 将单个创作字段同步回项目文件 |
 
-### Field Sync Channel
+---
 
-| Channel | Direction | Type | Description |
-|---|---|---|---|
-| `field:sync` | renderer → main | invoke | Persists a single creative field value back to the project. Routes to the local-bff field sync bridge under `apps/desktop/local-bff/sync/fieldSyncBridge.ts`. |
+## 当前暴露的 preload API
 
-Model provider list refresh also uses `model:list-provider-models` from renderer to main. The desktop main process performs the provider HTTP request so model list refresh is still a desktop feature while avoiding renderer CORS limits.
-
-## Security
-
-### Sandbox & Isolation
-
-- `contextIsolation`: enabled
-- `nodeIntegration`: disabled
-- `sandbox`: enabled
-- The preload script exposes a fixed allowlisted API surface via `contextBridge`.
-
-### Path Validation
-
-All file operation IPC handlers (`project:*` except dialog-based pickers, plus `shell:*`) validate paths using `pathGuard.ts`:
-
-Current behavior:
-- `allowPath(target)` registers a user-selected path as an allowed root for the current Electron main-process session.
-- `project:pick-directory`, `project:pick-cover-image`, and `project:create-directory` register the selected or created path before returning it to the renderer.
-- `assertSafePath(target)` rejects paths outside the default project root and current-session allowed roots.
-- `assertWithinProject(projectDir, target)` rejects paths that escape a specific project directory.
-- `shell:show-item-in-folder` and `shell:open-path` silently ignore invalid or non-existent paths (no file/directory creation).
-- Generated image writes are additionally constrained to `temp/images` and `assets/images`.
-
-### API Key Encryption
-
-Model configuration is stored at `~/.orison/model/index.yaml` plus one YAML file per profile under `~/.orison/model/profiles/`. Legacy `~/.orison/model/config.yaml` is read for migration. The `apiKey` field is encrypted using Electron's `safeStorage` API (OS keychain) before writing profile files, and decrypted on read.
-
-### Content Security Policy
-
-CSP is injected dynamically by the main process via `session.webRequest.onHeadersReceived` (production builds only). Dev mode skips CSP injection because the Vite dev server origin doesn't match `'self'`.
-
-## Exposed API
-
-```typescript
-window.orisonDesktop: {
-  // 项目（对话框）
-  pickProjectDirectory: () => Promise<string | null>
-  createProjectDirectory: (parentDir: string, name: string) => Promise<string>
-  pickCoverImage: () => Promise<string | null>
-  copyCoverImage: (src: string, projectDir: string) => Promise<string>
-  saveProjectMeta: (projectDir: string, meta: Record<string, unknown>) => Promise<void>
-  loadProjectMeta: (projectDir: string) => Promise<Record<string, unknown> | null>
-
-  // 文件树操作
-  readDirectory: (projectDir: string, maxDepth?: number) => Promise<FileTreeEntry[]>
-  deleteEntry: (fullPath: string) => Promise<boolean>
-  renameEntry: (oldPath: string, newPath: string) => Promise<boolean>
-  createEntry: (fullPath: string, isDir: boolean) => Promise<boolean>
-  readFile: (fullPath: string) => Promise<string | null>
-  readFileBinary: (fullPath: string) => Promise<BinaryFilePayload | null>
-  writeFile: (fullPath: string, content: string) => Promise<boolean>
-  saveBase64Image: (projectDir: string, input: SaveBase64ImageInput) => Promise<SavedImageFile>
-  moveProjectFile: (projectDir: string, fromRelativePath: string, toRelativePath: string) => Promise<string>
-  deleteProjectFile: (projectDir: string, relativePath: string) => Promise<boolean>
-
-  // 语言
-  getLocale: () => string
-
-  // 窗口控制（自定义标题栏）
-  minimize: () => void
-  maximize: () => void
-  close: () => void
-  isMaximized: () => Promise<boolean>
-
-  // 平台标识
-  platform: string   // 'darwin' | 'win32' | 'linux'
-
-  // 字段同步（preload + 主进程 handler 已闭环）
-  syncField: (projectPath: string, field: string, data: unknown) => Promise<void>
-
-  // 模型配置
-  loadModelConfig: () => Promise<ModelConfig>
-  saveModelConfig: (config: ModelConfig) => Promise<void>
-  listProviderModels: (request: ProviderModelListRequest) => Promise<ProviderModel[]>
-
-  // 模型生成（desktop main 直连 provider，apiKey 从未离开 main 进程）
-  generateText: (payload: { slot: SlotAssignment; request: TextGenerationRequest }) => Promise<TextGenerationResponse>
-  generateImage: (payload: { slot: SlotAssignment; request: ImageGenerationRequest }) => Promise<ImageGenerationResponse>
-  generateVideo: (payload: { slot: SlotAssignment; request: VideoGenerationRequest }) => Promise<VideoGenerationResponse>
-
-  // Story-sync 桥（renderer -> desktop main 调 LLM 拿 patches）
-  runStorySync: (payload: RunStorySyncPayload) => Promise<RunStorySyncResult>
-
-  loadUserPreferences: () => Promise<UserPreferencesConfig>
-  saveUserPreferences: (config: UserPreferencesConfig) => Promise<void>
-
-  // 系统 shell
-  showItemInFolder: (fullPath: string) => void
-  openPath: (fullPath: string) => void
+```ts
+window.orisonDesktop = {
+  pickProjectDirectory,
+  createProjectDirectory,
+  pickCoverImage,
+  copyCoverImage,
+  saveProjectMeta,
+  loadProjectMeta,
+  getLocale,
+  minimize,
+  maximize,
+  close,
+  isMaximized,
+  platform,
+  syncField,
+  loadModelConfig,
+  saveModelConfig,
+  listProviderModels,
+  generateText,
+  generateImage,
+  generateVideo,
+  runStorySync,
+  loadUserPreferences,
+  saveUserPreferences,
+  showItemInFolder,
+  openPath,
+  readDirectory,
+  deleteEntry,
+  renameEntry,
+  createEntry,
+  readFile,
+  readFileBinary,
+  writeFile,
+  saveBase64Image,
+  moveProjectFile,
+  deleteProjectFile,
 }
 ```
 
-### ModelConfig
+## ModelConfig（v2）
 
-```typescript
+模型配置已经是 v2 结构：
+
+```ts
 type ModelConfig = {
   profiles: Array<{
-    schemaVersion: 2;
-    id: string;
-    name: string;
-    provider: 'openai' | 'gcp' | 'anthropic';
-    apiKey: string;       // ciphertext on disk; only renderer<->main IPC carries plaintext
-    baseUrl: string;
+    schemaVersion: 2
+    id: string
+    name: string
+    provider: 'openai' | 'gcp' | 'anthropic'
+    apiKey: string
+    baseUrl: string
     models: Array<{
-      id: string;          // real provider model id, e.g. "gpt-4o"
-      alias: string;       // user-editable display name
+      id: string
+      alias: string
       apiFormat:
         | 'openai-chat-completions'
         | 'openai-responses'
@@ -183,144 +138,138 @@ type ModelConfig = {
         | 'gemini-generate-content'
         | 'openai-images'
         | 'gemini-images'
-        | 'sora-videos';
-      capabilities: Array<'text' | 'image' | 'video'>;
-    }>;
-  }>;
+        | 'sora-videos'
+      capabilities: Array<'text' | 'image' | 'video'>
+    }>
+  }>
   selected: {
-    novel: { profileId: string; modelId: string } | null;
-    image: { profileId: string; modelId: string } | null;
-    video: { profileId: string; modelId: string } | null;
-  };
-};
+    novel: { profileId: string; modelId: string } | null
+    image: { profileId: string; modelId: string } | null
+    video: { profileId: string; modelId: string } | null
+  }
+}
 ```
 
-`provider` is a UI-grouping hint and the listing-protocol selector. Once the user has picked an `apiFormat` for each model entry, generation request shape is decided by `apiFormat` — not `provider`. This keeps NewAPI relays (which expose Claude / Gemini ids through OpenAI-compatible chat completions) on the same profile UX as direct vendor endpoints.
+说明：
 
-### FileTreeEntry
+- `provider` 决定如何列出 `/models`
+- `apiFormat` 决定如何发送生成请求
+- 一个 profile 下可以挂多个模型
+- 槽位选择的是 `{ profileId, modelId }`
 
-```typescript
-type FileTreeEntry = {
-  name: string;
-  path: string;     // relative to project root, e.g. "/chapters/ch-001.md"
-  isDir: boolean;
-  children?: FileTreeEntry[];
-};
+## storySync:run
+
+渲染层在发起章节编排之前，可以先通过这个 IPC 在本地执行 story-sync。
+
+输入大致包含：
+
+- `slot`
+- `runId`
+- `chapterId`
+- `candidate`
+- `context`
+- `fieldVersions`
+
+输出：
+
+```ts
+type RunStorySyncResult = {
+  patches: NovelStorySyncPayload['patches']
+  summary: string
+  fallbackToRules: boolean
+}
 ```
 
-### BinaryFilePayload
+约束：
 
-```typescript
-type BinaryFilePayload = {
-  base64: string;
-  mimeType: string;
-};
-```
+- 如果本地 LLM 提取失败，不会阻止编排继续
+- 会返回 `fallbackToRules: true`
+- agent 收到补丁后仍会再次校验
 
-`project:read-file-binary` accepts only image extensions (`.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.bmp`); other extensions return `null` so the renderer cannot use this channel as a generic binary read. The renderer wraps the response into a `data:` URL when previewing image files in the editor area.
+## 安全边界
 
-### Generated Image Files
+### 1. 路径校验
 
-```typescript
-type SaveBase64ImageInput = {
-  b64Json: string;
-  mimeType: string;
-  directory: 'temp/images' | 'assets/images';
-  fileName?: string;
-};
+所有文件通道都通过 `pathGuard.ts` 做安全限制：
 
-type SavedImageFile = {
-  relativePath: string;
-  fullPath: string;
-  fileName: string;
-};
-```
+- 默认允许根目录：`~/Documents/OrisonSpace`
+- 用户主动选择的项目目录 / 封面图路径会注册进当前 Electron 会话允许列表
+- 项目内相对操作仍会使用 `assertWithinProject` 阻止越界
 
-Generated images are project-scoped. The image generation UI writes fresh results to `temp/images/`; when the user saves a result, the renderer moves it to `assets/images/` through `moveProjectFile`.
+### 2. API Key 边界
 
-The renderer sends a canonical base64 payload (`b64Json`) to `saveBase64Image`. Provider responses may arrive as `b64Json`, `b64_json`, `base64`, or a `data:image/*;base64,...` payload, but those forms are normalized before this IPC call. The shell converts the base64 payload to bytes and writes the image file inside the project directory.
+模型 `apiKey`：
 
-## Window Control (Custom Title Bar)
+- 磁盘存储时使用 `safeStorage` 加密
+- 解密只发生在 desktop main
+- 文本 / 图片 / 视频生成的 renderer payload 中不会携带 `apiKey`
+- server 和 agent 都拿不到 provider `apiKey`
 
-The app uses a frameless window with a custom title bar implemented in the renderer:
+### 3. CSP
 
-- **Windows/Linux**: `BrowserWindow({ frame: false })` — native title bar is hidden, TopBar component renders minimize/maximize/close buttons
-- **macOS**: `titleBarStyle: 'hidden'` — native traffic lights are preserved, TopBar adds left padding (70px) to avoid overlap
+生产构建下，由主进程通过 `session.webRequest.onHeadersReceived` 动态注入 CSP。
 
-IPC handlers are registered in `shell/main/ipc/windowIpc.ts`.
+### 4. 渲染层隔离
 
-## IPC Handler Files
+- `contextIsolation = true`
+- `nodeIntegration = false`
+- `sandbox = true`
 
-| File | Channels |
-|------|----------|
-| `shell/main/ipc/windowIpc.ts` | `window:*`, `shell:*` |
-| `shell/main/ipc/projectIpc.ts` | `project:*` |
-| `shell/main/ipc/configIpc.ts` | `config:*` |
-| `shell/main/ipc/fieldSyncIpc.ts` | `field:sync` |
-| `shell/main/ipc/modelProviderIpc.ts` | `model:list-provider-models` |
-| `shell/main/ipc/modelGatewayIpc.ts` | `model:generate-text`, `model:generate-image`, `model:generate-video` |
-| `shell/main/ipc/storySyncIpc.ts` | `storySync:run` |
-| `shell/main/storySync/runStorySync.ts` | StorySyncBridge — orchestrates story-sync LLM extraction (loaded by `storySyncIpc`) |
-| `shell/main/ipc/pathGuard.ts` | Path validation utilities (not an IPC handler) |
+---
 
-## Known Issues
+## 主要文件归属
 
-- No known IPC surface mismatch at this time; preload and shared `OrisonDesktopApi` are the source of truth.
+| 文件 | 责任 |
+|---|---|
+| `apps/desktop/shell/main/ipc/projectIpc.ts` | 项目与文件操作 |
+| `apps/desktop/shell/main/ipc/windowIpc.ts` | 窗口与系统操作 |
+| `apps/desktop/shell/main/ipc/configIpc.ts` | 模型配置与用户偏好 |
+| `apps/desktop/shell/main/ipc/modelProviderIpc.ts` | provider 模型列表刷新 |
+| `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` | 文本 / 图片 / 视频生成 |
+| `apps/desktop/shell/main/ipc/storySyncIpc.ts` | story-sync 入口 |
+| `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` | 创作字段同步 |
+| `apps/desktop/shell/main/ipc/pathGuard.ts` | 路径安全辅助 |
+| `apps/desktop/shell/main/storySync/runStorySync.ts` | story-sync 执行逻辑 |
 
-## 2026-05-07 Updates — Desktop Direct Model Gateway
+---
 
-The desktop main process now performs every third-party model HTTP call directly. The server's `/v1/generation/*` routes were removed; agent's `llmClient.ts` was deleted. See `docs/superpowers/specs/2026-05-06-desktop-model-gateway-design.md`.
+## 2026-05-07 之后的重要变化
 
-### New IPC Channels
+### 1. 服务端 generation route 已移除
 
-| Channel | Direction | Type | Description |
-|---|---|---|---|
-| `model:generate-text` | renderer → main | invoke | Text generation via the slot's `apiFormat`. |
-| `model:generate-image` | renderer → main | invoke | Image generation via the slot's `apiFormat`; response is normalized to `b64Json + mimeType + dataUrl`. |
-| `model:generate-video` | renderer → main | invoke | Video generation. `sora-videos` adapter is currently a placeholder. |
-| `storySync:run` | renderer → main | invoke | Run the story-sync LLM extraction locally; renderer embeds the returned patches under `artifacts['chapter.llmPatches']` of the next orchestration run. |
+以前的：
 
-### v2 Model Profile Schema
+- `/v1/generation/:provider/text`
+- `/v1/generation/:provider/image`
 
-`~/.orison/model/index.yaml` now stores `selected.<slot>.profileId` and `selected.<slot>.modelId` (replaces the v1 single-string `selected.<slot>`). Each profile YAML carries `schemaVersion: 2`, a `models[]` list of `{id, alias, apiFormat, capabilities}` entries, plus the unchanged `provider`, `baseUrl`, and encrypted `apiKey`. v1 single-model profiles are migrated automatically on first read.
+现在已经删除，替换为 desktop main IPC：
 
-### apiKey Boundary
+- `model:generate-text`
+- `model:generate-image`
+- `model:generate-video`
 
-`apiKey` is decrypted only inside the desktop main process. It never travels in renderer-bound IPC payloads for the generation flow (slot pairs only carry `{profileId, modelId}`). It never reaches the server or agent. The `securitySurface.test.ts` regression covers the renderer-side boundary.
+### 2. Story Sync 已本地化
 
-## 2026-05-03 Updates
+以前 story-sync 的 LLM 执行在 agent 侧或依赖旧 generation 路径。
 
-### Config Channels
+现在：
 
-| Channel | Direction | Type | Description |
-|---|---|---|---|
-| `config:load-model` | renderer to main | invoke | Loads model profile configuration from `~/.orison/model/index.yaml` and `profiles/*.yaml`; API keys are decrypted via `safeStorage`. |
-| `config:save-model` | renderer to main | invoke | Saves model profile configuration to `~/.orison/model/index.yaml` and `profiles/*.yaml`; API keys are encrypted via `safeStorage`. |
-| `config:load-user-preferences` | renderer to main | invoke | Loads user preferences from `~/.orison/user/preferences.yaml`. |
-| `config:save-user-preferences` | renderer to main | invoke | Saves user preferences to `~/.orison/user/preferences.yaml`. |
+- 渲染层 -> `storySync:run`
+- desktop main -> `@orison/story-sync` + `@orison/model-protocols`
+- agent 只做补丁校验与规则回退
 
-The old model config path `~/.orison/config.json` is intentionally not read for compatibility. Current model config is YAML-only.
+### 3. 模型设置页交互已经收口
 
-The settings page manages a reusable model library and assigns profiles to `novel`, `image`, and `video`.
+模型设置页当前有明确的 UI 状态：
 
-### Path Scope
+- 无 profile：空状态
+- 新建中：编辑器
+- 编辑已有 profile：编辑器
+- 有 profile 但当前未选中：显示“请选择一个配置”
 
-- New project creation defaults to `~/Documents/OrisonSpace`.
-- User-selected project directories and cover images are registered as allowed roots for the current Electron session.
-- File and shell path validation rejects paths outside the default root and current-session allowed roots.
-- Project-relative file operations still call `assertWithinProject`, so an allowed project cannot write to sibling directories.
+---
 
-### UserPreferencesConfig
+## 相关文档
 
-```typescript
-type UserPreferencesConfig = {
-  theme: string;
-  locale: string;
-  autoApplyPatches: boolean;
-};
-```
-
-Preferences intentionally excluded from this global file:
-- layout
-- recent projects
-- auth
+- [服务端 API 参考](../api/server-api.md)
+- [模块边界规则](../architecture/module-boundaries.md)

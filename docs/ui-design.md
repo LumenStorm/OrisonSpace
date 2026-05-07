@@ -1,349 +1,225 @@
-# Orison Space — UI 页面与元素设计文档
+# Orison Space UI 页面与元素设计文档
 
 ## 1. 页面总览
 
-应用包含三个顶层页面：
+当前桌面端有三个顶层页面：
 
-| 页面 | 路径 | 触发条件 |
-|------|------|----------|
-| 登录/注册页 (AuthPage) | 启动默认 | 未登录（无 token） |
-| 项目管理页 (ProjectsPage) | 登录后 | 已登录但未打开项目 |
-| 工作区 (WorkspacePage) | 打开/新建项目后 | `currentProject` 不为空 |
+| 页面 | 触发条件 | 说明 |
+|---|---|---|
+| 登录 / 注册页 `AuthPage` | `authStatus !== 'authenticated'` | 启动无会话、会话过期、bootstrap 失败时进入 |
+| 项目页 `ProjectsPage` | 已登录但没有打开项目 | 展示最近项目、新建项目、打开项目 |
+| 工作区 `WorkspacePage` | 已登录且已打开项目 | 进入创作主界面 |
 
----
+重要更新：
 
-## 2. 登录/注册页 (AuthPage)
+- 启动时不再只看本地 token 是否存在
+- 会先做 session bootstrap
+- token 过期时不会先落到项目页
 
-### 布局
-居中卡片式布局，背景使用应用主背景色。
-
-### 元素
-
-| 元素 | 说明 |
-|------|------|
-| 品牌标题 | "Orison Space" |
-| 副标题 | 产品 tagline |
-| 登录/注册切换 Tab | 两个按钮切换模式，切换时清除错误信息并聚焦第一个输入框 |
-| 邮箱输入框 | email 验证，`autoComplete="email"` |
-| 密码输入框 | 最少 6 位，带可见/隐藏切换按钮，`autoComplete="current-password"` (登录) / `"new-password"` (注册) |
-| 显示名称输入框 | 仅注册模式显示，`autoComplete="name"` |
-| 错误提示 | 红色背景文字，`role="alert"`，出现时自动聚焦 |
-| 提交按钮 | "Sign In" / "Create Account" |
-
----
-
-## 3. 项目管理页 (ProjectsPage)
+## 2. 登录 / 注册页
 
 ### 布局
-顶部 header（56px）+ 居中内容区，最大宽度 960px。
 
-### 元素
+- 中央卡片式布局
+- 顶部保留品牌名与副标题
+- 顶层仍显示极简模式 TopBar
+
+### 交互元素
 
 | 元素 | 说明 |
-|------|------|
-| Header 品牌标题 | "Orison Space"，左侧 |
-| Header 用户信息 | 显示名称 + 邮箱，右侧 |
-| Header 登出按钮 | 清除 token，返回登录页 |
-| Section 标题 | "最近项目"，仅有项目时显示 |
-| 新建项目卡片 | 虚线边框，弹出命名对话框 |
-| 打开项目卡片 | 虚线边框，调用系统文件选择器 |
-| 最近项目卡片 | 封面图/图标 + 项目名 + 类型标签，hover 上浮 2px + 阴影 |
-| 空状态 | 居中图标 + 标题 + 引导文案 + 新建/打开按钮（无最近项目时显示） |
-
----
-
-## 4. 工作区 (WorkspacePage)
-
-### 整体布局
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Orison Space  文件  编辑  视图  帮助          [_ □ X]   │
-│                   TopBar (菜单栏)                        │
-├────┬──────────┬─┬───────────────────────────────────────┤
-│    │          │↔│                                       │
-│Icon│ Project  │ │          EditorArea                   │
-│Rail│ Tree     │ │          (flex: 1)                    │
-│48px│(220px    │ │                                       │
-│    │ 可拉伸)  │ ├───────────────────────────────────────┤
-│    │          │↕│  BottomPanel (properties/tasks/output) │
-│    │          │ │  (240px 可拉伸)                        │
-└────┴──────────┴─┴───────────────────────────────────────┘
-```
-
-- 左侧分为两部分：固定宽度的图标导航栏（IconRail，48px）+ 可选的项目文件树面板
-- 中间为主编辑区，底部可展开 BottomPanel
-- 项目文件树可拖拽调整宽度（ResizeHandle 组件，4px 拖拽条）
-  - 文件树宽度范围：160px ~ 400px，默认 220px
-  - 文件树通过 IPC（`project:read-directory`）读取真实项目目录，懒加载（初始 depth=1，展开时按需加载子级）
-  - 文件夹名通过 i18n 映射为用户友好的显示名（如 chapters → 章节、scenes → 场景）
-  - 右键菜单支持新建文件/文件夹、重命名、删除、在资源管理器中打开（均通过 IPC 操作真实文件系统）
-  - 展开/折叠带 CSS 过渡动画（`grid-template-rows` transition）
-- BottomPanel 可拖拽调整高度
-  - 高度范围：120px ~ 500px，默认 240px
-  - 包含三个 Tab：properties（属性检查器）、tasks（任务列表）、output（输出日志）
-- BottomPanel 可折叠/展开（chevron 按钮），折叠/展开带 CSS height transition
-- 窗口宽度 < 720px 时自动折叠所有可选面板，grid columns 回退为 `48px 1fr`
-- TopBar 固定顶部，采用经典菜单栏风格：
-  - 左侧品牌名 "Orison Space"
-  - 四个下拉菜单：文件 | 编辑 | 视图 | 帮助
-  - 文件菜单：新建项目(Ctrl+N)、打开项目(Ctrl+O)、保存(Ctrl+S)、导出、返回项目列表
-  - 编辑菜单：撤销(Ctrl+Z)、重做(Ctrl+Shift+Z)
-  - 视图菜单：项目文件树、底部面板、设置、账户
-  - 帮助菜单：关于（弹出 AboutDialog）、快捷键
-  - 菜单项显示快捷键提示，快捷键已实际绑定（通过 `useGlobalShortcuts` hook）
-  - 菜单支持键盘导航：Arrow Up/Down 选择、Enter 确认、Escape 关闭、Arrow Left/Right 切换菜单组
-  - 鼠标悬停时可在已打开的菜单间滑动切换
-- TopBar 同时作为自定义标题栏（隐藏原生标题栏），支持拖拽移动窗口
-  - Windows/Linux：右侧显示最小化/最大化/关闭按钮
-  - macOS：保留原生红绿灯，左侧 70px 占位避让
-
----
-
-## 4. 左侧导航 (SideNav / IconRail)
-
-固定宽度 48px 的垂直图标导航栏，根据项目类型显示不同的模块列表。
-
-### 导航项
-
-#### 小说项目 (novel)
-
-| 模块 | 图标 | 标识 | 说明 |
-|------|------|------|------|
-| 大纲 (Outline) | auto_stories | `outline` | 故事结构：幕、冲突、节奏 |
-| 小说 (Novel) | menu_book | `novel` | 章节正文编辑 |
-| 分镜 (Storyboard) | view_quilt | `storyboard` | 镜头卡片网格 |
-| 图片生成 (Image Gen) | image | `image_gen` | AI 图片生成 |
-| 视频 (Video) | movie_filter | `video` | 片段时间线、预览 |
-
-#### 剧本项目 (script)
-
-| 模块 | 图标 | 标识 | 说明 |
-|------|------|------|------|
-| 大纲 (Outline) | auto_stories | `outline` | 故事结构：幕、冲突、节奏 |
-| 剧本 (Script) | description | `script` | 场景、对白编辑 |
-| 分镜 (Storyboard) | view_quilt | `storyboard` | 镜头卡片网格 |
-| 图片生成 (Image Gen) | image | `image_gen` | AI 图片生成 |
-| 视频 (Video) | movie_filter | `video` | 片段时间线、预览 |
-
-### 底部操作
-
-| 按钮 | 图标 | 说明 |
-|------|------|------|
-| 设置 (Settings) | settings | 打开设置对话框（主题、语言、模型配置） |
-| 账户 (Account) | account_circle | 打开账户对话框 |
-
-### 交互
-- 点击切换 `activeModule`，高亮当前项（左侧 4px 绿色边框 + 浅绿背景）
-- 悬停时背景微变
-- 所有按钮带 Tooltip 提示
-
----
-
-## 5. 各模块编辑区设计
-
-### 5.1 大纲模块 (Outline / Story)
-
-对应数据模型：`ProjectDocument.story`
-
-| 元素 | 数据字段 | 说明 |
-|------|----------|------|
-| 项目标题 | `story.title` | 可编辑文本 |
-| Logline | `outline.logline` | 一句话概述 |
-| 风格设定 | `outline.style` | 视觉/叙事/节奏/参考 |
-| 幕列表 | `story.acts[]` | 可折叠卡片列表 |
-| 幕卡片 | `act.id / title / summary` | 标题 + 摘要 + 冲突等级 |
-| AI 生成按钮 | — | 提交 `story.rewrite` 任务 |
-
-### 5.2 剧本模块 (Script)
-
-对应数据模型：`ProjectDocument.script`
-
-| 元素 | 数据字段 | 说明 |
-|------|----------|------|
-| 场景列表 | `script.scenes[]` | 左侧或顶部场景索引 |
-| 场景编辑器 | `scene.title / summary` | 富文本编辑区 |
-| 对白列表 | `scene.dialogues[]` | 角色 + 台词行 |
-| 对白行 | `dialogue.character_id / line` | 角色名 + 对白内容 |
-| AI 改写按钮 | — | 提交 `script.rewrite` 任务 |
-
-### 5.3 分镜模块 (Storyboard)
-
-对应数据模型：`ProjectDocument.storyboard`
-
-| 元素 | 数据字段 | 说明 |
-|------|----------|------|
-| 镜头卡片网格 | `storyboard.shots[]` | 响应式网格，auto-fit |
-| 镜头卡片 | `shot` | 包含以下子元素 |
-| ├ 画面区域 | `shot.image_prompt` | 16:9 比例，AI 生成图或占位渐变 |
-| ├ 序号徽章 | `shot.id` | 左上角半透明黑底白字 |
-| ├ 描述文本 | `shot.description` | 卡片下方，2行截断 |
-| └ 选中态 | — | 绿色边框 + 外发光 |
-| 右侧检查器 | — | 选中镜头的参数编辑 |
-
-#### 检查器参数（分镜模式）
-
-| 参数 | 类型 | 选项 |
-|------|------|------|
-| 镜头焦距 (Camera Lens) | 下拉 | Macro / Portrait / Wide / Ultra-Wide |
-| 画面比例 (Aspect Ratio) | 分段按钮 | 16:9 / 2.35:1 / 4:3 |
-| 光影氛围 (Lighting Mood) | 下拉 | Natural / Golden Hour / Noir / Cinematic Blue |
-| AI 生成区 | 文本框 + 按钮 | 描述细节 → "Render Frame" |
-
-### 5.4 图片生成模块 (Image Gen)
-
-对应模块：`activeModule: 'image_gen'`
-
-| 元素 | 数据/行为 | 说明 |
-|------|-----------|------|
-| Prompt 输入区 | `prompt` | 输入生成图描述 |
-| 尺寸选择 | `1024x1024` / `1024x1792` / `1792x1024` | 传给服务端图片生成接口 |
-| 数量选择 | `1` / `2` / `4` | 控制单次生成张数 |
-| 生成按钮 | `POST /v1/generation/:provider/image` | 使用设置页当前 `image` 模型槽 |
-| 结果网格 | `temp/images/*` | 生成结果先写入项目临时目录 |
-| 预览弹窗 | 本地文件路径 | 点击结果图查看大图 |
-| 保存文件 | `assets/images/*` | 将临时图片移动到项目素材目录 |
-| 加入素材库 | `creativeFields.asset_cards` | 创建 `type: image` 的资产卡，`sourceRefs` 指向保存后的相对路径 |
-
-### 5.5 视频模块 (Video)
-
-对应数据模型：`ProjectDocument.video` (扩展)
-
-| 元素 | 数据字段 | 说明 |
-|------|----------|------|
-| 时间线 | `video.clips[]` | 水平时间轴，片段排列 |
-| 片段块 | `clip.shot_id / start_time / end_time` | 可拖拽调整时长 |
-| 预览窗口 | — | 播放选中片段 |
-| AI 生成按钮 | — | 提交视频生成任务 |
-
----
-
-## 6. 素材管理 (Assets)
-
-对应数据模型：`ProjectDocument.assets`
-
-| 元素 | 数据字段 | 说明 |
-|------|----------|------|
-| 角色列表 | `assets.characters[]` | 角色卡片：名称 + 外观描述 |
-| 场景列表 | `assets.scenes[]` | 场景卡片：名称 + 环境描述 |
-| 图片资产卡 | `creativeFields.asset_cards[]` | 图片生成结果可追加为 `type: image` 的资产卡 |
-| 图片文件引用 | `sourceRefs[]` | 指向项目内 `assets/images/*` 相对路径 |
-
----
-
-## 7. 数据模型与页面对应关系
-
-```
-ProjectDocument
-├── meta (id, name, version)          → TopBar 项目名显示
-├── outline                           → 大纲模块 (activeModule: 'outline')
-│   ├── logline, style                → 顶部编辑区
-│   └── acts[]                        → 幕卡片列表
-├── novel (type=novel)                → 小说模块 (activeModule: 'novel')
-│   └── chapters[]                    → 章节编辑
-├── script (type=script)              → 剧本模块 (activeModule: 'script')
-│   └── scenes[]                      → 场景列表
-│       └── dialogues[]               → 对白编辑
-├── storyboard                        → 分镜模块 (activeModule: 'storyboard')
-│   └── shots[]                       → 镜头卡片网格
-├── video                             → 视频模块 (activeModule: 'video')
-│   └── clips[]                       → 时间线片段
-├── image_gen                         → 图片生成模块 (activeModule: 'image_gen')
-└── assets                            → 素材管理
-    ├── characters[]                  → 角色卡片
-    └── locations[]                   → 场景地点卡片
-```
-
----
-
-## 8. AI 交互流程
-
-所有模块共享统一的 AI 任务流程：
-
-```
-用户操作 → 提交任务 (taskRequest)
-         → 服务端处理 (queued → running)
-         → 返回结果 (taskResult + patchOperations)
-         → 用户审阅 (Inspector / TaskFeed 面板)
-         → 接受 / 拒绝 → 合并到本地数据
-```
-
-任务类型按模块区分：
-- `story.rewrite` — 大纲改写
-- `script.rewrite` — 剧本改写
-- `storyboard.generate` — 分镜图生成
-- `image.generate` — 图片生成，结果先落项目 `temp/images/`，确认后进入 `assets/images/`
-- `video.generate` — 视频片段生成
-
----
-
-## 9. 设计规范
-
-| 项目 | 值 |
-|------|-----|
-| UI 字体 | Inter, Noto Sans SC, 400/500/600 |
-| 内容字体 | Newsreader, Noto Serif SC, 400/500 |
-| 图标 | Material Symbols Outlined |
-| 主色调 | sage green #6B7A6A |
-| 强调色 | #586657 |
-| 背景色 | #FAF9F7 |
-| 文字色 | #1A1C1B |
-| 次要文字 | #464741 |
-| 边框色 | rgba(199,199,191,0.7) |
-| 圆角 | 0.25rem (小) / 0.5rem (中) / 1rem (大) |
-| 阴影 | 0 12px 40px rgba(45,52,51,0.06) |
-| 图标栏宽度 | 48px（固定） |
-| 文件树宽度 | 220px（可拉伸 160~400px） |
-| 底部面板高度 | 240px（可拉伸 120~500px） |
-| 折叠断点 | 720px |
-
-> 注：以上颜色值为 light 主题默认值。所有颜色通过 CSS 自定义属性（`var(--token)`）引用，实际值由主题系统控制。
-
----
-
-## 10. 主题系统
-
-应用支持 light / dark 主题切换，以及跟随系统自动切换。
-
-| 项目 | 说明 |
-|------|------|
-| 主题定义 | `themes/light.yaml` + `themes/dark.yaml`，YAML 定义所有 design token |
-| 构建脚本 | `buildThemes.ts` 扫描 YAML 生成 `tokens.css` |
-| CSS 选择器 | `:root` / `[data-theme="light"]` / `[data-theme="dark"]` / `[data-theme="system"]`（媒体查询） |
-| 状态管理 | `appStore.theme`：`'system'` / `'light'` / `'dark'`，持久化到 localStorage |
-| 扩展 | 新增 `themes/{name}.yaml` 即自动注册 |
-
----
-
-## 11. 多语言 (i18n)
-
-应用支持中文 (zh-CN) 和英文 (en-US)，根据系统语言自动选择。
-
-| 项目 | 说明 |
-|------|------|
-| 语言包 | `i18n/zh-CN.yaml` + `i18n/en-US.yaml`，按模块分 namespace |
-| Hook | `useI18n(locale)` — 提供 `t(key, vars?)` 和 `tArray(key)` |
-| 检测 | Electron `getLocale()` → `navigator.language` → 回退 en-US |
-| 状态管理 | `appStore.locale` / `appStore.resolvedLocale`，持久化到 localStorage |
-| 扩展 | 新增 `i18n/{locale}.yaml` 即自动注册 |
-
-所有用户可见文本均通过 `t()` 函数获取，不再硬编码。
-
----
-
-## 12. 自定义标题栏
-
-隐藏原生标题栏，TopBar 组件同时承担菜单栏和窗口控制功能。
-
-| 平台 | 实现方式 |
-|------|----------|
-| Windows/Linux | `frame: false`，TopBar 右侧渲染最小化/最大化/关闭 SVG 按钮 |
-| macOS | `titleBarStyle: 'hidden'`，保留原生红绿灯，TopBar 左侧 70px 占位 |
-
-TopBar 采用经典菜单栏布局：品牌名 + 文件/编辑/视图/帮助下拉菜单。
-TopBar 整体设置 `-webkit-app-region: drag` 实现拖拽移动，菜单按钮等交互元素设置 `no-drag`。
-## 2026-05-04 Model Config and Output Console Notes
-
-- The bottom Properties panel reads image-capable profiles from the settings model library; static placeholder model options are removed.
-- The image generator previews results from `dataUrl`, then asks desktop IPC to write the normalized base64 payload into `temp/images/`.
-- The bottom Output tab is a real console for model refresh/save and image generation/save events.
+|---|---|
+| 登录 / 注册切换 Tab | 切换模式时清理当前错误 |
+| 邮箱输入框 | `autocomplete="email"` |
+| 密码输入框 | 支持显示 / 隐藏切换 |
+| 显示名输入框 | 仅注册模式展示 |
+| 错误提示 | `role="alert"` |
+| 提交按钮 | 登录时为 `Sign In`，注册时为 `Create Account` |
+
+### 会话启动行为
+
+- 若本地存在 token，`authSlice.bootstrapAuth()` 会先调用 `/v1/auth/me`
+- 成功后进入项目页或工作区
+- 401 则清空本地会话
+- 非 401 失败也停留在登录页，并显示错误信息
+
+## 3. 项目页
+
+### 页面职责
+
+- 管理最近项目
+- 新建项目
+- 打开本地项目目录
+- 显示当前用户信息
+
+### 关键元素
+
+| 元素 | 说明 |
+|---|---|
+| Header 品牌名 | `Orison Space` |
+| 用户信息区 | 显示 `displayName` 与 `email` |
+| Logout 按钮 | 主动退出当前会话 |
+| 新建项目卡片 | 打开 `NewProjectDialog` |
+| 打开项目卡片 | 调用系统目录选择器 |
+| 最近项目卡片 | 打开已有项目 |
+| 空状态 | 没有最近项目时显示引导区 |
+
+## 4. 工作区总布局
+
+工作区由以下区域构成：
+
+- TopBar
+- 左侧 Icon Rail
+- 左侧 Project Tree
+- 中间 EditorArea
+- 底部 BottomPanel
+
+### TopBar
+
+职责：
+
+- 自定义标题栏
+- 主导航菜单
+- 窗口控制
+
+菜单组：
+
+- 文件
+- 编辑
+- 视图
+- 帮助
+
+### 左侧导航
+
+图标导航栏根据项目类型展示模块入口：
+
+#### novel 项目
+
+- outline
+- novel
+- storyboard
+- image_gen
+- video
+
+#### script 项目
+
+- outline
+- script
+- storyboard
+- image_gen
+- video
+
+底部固定入口：
+
+- settings
+- account
+
+## 5. 模型设置页
+
+### 当前数据概念
+
+这页底层仍然是 profile 概念：
+
+- 一个 profile = 一组 `provider + baseUrl + apiKey`
+- 一个 profile 下包含多个模型条目 `models[]`
+
+这不是 UI 上的 bug，UI bug 在于页面交互状态曾经不清晰。
+
+### 当前交互状态
+
+现在模型设置页已经明确分为四种 UI 状态：
+
+| 状态 | 说明 |
+|---|---|
+| `idle` + 无 profile | 显示“还没有模型”的空状态 |
+| `creating` | 显示新建编辑器 |
+| `editing` | 显示已选中 profile 的编辑器 |
+| `idle` + 有 profile | 显示“请选择一个配置”的占位态 |
+
+### 页面结构
+
+- 左侧：Profile 列表
+- 右侧：Profile 编辑器或空状态
+- 底部：槽位分配（novel / image / video）
+
+### 编辑器字段
+
+#### 身份区
+
+- `profileName`
+- `provider`
+
+#### 凭据区
+
+- `apiKey`
+- `baseUrl`
+- 刷新 provider 模型列表按钮
+
+#### 模型区
+
+- 每个 model entry 包含：
+  - `id`
+  - `alias`
+  - `apiFormat`
+  - `capabilities`
+
+### 重要交互
+
+- 空状态点击“添加模型”会直接进入编辑器
+- 已有 profile 但未选中时，不再默认渲染隐式新建编辑器
+- 刷新模型列表后，可按 provider 返回结果填充模型条目
+
+## 6. 图片生成模块
+
+### 关键点
+
+- 图片生成不再通过服务端 generation route
+- 当前走 desktop main IPC：
+  - `model:generate-image`
+- 结果先保存到项目 `temp/images/`
+- 用户确认后移动到 `assets/images/`
+
+### 相关 UI
+
+- Prompt 输入
+- 图片参数控制（由 inspector 管理）
+- 结果预览网格
+- 保存为项目资产
+
+## 7. Story Sync 相关 UI 行为
+
+- 桌面端发起章节编排前，可先本地执行 `storySync:run`
+- 返回的 patch 会嵌入 orchestration run body
+- agent 若发现 patch 无效，会回退到规则路径
+
+## 8. 底部面板
+
+BottomPanel 当前包含：
+
+- properties
+- tasks
+- output
+
+其中：
+
+- properties：根据当前模块显示参数或设置字段
+- tasks：任务流与状态
+- output：真实输出控制台，不再是纯占位
+
+## 9. 当前 UI 设计与代码的一致性说明
+
+以下是已经同步到代码的现状：
+
+- 启动时鉴权先校验会话，再决定进入哪个页面
+- 模型设置页交互状态已收口，不再混乱地依赖隐式条件
+- 模型生成走 desktop main，不走 server generation route
+- story-sync 已变为桌面本地执行 + agent 二次校验
+
+## 10. 后续更新要求
+
+若以下任一行为变化，需要同步更新本文档：
+
+- 登录 / 启动鉴权流程
+- 页面切换条件
+- 模型设置页交互状态
+- 图片生成入口和保存路径
+- story-sync 在 UI 中的触发方式

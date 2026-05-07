@@ -15,7 +15,8 @@ type Props = {
 export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
   const lib = useModelLibrary({ modelConfig, setModelConfig, t });
   const profiles = modelConfig.profiles;
-  const showEmptyState = profiles.length === 0 && lib.draft.id === null && !lib.dirty;
+  const showEmptyState = profiles.length === 0 && lib.editorMode === 'idle';
+  const showEditor = lib.editorMode === 'creating' || lib.editorMode === 'editing';
 
   return (
     <div className="settings-page model-library-page">
@@ -43,22 +44,26 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
               onAddProfile={lib.startNewProfile}
               t={t}
             />
-            <ProfileEditor
-              draft={lib.draft}
-              isDirty={lib.dirty}
-              onChange={lib.updateDraft}
-              onUpdateModelEntry={lib.updateModelEntry}
-              onRemoveModelEntry={lib.removeModelEntry}
-              onApply={() => void lib.applyDraft()}
-              onDelete={lib.draft.id ? () => lib.requestDelete(lib.draft.id!) : null}
-              refreshing={lib.refreshing}
-              refreshError={lib.refreshError}
-              remoteModels={lib.remoteModels}
-              onRefreshModels={lib.refreshModels}
-              notice={lib.notice}
-              onDismissNotice={lib.dismissNotice}
-              t={t}
-            />
+            {showEditor ? (
+              <ProfileEditor
+                draft={lib.draft}
+                isDirty={lib.dirty}
+                onChange={lib.updateDraft}
+                onUpdateModelEntry={lib.updateModelEntry}
+                onRemoveModelEntry={lib.removeModelEntry}
+                onApply={() => void lib.applyDraft()}
+                onDelete={lib.draft.id ? () => lib.requestDelete(lib.draft.id!) : null}
+                refreshing={lib.refreshing}
+                refreshError={lib.refreshError}
+                remoteModels={lib.remoteModels}
+                onRefreshModels={lib.refreshModels}
+                notice={lib.notice}
+                onDismissNotice={lib.dismissNotice}
+                t={t}
+              />
+            ) : (
+              <ProfileEmptyState variant="no-selection" t={t} />
+            )}
           </>
         )}
       </div>

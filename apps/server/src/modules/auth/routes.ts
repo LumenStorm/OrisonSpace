@@ -16,6 +16,26 @@ const loginBody = z.object({
 });
 
 export async function registerAuthRoutes(app: FastifyInstance) {
+  app.get('/v1/auth/me', async (request, reply) => {
+    const result = await query(
+      'SELECT id, email, display_name FROM users WHERE id = $1',
+      [request.userId]
+    );
+
+    if (result.rowCount === 0) {
+      return reply.code(401).send({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+    return reply.code(200).send({
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.display_name,
+      },
+    });
+  });
+
   app.post('/v1/auth/register', async (request, reply) => {
     const parsed = registerBody.safeParse(request.body);
     if (!parsed.success) {

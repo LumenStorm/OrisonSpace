@@ -23,6 +23,7 @@ import {
 export type ModelLibraryState = {
   draft: ProfileDraft;
   selectedProfile: ModelProfile | null;
+  editorMode: 'idle' | 'creating' | 'editing';
   dirty: boolean;
   remoteModels: RemoteModel[];
   refreshing: boolean;
@@ -61,6 +62,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<'idle' | 'creating' | 'editing'>('idle');
 
   const profiles = modelConfig.profiles;
 
@@ -77,6 +79,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   useEffect(() => {
     if (draft.id && !profiles.some((profile) => profile.id === draft.id)) {
       setDraft(emptyProfileDraft());
+      setEditorMode('idle');
       setRemoteModels([]);
       setRefreshError(null);
     }
@@ -112,11 +115,13 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
 
   function startNewProfile() {
     setDraft(emptyProfileDraft());
+    setEditorMode('creating');
     resetEditorState();
   }
 
   function selectProfile(profile: ModelProfile) {
     setDraft(profileToDraft(profile));
+    setEditorMode('editing');
     resetEditorState();
   }
 
@@ -131,6 +136,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
 
     await setModelConfig({ profiles: nextProfiles, selected: modelConfig.selected });
     setDraft(profileToDraft(profile));
+    setEditorMode('editing');
     appendOutputEntry({
       scope: 'model',
       level: 'success',
@@ -162,6 +168,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     setPendingDeleteId(null);
     if (draft.id === id) {
       setDraft(emptyProfileDraft());
+      setEditorMode('idle');
       setRemoteModels([]);
       setRefreshError(null);
     }
@@ -226,6 +233,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   return {
     draft,
     selectedProfile,
+    editorMode,
     dirty,
     remoteModels,
     refreshing,

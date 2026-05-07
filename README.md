@@ -1,75 +1,68 @@
 # OneLine2Video / Orison Space
 
-一个面向长篇故事、剧本、分镜与视频策划的 AI 创作工作台。
+面向长篇故事、小说、剧本、分镜与视频策划的 AI 创作工作台。
 
-> **当前定位**：AI 驱动的影视/小说创作 IDE — 从一句话开始，构建大纲、小说、分镜直到视频；用户主导创作，AI 辅助生成与可控修改。
+> 当前定位：AI 驱动的影视 / 小说创作 IDE。用户从一句话、一个章节、一个分镜想法开始，逐步构建大纲、正文、创作字段、分镜与后续生成资产；AI 负责辅助生成、审阅建议与可控修改。
 
-产品形态：**本地项目为主、Server 与 Agent 提供任务与生成能力**。
+产品形态：以本地项目为核心，`server` 提供认证、项目登记、任务查询与 Agent 代理，桌面端主进程直接连接第三方模型。
 
-- 本地项目文件是创作内容的**唯一真理来源**
-- Fastify 服务端负责认证、项目登记、任务入库与轻量资产索引
-- Agent 服务负责章节流水线编排与生成
-- Electron 桌面端负责创作、审阅、接收/拒绝 AI 结果
+- 本地项目文件仍然是创作内容的唯一事实来源
+- `apps/server` 负责公开 API、JWT 鉴权、项目与任务元数据、Agent 代理
+- `apps/agent` 负责编排流程、章节生成、规则回退、自动模式
+- `apps/desktop/shell` 负责 IPC、安全边界、模型调用、story-sync 本地执行
+- `apps/desktop/ui` 负责创作、审核、设置、项目管理与工作区交互
 
 ---
 
-## 当前状态（2026-05-05）
+## 当前状态（2026-05-07）
 
-### 创作主链路
+### 核心能力
 
-- **小说项目**完整流水线（Phase 1-7 迁移完成，从老 standalone `H:/小说/{backend, frontend}` 整体迁入本仓库）
-  - 章节生成（generate / continue / polish / review 四种模式）
-  - 故事同步（自动从章节正文提取伏笔/世设更新建议为 reviewable patches）
-  - 长期记忆（章节摘要 / 角色提及 / 悬念种子三类条目持久化）
-  - 自动模式（多章节顺序自动推进，支持暂停/恢复/取消）
-- **剧本/创作字段**编辑：creative brief、世界观、资产卡、关系图、outline v2、集纲、成长/节奏/情感曲线、伏笔注册表
-- **任务/审核**：任务流水、章节候选 accept/reject、字段级 patch review
+- 小说章节生成链路已接入桌面端工作区
+  - 章节生成 / 续写 / 润色 / 复审
+  - Story Sync 预计算补丁
+  - 长期记忆抽取与面板展示
+  - Auto Mode 多章节自动推进
+- 创作字段编辑可在桌面端本地同步
+  - 大纲、细纲、世界观、资产卡、关系图、伏笔注册表、成长 / 节奏 / 情绪曲线等
+- 图片生成已改为桌面主进程直接连模型
+  - 生成结果先落到项目 `temp/images/`
+  - 确认保存后移动到 `assets/images/`
+- 模型网关已从服务端迁移到桌面主进程
+  - 文本 / 图片 / 视频生成都走 IPC
+  - `apiKey` 不再经过 server，也不进入 agent
 
-### 桌面端
+### 鉴权与会话
 
-- Electron + React 19 + TypeScript + Zustand
-- **章节工作台**（Phase 5）：章节列表 + 候选审阅 + 自动模式控制台
-- **记忆面板**：按章节分组、伏笔徽章
-- **自动模式控制台**：启动/暂停/恢复/取消 + 2s 轮询进度
-- **创作字段编辑器**：所有 creative fields 的可视化编辑
-- **图片生成工作台**：调用服务端图片生成接口，生成结果先保存到项目 `temp/images/`，可预览、转存到 `assets/images/` 并加入资产卡
-- **项目文件树**：通过 IPC 读取真实目录、懒加载、右键菜单
-- **IPC 安全加固**：`pathGuard.ts` 路径越界校验、API Key 用 `safeStorage` 加密、CSP 主进程动态注入
+- 服务端提供：
+  - `POST /v1/auth/register`
+  - `POST /v1/auth/login`
+  - `GET /v1/auth/me`
+- 桌面端启动时会执行 session bootstrap：
+  - 本地有 token 时，先调用 `/v1/auth/me`
+  - token 过期则自动退出到登录页
+  - 启动校验成功会同步最新用户信息到本地 store
 
-### Agent 服务
+### 模型配置
 
-- 6 节点混合 TS + Python 章节流水线：
-  - `context-loader-agent` (TS) — 加载 project.yaml + 章节 markdown + 前序摘要
-  - `chapter-bridge-agent` (TS) — 衔接指南
-  - `draft-writer-agent` (Python) — LLM 草稿生成
-  - `multi-review-agent` (Python) — 多维评审
-  - `targeted-revision-agent` (Python) — 定向修订
-  - `chapter-title-agent` (TS) — 标题归一化
-- **Story Sync**（TS, 规则驱动 + 可选 LLM 模式，受 `ORISON_STORY_SYNC_MODE` 控制） + **Memory Extractor**（TS, 规则驱动）
-- **Auto Mode**：进程内会话注册表 + 后台异步推进循环 + YAML 持久化（`runs/auto-mode/<id>.yaml`，支持崩溃恢复）
-- Windows 下 Python 子进程 stdin/stdout 强制 UTF-8（避免 cp936 破坏中文与路径转义）
+- 模型配置使用 v2 结构：
+  - `~/.orison/model/index.yaml`
+  - `~/.orison/model/profiles/*.yaml`
+- 一个 profile 表示一组 `provider + baseUrl + apiKey`
+- 一个 profile 下可挂多个 `models[]`
+- 槽位选择为：
+  - `novel -> { profileId, modelId }`
+  - `image -> { profileId, modelId }`
+  - `video -> { profileId, modelId }`
 
-### 服务端
+### 测试基线
 
-- Fastify
-- 认证（注册/登录/JWT）
-- 项目登记（`POST /v1/projects`）
-- 任务接口（提交、查询、按项目列表）
-- 生成接口（`POST /v1/generation/:provider/text` / `image`，图片响应统一补齐 base64 与 data URL）
-- 轻量资产索引（`(project_id, asset_id)` 复合主键）
-- PostgreSQL 持久化 — 启动时自动建表
+最近已验证：
 
-### 测试基线（2026-05-05）
-
-| 包 | 文件 | 测试 | 状态 |
-|---|---|---|---|
-| `@orison/shared-contracts` | 6 | 52 | ✅ |
-| `@orison/desktop-local-bff` | 7 | 31 | ✅ |
-| `@orison/agent` | 24 | 106 | ✅ |
-| `@orison/desktop-ui` | 11 | 83 | ✅ |
-| `@orison/desktop-shell` | 5 | 7 | ✅ |
-
-**`tsc --noEmit` 在 `@orison/desktop-ui` 与 `@orison/desktop-shell` 均通过。**
+- `pnpm --filter @orison/desktop-ui test -- authSessionExpiry.test.tsx`
+- `pnpm --filter @orison/desktop-ui test -- modelSettingsPage.test.tsx`
+- `pnpm --filter @orison/desktop-ui typecheck`
+- `pnpm --filter @orison/server test -- auth.test.ts`
 
 ---
 
@@ -78,89 +71,22 @@
 ```text
 OneLine2Video/
 ├─ apps/
-│  ├─ agent/                          Agent 编排服务
-│  │  ├─ src/engine/
-│  │  │  ├─ novelPipeline.ts          小说章节 6 节点流水线
-│  │  │  ├─ runService.ts             run service（startNovelChapter / startCreative / start）
-│  │  │  ├─ pythonNodeExecutor.ts     Python 子进程桥（含 UTF-8 stdin 修复）
-│  │  │  └─ autoMode/
-│  │  │     ├─ novelAutoModeRunner.ts 多章节会话工厂
-│  │  │     └─ autoModeService.ts     进程内会话注册表 + 后台推进循环
-│  │  ├─ src/nodes/                   TS 节点
-│  │  │  ├─ context-loader-agent/
-│  │  │  ├─ chapter-bridge-agent/
-│  │  │  ├─ chapter-title-agent/
-│  │  │  ├─ story-sync-agent/         规则 + 可选 LLM 模式（rules.ts/prompt.ts/parser.ts/index.ts dispatcher）
-│  │  │  └─ memory-extractor-agent/   规则驱动的长期记忆提取
-│  │  ├─ src/engine/
-│  │  │  └─ llmClient.ts              通过 server `/v1/generation/:provider/text` 走 LLM 的轻量客户端
-│  │  ├─ src/engine/memory/           Memory RAG 预埋（embeddingProvider / memoryRetriever）
-│  │  ├─ python/
-│  │  │  ├─ runner/main.py            Python 节点入口（UTF-8 stdin/stdout）
-│  │  │  ├─ nodes/                    Python LLM 节点
-│  │  │  │  ├─ draft_writer_agent.py
-│  │  │  │  ├─ novel_draft_writer_agent.py
-│  │  │  │  ├─ multi_review_agent.py
-│  │  │  │  └─ targeted_revision_agent.py
-│  │  │  └─ python_agent/shared/      模型客户端 / 错误 / 模板
-│  │  └─ test/                        24 个测试文件
+│  ├─ agent/                 Agent 编排与章节流水线
 │  ├─ desktop/
-│  │  ├─ shell/
-│  │  │  ├─ main/                     Electron 主进程 + IPC handlers + pathGuard
-│  │  │  ├─ preload/                  contextBridge 预加载
-│  │  │  └─ test/                     IPC 安全测试
-│  │  ├─ ui/
-│  │  │  └─ src/
-│  │  │     ├─ app/                   App 入口
-│  │  │     ├─ pages/                 路由级 entry（auth/projects/workspace）
-│  │  │     ├─ widgets/               跨 feature 页面布局
-│  │  │     │  ├─ layout/             WorkspaceLayout
-│  │  │     │  └─ projects/           ProjectCard / ProjectsEmptyState
-│  │  │     ├─ features/              领域 UI
-│  │  │     │  ├─ novel-workbench/    章节工作台 (Phase 5)
-│  │  │     │  ├─ memory/             记忆面板 (Phase 5)
-│  │  │     │  ├─ auto-mode/          自动模式控制台 (Phase 6)
-│  │  │     │  ├─ creative/           创作字段编辑器
-│  │  │     │  ├─ orchestration/      编排面板 + errors 工具
-│  │  │     │  ├─ tasks/              任务面板
-│  │  │     │  ├─ inspector/          底部属性面板（含 image-gen-fields/ 子组件）
-│  │  │     │  └─ editor/             文件 / 大纲 / 剧本 / 分镜 / 图片生成 / 视频编辑
-│  │  │     │     └─ file-editor/     Markdown / Code / Image / ReadOnly 子视图
-│  │  │     └─ shared/                跨 feature 复用
-│  │  │        ├─ api/                HTTP 调用封装（auth / orchestration / novelChapter / generation / projects）
-│  │  │        ├─ store/              zustand slices（authSlice / orchestrationSlice / ...）
-│  │  │        ├─ hooks/              通用 hooks（useGlobalShortcuts / useOpenProject / usePanelResize）
-│  │  │        ├─ imageGen/           图片生成参数 schema（跨 feature 共享）
-│  │  │        ├─ i18n/               YAML 语言包 + useI18n hook
-│  │  │        ├─ themes/             YAML 主题 + buildThemes 脚本
-│  │  │        └─ components/         共享 UI 组件（Tooltip / Dialog / Settings / ...）
-│  │  └─ local-bff/
-│  │     └─ sync/
-│  │        ├─ novelProjectRepository.ts  小说章节本地仓库
-│  │        ├─ memoryRepository.ts        story-memory.yaml 仓库
-│  │        ├─ localProjectRepository.ts  通用项目仓库 + chapter_candidate inline patch
-│  │        └─ fieldSyncBridge.ts         字段同步桥
-│  └─ server/                         Fastify 服务端
+│  │  ├─ shell/              Electron 主进程、preload、IPC
+│  │  ├─ ui/                 React 桌面界面
+│  │  └─ local-bff/          本地项目读写与字段同步桥
+│  └─ server/                Fastify 服务端
 ├─ packages/
-│  ├─ shared-contracts/               共享 Zod 契约
-│  │  └─ src/contracts/
-│  │     ├─ novel-orchestration.ts    章节 run / story sync / memory / auto mode 契约
-│  │     ├─ story-memory.ts           记忆条目契约
-│  │     ├─ project.ts                project / chapter / chapter_status
-│  │     ├─ project-patch.ts          field patch 契约
-│  │     ├─ creative-fields.ts        所有 creative fields schema
-│  │     └─ ...
-│  ├─ shared-utils/                   共享工具
-│  └─ ui-kit/                         共享 UI 包
-├─ docs/
-│  ├─ plan.md                         开发日志（含小说迁移 Phase 0-7 全部检查点）
-│  ├─ api/                            服务端 API 文档
-│  ├─ ipc/                            桌面 IPC 文档
-│  └─ superpowers/
-│     ├─ plans/2026-05-02-novel-system-migration.md   小说迁移完整计划与检查点
-│     └─ specs/2026-05-02-novel-migration-parity-audit.md  Parity 审计与 cutover 决策
-├─ run.bat                            Windows 一键启动
-└─ pnpm-workspace.yaml
+│  ├─ shared-contracts/      共享契约、Zod schema、IPC 类型
+│  ├─ model-protocols/       模型协议适配层
+│  ├─ story-sync/            Story Sync 共享逻辑
+│  ├─ shared-utils/
+│  └─ ui-kit/
+├─ docs/                     参考文档、架构规则、API / IPC 说明
+├─ design.md
+├─ plan.md
+└─ README.md
 ```
 
 ---
@@ -170,8 +96,7 @@ OneLine2Video/
 - Node.js 22+
 - pnpm 10+
 - PostgreSQL 14+
-- Python 3.10+（Agent Python 节点）
-- Windows / macOS / Linux 均可（开发测试以 Windows + PowerShell 为主）
+- Python 3.10+（Agent Python 节点需要）
 
 ---
 
@@ -181,57 +106,11 @@ OneLine2Video/
 pnpm install
 ```
 
-Electron 镜像（可选）：
+如果需要 Electron 镜像：
 
 ```powershell
 $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 pnpm install
-```
-
-Python 依赖（仅 agent 服务需要）：
-
-```powershell
-cd apps/agent
-pip install -r requirements.txt   # 如有需要
-```
-
----
-
-## 环境变量
-
-服务端读取 `apps/server/.env`，Agent 读取 `apps/agent/.env.agent`。
-
-```powershell
-Copy-Item apps/server/.env.example apps/server/.env
-Copy-Item apps/agent/.env.agent.example apps/agent/.env.agent
-```
-
-服务端默认：
-
-```text
-PORT=4000
-DATABASE_URL=postgresql://postgres:root@localhost:5432/orison_dev
-AGENT_URL=http://localhost:18422
-JWT_SECRET=orison-dev-secret-key-NOT-FOR-PRODUCTION
-DEMO_ACCESS_TOKEN=demo-access-token
-```
-
-Agent 默认：
-
-```text
-PORT=18422
-LOG_LEVEL=info
-OPENAI_API_KEY=<your-key>
-OPENAI_BASE_URL=<optional-proxy>
-
-# story-sync-agent LLM 升级（可选；默认 rules）
-ORISON_STORY_SYNC_MODE=rules            # rules | llm
-ORISON_LLM_SERVER_URL=http://localhost:4000
-ORISON_LLM_PROVIDER=openai               # openai | gcp | anthropic
-ORISON_LLM_MODEL=gpt-4o-mini
-ORISON_LLM_API_KEY=<provider-key>
-ORISON_LLM_BASE_URL=<optional-provider-proxy>
-ORISON_STORY_SYNC_LLM_TIMEOUT_MS=45000
 ```
 
 ---
@@ -239,13 +118,9 @@ ORISON_STORY_SYNC_LLM_TIMEOUT_MS=45000
 ## 本地开发
 
 ```powershell
-# Windows 一键启动（同时拉起 server + agent + desktop）
-run.bat
-
-# 或者分别启动：
-pnpm dev           # 桌面端
-pnpm dev:server    # 服务端 http://localhost:4000
-pnpm dev:agent     # Agent http://localhost:18422
+pnpm dev           # 启动桌面端（desktop-shell）
+pnpm dev:server    # 启动服务端 http://localhost:4000
+pnpm dev:agent     # 启动 Agent http://localhost:18422
 ```
 
 构建：
@@ -256,182 +131,127 @@ pnpm build:desktop
 pnpm build:server
 ```
 
----
-
-## 测试
+测试：
 
 ```powershell
-pnpm test            # turbo 全量
+pnpm test
 pnpm typecheck
 pnpm lint
 ```
 
-定向：
-
-```powershell
-pnpm --filter @orison/shared-contracts test
-pnpm --filter @orison/desktop-local-bff test
-pnpm --filter @orison/agent test
-pnpm --filter @orison/desktop-ui test
-```
-
-迁移期间已实测全绿（基线 2026-05-03）：
-
-```powershell
-pnpm --filter @orison/agent test    # 24 文件 / 106 测试 PASS
-pnpm --filter @orison/desktop-local-bff test    # 7 文件 / 31 测试 PASS
-pnpm --filter @orison/shared-contracts test    # 6 文件 / 52 测试 PASS
-```
-
 ---
 
-## 接口概览
+## 服务端接口概览
 
-### 服务端
+### 公开接口
 
 - `GET /health`
 - `POST /v1/auth/register`
 - `POST /v1/auth/login`
+
+### 受保护接口
+
+- `GET /v1/auth/me`
 - `POST /v1/projects`
 - `POST /v1/tasks`
-- `GET /v1/tasks/:taskId` — 仅返回 `TaskResult`
-- `GET /v1/tasks/:taskId/detail` — 返回 `{ task, result }`，包含任务元数据与关联 assetIds
-- `GET /v1/projects/:projectId/tasks?limit&cursor&sort` — keyset 分页（按 `createdAt`）
-- `GET /v1/projects/:projectId/assets?limit&cursor&sort` — keyset 分页（按 `updatedAt`）
-- `POST /v1/generation/:provider/text`
-- `POST /v1/generation/:provider/image`
-- `/v1/orchestration/*` → 代理至 Agent
+- `GET /v1/tasks/:taskId`
+- `GET /v1/tasks/:taskId/detail`
+- `GET /v1/projects/:projectId/tasks`
+- `GET /v1/projects/:projectId/assets`
+- `/v1/orchestration/*` -> 代理到 Agent
 
-### Agent 编排
+### 已移除
 
-- `POST /v1/orchestration/runs` — 启动 run（自动按 body 形态识别）
-  - 含 `chapterId + mode` → **小说章节流水线**
-  - 含 `runIntent` / `targetFields` / `constraints` → **creative pipeline**
-  - 否则 → 旧版主链路
-- `GET /v1/orchestration/runs/:runId` — 查询 run 快照
-- `POST /v1/orchestration/actions` — `accept_current` / `edit_and_resume` / `rerun_from_node` / `abort_run`
-- `POST /v1/orchestration/auto-mode` — 启动多章节自动模式
-- `POST /v1/orchestration/auto-mode/actions` — `pause` / `resume` / `cancel`
-- `GET /v1/orchestration/auto-mode/:autoModeId` — 查询自动模式状态
-- `POST /v1/orchestration/auto-mode/restore` — 从 `runs/auto-mode/*.yaml` 还原项目内已持久化的 auto mode 会话
+- `/v1/generation/:provider/text`
+- `/v1/generation/:provider/image`
 
-详见 [`docs/api/server-api.md`](docs/api/server-api.md)。
+现在第三方模型请求都由桌面主进程完成。
+
+---
+
+## 桌面 IPC 概览
+
+桌面端通过 `window.orisonDesktop` 暴露能力，主要包括：
+
+- 项目目录与文件操作
+- 用户偏好读写
+- 模型配置读写
+- provider 模型列表刷新
+- 文本 / 图片 / 视频生成
+- story-sync 本地执行
+- 字段同步
+- 自定义标题栏窗口控制
+
+详细见 [docs/ipc/desktop-ipc.md](docs/ipc/desktop-ipc.md)。
 
 ---
 
 ## 数据边界
 
-- **本地 YAML + Markdown** 保存完整创作内容
-  - `project.yaml` — 项目元信息、章节列表、世界观、关系图、伏笔注册表、曲线
-  - `chapters/<chapter_id>.md` — 章节正文
-  - `memory/story-memory.yaml` — 长期记忆索引
-  - `temp/images/` — 图片生成临时结果
-  - `assets/images/` — 已确认保存的生成图片资产
-- **PostgreSQL** 保存项目元数据、任务流水、任务资产引用、轻量资产索引
+### 本地项目
 
-也就是说：
+本地项目目录保存创作正文与资产文件，例如：
 
-- `outline` / `novel` / `script` / `storyboard` / `creative fields` / 生成图片文件等长内容继续本地保存
-- `projects` / `tasks` / `task_asset_refs` / `project_assets` 负责任务追踪与检索
+- `project.yaml`
+- `chapters/*.md`
+- `memory/story-memory.yaml`
+- `temp/images/*`
+- `assets/images/*`
 
----
+### PostgreSQL
 
-## 关键约定
+服务端数据库负责：
 
-- `projectId`：五位顺序号，例如 `00001`
-- `taskId`：服务端生成，格式为 `YYYYMMDDHHmmssSSS_<random5>`
-- `runId` / `autoModeId`：客户端可见，用于轮询与状态展示
-- 章节 `status`：`draft` / `generating` / `revised` / `final`
-- `project_assets` 按 `(project_id, asset_id)` 复合主键，避免不同项目里同名资产互相覆盖
-- `chapter_candidate` patch 走 `applyFieldPatches` 通道：写入 markdown 文件 + 更新 yaml 元信息原子化
+- `users`
+- `projects`
+- `tasks`
+- `task_asset_refs`
+- `project_assets`
+
+服务端不保存完整创作正文。
 
 ---
 
-## 小说创作工作流（端到端）
+## 最近的重要架构变化
 
-1. 在桌面端新建/打开 novel 项目
-2. 在"创作"面板编辑 brief、世界观、资产卡、关系图、伏笔等
-3. 切换到"章节工作台"子标签页
-4. 在章节列表中选择目标章节
-5. 点击 `生成本章` / `续写` / `润色` / `复审`
-6. 等待 6 节点流水线完成（`OrchestrationPanel` 显示节点级进度）
-7. 在 `ChapterResultPanel` 审阅候选 → `接受候选` 写入磁盘 / `丢弃候选`
-8. 接受后，`story-sync-agent` 输出的 patches 在 creative tab 的 `PatchReviewPanel` 中可逐项接受
-9. `MemoryPanel` 自动展示新一章的记忆条目（按章节分组、伏笔徽章）
-10. 多章节连推：使用侧栏的 `AutoModeConsole` → `启动自动模式`，可随时暂停/恢复/取消
+### 1. 模型网关迁移到桌面主进程
 
----
+- `apps/server` 不再持有任何 provider generation route
+- `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` 成为统一模型出口
+- `packages/model-protocols` 负责按 `apiFormat` 分发协议
 
-## 已知现状与 Backlog
+### 2. Story Sync 从 Agent 中抬出
 
-### 已知历史遗留（已收尾）
+- 桌面主进程先执行 story-sync LLM 提取
+- 渲染层把补丁放入 run body 的 `artifacts['chapter.llmPatches']`
+- Agent 仅做二次校验与规则回退
 
-1. ~~`GET /v1/projects/:projectId/tasks` 与 `GET /v1/projects/:projectId/assets` 暂未分页~~ → 2026-05-05 完成 keyset 分页（`limit/cursor/sort`）
-2. ~~`GET /v1/tasks/:taskId` 当前只返回任务结果，不返回任务元数据~~ → 2026-05-05 新增 `GET /v1/tasks/:taskId/detail` 返回 `{ task, result }`，原路由保持仅 result 兼容 desktop local-bff
-3. ~~`apps/desktop/local-bff` 与 `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` 之间的 sync 角色尚未在 `docs/architecture/module-boundaries.md` 单列章节~~ → 2026-05-05 在 module-boundaries 新增 “Desktop Local BFF (Sync Layer)” 章节
+### 3. 启动鉴权改为先校验后放行
 
-### Enhancement 进度
+- 启动时调用 `/v1/auth/me`
+- 过期 token 不再先进入项目页
+- 非过期错误进入登录页并保留错误提示
 
-- ✅ **P1** — `story-sync-agent` 由规则驱动升级为 LLM 节点（2026-05-05）
-  - 默认仍走 rules，向后兼容
-  - 设置 `ORISON_STORY_SYNC_MODE=llm` + `ORISON_LLM_SERVER_URL` 后走 LLM 主路径，失败自动回退 rules
-  - 共享安全约束：白名单字段、merge-only、`fieldVersion` 校验、`generatedBy` 强制
-- ✅ **P2** — Auto Mode 会话持久化（2026-05-05）
-  - `NovelAutoModeState` 序列化到 `runs/auto-mode/<id>.yaml`，每次状态变更顺序写盘
-  - `POST /v1/orchestration/auto-mode/restore` 从项目目录还原会话
-- 🟡 **P3** — Memory RAG / embedding 检索能力（已预埋，待选型）
-  - `StoryMemoryEntry` 已支持 optional `embedding/embeddingDim/embeddingModel`
-  - `apps/agent/src/engine/memory/{embeddingProvider,memoryRetriever}.ts` 提供接口与 keyword fallback retriever
-  - 章节上下文新增 `memoryHits: []`，下游节点必须容忍空数组
-  - 默认运行路径不依赖任何 embedding provider 或向量库
+### 4. 模型设置页交互状态收口
 
-### 2026-05-06 认证与模型接口 TODO
-
-- ✅ **认证会话**：服务端 JWT 过期时间改为 72 小时；桌面端带鉴权 API 收到 `401` 后派发 `orison:auth-expired` 并自动退出登录。
-- ✅ **NewAPI 适配计划**：新增 [`docs/superpowers/plans/2026-05-06-newapi-model-adapter.md`](docs/superpowers/plans/2026-05-06-newapi-model-adapter.md)，明确用 `apiFormat` 选择接口规范，避免仅凭模型 ID 推断协议。
-- TODO：为模型配置增加 `apiFormat`，区分 `openai-chat-completions`、`openai-responses`、`claude-messages`、`gemini-generate-content`、`openai-images`、`gemini-images`、`sora-videos`。
-- TODO：服务端保留统一 `/v1/generation/:provider/*` 入口，内部按 `apiFormat` 分发到不同 protocol adapter，并通过 `providerOptions` 承载模型/供应商专属参数。
-- TODO：桌面端模型列表刷新按 `apiFormat` 选择 URL、headers 和响应解析；NewAPI 中转时以“接口规范”而不是“模型真实供应商”决定调用方式。
-- 暂不做：嵌入（embedding）和重排序（rerank）接口，本阶段只覆盖聊天、图像和视频生成相关能力。
+- 空 profile -> 空状态
+- 新建中 -> 编辑器
+- 选择已有 profile -> 编辑器
+- 有 profile 但未选择 -> 提示先选择
 
 ---
 
 ## 相关文档
 
-- [服务端接口文档](docs/api/server-api.md)
-- [桌面 IPC 文档](docs/ipc/desktop-ipc.md)
+- [服务端 API 参考](docs/api/server-api.md)
+- [桌面 IPC 参考](docs/ipc/desktop-ipc.md)
+- [模块边界规则](docs/architecture/module-boundaries.md)
 - [数据字典](docs/data-dictionary.md)
-- [UI 设计](docs/ui-design.md)
-- [开发日志](docs/plan.md)
-- [小说迁移完整计划](docs/superpowers/plans/2026-05-02-novel-system-migration.md)
-- [小说迁移 Parity 审计](docs/superpowers/specs/2026-05-02-novel-migration-parity-audit.md)
-- [任务存储设计说明](docs/superpowers/specs/2026-04-27-task-storage-and-api-design.md)
+- [UI 设计说明](docs/ui-design.md)
+- [开发记录](docs/plan.md)
 
 ---
 
 ## License
 
 Private
-
----
-
-## Architecture Notes (2026-05-05)
-
-- Desktop UI follows a Feature-Sliced–style layering: `app → pages → widgets → features → shared`. Pages stay thin route entries; child views, hooks, local types, and pure helpers split when they carry independent responsibility. The split rules live in [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md).
-- `shared/api/*.ts` owns all HTTP calls to the local server; slices in `shared/store/*` import from there instead of calling `fetch` directly. Auth, orchestration, novel-chapter / auto-mode, project registration, and image generation all follow this pattern.
-- All UI store state lives under a single `useAppStore` composed from slices. Orchestration (run lifecycle + node review) is a slice (`orchestrationSlice.ts`) and integrates with `creativeFieldsSlice` for patch delivery instead of using a side store.
-- Page-level orchestration / auto-mode / chapter-workbench / memory components consume i18n keys exclusively; new keys live under `autoMode.*`, `orchestration.*`, `novelChapter.*`, and `memory.*` in `shared/i18n/{zh-CN,en-US}.yaml`.
-- Image-generation parameter schema lives at `shared/imageGen/schema.ts` because it is consumed by both the inspector (parameter UI) and the editor (request payload + family reconciliation).
-- Page-level project widgets (`ProjectCard`, `ProjectsEmptyState`) live under `widgets/projects/`; pages compose widgets, not the reverse.
-- `WorkspaceLayout` consumes `usePanelResize` for project-tree and bottom-panel resize handlers so the layout component stays composition-only.
-- New desktop projects default to `~/Documents/OrisonSpace`; user-selected project directories are registered as allowed roots for the current Electron session and guarded by shell IPC path validation.
-- Model config is stored as `~/.orison/model/index.yaml` plus one YAML file per model under `~/.orison/model/profiles/`; legacy `~/.orison/model/config.yaml` is migrated on read.
-- The settings page manages a reusable model library and assigns selected profiles to `novel`, `image`, and `video`.
-- The bottom Properties panel reads the selected image model from the same model library; placeholder image model choices have been removed.
-- The bottom Output panel is a real console fed by model refresh/save and image generation/save events.
-- Server generation APIs are provider-routed: `/v1/generation/:provider/text` and `/v1/generation/:provider/image`.
-- Model-list refresh is handled by the desktop shell against the configured provider base URL, avoiding renderer CORS limits without adding a server endpoint.
-- Current provider adapters are split by provider and capability for OpenAI-compatible, GCP, and Anthropic formats.
-- Image generation responses accept `b64Json`, `b64_json`, `base64`, or data URL payloads and normalize to `b64Json`, `mimeType`, and `dataUrl`.
-- The renderer previews generated images with data URLs, while the desktop shell converts base64 payloads into project-scoped files through `project:save-base64-image`.
-- Latest focused verification: `@orison/shared-contracts typecheck`, `@orison/server test/build`, `@orison/desktop-shell typecheck/test`, and `@orison/desktop-ui typecheck/test` pass.

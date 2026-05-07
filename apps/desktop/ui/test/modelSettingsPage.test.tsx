@@ -65,6 +65,30 @@ describe('ModelSettingsPage', () => {
     expect(screen.getByText('settings.emptyHint')).toBeTruthy();
   });
 
+  it('opens the profile editor from the empty state add action', async () => {
+    const setModelConfig = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ModelSettingsPage
+        t={tFake}
+        modelConfig={{ profiles: [], selected: { novel: null, image: null, video: null } }}
+        setModelConfig={setModelConfig}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'settings.emptyAction' }));
+
+    expect(screen.getByLabelText('settings.profileName')).toBeInTheDocument();
+    expect(screen.getByLabelText('settings.baseUrl')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('settings.apiKeyPlaceholder')).toBeInTheDocument();
+  });
+
+  it('shows the no-selection state when profiles exist but none is being edited', () => {
+    const setModelConfig = vi.fn().mockResolvedValue(undefined);
+    render(<ModelSettingsPage t={tFake} modelConfig={buildConfig()} setModelConfig={setModelConfig} />);
+
+    expect(screen.getByText('settings.selectProfileHint')).toBeInTheDocument();
+  });
+
   it('shows usage chip on profile rows when assigned', () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
     render(<ModelSettingsPage t={tFake} modelConfig={buildConfig()} setModelConfig={setModelConfig} />);

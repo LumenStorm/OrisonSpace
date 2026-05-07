@@ -35,7 +35,8 @@ export const authPlugin = fp(async (app) => {
   app.addHook('onRequest', async (request, reply) => {
     const isPublic =
       request.url === '/health' ||
-      request.url.startsWith('/v1/auth/');
+      request.url === '/v1/auth/login' ||
+      request.url === '/v1/auth/register';
 
     if (isPublic) return;
 

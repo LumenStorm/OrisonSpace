@@ -74,6 +74,31 @@ describe('auth', () => {
     expect(body.accessToken).toBeTruthy();
   });
 
+  it('returns the current user for a valid access token', async () => {
+    const app = buildServer();
+    const login = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: { email: testEmail, password: testPassword },
+    });
+
+    const { accessToken } = login.json();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/auth/me',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      user: {
+        email: testEmail,
+      },
+    });
+  });
+
   it('rejects wrong password', async () => {
     const app = buildServer();
     const response = await app.inject({

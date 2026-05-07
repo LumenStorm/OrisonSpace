@@ -1,118 +1,196 @@
-# Module Boundaries and Split Rules
+# 模块边界与拆分规则
 
-> Status: active architecture rulebook. Keep this document in sync when UI, desktop IPC, or server module boundaries change.
+> 状态：当前生效中的架构规则文档。只要 UI、桌面 IPC、服务端职责或存储边界发生变化，就要同步更新这里。
 
-## Goals
+## 目标
 
-- Keep pages, features, services, and provider adapters independently understandable.
-- Keep UI files focused on rendering and interaction, not filesystem, provider, or payload transformation details.
-- Keep backend provider behavior replaceable without changing route contracts.
-- Prefer explicit module ownership over large mixed files.
+- 让页面、功能模块、服务层、模型协议层都能独立理解
+- 让 UI 文件专注于渲染与交互，不混入文件系统、provider 协议或复杂 payload 拼装
+- 让后端和桌面主进程的边界稳定，便于替换实现而不破坏契约
+- 优先强调明确的模块所有权，而不是继续堆大型混合文件
 
-## Desktop UI
+## 桌面 UI
 
-- The renderer follows a Feature-Sliced–style layering: `app → pages → widgets → features → shared`. Higher layers may import lower layers; lower layers must not reach into higher layers.
-- `src/app/*` contains the application root composition (top-level conditional routing, store bootstrap effects).
-- `src/pages/*` are route-level entry files. A page may compose feature components and shared components, but should not own domain-heavy rendering, data transformation, or provider logic. Page subcomponents that are reusable across pages live under `widgets/`, not under the page folder.
-- `src/widgets/*` host cross-feature page chrome. Examples: `widgets/layout/WorkspaceLayout.tsx` for the workspace shell, `widgets/projects/*` for project cards and empty states reused by the projects page.
-- `src/features/<domain>/*` own product domains such as editor, project tree, orchestration, novel workbench, memory, and auto mode.
-- A feature entry component should mainly coordinate layout, state selection, and child view composition.
-- Child views, reusable controls, hooks, pure helpers, and local types should live in separate files when they have their own responsibility. When a feature accumulates more than one such helper file, group them under a sub-folder named after the feature aspect (e.g. `features/editor/file-editor/`, `features/inspector/image-gen-fields/`).
-- Tiny private JSX fragments may stay in the parent file only when they are tightly coupled to that parent and do not hide meaningful behavior.
-- Pure tree, path, formatting, sorting, mapping, and payload-building logic belongs in `utils`, `treeUtils`, adapter, or hook files, not inside JSX render bodies.
-- Shared UI primitives stay under `src/shared/components`; domain-specific components stay inside the owning feature.
-- Schemas and pure validation helpers consumed by more than one feature live under `src/shared/<domain>/` (for example `src/shared/imageGen/schema.ts`), not inside the feature that happens to render the form.
-- All HTTP calls to the local server live under `src/shared/api/<area>.ts`. Slices and components import these helpers; they must not call `fetch` directly. This keeps slice files sliced by responsibility and makes API contracts trivially testable.
-- Store code stays sliced by responsibility. `appStore.ts` only composes slices; slice files own their own state transitions. Long-lived domain state (orchestration runs, auto mode sessions, image generation params, etc.) is a slice — there is no parallel `useXyzStore` outside `useAppStore`.
-- Slice errors are stored as either a translated message or an i18n key with a pipe-separated argument list (for example `orchestration.startFailed|500`). UI layers resolve the key through a small helper such as `features/orchestration/errors.ts` so slices stay UI-agnostic while components still render translated text.
-- All user-visible text goes through the `t()` function from `shared/i18n/useI18n`. Tests that check translated strings should use tolerant regular expressions (raw-key OR translated-form) or `await screen.findByText(...)` to wait for async i18n loading.
+- 渲染层遵循 `app -> pages -> widgets -> features -> shared` 的分层约定。
+- 高层可以依赖低层，低层不能反向依赖高层。
+- `src/app/*` 只负责应用根部组合：
+  - 顶层页面切换
+  - 全局 bootstrap effect
+  - 顶层错误边界和壳层拼装
+- `src/pages/*` 是页面级入口文件：
+  - 可以组合 feature / widget / shared
+  - 不应该承载重度领域逻辑、复杂 payload 转换或 provider 逻辑
+- `src/widgets/*` 承载跨 feature 的页面级外壳与复用块，例如：
+  - `widgets/layout/WorkspaceLayout.tsx`
+  - `widgets/projects/*`
+- `src/features/<domain>/*` 拥有具体产品域，例如：
+  - editor
+  - project-tree
+  - orchestration
+  - novel workbench
+  - memory
+  - auto mode
+- 一个 feature 的入口组件应主要负责：
+  - 状态选择
+  - 子视图编排
+  - 页面局部布局
+- 子视图、局部 hook、纯工具函数、局部类型，只要具备独立职责，就应拆到独立文件。
+- 纯渲染辅助、树结构处理、路径转换、排序、payload 构建，不应直接写在 JSX render 体里。
+- 通用 UI 原语放在 `src/shared/components`
+- 只属于某个业务域的组件，放回对应 feature 内部
+- 被多个 feature 复用的 schema / 验证辅助，放在 `src/shared/<domain>/`
+- 所有 HTTP 请求统一放在 `src/shared/api/*.ts`
+  - slice 和组件只能调这些 helper
+  - 不直接在组件或 slice 中写 `fetch`
+- store 采用 slice 化组织：
+  - `appStore.ts` 只组合 slice
+  - 每个 slice 自己维护状态与状态迁移
+- 当前鉴权启动逻辑已经收口到 `authSlice.bootstrapAuth()`：
+  - `App` 不直接负责 session 校验细节
+  - `App` 只消费 `authStatus`
+- 用户可见文案统一走 `t()`，禁止新增硬编码显示文本
 
-## Desktop Shell and IPC
+## 桌面 Shell 与 IPC
 
-- IPC contracts are defined in `packages/shared-contracts/src/ipc.ts` and exposed through `shell/preload/index.ts`.
-- Renderer code calls the preload API only. It should not import Electron or Node filesystem APIs.
-- `shell/main/ipc/*Ipc.ts` files own IPC handlers by capability. Shared validation logic belongs in helper files such as `pathGuard.ts`.
-- File and shell operations must pass path validation before touching disk.
-- Generated image file operations stay project-scoped and may only write to `temp/images` or `assets/images`.
-- New user-created projects default to `~/Documents/OrisonSpace`.
-- User-selected project directories and selected cover image files are registered by the desktop shell as allowed roots for the current Electron session; this supports projects outside the default root without weakening project-relative escape checks.
-- Model config lives at `~/.orison/model/index.yaml` and `~/.orison/model/profiles/*.yaml`; legacy `~/.orison/model/config.yaml` is migration-only.
-- User preferences live at `~/.orison/user/preferences.yaml`.
-- No legacy compatibility should be added for the old `~/.orison/config.json` model path.
-- Global user preferences currently include theme, locale, and auto-apply-patches. Layout, recent projects, and auth are intentionally excluded.
-- Model-list refresh is a desktop shell responsibility (`model:list-provider-models`), not a server route.
+- IPC 契约定义在 `packages/shared-contracts/src/ipc.ts`
+- 渲染层只能通过 preload API 与主进程交互
+- 渲染层不得直接导入 Electron 或 Node 文件系统 API
+- `shell/main/ipc/*Ipc.ts` 以能力划分 handler
+- 共用校验逻辑放辅助文件，例如 `pathGuard.ts`
+- 文件与 shell 操作都必须先通过路径安全校验
+- 生成图片文件只能写入项目内允许目录，例如：
+  - `temp/images`
+  - `assets/images`
+- 新项目默认根目录：`~/Documents/OrisonSpace`
+- 用户主动选择的项目目录和封面图路径，会在当前 Electron 会话里注册为允许根
 
-### Desktop Model Gateway
+## 模型配置与桌面模型网关
 
-- `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` (new) owns `model:generate-text`, `model:generate-image`, `model:generate-video`. It is the only place that decrypts `apiKey` for model calls.
-- `apps/desktop/shell/main/ipc/modelProviderIpc.ts` keeps the `model:list-provider-models` channel; body delegates to `@orison/model-protocols.listModels(provider, ...)`.
-- `apps/desktop/shell/main/ipc/configIpc.ts` handles the v2 profile schema. Each profile YAML carries a `models[]` list with `{id, alias, apiFormat, capabilities}`. Slot assignment in `~/.orison/model/index.yaml` is a `{profileId, modelId}` pair. v1 single-model profiles are migrated automatically on first read.
-- `apps/desktop/shell/main/storySync/` (new directory) holds the LLM-driven story-sync extraction lifted out of agent: orchestrates "load slot → resolve profile (decrypt apiKey) → build messages via `@orison/story-sync` → call `model-protocols.generateText` → parse + safety-check → return patches". Renderer triggers it via `storySync:run` IPC.
-- Renderer never sees a raw `apiKey` for the generation flow. Slot model passed across IPC contains only `{profileId, modelId}` plus non-secret display fields.
+- 模型配置使用 v2 结构：
+  - `~/.orison/model/index.yaml`
+  - `~/.orison/model/profiles/*.yaml`
+- 每个 profile 表示一组：
+  - `provider`
+  - `baseUrl`
+  - `apiKey`
+- 每个 profile 下的 `models[]` 表示具体模型条目：
+  - `id`
+  - `alias`
+  - `apiFormat`
+  - `capabilities`
+- 槽位分配使用 `{ profileId, modelId }`
+- `apps/desktop/shell/main/ipc/modelProviderIpc.ts`
+  - 负责 `model:list-provider-models`
+  - 只负责列模型，不负责生成
+- `apps/desktop/shell/main/ipc/modelGatewayIpc.ts`
+  - 负责 `model:generate-text`
+  - 负责 `model:generate-image`
+  - 负责 `model:generate-video`
+  - 是唯一会解密模型 `apiKey` 并调用 provider 的主进程入口
+- 渲染层永远拿不到真实 `apiKey`
+- server 和 agent 也不再持有 provider `apiKey`
 
-## Story-Sync
+## Story Sync
 
-- Shared logic — prompt template, JSON parsing, patch safety validation — lives in `packages/story-sync/` and is imported by both `apps/desktop/shell/main/storySync/` (for execution) and `apps/agent/src/nodes/story-sync-agent/` (for validation of incoming pre-computed patches).
-- The package is pure TS — no Fastify, no Electron, no IO. Allowed dependencies: `@orison/shared-contracts`, `zod`.
-- `parseStorySyncResponse(text, ctx)` is used by desktop main to parse an LLM text response into safe patches.
-- `parseStorySyncPatches(rawPatches, ctx)` is used by agent to revalidate pre-computed patches received in `artifacts['chapter.llmPatches']`. Treats input as untrusted.
-- `enforcePatchSafety(patches, ctx)` is the shared kernel that both entry points share — whitelist field, `action='merge'`, `fieldVersion` matches context, `generatedBy` forced to `'story-sync-agent'`.
+- 共享 story-sync 逻辑放在 `packages/story-sync/`
+- 共享内容包括：
+  - prompt 构建
+  - 响应解析
+  - patch 安全校验
+- desktop main 负责真正执行 story-sync LLM 调用
+- 渲染层通过 `storySync:run` IPC 触发
+- Agent 只负责：
+  - 校验预计算补丁
+  - 在补丁不可用时走规则回退
+- 如果任何代码路径让 agent 重新直接请求第三方模型，应视为回归
 
-## Desktop Local BFF (Sync Layer)
+## Desktop Local BFF
 
-- `apps/desktop/local-bff` is the desktop process local backend for project-directory persistence. It owns YAML-backed project data such as `project.yaml`, chapter files, sync state, and `memory/story-memory.yaml`.
-- Renderer code must not import `local-bff` directly. Renderer writes flow through preload IPC, then `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` validates the project path and creative field key before calling `local-bff` sync entry points such as `onFieldEdited(...)`.
-- `local-bff` repositories stay Electron-agnostic and path-oriented so they can be tested outside the shell process and later extracted into a standalone service if needed.
-- Field sync writes must pass `assertSafePath(projectPath)` and `creativeFieldKeySchema` validation before touching disk.
-- The agent process may read project files for orchestration context, but desktop-originated writes remain owned by the shell IPC plus `local-bff` sync layer.
+- `apps/desktop/local-bff` 是桌面端本地项目数据读写层
+- 它负责：
+  - `project.yaml`
+  - 章节 markdown
+  - `memory/story-memory.yaml`
+  - 字段同步桥接后的本地写入
+- 渲染层不能直接 import local-bff
+- 渲染层写入必须走：
+  - preload
+  - shell IPC
+  - local-bff
+- `local-bff` 应保持 Electron 无关、路径驱动、便于测试
 
-## Memory & RAG
+## Auto Mode 持久化
 
-- Story memory persists as `memory/story-memory.yaml` under each project and uses `StoryMemoryEntry` from `packages/shared-contracts` as its durable entry contract.
-- Embedding fields on memory entries are optional. The default runtime path must keep working without embedding vectors, an embedding provider, or a vector database.
-- Retrieval integrations should depend on the `MemoryRetriever` interface under `apps/agent/src/engine/memory/`, not on a specific embedding provider or storage engine.
-- Chapter context may include `memoryHits`, but downstream nodes must tolerate an empty array until a concrete embedding provider and ranking strategy are selected.
+- Auto Mode 状态由 agent 侧拥有
+- 主要模块：
+  - `novelAutoModeRunner.ts`
+  - `autoModeService.ts`
+  - `autoModeStore.ts`
+- 持久化位置：
+  - `<projectPath>/runs/auto-mode/<autoModeId>.yaml`
+- `POST /v1/orchestration/auto-mode/restore`
+  - 是跨进程恢复会话的唯一公开入口
 
-## Story Sync Agent (Rules + Pre-Computed Patches)
+## 服务端
 
-- Desktop owns LLM execution. The story-sync LLM-driven extraction runs in `apps/desktop/shell/main/storySync/` (using `@orison/story-sync` for prompt + parser + safety). Renderer triggers it via the `storySync:run` IPC channel before posting an orchestration run; main returns safe patches that the renderer embeds under `artifacts['chapter.llmPatches']` of the run body.
-- `apps/agent/src/nodes/story-sync-agent/` runs only the rules path **plus** a pre-computed-patches branch. The pre-computed branch reads `artifacts['chapter.llmPatches']` from the run input, validates each patch via `parseStorySyncPatches` from `@orison/story-sync` (whitelist field, `action='merge'`, `fieldVersion` matches context, `generatedBy` forced to `'story-sync-agent'`, `runId/chapterId` forced from caller), and emits the safe subset.
-- Validation failure or missing field → fall back to the rules path. The agent never holds an `apiKey` and never opens an outbound HTTPS connection to a model provider; if a code path tries to, treat it as a regression.
-- Rules path (`rules.ts`) is unchanged from before — pure heuristic, no IO, no LLM. It is the agent's only fallback.
-- The shared safety contract on emitted patches: `action` is always `merge`; `field` must be in `creativeFieldKeys`; `fieldVersion` must equal the current context version for that field; `generatedBy` is forced to `'story-sync-agent'`; `runId`/`chapterId` are forced from the caller, never from the LLM.
+- 服务端路由保持薄层：
+  - 校验输入
+  - 调用 service
+  - 翻译错误为 HTTP 响应
+- 当前服务端只拥有这些责任：
+  - `auth`
+  - `project`
+  - `task`
+  - `orchestration proxy`
+- 服务端 generation 模块已删除
+- 服务端不再直接请求任何第三方模型 provider
+- `/v1/orchestration/*` 全部作为 agent 代理转发
+- 服务端是唯一对公网暴露的进程
+- agent 只通过服务端代理间接访问
 
-## Auto Mode Persistence
+## 模型协议层
 
-- Auto mode session state is owned by `apps/agent/src/engine/autoMode/`. `novelAutoModeRunner.ts` is the per-session state machine; `autoModeService.ts` is the in-process registry plus background driver; `autoModeStore.ts` is the YAML persistence layer.
-- Each session is serialized as `<projectPath>/runs/auto-mode/<autoModeId>.yaml` and stamped with `schemaVersion`. State transitions persist sequentially through `pendingPersist` to avoid interleaved writes.
-- `POST /v1/orchestration/auto-mode/restore` rehydrates persisted sessions from a project path on demand. The route is the only public entry point for cross-process recovery; restored sessions are validated against `novelAutoModeStateSchema` and broken YAMLs are skipped.
-- Persistence is additive: live `getState` always prefers the in-memory runner; the disk store is consulted only when no runner is registered for that `autoModeId`.
+- 所有模型协议适配器放在 `packages/model-protocols/`
+- 该包是纯 Node 包：
+  - 不依赖 Fastify
+  - 不依赖 Electron
+  - 不依赖 dotenv
+  - 不做文件系统副作用
+- `listModels(provider, ...)`
+  - 按 `provider` 选择列模型协议
+- `generateText / generateImage / generateVideo`
+  - 按 `apiFormat` 选择生成协议
+- 当前支持的 `apiFormat`：
+  - `openai-chat-completions`
+  - `openai-responses`
+  - `claude-messages`
+  - `gemini-generate-content`
+  - `openai-images`
+  - `gemini-images`
+  - `sora-videos`
+- server 不允许 import 这个包
+- 桌面主进程才是它的调用方
 
-## Server
+## 鉴权规则
 
-- Routes stay thin: validate input, select service, and translate expected errors into HTTP responses.
-- Server owns only resource-state routes (`auth`, `project`, `task`) and the orchestration proxy (`/v1/orchestration/*`). The entire `apps/server/src/modules/generation/` tree was deleted in 2026-05-07; server no longer opens an outbound HTTPS connection to any model provider.
-- The orchestration proxy forwards `runs`, `actions`, `auto-mode`, `auto-mode/actions`, `auto-mode/:id`, and `auto-mode/restore` to `${AGENT_URL}` with `Authorization` preserved.
-- Server is the only public-facing process; agent is reachable only through the proxy. JWT validation runs in `authPlugin` before any proxy forward.
-- Shared request and response schemas live in `packages/shared-contracts`.
+- 当前公开 auth 路由只有：
+  - `POST /v1/auth/login`
+  - `POST /v1/auth/register`
+- `GET /v1/auth/me` 是受保护接口
+- 桌面端启动时使用 `/v1/auth/me` 做 bootstrap
+- `authSlice` 负责区分：
+  - `checking`
+  - `authenticated`
+  - `anonymous`
+  - `error`
 
-## Generation Providers
+## 文档同步规则
 
-- All provider/protocol adapters live in `packages/model-protocols/`. The package is pure Node — no Fastify, no Electron, no `dotenv`, no filesystem side-effects beyond `node:buffer`. Server **must not** import this package; only `apps/desktop/shell/main` does.
-- The package draws a clear line between two concerns:
-  - **`listModels(provider, ...)`** routes by `provider` (`openai` / `anthropic` / `gcp`). One implementation per provider; NewAPI-style relays piggyback on `provider='openai'`.
-  - **`generate{Text,Image,Video}(profile, request, ctx)`** routes by the model entry's `apiFormat`. One adapter file per format under `protocols/<apiFormat>.ts`.
-- Shipping `apiFormat` values and their owners:
-  - `openai-chat-completions` → `protocols/openaiChat.ts` (text)
-  - `openai-responses` → `protocols/openaiResponses.ts` (text)
-  - `claude-messages` → `protocols/claudeMessages.ts` (text)
-  - `gemini-generate-content` → `protocols/geminiGenerateContent.ts` (text)
-  - `openai-images` → `protocols/openaiImages.ts` (image)
-  - `gemini-images` → `protocols/geminiImages.ts` (image)
-  - `sora-videos` → `protocols/soraVideos.ts` (video; placeholder, throws `ProtocolNotImplementedError`)
-- Each adapter exposes only the verbs that format supports; unsupported verbs throw `ProtocolCapabilityError`. Adapters consume and return shapes from `@orison/shared-contracts`. Image responses are normalized to `b64Json + mimeType + dataUrl` inside the adapter.
-
-## Documentation Rule
-
-- When a session changes architecture boundaries, storage locations, IPC surface, or backend API shape, update both the root documentation and the matching `docs/` reference file.
-- Keep rule documents threshold-free unless the team explicitly agrees to numeric thresholds.
+- 只要以下内容发生变化，就必须同步更新文档：
+  - 架构边界
+  - 存储位置
+  - IPC surface
+  - 服务端 API
+  - 模型配置结构
+  - 启动鉴权行为
+- 根目录文档与 `docs/` 中对应参考文档都要一起更新

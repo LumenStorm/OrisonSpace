@@ -1,26 +1,40 @@
-# Server API Reference
+# 服务端 API 参考
 
 ## Base URL
 
+默认本地开发地址：
+
 `http://localhost:4000`
 
-## Authentication
+## 鉴权
 
-All endpoints except `/health` and `/v1/auth/*` require a `Bearer` token in the `Authorization` header.
+除以下接口外，所有接口都要求 `Authorization: Bearer <token>`：
 
-## Endpoints
+- `GET /health`
+- `POST /v1/auth/register`
+- `POST /v1/auth/login`
+
+## 接口列表
 
 ### GET /health
 
-Returns server health status.
+健康检查。
 
-Response: `{ "status": "ok" }`
+响应：
+
+```json
+{
+  "status": "ok"
+}
+```
+
+---
 
 ### POST /v1/auth/register
 
-Create a new user account.
+注册用户。
 
-Request body:
+请求体：
 
 ```json
 {
@@ -30,7 +44,7 @@ Request body:
 }
 ```
 
-Response (201):
+成功响应 `201`：
 
 ```json
 {
@@ -44,13 +58,18 @@ Response (201):
 }
 ```
 
-Errors:
-- `400`: Invalid input
-- `409`: Email already registered
+错误：
+
+- `400`：输入不合法
+- `409`：邮箱已注册
+
+---
 
 ### POST /v1/auth/login
 
-Request body:
+用户登录。
+
+请求体：
 
 ```json
 {
@@ -59,7 +78,7 @@ Request body:
 }
 ```
 
-Response (200):
+成功响应 `200`：
 
 ```json
 {
@@ -73,14 +92,40 @@ Response (200):
 }
 ```
 
-Errors:
-- `401`: Invalid email or password
+错误：
+
+- `401`：邮箱或密码错误
+
+---
+
+### GET /v1/auth/me
+
+获取当前 token 对应的用户信息。
+
+成功响应 `200`：
+
+```json
+{
+  "user": {
+    "id": "string",
+    "email": "creator@example.com",
+    "displayName": "Creator"
+  }
+}
+```
+
+说明：
+
+- 桌面端启动时会调用这个接口做 session bootstrap
+- 如果 token 过期或无效，会返回 `401`
+
+---
 
 ### POST /v1/projects
 
-Register a local project and allocate a sequential five-digit `projectId`.
+登记本地项目，分配五位顺序 `projectId`。
 
-Request body:
+请求体：
 
 ```json
 {
@@ -90,7 +135,7 @@ Request body:
 }
 ```
 
-Response (201):
+成功响应 `201`：
 
 ```json
 {
@@ -100,14 +145,17 @@ Response (201):
 }
 ```
 
-Behavior notes:
-- If the same `localFingerprint` is submitted again, the server returns the existing project record instead of creating a duplicate.
+行为说明：
+
+- 若 `localFingerprint` 已存在，返回已有项目而不是创建重复记录
+
+---
 
 ### POST /v1/tasks
 
-Submit a task for execution.
+提交任务。
 
-Request body (validated by `taskRequestSchema`):
+请求体示例：
 
 ```json
 {
@@ -116,21 +164,12 @@ Request body (validated by `taskRequestSchema`):
   "assetIds": ["char_001", "loc_002"],
   "type": "outline.rewrite",
   "name": "重写第一幕冲突",
-  "description": "强化主角和对手第一次正面冲突",
+  "description": "强化主角和对手第一次正面对抗",
   "input": "让冲突更紧张。"
 }
 ```
 
-Field notes:
-- `projectId`: five-digit project ID
-- `targetId`: optional target entity ID
-- `assetIds`: optional related asset IDs
-- `type`: task type string
-- `name`: human-readable task name
-- `description`: task intent summary
-- `input`: text payload passed to execution
-
-Response (202):
+成功响应 `202`：
 
 ```json
 {
@@ -139,15 +178,23 @@ Response (202):
 }
 ```
 
-Errors:
-- `404`: Project not found
-- `400`: Invalid request body
+错误：
+
+- `400`：请求体不合法
+- `404`：项目不存在
+
+---
 
 ### GET /v1/tasks/:taskId
 
-Retrieve the persisted task result. **Returns the bare `TaskResult` for backward compatibility with the desktop local-bff.** For metadata + result together, use `GET /v1/tasks/:taskId/detail`.
+获取任务执行结果。
 
-Response (validated by `taskResultSchema`):
+说明：
+
+- 这个接口返回的是纯 `TaskResult`
+- 为了兼容桌面端旧调用，不带任务元数据
+
+成功响应示例：
 
 ```json
 {
@@ -170,14 +217,17 @@ Response (validated by `taskResultSchema`):
 }
 ```
 
-Errors:
-- `404`: Task not found
+错误：
+
+- `404`：任务不存在
+
+---
 
 ### GET /v1/tasks/:taskId/detail
 
-Retrieve task metadata and result together.
+获取任务元数据与任务结果。
 
-Response (validated by `taskDetailResponseSchema`):
+成功响应示例：
 
 ```json
 {
@@ -187,7 +237,7 @@ Response (validated by `taskDetailResponseSchema`):
     "targetId": "act_1",
     "type": "outline.rewrite",
     "name": "重写第一幕冲突",
-    "description": "强化主角和对手第一次正面冲突",
+    "description": "强化主角和对手第一次正面对抗",
     "status": "completed",
     "createdAt": "2026-04-27T14:45:30.123Z",
     "assetIds": ["char_001", "loc_002"]
@@ -196,30 +246,36 @@ Response (validated by `taskDetailResponseSchema`):
     "taskId": "20260427214530123_48321",
     "status": "completed",
     "outputType": "patch",
-    "outputPayload": { "operations": [] },
+    "outputPayload": {
+      "operations": []
+    },
     "summary": "Mock rewrite completed.",
     "retryable": true
   }
 }
 ```
 
-Behavior notes:
-- `result` is `null` when no execution result has been persisted yet (task still queued/running).
-- `task.assetIds` is hydrated through a single `task_asset_refs` lookup.
+说明：
 
-Errors:
-- `404`: Task not found
+- 如果任务还没有结果，`result` 可以为 `null`
+
+错误：
+
+- `404`：任务不存在
+
+---
 
 ### GET /v1/projects/:projectId/tasks
 
-List persisted tasks for a project (keyset pagination).
+按项目列出任务，使用 keyset 分页。
 
-Query params (validated by `taskListQuerySchema`):
-- `limit`: 1–200, default `50`
-- `cursor`: opaque base64url cursor returned by a previous page (omit for first page)
-- `sort`: `createdDesc` (default) or `createdAsc`
+查询参数：
 
-Response (validated by `taskListResponseSchema`, 200):
+- `limit`：1-100，默认 `50`
+- `cursor`：上一页返回的 opaque cursor
+- `sort`：`createdDesc` 或 `createdAsc`
+
+成功响应示例：
 
 ```json
 {
@@ -230,33 +286,33 @@ Response (validated by `taskListResponseSchema`, 200):
       "targetId": "act_1",
       "type": "outline.rewrite",
       "name": "重写第一幕冲突",
-      "description": "强化主角和对手第一次正面冲突",
+      "description": "强化主角和对手第一次正面对抗",
       "status": "completed",
       "createdAt": "2026-04-27T14:45:30.123Z",
       "assetIds": ["char_001", "loc_002"]
     }
   ],
-  "nextCursor": "eyJ0cyI6IjIwMjYtMDQtMjdUMTQ6NDU6MzAuMTIzWiIsImlkIjoiMjAyNjA0MjcyMTQ1MzAxMjNfNDgzMjEifQ"
+  "nextCursor": "opaque-cursor"
 }
 ```
 
-Behavior notes:
-- Keyset pagination on `(created_at, task_id)`. Pass `nextCursor` from the previous response to fetch the next page; `nextCursor` is `null` when there are no more rows.
-- Asset IDs are hydrated with a single batched lookup, avoiding per-task N+1 queries.
+错误：
 
-Errors:
-- `404`: Project not found
+- `404`：项目不存在
+
+---
 
 ### GET /v1/projects/:projectId/assets
 
-List lightweight asset index entries for a project (keyset pagination).
+按项目列出轻量资产索引，使用 keyset 分页。
 
-Query params (validated by `projectAssetListQuerySchema`):
-- `limit`: 1–200, default `50`
-- `cursor`: opaque base64url cursor (omit for first page)
-- `sort`: `updatedDesc` (default) or `updatedAsc`
+查询参数：
 
-Response (validated by `projectAssetListResponseSchema`, 200):
+- `limit`：1-100，默认 `50`
+- `cursor`：上一页返回的 opaque cursor
+- `sort`：`updatedDesc` 或 `updatedAsc`
+
+成功响应示例：
 
 ```json
 {
@@ -268,7 +324,7 @@ Response (validated by `projectAssetListResponseSchema`, 200):
       "assetName": "char_001",
       "assetStatus": "active",
       "sourceTaskId": "20260427214530123_48321",
-      "summary": "强化主角和对手第一次正面冲突",
+      "summary": "强化主角和对手第一次正面对抗",
       "version": 1,
       "updatedAt": "2026-04-27T14:45:30.456Z"
     }
@@ -277,43 +333,85 @@ Response (validated by `projectAssetListResponseSchema`, 200):
 }
 ```
 
-Behavior notes:
-- Keyset pagination on `(updated_at, asset_id)`.
-- The current server writes placeholder index metadata for task-linked assets:
-  - `assetType = "unknown"`
-  - `assetName = assetId`
-  - `assetStatus = "active"`
-- `version` is incremented on upsert for the same `(projectId, assetId)`.
+错误：
 
-Errors:
-- `404`: Project not found
+- `404`：项目不存在
 
-## Limits and Notes
+---
 
-- Request body limit: `1 MB`
-- Task execution is currently backed by the mock adapter.
-- `GET /v1/tasks/:taskId` returns the bare `TaskResult` for backward compatibility; use `GET /v1/tasks/:taskId/detail` to fetch task metadata + result together.
-- Project task and asset list endpoints use keyset pagination — pass `nextCursor` from the previous response to fetch the next page.
-- Generation provider contracts live in `packages/shared-contracts/src/contracts/generation.ts`. They describe the request/response shapes that travel **inside the desktop main process** and through the desktop IPC layer; the server itself no longer exposes generation routes (see "Removed in 2026-05-07").
+## Orchestration 代理
 
-## Model List Refresh
+服务端不会自己执行编排逻辑，而是转发到 Agent：
 
-The desktop model settings page does not use a custom Orison server endpoint for model lists.
+- `POST /v1/orchestration/runs`
+- `GET /v1/orchestration/runs/:runId`
+- `POST /v1/orchestration/actions`
+- `POST /v1/orchestration/auto-mode`
+- `POST /v1/orchestration/auto-mode/actions`
+- `GET /v1/orchestration/auto-mode/:autoModeId`
+- `POST /v1/orchestration/auto-mode/restore`
 
-It asks the Electron desktop main process to refresh model choices from the configured model provider base URL, avoiding renderer CORS limits. Listing is **provider-routed** (one HTTP shape per provider), and the request body is delegated to `@orison/model-protocols.listModels(provider, ...)`:
-- OpenAI / NewAPI relay (`provider='openai'`): `GET {baseUrl}/v1/models` with `Authorization: Bearer {apiKey}`
-- Anthropic (`provider='anthropic'`): `GET {baseUrl}/v1/models` with `x-api-key: {apiKey}` and `anthropic-version: 2023-06-01`
-- GCP / Gemini (`provider='gcp'`): `GET {baseUrl}/v1beta/models?key={apiKey}` with `x-goog-api-key: {apiKey}`
+转发行为：
 
-After listing, the user assigns each model entry an `alias` and an `apiFormat` (auto-suggested via `inferApiFormat`). `apiFormat` — not `provider` — is what later drives generation request shape, so a Claude id served via a NewAPI relay can sit in a `provider='openai'` profile while still being marked `apiFormat='openai-chat-completions'`.
+- 保留调用方的 `Authorization`
+- 保留上游状态码
+- JSON 与纯文本响应都可透传
 
-Model profile config is stored as `~/.orison/model/index.yaml` plus one YAML file per profile under `~/.orison/model/profiles/`. Each profile YAML carries a `models[]` list with `{id, alias, apiFormat, capabilities}` per entry. Slot assignment in `index.yaml` is a `{profileId, modelId}` pair.
+---
 
-## Removed in 2026-05-07
+## 已移除接口
 
-The `/v1/generation/:provider/text` and `/v1/generation/:provider/image` routes were removed by the desktop-direct model gateway migration. Every third-party model HTTP call (text, image, video) now originates on the user's machine in the Electron desktop main process, dispatched via `@orison/model-protocols`. The server no longer holds, forwards, or proxies provider `apiKey`s.
+以下接口已在 2026-05-07 的 desktop-direct model gateway 迁移中移除：
 
-See:
-- `docs/superpowers/specs/2026-05-06-desktop-model-gateway-design.md` — design spec.
-- `docs/superpowers/plans/2026-05-06-desktop-model-gateway-migration.md` — migration plan.
-- `docs/ipc/desktop-ipc.md` — replacement IPC channels (`model:generate-text`, `model:generate-image`, `model:generate-video`, `storySync:run`).
+- `POST /v1/generation/:provider/text`
+- `POST /v1/generation/:provider/image`
+
+当前第三方模型调用方式：
+
+- 渲染层 -> Electron preload -> desktop main IPC
+- desktop main -> `@orison/model-protocols`
+- desktop main 直接请求第三方模型服务
+
+也就是说：
+
+- server 不再持有 provider `apiKey`
+- server 不再转发模型请求
+- agent 也不再直接访问模型
+
+---
+
+## 模型列表刷新说明
+
+模型列表刷新不是服务端接口，而是桌面主进程能力。
+
+桌面端通过 `model:list-provider-models` IPC 触发：
+
+- `provider = openai`：请求 `{baseUrl}/v1/models`
+- `provider = anthropic`：请求 `{baseUrl}/v1/models`
+- `provider = gcp`：请求 `{baseUrl}/v1beta/models?key=...`
+
+之后由用户在设置页中为每个模型配置：
+
+- `alias`
+- `apiFormat`
+- `capabilities`
+
+`provider` 只决定“如何列模型”，`apiFormat` 才决定“如何发生成请求”。
+
+---
+
+## 其他约束
+
+- 请求体大小限制：`1 MB`
+- CORS 白名单：
+  - `http://localhost:5173`
+  - `http://localhost:4000`
+  - `app://.`
+
+---
+
+## 相关文档
+
+- [桌面 IPC 参考](../ipc/desktop-ipc.md)
+- [模块边界规则](../architecture/module-boundaries.md)
+- [桌面直连模型网关设计](../superpowers/specs/2026-05-06-desktop-model-gateway-design.md)

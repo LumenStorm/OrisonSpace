@@ -55,4 +55,52 @@ describe('auth session expiry', () => {
     ).rejects.toThrow('Session expired');
     await expect(expired).resolves.toBeUndefined();
   });
+
+  it('boots to the auth page when the persisted token is already expired', async () => {
+    (globalThis as any).fetch = async () => ({
+      ok: false,
+      status: 401,
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Sign In' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(useAppStore.getState().token).toBeNull();
+      expect(useAppStore.getState().user).toBeNull();
+    });
+  });
+
+  it('hydrates the current user from session bootstrap before showing authenticated screens', async () => {
+    (globalThis as any).fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: {
+          id: 'user-1',
+          email: 'creator@example.com',
+          displayName: 'Synced Creator',
+        },
+      }),
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText('Synced Creator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(useAppStore.getState().user?.displayName).toBe('Synced Creator');
+    });
+  });
+
+  it('falls back to the auth page when session bootstrap fails for a non-expiry reason', async () => {
+    (globalThis as any).fetch = async () => ({
+      ok: false,
+      status: 503,
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: 'Sign In' })).toBeInTheDocument();
+    expect(screen.getAllByRole('alert')[0]?.textContent).toContain('Session bootstrap failed: 503');
+  });
 });

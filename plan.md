@@ -1,62 +1,111 @@
-# UI 完善实施记录
+# 当前计划与进度摘要
 
-## 已完成
+## 一、当前系统已经完成的主线
 
-### 第一批：Bug 修复 + 核心交互
-- [x] TiptapEditor isActive bug 修复（显式 activeName 映射）
-- [x] FileEditor Ctrl+S 保存快捷键
-- [x] TopBar 菜单键盘导航（Arrow/Enter/Escape + 菜单间切换）
-- [x] 全局快捷键 useGlobalShortcuts（Ctrl+S/Z/Shift+Z/N/O）
-- [x] AboutDialog + Help → About 菜单接入
+### 1. 小说工作流
 
-### 第二批：页面布局打磨
-- [x] AuthPage：密码可见切换、autoComplete、tab 清错误、焦点管理
-- [x] ProjectsPage：header + 空状态 + 卡片 hover 动画 + section title
-- [x] WorkspaceLayout：底部面板 CSS transition + 720px 响应式断点修正
+- 章节生成
+- 章节候选审核
+- story-sync 补丁提取
+- 长期记忆抽取
+- Auto Mode 自动推进
 
-### 第三批：侧边栏 & 项目树
-- [x] 新增 6 个 IPC 通道（read-directory/delete-entry/rename-entry/create-entry/read-file/write-file）
-- [x] ProjectTree 读取真实目录（懒加载 depth=1）+ 右键菜单调用真实 IPC
-- [x] 文件树展开/折叠 CSS 过渡动画
-- [x] SideNav aria-label 修正
+### 2. 桌面端创作能力
 
-### 安全加固
-- [x] pathGuard.ts 路径校验（所有 IPC 文件操作）
-- [x] windowIpc 删除自动创建文件逻辑
-- [x] API Key safeStorage 加密
-- [x] CSP 主进程动态注入（仅 prod）
-- [x] ErrorBoundary 包裹 App
-- [x] authSlice catch 类型安全
-- [x] 默认模型名置空，改为刷新供应商模型列表后选择兼容模型
+- 登录 / 注册 / 项目页 / 工作区
+- 本地项目文件读写
+- 创作字段同步
+- 模型配置页
+- 图片生成与项目资产保存
 
-### 性能优化
-- [x] dirtyPaths / ctxItems useMemo 缓存
-- [x] readDirectoryRecursive MAX_ENTRIES_PER_DIR=500 + maxDepth 钳位
+### 3. 模型网关迁移
 
-## 待完成
+- 服务端 generation route 已删除
+- desktop main 直接连 provider
+- `packages/model-protocols` 已落地
+- `packages/story-sync` 已落地
 
-### 第四批：底部面板 & Inspector
-- [ ] Inspector 字段改为受控组件
-- [ ] TaskFeed / OrchestrationPanel 样式补全 + i18n
-- [ ] Output tab 日志面板
+## 二、最近已收口的关键问题
 
-### 第五批：创作字段编辑器
-- [ ] 各 view 表单交互完善
-- [ ] RelationshipGraphEditor SVG 响应式
-- [ ] CurvesView 交互增强
----
+### 1. 启动鉴权
 
-## 2026-05-03 Session Sync
+已完成：
 
-- Synced the desktop UI split rules into `docs/architecture/module-boundaries.md`.
-- Recorded the current project storage rule: new desktop projects live under `~/Documents/OrisonSpace`.
-- Recorded config storage rules: model config lives at `~/.orison/model/config.yaml`; user preferences live at `~/.orison/user/preferences.yaml`.
-- Recorded server generation API shape: provider-routed text and image generation under `/v1/generation/:provider/*`.
-- No numeric file-size thresholds are defined yet; the rulebook focuses on ownership, coupling, and split boundaries.
+- 启动时先校验 `/v1/auth/me`
+- token 过期自动退出
+- 启动成功后同步最新 user
+- 非 401 错误进入登录页并保留错误提示
 
-## 2026-05-03 Image Generation Sync
+### 2. 模型设置页交互
 
-- 图片生成编辑器已接入 `POST /v1/generation/:provider/image`，使用设置页中当前 `image` 模型槽的 provider / apiKey / baseUrl / model。
-- 服务端图片响应统一归一化为 `b64Json`、`mimeType`、`dataUrl`；OpenAI-compatible 请求显式使用 `response_format: "b64_json"`，URL-only 结果会下载后转 base64。
-- 桌面 IPC 新增 `project:save-base64-image`、`project:move-file`、`project:delete-file`，生成图先落到项目 `temp/images/`，保存后移动到 `assets/images/`。
-- 图片生成结果可预览、保存文件，并写入 creative `asset_cards`，`sourceRefs` 指向项目内图片相对路径。
+已完成：
+
+- 空状态下点击“添加模型”可进入编辑器
+- 有 profile 但未选择时显示明确占位态
+- 编辑模式已整理成明确状态机，不再依赖隐式条件
+
+## 三、当前架构结论
+
+### 服务端
+
+当前只负责：
+
+- auth
+- project
+- task
+- orchestration proxy
+
+### 桌面主进程
+
+当前负责：
+
+- 模型配置读写
+- 用户偏好读写
+- provider 模型列表刷新
+- 文本 / 图片 / 视频生成
+- story-sync 本地执行
+
+### Agent
+
+当前负责：
+
+- 编排
+- 章节流水线
+- Auto Mode
+- 规则回退
+
+## 四、当前仍值得继续推进的方向
+
+### 1. 文档持续同步
+
+- 根目录文档与 `docs/` 需要保持与代码现状一致
+- 尤其是：
+  - auth 启动流程
+  - 模型配置 schema
+  - IPC surface
+  - server API
+
+### 2. 模型设置页产品表达
+
+虽然底层仍然使用 profile 概念，但 UI 文案后续可以进一步降低歧义，例如：
+
+- “新建模型配置”
+- “选择一个配置”
+- “配置中的模型列表”
+
+### 3. 历史文档整理
+
+部分历史文档存在：
+
+- 编码乱码
+- 旧 generation 路由描述
+- 旧鉴权入口条件描述
+
+这些已经开始同步，但仍需要分批继续清理。
+
+## 五、近期推荐工作顺序
+
+1. 维护当前文档与代码一致
+2. 清理历史乱码文档
+3. 继续收敛 UI 文案与交互状态表达
+4. 再考虑更深的架构优化

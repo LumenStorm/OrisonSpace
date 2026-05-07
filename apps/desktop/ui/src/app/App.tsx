@@ -10,6 +10,8 @@ export function App() {
   const token = useAppStore((s) => s.token);
   const currentProject = useAppStore((s) => s.currentProject);
   const logout = useAppStore((s) => s.logout);
+  const authStatus = useAppStore((s) => s.authStatus);
+  const bootstrapAuth = useAppStore((s) => s.bootstrapAuth);
   const loadUserPreferences = useAppStore((s) => s.loadUserPreferences);
   const loadModelConfig = useAppStore((s) => s.loadModelConfig);
 
@@ -23,12 +25,18 @@ export function App() {
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, logout);
   }, [logout]);
 
-  const minimal = !token;
+  useEffect(() => {
+    void bootstrapAuth();
+  }, [bootstrapAuth, token]);
+
+  if (authStatus === 'checking') return null;
+
+  const minimal = authStatus !== 'authenticated';
 
   return (
     <>
       <TopBar minimal={minimal} />
-      {!token ? <AuthPage /> : !currentProject ? <ProjectsPage /> : <WorkspacePage />}
+      {authStatus !== 'authenticated' ? <AuthPage /> : !currentProject ? <ProjectsPage /> : <WorkspacePage />}
     </>
   );
 }
