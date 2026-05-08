@@ -3,7 +3,7 @@ import type {
   novelChapterRunRequestSchema,
   novelAutoModeStateSchema,
   RunStorySyncResult,
-  SlotAssignment,
+  ModelRef,
 } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
 
@@ -18,11 +18,10 @@ type StartChapterRunInput = {
   mode: NovelChapterRunMode;
   instruction?: string;
   /**
-   * `novel` slot used to drive the story-sync LLM extraction locally before
-   * the orchestration request is posted to server. Omitted for `mode='rules'`
-   * runs and when no novel slot is configured.
+   * Model ref used to drive the story-sync LLM extraction locally before
+   * the orchestration request is posted to server.
    */
-  storySyncSlot?: SlotAssignment | null;
+  storySyncRef?: ModelRef | null;
   storySyncContext?: {
     runId?: string;
     candidate?: Record<string, unknown>;
@@ -34,23 +33,20 @@ type StartChapterRunInput = {
 /**
  * Kick off a chapter orchestration run.
  *
- * When `storySyncSlot` is provided: the renderer runs the story-sync LLM
+ * When `storySyncRef` is provided: the renderer runs the story-sync LLM
  * extraction on desktop main first, packs the safe patches into
- * `artifacts['chapter.llmPatches']`, then POSTs the run to server. Server
- * proxies to agent unchanged. Agent re-validates the patches via the shared
- * safety contract.
+ * `artifacts['chapter.llmPatches']`, then POSTs the run to server.
  *
- * When `storySyncSlot` is null/undefined (rules-only run): the request is
- * posted without `chapter.llmPatches`; agent's rules path runs as the only
- * source of patches.
+ * When `storySyncRef` is null/undefined (rules-only run): the request is
+ * posted without `chapter.llmPatches`.
  */
 export async function startChapterRun(input: StartChapterRunInput): Promise<unknown> {
   const artifacts: Record<string, unknown> = {};
 
-  if (input.storySyncSlot && window.orisonDesktop?.runStorySync) {
+  if (input.storySyncRef && window.orisonDesktop?.runStorySync) {
     try {
       const result: RunStorySyncResult = await window.orisonDesktop.runStorySync({
-        slot: input.storySyncSlot,
+        ref: input.storySyncRef,
         runId: input.storySyncContext?.runId ?? `desktop-${Date.now()}`,
         chapterId: input.chapterId,
         candidate: input.storySyncContext?.candidate ?? {},

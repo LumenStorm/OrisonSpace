@@ -13,3 +13,4 @@ export * from './ipc';
 export * from './orchestration';
 export * from './config';
 export * from './config-yaml';
+export * from './model-registry';

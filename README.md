@@ -14,7 +14,7 @@
 
 ---
 
-## 当前状态（2026-05-07）
+## 当前状态（2026-05-08）
 
 ### 核心能力
 
@@ -37,6 +37,8 @@
   - 文本 / 图片 / 视频生成都走 IPC
   - `apiKey` 不再经过 server，也不进入 agent
   - 模型列表统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`），覆盖直连 OpenAI 和 NewAPI/OneAPI 中继
+  - 协议层统一为单一 OpenAI 兼容适配器（`generateText` / `generateImage` / `generateVideo`），移除多 apiFormat 注册表
+  - 模型能力识别改为 model-registry 模式匹配（glob pattern），不再依赖手动 apiFormat 标注
 
 ### 鉴权与会话
 
@@ -57,15 +59,13 @@
 
 ### 模型配置
 
-- 模型配置使用 v2 结构：
-  - `~/.orison/model/index.yaml`
-  - `~/.orison/model/profiles/*.yaml`
-- 一个 profile 表示一组 `provider + baseUrl + apiKey`
-- 一个 profile 下可挂多个 `models[]`
-- 槽位选择为：
-  - `novel -> { profileId, modelId }`
-  - `image -> { profileId, modelId }`
-  - `video -> { profileId, modelId }`
+- 模型配置使用 key-based 结构：
+  - `~/.orison/model/keys/*.yaml`
+- 一个 key 表示一组 `name + baseUrl + apiKey`
+- 一个 key 下挂多个 `models[]`（从远端 `/v1/models` 发现后自动分类）
+- 每个 model 有 `id`、`capability`（text/image/video）、`alias`、`enabled`
+- 生成请求使用 `ModelRef`：`{ keyId, modelId }`
+- 模型能力和别名由 `model-registry`（glob pattern 匹配）自动推断
 
 ### 测试基线
 
@@ -173,7 +173,7 @@ OneLine2Video/
 │  │  │              ├─ tiptap.css    Tiptap + Outline + Acts
 │  │  │              ├─ script.css    Script / Novel 编辑器外壳
 │  │  │              ├─ video.css
-│  │  │              ├─ image-gen.css 图片生成 + 画廊 + 分页 + profile chip
+│  │  │              ├─ image-gen.css 图片生成 + 画廊 + 分页 + model chip
 │  │  │              ├─ image-dialog.css 预览弹窗 + 编辑弹窗
 │  │  │              ├─ novel.css     Novel Workbench + Memory Panel + 子 tab
 │  │  │              └─ file.css      File Editor + Tab Bar + markdown/code/image
@@ -193,7 +193,7 @@ OneLine2Video/
 │           ├─ asset/ review/ user/ audit/ quota/
 ├─ packages/
 │  ├─ shared-contracts/               Zod schema、IPC 类型、跨进程契约
-│  ├─ model-protocols/                按 `apiFormat` 分发的 provider 适配层
+│  ├─ model-protocols/                统一 OpenAI 兼容适配层（text/image/video 生成 + listModels）
 │  ├─ story-sync/                     story-sync 共享逻辑（prompt / parse / patch）
 │  ├─ shared-utils/
 │  ├─ ui-kit/
@@ -341,7 +341,7 @@ pnpm lint
 
 - `apps/server` 不再持有任何 provider generation route
 - `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` 成为统一模型出口
-- `packages/model-protocols` 负责按 `apiFormat` 分发协议
+- `packages/model-protocols` 负责统一 OpenAI 兼容协议调用
 
 ### 2. Story Sync 从 Agent 中抬出
 
@@ -357,10 +357,10 @@ pnpm lint
 
 ### 4. 模型设置页交互状态收口
 
-- 空 profile -> 空状态
+- 空 key -> 空状态
 - 新建中 -> 编辑器
-- 选择已有 profile -> 编辑器
-- 有 profile 但未选择 -> 提示先选择
+- 选择已有 key -> 编辑器
+- 有 key 但未选择 -> 提示先选择
 
 ### 5. 桌面 UI 样式按文件夹分层
 

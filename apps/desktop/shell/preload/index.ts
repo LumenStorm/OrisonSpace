@@ -4,10 +4,10 @@ import type {
   GenerateTextPayload,
   GenerateVideoPayload,
   ImageGenerationResponse,
+  ListRemoteModelsRequest,
   ModelConfig,
   OrisonDesktopApi,
-  ProviderModel,
-  ProviderModelListRequest,
+  RemoteModel,
   RunStorySyncPayload,
   RunStorySyncResult,
   SaveBase64ImageInput,
@@ -40,8 +40,8 @@ export const exposedDesktopApi = {
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
-  listProviderModels: (request: ProviderModelListRequest) =>
-    ipcRenderer.invoke('model:list-provider-models', request) as Promise<ProviderModel[]>,
+  listRemoteModels: (request: ListRemoteModelsRequest) =>
+    ipcRenderer.invoke('model:list-remote-models', request) as Promise<RemoteModel[]>,
   // 模型生成（desktop main 直连 provider）
   generateText: (payload: GenerateTextPayload) =>
     ipcRenderer.invoke('model:generate-text', payload) as Promise<TextGenerationResponse>,

@@ -80,21 +80,20 @@
 
 ## 模型配置与桌面模型网关
 
-- 模型配置使用 v2 结构：
-  - `~/.orison/model/index.yaml`
-  - `~/.orison/model/profiles/*.yaml`
-- 每个 profile 表示一组：
-  - `provider`
+- 模型配置使用 key-based 结构：
+  - `~/.orison/model/keys/*.yaml`
+- 每个 key 表示一组：
+  - `name`
   - `baseUrl`
   - `apiKey`
-- 每个 profile 下的 `models[]` 表示具体模型条目：
+- 每个 key 下的 `models[]` 表示发现的模型条目：
   - `id`
-  - `alias`
-  - `apiFormat`
-  - `capabilities`
-- 槽位分配使用 `{ profileId, modelId }`
+  - `capability`（text/image/video，由 model-registry 推断）
+  - `alias`（由 model-registry 推断）
+  - `enabled`
+- 生成请求使用 `ModelRef`：`{ keyId, modelId }`
 - `apps/desktop/shell/main/ipc/modelProviderIpc.ts`
-  - 负责 `model:list-provider-models`
+  - 负责 `model:list-remote-models`
   - 只负责列模型，不负责生成
 - `apps/desktop/shell/main/ipc/modelGatewayIpc.ts`
   - 负责 `model:generate-text`
@@ -170,23 +169,14 @@
   - 不依赖 Electron
   - 不依赖 dotenv
   - 不做文件系统副作用
-- `listModels(provider, ...)`
+- `listModels(request)`
   - 统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`）
   - 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
+  - 返回 `RemoteModel[]`（id + capability + alias），能力由 `model-registry` 推断
 - `generateText / generateImage / generateVideo`
-  - 按 `apiFormat` 选择生成协议
-- 当前支持的 `apiFormat`：
-  - `openai-chat-completions`
-  - `openai-responses`
-  - `claude-messages`
-  - `gemini-generate-content`
-  - `openai-images`（含 `/images/edits` multipart 分支，当 `request.image` 存在时自动切换）
-  - `gemini-images`（Imagen `:predict` 端点）
-  - `gemini-image-edit`（Gemini Flash/Pro Image 系列，走 `:generateContent` + `inline_data`）
-  - `sora-videos`
-- `providerOptions` 采用命名空间结构 `{ [apiFormat]: { ... } }`，每个 adapter 只读自己的命名空间
-- text adapter 响应统一映射 `id`、`created`、`usage`（`promptTokens`/`completionTokens`/`totalTokens`）、`finishReason`（`stop`/`length`/`content_filter`/`tool_use`/`other`）
-- image adapter 支持 `image`、`mask`、`referenceImages` 字段用于图像编辑
+  - 统一走 OpenAI 兼容端点（`/chat/completions`、`/images/generations`、`/images/edits`）
+  - 接收 `ResolvedModel`（含 baseUrl、apiKey、modelId、capability）
+- image adapter 支持 `image`、`mask` 字段用于图像编辑
 - 渲染层支持上传参考图进入编辑模式，自动切换到 `/images/edits` 端点并强制 n=1
 - server 不允许 import 这个包
 - 桌面主进程才是它的调用方

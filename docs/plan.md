@@ -47,11 +47,12 @@
 
 ### 1. 桌面模型库
 
-- 模型配置从单一旧结构演进为：
-  - `~/.orison/model/index.yaml`
-  - `~/.orison/model/profiles/*.yaml`
-- 支持 profile 下多模型条目
-- 槽位改为 `{ profileId, modelId }`
+- 模型配置从 profile 结构简化为 key-based 结构：
+  - `~/.orison/model/keys/*.yaml`
+- 一个 key = 一组凭据（name + baseUrl + apiKey）
+- 模型从远端 `/v1/models` 发现后自动分类
+- 能力和别名由 `model-registry` glob pattern 推断
+- 生成请求使用 `ModelRef`：`{ keyId, modelId }`
 
 ### 2. 图片生成链路
 
@@ -103,10 +104,10 @@
 
 当前 UI 已整理出明确状态：
 
-- 无 profile：空状态
+- 无 key：空状态
 - 新建中：编辑器
 - 编辑已有项：编辑器
-- 有 profile 但未选择：占位提示
+- 有 key 但未选择：占位提示
 
 ## 四、当前已验证
 
@@ -135,4 +136,12 @@
 
 ### 3. UI 命名与文案
 
-模型设置页底层仍是 profile 概念，但 UI 文案可以继续优化，减少“模型”和“配置”混用带来的歧义。
+模型设置页底层已改为 key 概念，UI 文案可以继续优化，减少”模型”和”配置”混用带来的歧义。
+
+### 4. 协议层简化（2026-05-08）
+
+- 移除多 apiFormat 注册表和所有独立协议 adapter（claudeMessages、geminiGenerateContent、geminiImages、geminiImageEdit、openaiChat、openaiResponses、openaiImages、soraVideos）
+- 统一为单一 OpenAI 兼容适配器（`generate.ts`）
+- `listModels` 不再接收 `provider` 参数
+- 模型能力识别改为 `model-registry` glob pattern 匹配
+- 生成请求 schema 简化：移除 `apiFormat`、`provider`、`providerOptions` 等字段

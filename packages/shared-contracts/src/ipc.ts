@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type {
-  GenerationProvider,
   ImageGenerationRequest,
   ImageGenerationResponse,
   TextGenerationRequest,
@@ -8,12 +7,7 @@ import type {
   VideoGenerationRequest,
   VideoGenerationResponse,
 } from './contracts/generation';
-import type {
-  ModelCapability,
-  ModelProfileV2,
-  SlotAssignment,
-  SlotAssignmentMap,
-} from './contracts/model';
+import type { ModelCapability, ModelConfig, DiscoveredModel } from './contracts/model';
 import type { NovelStorySyncPayload } from './contracts/novel-orchestration';
 
 export const desktopIpcSchema = z.object({
@@ -23,7 +17,7 @@ export const desktopIpcSchema = z.object({
     'config:save-model',
     'config:load-user-preferences',
     'config:save-user-preferences',
-    'model:list-provider-models',
+    'model:list-remote-models',
     'model:generate-text',
     'model:generate-image',
     'model:generate-video',
@@ -34,67 +28,56 @@ export const desktopIpcSchema = z.object({
 
 /* ── Shared types ── */
 
-export type ModelType = 'novel' | 'image' | 'video';
-export type { ModelCapability, ModelEntry, ModelProfileV2, SlotAssignment, SlotAssignmentMap } from './contracts/model';
+export type { ModelCapability, DiscoveredModel, ApiKeyConfig, ApiKeyEntry, ModelConfig, ResolvedModel } from './contracts/model';
 
 /**
- * v2 model profile, exposed to the renderer as `ModelProfile`.
- *
- * One profile carries a single (baseUrl, apiKey) credential pair plus a list
- * of model entries. Each entry has its own `apiFormat`, alias, and
- * capabilities, so a profile can serve `novel`, `image`, and `video` slots
- * simultaneously. The desktop main process performs migration from the
- * legacy v1 single-model shape on read.
+ * Request to list models from a remote endpoint.
  */
-export type ModelProfile = ModelProfileV2;
-
-/**
- * Per-slot model assignment.
- *
- * `null` means the slot has no model assigned. The pair carries both the
- * profile id and the model id within that profile, since one profile can
- * expose multiple models.
- */
-export type ModelSlotConfig = SlotAssignment;
-
-export type ModelConfig = {
-  profiles: ModelProfile[];
-  selected: SlotAssignmentMap;
-};
-
-/**
- * Per-model entry in `ProviderModelListRequest` responses. Kept simple — the
- * renderer adds `alias` and `apiFormat` per entry before saving the profile.
- */
-export type ProviderModel = {
-  id: string;
-  capabilities: ModelCapability[];
-};
-
-export type ProviderModelListRequest = {
-  provider: GenerationProvider;
+export type ListRemoteModelsRequest = {
   apiKey: string;
   baseUrl: string;
 };
 
-/* ── Generation IPC payloads ── */
-
-export type GenerateRequestPayload<TRequest> = {
-  slot: SlotAssignment;
-  request: TRequest;
+/**
+ * A model discovered from the remote /v1/models endpoint.
+ */
+export type RemoteModel = {
+  id: string;
+  capability: ModelCapability;
+  alias: string;
 };
 
-export type GenerateTextPayload = GenerateRequestPayload<TextGenerationRequest>;
-export type GenerateImagePayload = GenerateRequestPayload<ImageGenerationRequest>;
-export type GenerateVideoPayload = GenerateRequestPayload<VideoGenerationRequest>;
+/* ── Generation IPC payloads ── */
 
 /**
- * Story-sync IPC payload — the renderer asks desktop main to run the LLM
- * story-sync extraction locally and ship back patches that can then be
- * embedded under `artifacts['chapter.llmPatches']` of an orchestration run.
+ * Model reference used in generation requests.
+ * Points to a specific key + model combination.
+ */
+export type ModelRef = {
+  keyId: string;
+  modelId: string;
+};
+
+export type GenerateTextPayload = {
+  ref: ModelRef;
+  request: TextGenerationRequest;
+};
+
+export type GenerateImagePayload = {
+  ref: ModelRef;
+  request: ImageGenerationRequest;
+};
+
+export type GenerateVideoPayload = {
+  ref: ModelRef;
+  request: VideoGenerationRequest;
+};
+
+/**
+ * Story-sync IPC payload.
  */
 export type RunStorySyncPayload = {
-  slot: SlotAssignment;
+  ref: ModelRef;
   runId: string;
   chapterId: string;
   candidate: Record<string, unknown>;
@@ -116,8 +99,6 @@ export type UserPreferencesConfig = {
 
 /**
  * Canonical type for the preload API surface exposed via contextBridge.
- * Both `shell/preload/index.ts` and `ui/src/shared/preload.d.ts` must
- * reference this single source of truth.
  */
 export type OrisonDesktopApi = {
   pickProjectDirectory(): Promise<string | null>;
@@ -135,7 +116,7 @@ export type OrisonDesktopApi = {
   syncField(projectPath: string, field: string, data: unknown): Promise<void>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
-  listProviderModels(request: ProviderModelListRequest): Promise<ProviderModel[]>;
+  listRemoteModels(request: ListRemoteModelsRequest): Promise<RemoteModel[]>;
   generateText(payload: GenerateTextPayload): Promise<TextGenerationResponse>;
   generateImage(payload: GenerateImagePayload): Promise<ImageGenerationResponse>;
   generateVideo(payload: GenerateVideoPayload): Promise<VideoGenerationResponse>;

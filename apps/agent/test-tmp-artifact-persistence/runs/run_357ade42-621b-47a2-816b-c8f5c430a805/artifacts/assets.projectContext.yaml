@@ -1,0 +1,35 @@
+schema_version: 1
+field_version: 0
+generated_by: asset-loader-agent
+source_refs: []
+data:
+  world_setting:
+    premise: 永夜都市
+    era: 近未来
+    locations: []
+    rules: []
+    power_structures: []
+    taboos: []
+    visual_language: []
+    tone_rules: []
+    open_questions: []
+  asset_cards:
+    - id: c1
+      type: character
+      name: 侦探
+      summary: 孤独调查者
+      tags: []
+      relationships: []
+      sourceRefs: []
+      status: active
+      locked: false
+  relationship_graph:
+    nodes:
+      - id: n1
+        assetCardId: c1
+        label: 侦探
+        type: character
+        locked: false
+    edges: []
+    version: 0
+    updatedBy: agent

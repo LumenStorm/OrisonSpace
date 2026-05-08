@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import type { ModelRef } from '@orison/shared-contracts';
 import { storage } from './storage';
 import {
   defaultParamsFor,
@@ -76,9 +77,12 @@ const INITIAL_PARAMS: ImageGenParams = initialPersisted?.params ?? defaultParams
 const INITIAL_CUSTOM_SIZE = initialPersisted?.customSize ?? false;
 
 export type ImageGenSlice = {
-  /** Cached family. Derived from `modelConfig.selected.image` model string. */
+  /** Cached family. Derived from selected image model string. */
   imageGenFamily: ImageFamily;
   imageGenParams: ImageGenParams;
+  /** User-selected image model ref. Persisted in localStorage. */
+  selectedImageRef: ModelRef | null;
+  setSelectedImageRef: (ref: ModelRef | null) => void;
   /**
    * UI flag indicating the user picked "custom..." in the size dropdown.
    * Always `false` when the active family does not support custom sizes.
@@ -109,6 +113,13 @@ export const createImageGenSlice: StateCreator<ImageGenSlice, [], [], ImageGenSl
   imageGenFamily: INITIAL_FAMILY,
   imageGenParams: INITIAL_PARAMS,
   imageGenCustomSize: INITIAL_CUSTOM_SIZE,
+  selectedImageRef: storage.get<ModelRef | null>('selectedImageRef', null),
+
+  setSelectedImageRef(ref) {
+    set({ selectedImageRef: ref });
+    storage.set('selectedImageRef', ref);
+    get().reconcileImageGenForModel(ref?.modelId ?? null);
+  },
 
   reconcileImageGenForModel(model) {
     const nextFamily = detectImageFamily(model);

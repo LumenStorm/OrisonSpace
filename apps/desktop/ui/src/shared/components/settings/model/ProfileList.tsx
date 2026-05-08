@@ -1,22 +1,18 @@
-import type { ModelConfig, ModelProfile } from '@orison/shared-contracts';
-import { ProviderBadge } from './ProviderBadge';
-import { computeUsedSlots, slotI18nKey, type UsedSlot } from './utils';
+import type { ApiKeyEntry } from '@orison/shared-contracts';
 
 type Props = {
-  profiles: ModelProfile[];
-  selected: ModelConfig['selected'];
-  activeProfileId: string | null;
-  onSelectProfile: (profile: ModelProfile) => void;
-  onAddProfile: () => void;
+  keys: ApiKeyEntry[];
+  activeKeyId: string | null;
+  onSelectKey: (key: ApiKeyEntry) => void;
+  onAddKey: () => void;
   t: (key: string) => string;
 };
 
 export function ProfileList({
-  profiles,
-  selected,
-  activeProfileId,
-  onSelectProfile,
-  onAddProfile,
+  keys,
+  activeKeyId,
+  onSelectKey,
+  onAddKey,
   t,
 }: Props) {
   return (
@@ -26,7 +22,7 @@ export function ProfileList({
         <button
           type="button"
           className="settings-refresh-button"
-          onClick={onAddProfile}
+          onClick={onAddKey}
           aria-label={t('settings.addModel')}
           title={t('settings.addModel')}
         >
@@ -35,34 +31,29 @@ export function ProfileList({
       </div>
 
       <div className="model-profile-list">
-        {profiles.map((profile) => {
-          const used: UsedSlot[] = computeUsedSlots(profile.id, selected);
-          const isActive = activeProfileId === profile.id;
-          const summary = profile.models.map((m) => m.alias).slice(0, 3).join(', ');
+        {keys.map((key) => {
+          const isActive = activeKeyId === key.id;
+          const enabledCount = key.models.filter((m) => m.enabled).length;
+          const summary = key.models
+            .filter((m) => m.enabled)
+            .slice(0, 3)
+            .map((m) => m.alias)
+            .join(', ');
           return (
             <button
-              key={profile.id}
+              key={key.id}
               type="button"
               className={`model-profile-row${isActive ? ' is-active' : ''}`}
               aria-pressed={isActive}
-              onClick={() => onSelectProfile(profile)}
+              onClick={() => onSelectKey(key)}
             >
               <div className="model-profile-row-head">
-                <span className="model-profile-name">{profile.name}</span>
-                <ProviderBadge provider={profile.provider} t={t} compact />
+                <span className="model-profile-name">{key.name}</span>
+                <span className="model-profile-count">{enabledCount}</span>
               </div>
               <span className="model-profile-meta">
                 {summary || t('settings.modelSelectPlaceholder')}
               </span>
-              {used.length > 0 ? (
-                <div className="model-profile-used">
-                  {used.map((slot) => (
-                    <span key={slot} className={`model-used-chip model-used-chip-${slot}`}>
-                      {t(slotI18nKey(slot))}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
             </button>
           );
         })}

@@ -1,23 +1,14 @@
 import { useState } from 'react';
-import { inferApiFormat } from '@orison/model-protocols';
-import type { ModelApiFormat } from '@orison/shared-contracts';
-import type { RemoteModel } from '../../../api/generation';
-import { CapabilityToggleGroup } from './CapabilityToggleGroup';
-import { ProviderBadge } from './ProviderBadge';
+import type { RemoteModel } from '@orison/shared-contracts';
 import { EditorBanner } from './EditorBanner';
 import { EditorFooter } from './EditorFooter';
-import {
-  API_FORMAT_OPTIONS,
-  inferProviderFromUrl,
-  type ProfileDraft,
-  type ProfileDraftModel,
-} from './utils';
+import type { KeyDraft, KeyDraftModel } from './utils';
 
 type Props = {
-  draft: ProfileDraft;
+  draft: KeyDraft;
   isDirty: boolean;
-  onChange: (next: Partial<ProfileDraft>) => void;
-  onUpdateModelEntry: (index: number, values: Partial<ProfileDraftModel>) => void;
+  onChange: (next: Partial<KeyDraft>) => void;
+  onUpdateModelEntry: (index: number, values: Partial<KeyDraftModel>) => void;
   onRemoveModelEntry: (index: number) => void;
   onApply: () => void;
   onDelete: (() => void) | null;
@@ -48,7 +39,6 @@ export function ProfileEditor({
 }: Props) {
   const [showApiKey, setShowApiKey] = useState(false);
   const isNew = draft.id === null;
-
   const canApply = isDirty && draft.models.length > 0 && draft.models.every((m) => m.id.trim().length > 0);
 
   return (
@@ -57,7 +47,6 @@ export function ProfileEditor({
         <h4 className="model-editor-title">
           {isNew ? t('settings.addModel') : t('settings.modelDetails')}
         </h4>
-        <ProviderBadge provider={inferProviderFromUrl(draft.baseUrl)} t={t} />
       </header>
 
       {refreshError ? (
@@ -76,49 +65,8 @@ export function ProfileEditor({
             className="sidebar-settings-input"
             value={draft.name}
             placeholder={t('settings.modelNamePlaceholder')}
-            onChange={(event) => onChange({ name: event.target.value })}
+            onChange={(e) => onChange({ name: e.target.value })}
           />
-        </label>
-      </div>
-
-      <div className="model-editor-section">
-        <span className="sidebar-settings-label">{t('settings.credentialsSection')}</span>
-
-        <label className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.apiKey')}</span>
-          <div className="sidebar-settings-input-wrap settings-refresh-row">
-            <input
-              className="sidebar-settings-input"
-              type={showApiKey ? 'text' : 'password'}
-              value={draft.apiKey}
-              placeholder={t('settings.apiKeyPlaceholder')}
-              onChange={(event) => onChange({ apiKey: event.target.value })}
-            />
-            <button
-              type="button"
-              className="sidebar-settings-input-toggle"
-              onClick={() => setShowApiKey((value) => !value)}
-              aria-label={showApiKey ? t('settings.hideKey') : t('settings.showKey')}
-            >
-              <span className="material-symbols-outlined">
-                {showApiKey ? 'visibility_off' : 'visibility'}
-              </span>
-            </button>
-            <button
-              type="button"
-              className="settings-refresh-button"
-              onClick={() => void onRefreshModels()}
-              disabled={refreshing}
-              aria-label={t('settings.refreshModels')}
-              title={t('settings.refreshModels')}
-            >
-              <span className={`material-symbols-outlined${refreshing ? ' is-spinning' : ''}`}>refresh</span>
-            </button>
-          </div>
-          <span className="sidebar-settings-hint api-key-hint">
-            <span className="material-symbols-outlined" aria-hidden="true">lock</span>
-            {t('settings.apiKeyEncrypted')}
-          </span>
         </label>
 
         <label className="sidebar-settings-input-row">
@@ -126,68 +74,68 @@ export function ProfileEditor({
           <input
             className="sidebar-settings-input"
             value={draft.baseUrl}
-            placeholder={t('settings.baseUrlPlaceholder')}
-            onChange={(event) => onChange({ baseUrl: event.target.value })}
+            placeholder="https://api.openai.com/v1"
+            onChange={(e) => onChange({ baseUrl: e.target.value })}
           />
+        </label>
+
+        <label className="sidebar-settings-input-row">
+          <span className="sidebar-settings-input-label">{t('settings.apiKey')}</span>
+          <div className="sidebar-settings-input-group">
+            <input
+              className="sidebar-settings-input"
+              type={showApiKey ? 'text' : 'password'}
+              value={draft.apiKey}
+              placeholder="sk-..."
+              onChange={(e) => onChange({ apiKey: e.target.value })}
+            />
+            <button
+              type="button"
+              className="settings-refresh-button"
+              onClick={() => setShowApiKey(!showApiKey)}
+              aria-label={showApiKey ? 'Hide' : 'Show'}
+            >
+              <span className="material-symbols-outlined">
+                {showApiKey ? 'visibility_off' : 'visibility'}
+              </span>
+            </button>
+          </div>
         </label>
       </div>
 
       <div className="model-editor-section">
-        <span className="sidebar-settings-label">{t('settings.modelSection')}</span>
+        <div className="model-editor-section-header">
+          <span className="sidebar-settings-label">{t('settings.modelsSection')}</span>
+          <button
+            type="button"
+            className="settings-refresh-button"
+            onClick={() => void onRefreshModels()}
+            disabled={refreshing}
+            aria-label={t('settings.refreshModels')}
+            title={t('settings.refreshModels')}
+          >
+            <span className={`material-symbols-outlined${refreshing ? ' spin' : ''}`}>sync</span>
+          </button>
+        </div>
 
         {draft.models.length === 0 ? (
-          <p className="image-gen-empty">
-            {remoteModels.length === 0
-              ? t('settings.refreshModels')
-              : t('settings.modelSelectPlaceholder')}
-          </p>
+          <p className="model-editor-empty-hint">{t('settings.noModelsHint')}</p>
         ) : (
-          <div className="model-entry-table">
+          <div className="model-entry-list">
             {draft.models.map((entry, index) => (
-              <div key={`${entry.id}_${index}`} className="model-entry-row">
-                <label className="sidebar-settings-input-row">
-                  <span className="sidebar-settings-input-label">{t('settings.modelName')}</span>
+              <div key={`${entry.id}-${index}`} className="model-entry-row">
+                <label className="model-entry-toggle">
                   <input
-                    className="sidebar-settings-input"
-                    value={entry.id}
-                    onChange={(event) =>
-                      onUpdateModelEntry(index, {
-                        id: event.target.value,
-                        apiFormat: inferApiFormat(event.target.value, inferProviderFromUrl(draft.baseUrl)) as ModelApiFormat,
-                      })
-                    }
+                    type="checkbox"
+                    checked={entry.enabled}
+                    onChange={(e) => onUpdateModelEntry(index, { enabled: e.target.checked })}
                   />
                 </label>
-                <label className="sidebar-settings-input-row">
-                  <span className="sidebar-settings-input-label">{t('settings.modelAlias')}</span>
-                  <input
-                    className="sidebar-settings-input"
-                    value={entry.alias}
-                    onChange={(event) => onUpdateModelEntry(index, { alias: event.target.value })}
-                  />
-                </label>
-                <label className="sidebar-settings-input-row">
-                  <span className="sidebar-settings-input-label">apiFormat</span>
-                  <select
-                    className="sidebar-settings-input"
-                    value={entry.apiFormat}
-                    onChange={(event) =>
-                      onUpdateModelEntry(index, { apiFormat: event.target.value as ModelApiFormat })
-                    }
-                  >
-                    {API_FORMAT_OPTIONS.map((value) => (
-                      <option key={value} value={value}>{value}</option>
-                    ))}
-                  </select>
-                </label>
-                <div className="sidebar-settings-input-row">
-                  <span className="sidebar-settings-input-label">{t('settings.capabilities')}</span>
-                  <CapabilityToggleGroup
-                    value={entry.capabilities}
-                    onChange={(capabilities) => onUpdateModelEntry(index, { capabilities })}
-                    t={t}
-                  />
-                </div>
+                <span className="model-entry-id">{entry.id}</span>
+                <span className="model-entry-alias">{entry.alias}</span>
+                <span className={`model-entry-cap model-entry-cap-${entry.capability}`}>
+                  {entry.capability}
+                </span>
                 <button
                   type="button"
                   className="settings-refresh-button"

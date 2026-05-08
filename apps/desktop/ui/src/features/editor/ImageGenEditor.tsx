@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { CreativeFieldKey, ImageInput, ModelEntry, ModelProfile, SlotAssignment } from '@orison/shared-contracts';
+import type { CreativeFieldKey, ImageInput, ApiKeyEntry, DiscoveredModel, ModelRef } from '@orison/shared-contracts';
 import { generateImage } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -27,9 +27,9 @@ export type GeneratedImageItem = {
 };
 
 type ResolvedSlot = {
-  slot: SlotAssignment;
-  profile: ModelProfile;
-  entry: ModelEntry;
+  ref: ModelRef;
+  key: ApiKeyEntry;
+  entry: DiscoveredModel;
 };
 
 /**
@@ -41,7 +41,8 @@ export function ImageGenEditor() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const currentProject = useAppStore((s) => s.currentProject);
   const modelConfig = useAppStore((s) => s.modelConfig);
-  const resolvedSlot = resolveImageSlot(modelConfig.profiles, modelConfig.selected.image);
+  const selectedImageRef = useAppStore((s) => s.selectedImageRef);
+  const resolvedSlot = resolveImageSlot(modelConfig.keys, selectedImageRef);
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
@@ -235,11 +236,11 @@ export function ImageGenEditor() {
         scope: 'image',
         level: 'info',
         message: isEditMode ? 'Image edit request started' : 'Image generation request started',
-        detail: `${resolvedSlot.profile.provider} · ${resolvedSlot.entry.alias} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
+        detail: `${resolvedSlot.key.name} · ${resolvedSlot.entry.alias} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
       });
 
       const response = await generateImage({
-        slot: resolvedSlot.slot,
+        ref: resolvedSlot.ref,
         prompt: prompt.trim(),
         params: payload,
         image: uploadedImage ? { b64Json: uploadedImage.b64Json, mimeType: uploadedImage.mimeType } : undefined,
@@ -394,11 +395,11 @@ export function ImageGenEditor() {
         scope: 'image',
         level: 'info',
         message: 'Image edit request started',
-        detail: `${resolvedSlot.profile.provider} · ${resolvedSlot.entry.alias}`,
+        detail: `${resolvedSlot.key.name} · ${resolvedSlot.entry.alias}`,
       });
 
       const response = await generateImage({
-        slot: resolvedSlot.slot,
+        ref: resolvedSlot.ref,
         prompt: variantPrompt,
         params,
         image: { b64Json: payload.b64Json, mimeType: payload.mimeType },
@@ -553,7 +554,7 @@ export function ImageGenEditor() {
           {resolvedSlot ? (
             <>
               <span className="image-gen-profile-dot" aria-hidden="true" />
-              <span className="image-gen-profile-name">{resolvedSlot.profile.provider}</span>
+              <span className="image-gen-profile-name">{resolvedSlot.key.name}</span>
               <span className="image-gen-profile-model">· {resolvedSlot.entry.alias}</span>
             </>
           ) : (
@@ -896,13 +897,24 @@ function PreviewDialog({ item, results, onClose, onSelect, onEdit, onAddAsset, o
   );
 }
 
-function resolveImageSlot(profiles: ModelProfile[], slot: SlotAssignment | null): ResolvedSlot | null {
-  if (!slot) return null;
-  const profile = profiles.find((p) => p.id === slot.profileId);
-  if (!profile) return null;
-  const entry = profile.models.find((m) => m.id === slot.modelId);
-  if (!entry) return null;
-  return { slot, profile, entry };
+function resolveImageSlot(keys: ApiKeyEntry[], preferredRef?: ModelRef | null): ResolvedSlot | null {
+  // Try preferred ref first
+  if (preferredRef) {
+    const key = keys.find((k) => k.id === preferredRef.keyId);
+    if (key) {
+      const entry = key.models.find((m) => m.id === preferredRef.modelId && m.enabled);
+      if (entry) return { ref: preferredRef, key, entry };
+    }
+  }
+  // Fallback: first enabled image model
+  for (const key of keys) {
+    for (const model of key.models) {
+      if (model.enabled && model.capability === 'image') {
+        return { ref: { keyId: key.id, modelId: model.id }, key, entry: model };
+      }
+    }
+  }
+  return null;
 }
 
 type FileTreeLike = Awaited<ReturnType<Window['orisonDesktop']['readDirectory']>>[number];

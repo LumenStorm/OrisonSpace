@@ -21,7 +21,7 @@ describe('preload security surface', () => {
       'generateVideo',
       'getLocale',
       'isMaximized',
-      'listProviderModels',
+      'listRemoteModels',
       'loadModelConfig',
       'loadProjectMeta',
       'loadUserPreferences',

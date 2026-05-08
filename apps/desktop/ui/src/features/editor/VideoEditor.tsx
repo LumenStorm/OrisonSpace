@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ModelEntry, ModelProfile, SlotAssignment } from '@orison/shared-contracts';
+import type { ApiKeyEntry, DiscoveredModel, ModelRef } from '@orison/shared-contracts';
 import { generateVideo } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -21,8 +21,8 @@ export function VideoEditor() {
   const [generatedCount, setGeneratedCount] = useState(0);
 
   const resolvedSlot = useMemo(
-    () => resolveVideoSlot(modelConfig.profiles, modelConfig.selected.video),
-    [modelConfig.profiles, modelConfig.selected.video],
+    () => resolveVideoSlot(modelConfig.keys),
+    [modelConfig.keys],
   );
 
   const canGenerate = !!currentProject?.path && !!resolvedSlot && !!prompt.trim() && !loading;
@@ -33,7 +33,7 @@ export function VideoEditor() {
     setError(null);
     try {
       const response = await generateVideo({
-        slot: resolvedSlot.slot,
+        ref: resolvedSlot.ref,
         request: {
           model: resolvedSlot.entry.id,
           prompt: prompt.trim(),
@@ -92,16 +92,18 @@ export function VideoEditor() {
 }
 
 type ResolvedSlot = {
-  slot: SlotAssignment;
-  profile: ModelProfile;
-  entry: ModelEntry;
+  ref: ModelRef;
+  key: ApiKeyEntry;
+  entry: DiscoveredModel;
 };
 
-function resolveVideoSlot(profiles: ModelProfile[], slot: SlotAssignment | null): ResolvedSlot | null {
-  if (!slot) return null;
-  const profile = profiles.find((p) => p.id === slot.profileId);
-  if (!profile) return null;
-  const entry = profile.models.find((m) => m.id === slot.modelId);
-  if (!entry) return null;
-  return { slot, profile, entry };
+function resolveVideoSlot(keys: ApiKeyEntry[]): ResolvedSlot | null {
+  for (const key of keys) {
+    for (const model of key.models) {
+      if (model.enabled && model.capability === 'video') {
+        return { ref: { keyId: key.id, modelId: model.id }, key, entry: model };
+      }
+    }
+  }
+  return null;
 }

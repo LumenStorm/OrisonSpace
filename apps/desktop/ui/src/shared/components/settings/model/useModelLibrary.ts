@@ -1,29 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
-import { inferApiFormat } from '@orison/model-protocols';
+import { useMemo, useState } from 'react';
 import type {
-  ModelApiFormat,
-  ModelCapability,
+  ApiKeyEntry,
   ModelConfig,
-  ModelProfile,
-  ModelType,
-  SlotAssignment,
+  RemoteModel,
 } from '@orison/shared-contracts';
-import { loadProviderModels, type RemoteModel } from '../../../api/generation';
+import { loadRemoteModels } from '../../../api/generation';
 import { useAppStore } from '../../../store/appStore';
 import {
-  draftToProfile,
-  emptyProfileDraft,
-  inferProviderFromUrl,
-  isProfileDirty,
-  nextProfileId,
-  profileToDraft,
-  type ProfileDraft,
-  type ProfileDraftModel,
+  draftToKey,
+  emptyKeyDraft,
+  isKeyDirty,
+  keyToDraft,
+  nextKeyId,
+  type KeyDraft,
+  type KeyDraftModel,
 } from './utils';
 
 export type ModelLibraryState = {
-  draft: ProfileDraft;
-  selectedProfile: ModelProfile | null;
+  draft: KeyDraft;
+  selectedKey: ApiKeyEntry | null;
   editorMode: 'idle' | 'creating' | 'editing';
   dirty: boolean;
   remoteModels: RemoteModel[];
@@ -31,20 +26,19 @@ export type ModelLibraryState = {
   refreshError: string | null;
   notice: string | null;
   pendingDeleteId: string | null;
-  pendingDeleteProfile: ModelProfile | null;
+  pendingDeleteKey: ApiKeyEntry | null;
 };
 
 export type ModelLibraryActions = {
-  updateDraft: (values: Partial<ProfileDraft>) => void;
-  updateModelEntry: (index: number, values: Partial<ProfileDraftModel>) => void;
+  updateDraft: (values: Partial<KeyDraft>) => void;
+  updateModelEntry: (index: number, values: Partial<KeyDraftModel>) => void;
   removeModelEntry: (index: number) => void;
-  startNewProfile: () => void;
-  selectProfile: (profile: ModelProfile) => void;
+  startNewKey: () => void;
+  selectKey: (key: ApiKeyEntry) => void;
   applyDraft: () => Promise<void>;
   requestDelete: (id: string) => void;
   cancelDelete: () => void;
   confirmDelete: () => Promise<void>;
-  updateSelected: (type: ModelType, slot: SlotAssignment | null) => Promise<void>;
   refreshModels: () => Promise<void>;
   dismissNotice: () => void;
 };
@@ -57,7 +51,7 @@ type Args = {
 
 export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): ModelLibraryState & ModelLibraryActions {
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
-  const [draft, setDraft] = useState<ProfileDraft>(emptyProfileDraft());
+  const [draft, setDraft] = useState<KeyDraft>(emptyKeyDraft());
   const [remoteModels, setRemoteModels] = useState<RemoteModel[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -65,81 +59,70 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<'idle' | 'creating' | 'editing'>('idle');
 
-  const profiles = modelConfig.profiles;
+  const keys = modelConfig.keys;
 
-  const selectedProfile = useMemo(
-    () => (draft.id ? profiles.find((profile) => profile.id === draft.id) ?? null : null),
-    [profiles, draft.id],
+  const selectedKey = useMemo(
+    () => (draft.id ? keys.find((k) => k.id === draft.id) ?? null : null),
+    [keys, draft.id],
   );
-  const dirty = isProfileDirty(draft, selectedProfile ?? undefined);
-  const pendingDeleteProfile = useMemo(
-    () => (pendingDeleteId ? profiles.find((profile) => profile.id === pendingDeleteId) ?? null : null),
-    [pendingDeleteId, profiles],
+  const dirty = isKeyDirty(draft, selectedKey ?? undefined);
+  const pendingDeleteKey = useMemo(
+    () => (pendingDeleteId ? keys.find((k) => k.id === pendingDeleteId) ?? null : null),
+    [pendingDeleteId, keys],
   );
 
-  useEffect(() => {
-    if (draft.id && !profiles.some((profile) => profile.id === draft.id)) {
-      setDraft(emptyProfileDraft());
-      setEditorMode('idle');
-      setRemoteModels([]);
-      setRefreshError(null);
-    }
-  }, [profiles, draft.id]);
-
-  function updateDraft(values: Partial<ProfileDraft>) {
-    setDraft((current) => ({ ...current, ...values }));
+  function updateDraft(values: Partial<KeyDraft>) {
+    setDraft((prev) => ({ ...prev, ...values }));
   }
 
-  function updateModelEntry(index: number, values: Partial<ProfileDraftModel>) {
-    setDraft((current) => ({
-      ...current,
-      models: current.models.map((entry, idx) => (idx === index ? { ...entry, ...values } : entry)),
-    }));
+  function updateModelEntry(index: number, values: Partial<KeyDraftModel>) {
+    setDraft((prev) => {
+      const models = [...prev.models];
+      models[index] = { ...models[index]!, ...values };
+      return { ...prev, models };
+    });
   }
 
   function removeModelEntry(index: number) {
-    setDraft((current) => ({
-      ...current,
-      models: current.models.filter((_, idx) => idx !== index),
+    setDraft((prev) => ({
+      ...prev,
+      models: prev.models.filter((_, i) => i !== index),
     }));
   }
 
-  function resetEditorState() {
+  function startNewKey() {
+    setDraft(emptyKeyDraft());
+    setEditorMode('creating');
     setRemoteModels([]);
     setRefreshError(null);
     setNotice(null);
   }
 
-  function startNewProfile() {
-    setDraft(emptyProfileDraft());
-    setEditorMode('creating');
-    resetEditorState();
-  }
-
-  function selectProfile(profile: ModelProfile) {
-    setDraft(profileToDraft(profile));
+  function selectKey(key: ApiKeyEntry) {
+    setDraft(keyToDraft(key));
     setEditorMode('editing');
-    resetEditorState();
+    setRemoteModels([]);
+    setRefreshError(null);
+    setNotice(null);
   }
 
   async function applyDraft() {
-    if (draft.models.length === 0) return;
-    const id = draft.id ?? nextProfileId(profiles);
-    const profile = draftToProfile(draft, id);
-    const exists = profiles.some((item) => item.id === id);
-    const nextProfiles = exists
-      ? profiles.map((item) => (item.id === id ? profile : item))
-      : [...profiles, profile];
+    const id = draft.id ?? nextKeyId(keys);
+    const newKey = draftToKey(draft, id);
 
-    await setModelConfig({ profiles: nextProfiles, selected: modelConfig.selected });
-    setDraft(profileToDraft(profile));
+    if (newKey.models.length === 0) {
+      setNotice(t('settings.noModelsWarning'));
+      return;
+    }
+
+    const updatedKeys = draft.id
+      ? keys.map((k) => (k.id === draft.id ? newKey : k))
+      : [...keys, newKey];
+
+    await setModelConfig({ keys: updatedKeys });
+    setDraft(keyToDraft(newKey));
     setEditorMode('editing');
-    appendOutputEntry({
-      scope: 'model',
-      level: 'success',
-      message: exists ? 'Updated model profile' : 'Added model profile',
-      detail: `${profile.provider} · ${profile.models.length} model(s)`,
-    });
+    setNotice(null);
   }
 
   function requestDelete(id: string) {
@@ -151,67 +134,42 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   }
 
   async function confirmDelete() {
-    const id = pendingDeleteId;
-    if (!id) return;
-    const next: ModelConfig = {
-      profiles: profiles.filter((profile) => profile.id !== id),
-      selected: {
-        novel: modelConfig.selected.novel?.profileId === id ? null : modelConfig.selected.novel,
-        image: modelConfig.selected.image?.profileId === id ? null : modelConfig.selected.image,
-        video: modelConfig.selected.video?.profileId === id ? null : modelConfig.selected.video,
-      },
-    };
-    await setModelConfig(next);
+    if (!pendingDeleteId) return;
+    const updatedKeys = keys.filter((k) => k.id !== pendingDeleteId);
+    await setModelConfig({ keys: updatedKeys });
     setPendingDeleteId(null);
-    if (draft.id === id) {
-      setDraft(emptyProfileDraft());
+    if (draft.id === pendingDeleteId) {
+      setDraft(emptyKeyDraft());
       setEditorMode('idle');
-      setRemoteModels([]);
-      setRefreshError(null);
     }
-    appendOutputEntry({ scope: 'model', level: 'info', message: 'Deleted model profile', detail: id });
-  }
-
-  async function updateSelected(type: ModelType, slot: SlotAssignment | null) {
-    await setModelConfig({
-      profiles,
-      selected: { ...modelConfig.selected, [type]: slot },
-    });
   }
 
   async function refreshModels() {
+    if (!draft.baseUrl || !draft.apiKey) {
+      setRefreshError(t('settings.missingUrlOrKey'));
+      return;
+    }
     setRefreshing(true);
     setRefreshError(null);
     try {
-      const provider = inferProviderFromUrl(draft.baseUrl);
-      const models = await loadProviderModels({
-        provider,
+      const models = await loadRemoteModels({
         apiKey: draft.apiKey,
         baseUrl: draft.baseUrl,
       });
-      appendOutputEntry({
-        scope: 'model',
-        level: 'success',
-        message: `Fetched ${models.length} model${models.length === 1 ? '' : 's'}`,
-        detail: `${provider} ${draft.baseUrl}`,
-      });
       setRemoteModels(models);
-      // Pre-fill the model rows with one entry per remote id, defaulting
-      // alias = id, apiFormat = inferApiFormat(id, provider), and
-      // capabilities from the listing.
-      if (draft.models.length === 0 && models.length > 0) {
-        setDraft((current) => ({
-          ...current,
-          models: models.map((m) => ({
-            id: m.id,
-            alias: m.id,
-            apiFormat: inferApiFormat(m.id, provider) as ModelApiFormat,
-            capabilities: (m.capabilities.length > 0 ? m.capabilities : ['text']) as ModelCapability[],
-          })),
-        }));
+
+      // Merge into draft: add new models, keep existing enabled state
+      const existingIds = new Set(draft.models.map((m) => m.id));
+      const merged: KeyDraftModel[] = [...draft.models];
+      for (const m of models) {
+        if (!existingIds.has(m.id)) {
+          merged.push({ id: m.id, alias: m.alias, capability: m.capability, enabled: true });
+        }
       }
+      setDraft((prev) => ({ ...prev, models: merged }));
+      setNotice(t('settings.modelsRefreshed').replace('{count}', String(models.length)));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('settings.refreshFailed');
+      const message = error instanceof Error ? error.message : String(error);
       appendOutputEntry({
         scope: 'model',
         level: 'error',
@@ -230,7 +188,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
 
   return {
     draft,
-    selectedProfile,
+    selectedKey,
     editorMode,
     dirty,
     remoteModels,
@@ -238,17 +196,16 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     refreshError,
     notice,
     pendingDeleteId,
-    pendingDeleteProfile,
+    pendingDeleteKey,
     updateDraft,
     updateModelEntry,
     removeModelEntry,
-    startNewProfile,
-    selectProfile,
+    startNewKey,
+    selectKey,
     applyDraft,
     requestDelete,
     cancelDelete,
     confirmDelete,
-    updateSelected,
     refreshModels,
     dismissNotice,
   };

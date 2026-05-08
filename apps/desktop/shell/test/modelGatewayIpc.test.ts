@@ -24,41 +24,19 @@ const TEST_MODEL_DIR = path.join(process.cwd(), 'test-tmp-model-gateway');
 const ORIGINAL_FETCH = globalThis.fetch;
 
 const SAMPLE_CONFIG: ModelConfig = {
-  profiles: [
+  keys: [
     {
-      schemaVersion: 2,
-      id: 'profile_text',
+      id: 'key_text',
       name: 'Text',
-      provider: 'openai',
       apiKey: 'sk-text',
       baseUrl: 'https://relay.example.com/v1',
       models: [
-        {
-          id: 'gpt-4o-mini',
-          alias: 'GPT 4o mini',
-          apiFormat: 'openai-chat-completions',
-          capabilities: ['text'],
-        },
-        {
-          id: 'dall-e-3',
-          alias: 'DALL-E 3',
-          apiFormat: 'openai-images',
-          capabilities: ['image'],
-        },
-        {
-          id: 'sora-1',
-          alias: 'Sora 1',
-          apiFormat: 'sora-videos',
-          capabilities: ['video'],
-        },
+        { id: 'gpt-4o-mini', alias: 'GPT 4o mini', capability: 'text', enabled: true },
+        { id: 'dall-e-3', alias: 'DALL-E 3', capability: 'image', enabled: true },
+        { id: 'sora-1', alias: 'Sora 1', capability: 'video', enabled: true },
       ],
     },
   ],
-  selected: {
-    novel: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
-    image: { profileId: 'profile_text', modelId: 'dall-e-3' },
-    video: { profileId: 'profile_text', modelId: 'sora-1' },
-  },
 };
 
 async function seedConfig() {
@@ -87,7 +65,7 @@ describe('model gateway IPC', () => {
     vi.restoreAllMocks();
   });
 
-  it('generate-text dispatches via openai-chat-completions and forwards Authorization with apiKey', async () => {
+  it('generate-text dispatches to /chat/completions with Bearer apiKey', async () => {
     await seedConfig();
     registerModelGatewayIpc();
 
@@ -104,14 +82,14 @@ describe('model gateway IPC', () => {
 
     const handler = pickHandler('model:generate-text');
     const result = (await handler({}, {
-      slot: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
+      ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
       request: {
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: 'hi' }],
       },
-    })) as { provider: string; text: string };
+    })) as { text: string };
 
-    expect(result).toMatchObject({ provider: 'openai', text: 'hello world' });
+    expect(result.text).toBe('hello world');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const callArgs = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(callArgs[0]).toBe('https://relay.example.com/v1/chat/completions');
@@ -133,13 +111,13 @@ describe('model gateway IPC', () => {
 
     const handler = pickHandler('model:generate-text');
     const result = await handler({}, {
-      slot: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
+      ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
       request: { model: 'x', messages: [{ role: 'user', content: 'hi' }] },
     });
     expect(JSON.stringify(result)).not.toContain('sk-text');
   });
 
-  it('rejects when the slot points to a non-existent profile', async () => {
+  it('rejects when the key does not exist', async () => {
     await seedConfig();
     registerModelGatewayIpc();
 
@@ -150,13 +128,13 @@ describe('model gateway IPC', () => {
     const handler = pickHandler('model:generate-text');
     await expect(
       handler({}, {
-        slot: { profileId: 'unknown', modelId: 'gpt-4o-mini' },
+        ref: { keyId: 'unknown', modelId: 'gpt-4o-mini' },
         request: { model: 'x', messages: [{ role: 'user', content: 'hi' }] },
       }),
     ).rejects.toThrow();
   });
 
-  it('rejects video generation against sora-videos placeholder without making a network call', async () => {
+  it('rejects video generation with ProtocolNotImplementedError', async () => {
     await seedConfig();
     registerModelGatewayIpc();
 
@@ -166,27 +144,10 @@ describe('model gateway IPC', () => {
     const handler = pickHandler('model:generate-video');
     await expect(
       handler({}, {
-        slot: { profileId: 'profile_text', modelId: 'sora-1' },
+        ref: { keyId: 'key_text', modelId: 'sora-1' },
         request: { model: 'sora-1', prompt: 'hello' },
       }),
-    ).rejects.toThrow(/not implemented|video/i);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects when capability does not match (e.g. image-format model used for text)', async () => {
-    await seedConfig();
-    registerModelGatewayIpc();
-
-    const fetchMock = vi.fn();
-    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-
-    const handler = pickHandler('model:generate-text');
-    await expect(
-      handler({}, {
-        slot: { profileId: 'profile_text', modelId: 'dall-e-3' },
-        request: { model: 'dall-e-3', messages: [{ role: 'user', content: 'hi' }] },
-      }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/not.*implemented/i);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

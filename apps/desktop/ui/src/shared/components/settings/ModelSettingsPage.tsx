@@ -2,7 +2,6 @@ import type { ModelConfig } from '@orison/shared-contracts';
 import { ProfileList } from './model/ProfileList';
 import { ProfileEditor } from './model/ProfileEditor';
 import { ProfileEmptyState } from './model/ProfileEmptyState';
-import { ProfileAssignmentRow } from './model/ProfileAssignmentRow';
 import { DeleteConfirmDialog } from './model/DeleteConfirmDialog';
 import { useModelLibrary } from './model/useModelLibrary';
 
@@ -14,8 +13,8 @@ type Props = {
 
 export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
   const lib = useModelLibrary({ modelConfig, setModelConfig, t });
-  const profiles = modelConfig.profiles;
-  const showEmptyState = profiles.length === 0 && lib.editorMode === 'idle';
+  const keys = modelConfig.keys;
+  const showEmptyState = keys.length === 0 && lib.editorMode === 'idle';
   const showEditor = lib.editorMode === 'creating' || lib.editorMode === 'editing';
 
   return (
@@ -25,7 +24,7 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
           <h3 className="settings-page-title">{t('settings.modelConfig')}</h3>
           <p className="settings-page-subtitle">{t('settings.modelSubtitle')}</p>
         </div>
-        <button type="button" className="settings-save-button" onClick={lib.startNewProfile}>
+        <button type="button" className="settings-save-button" onClick={lib.startNewKey}>
           <span className="material-symbols-outlined" aria-hidden="true">add</span>
           {t('settings.addModel')}
         </button>
@@ -33,15 +32,14 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
 
       <div className="model-library-layout">
         {showEmptyState ? (
-          <ProfileEmptyState variant="no-profiles" t={t} onAdd={lib.startNewProfile} />
+          <ProfileEmptyState variant="no-profiles" t={t} onAdd={lib.startNewKey} />
         ) : (
           <>
             <ProfileList
-              profiles={profiles}
-              selected={modelConfig.selected}
-              activeProfileId={lib.draft.id}
-              onSelectProfile={lib.selectProfile}
-              onAddProfile={lib.startNewProfile}
+              keys={keys}
+              activeKeyId={lib.draft.id}
+              onSelectKey={lib.selectKey}
+              onAddKey={lib.startNewKey}
               t={t}
             />
             {showEditor ? (
@@ -68,19 +66,12 @@ export function ModelSettingsPage({ t, modelConfig, setModelConfig }: Props) {
         )}
       </div>
 
-      <ProfileAssignmentRow
-        profiles={profiles}
-        selected={modelConfig.selected}
-        onSelect={(type, id) => void lib.updateSelected(type, id)}
-        t={t}
-      />
-
       <DeleteConfirmDialog
         open={lib.pendingDeleteId !== null}
         title={t('settings.deleteConfirmTitle')}
         description={
-          lib.pendingDeleteProfile
-            ? t('settings.deleteConfirmDesc').replace('{name}', lib.pendingDeleteProfile.name)
+          lib.pendingDeleteKey
+            ? t('settings.deleteConfirmDesc').replace('{name}', lib.pendingDeleteKey.name)
             : ''
         }
         confirmLabel={t('settings.deleteConfirmAction')}

@@ -117,37 +117,24 @@
 
 模型配置不在服务端数据库中，位于用户目录：
 
-- `~/.orison/model/index.yaml`
-- `~/.orison/model/profiles/*.yaml`
+- `~/.orison/model/keys/*.yaml`
 
-### 4.1 index.yaml（槽位选择）
-
-```yaml
-schemaVersion: 2
-selected:
-  novel:
-    profileId: profile_001
-    modelId: gpt-4o
-  image:
-    profileId: profile_002
-    modelId: gpt-image-1
-  video: null
-```
-
-### 4.2 profile 文件（凭据 + 多模型）
+### 4.1 key 文件（凭据 + 发现的模型）
 
 ```yaml
-schemaVersion: 2
-id: profile_001
+id: key_001
 name: OpenAI 主配置
-provider: openai
 baseUrl: https://api.openai.com
 apiKey: <ciphertext>
 models:
   - id: gpt-4o
+    capability: text
     alias: GPT-4o
-    apiFormat: openai-chat-completions
-    capabilities: [text]
+    enabled: true
+  - id: gpt-image-1
+    capability: image
+    alias: GPT Image
+    enabled: true
 ```
 
 说明：
@@ -155,6 +142,8 @@ models:
 - `apiKey` 落盘是加密密文（Electron `safeStorage`）
 - 只有 desktop main 会解密
 - 渲染层、服务端、agent 都不持有 provider 明文 key
+- `models[]` 从远端 `/v1/models` 发现后，由 `model-registry` 自动推断 `capability` 和 `alias`
+- `enabled` 控制模型是否在 UI 中可选
 
 ## 5. 用户偏好
 
@@ -214,7 +203,7 @@ Agent 侧 auto mode 持久化位置：
 
 ### 8.2 旧模型配置路径
 
-旧路径 `~/.orison/model/config.yaml` 只用于迁移读取，不再作为长期写入格式。
+旧路径 `~/.orison/model/config.yaml`、`~/.orison/model/index.yaml`、`~/.orison/model/profiles/*.yaml` 只用于迁移读取，不再作为长期写入格式。
 
 ---
 
@@ -225,7 +214,7 @@ Agent 侧 auto mode 持久化位置：
 | `tasks.project_id` | `projects.project_id` | 任务所属项目 |
 | `task_asset_refs.task_id` | `tasks.task_id` | 任务资产关联 |
 | `project_assets.project_id` | `projects.project_id` | 项目资产索引 |
-| `modelConfig.selected.*` | `{profileId, modelId}` | 生成槽位绑定 |
+| `modelConfig.keys[].models[].id` | `ModelRef.modelId` | 生成请求模型引用 |
 | `storyboard.shots[].source_ref` | novel/script 实体 ID | 分镜来源引用 |
 
 ---

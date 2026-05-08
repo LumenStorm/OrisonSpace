@@ -54,8 +54,8 @@
 
 | 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `config:load-model` | renderer -> main | invoke | 读取 v2 模型配置 |
-| `config:save-model` | renderer -> main | invoke | 保存 v2 模型配置 |
+| `config:load-model` | renderer -> main | invoke | 读取模型配置 |
+| `config:save-model` | renderer -> main | invoke | 保存模型配置 |
 | `config:load-user-preferences` | renderer -> main | invoke | 读取用户偏好 |
 | `config:save-user-preferences` | renderer -> main | invoke | 保存用户偏好 |
 
@@ -63,7 +63,7 @@
 
 | 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `model:list-provider-models` | renderer -> main | invoke | 请求 provider 模型列表 |
+| `model:list-remote-models` | renderer -> main | invoke | 请求远端模型列表 |
 | `model:generate-text` | renderer -> main | invoke | 文本生成 |
 | `model:generate-image` | renderer -> main | invoke | 图片生成 |
 | `model:generate-video` | renderer -> main | invoke | 视频生成 |
@@ -96,7 +96,7 @@ window.orisonDesktop = {
   syncField,
   loadModelConfig,
   saveModelConfig,
-  listProviderModels,
+  listRemoteModels,
   generateText,
   generateImage,
   generateVideo,
@@ -118,48 +118,33 @@ window.orisonDesktop = {
 }
 ```
 
-## ModelConfig（v2）
+## ModelConfig
 
-模型配置已经是 v2 结构：
+模型配置使用 key-based 结构：
 
 ```ts
 type ModelConfig = {
-  profiles: Array<{
-    schemaVersion: 2
+  keys: Array<{
     id: string
     name: string
-    provider: 'openai' | 'gcp' | 'anthropic'
-    apiKey: string
     baseUrl: string
+    apiKey: string
     models: Array<{
       id: string
+      capability: 'text' | 'image' | 'video'
       alias: string
-      apiFormat:
-        | 'openai-chat-completions'
-        | 'openai-responses'
-        | 'claude-messages'
-        | 'gemini-generate-content'
-        | 'openai-images'
-        | 'gemini-images'
-        | 'gemini-image-edit'
-        | 'sora-videos'
-      capabilities: Array<'text' | 'image' | 'video'>
+      enabled: boolean
     }>
   }>
-  selected: {
-    novel: { profileId: string; modelId: string } | null
-    image: { profileId: string; modelId: string } | null
-    video: { profileId: string; modelId: string } | null
-  }
 }
 ```
 
 说明：
 
-- `provider` 决定如何列出 `/models`
-- `apiFormat` 决定如何发送生成请求
-- 一个 profile 下可以挂多个模型
-- 槽位选择的是 `{ profileId, modelId }`
+- 一个 key 表示一组凭据（baseUrl + apiKey）
+- `models[]` 从远端 `/v1/models` 发现后自动分类
+- 模型能力和别名由 `model-registry` glob pattern 推断
+- 生成请求使用 `ModelRef`：`{ keyId, modelId }`
 
 ## storySync:run
 
@@ -167,7 +152,7 @@ type ModelConfig = {
 
 输入大致包含：
 
-- `slot`
+- `ref`（`{ keyId, modelId }`）
 - `runId`
 - `chapterId`
 - `candidate`
@@ -266,10 +251,17 @@ type RunStorySyncResult = {
 
 模型设置页当前有明确的 UI 状态：
 
-- 无 profile：空状态
+- 无 key：空状态
 - 新建中：编辑器
-- 编辑已有 profile：编辑器
-- 有 profile 但当前未选中：显示“请选择一个配置”
+- 编辑已有 key：编辑器
+- 有 key 但当前未选中：显示”请选择一个配置”
+
+### 4. 模型配置从 profile 结构简化为 key 结构
+
+- 移除 `provider`、`apiFormat`、`capabilities` 等手动标注字段
+- 模型能力由 `model-registry` glob pattern 自动推断
+- 生成请求从 `SlotAssignment`（`{ profileId, modelId }`）改为 `ModelRef`（`{ keyId, modelId }`）
+- 协议层从多 adapter 注册表简化为统一 OpenAI 兼容适配器
 
 ---
 

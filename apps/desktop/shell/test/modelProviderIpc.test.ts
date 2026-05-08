@@ -31,23 +31,22 @@ describe('model provider IPC', () => {
     vi.restoreAllMocks();
   });
 
-  it('fetches OpenAI-compatible model lists from the desktop main process', async () => {
+  it('fetches model list from /v1/models with Bearer auth', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
       data: [{ id: 'gpt-4o-mini' }, { id: 'gpt-image-1' }],
     }));
 
     registerModelProviderIpc();
 
-    expect(handle).toHaveBeenCalledWith('model:list-provider-models', expect.any(Function));
+    expect(handle).toHaveBeenCalledWith('model:list-remote-models', expect.any(Function));
 
     const [, handler] = handle.mock.calls[0]!;
     await expect(handler({}, {
-      provider: 'openai',
       apiKey: 'sk-test',
       baseUrl: 'https://relay.example.com',
     })).resolves.toEqual([
-      { id: 'gpt-4o-mini', capabilities: ['text'] },
-      { id: 'gpt-image-1', capabilities: ['image'] },
+      { id: 'gpt-4o-mini', capability: 'text', alias: 'GPT-4o' },
+      { id: 'gpt-image-1', capability: 'image', alias: 'GPT Image' },
     ]);
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -58,7 +57,7 @@ describe('model provider IPC', () => {
     );
   });
 
-  it('lists Claude / Gemini ids through a NewAPI relay using the openai listing protocol', async () => {
+  it('lists cross-vendor ids through a relay with correct capability inference', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
       data: [
         { id: 'claude-3-5-sonnet-latest' },
@@ -71,13 +70,12 @@ describe('model provider IPC', () => {
     const [, handler] = handle.mock.calls[0]!;
 
     await expect(handler({}, {
-      provider: 'openai',
       apiKey: 'sk-relay',
       baseUrl: 'https://newapi.example.com',
     })).resolves.toEqual([
-      { id: 'claude-3-5-sonnet-latest', capabilities: ['text'] },
-      { id: 'gemini-2.5-pro', capabilities: ['text'] },
-      { id: 'gpt-4o', capabilities: ['text'] },
+      { id: 'claude-3-5-sonnet-latest', capability: 'text', alias: 'Claude' },
+      { id: 'gemini-2.5-pro', capability: 'text', alias: 'Gemini' },
+      { id: 'gpt-4o', capability: 'text', alias: 'GPT-4o' },
     ]);
   });
 });

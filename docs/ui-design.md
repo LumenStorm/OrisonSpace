@@ -120,12 +120,10 @@
 
 ### 当前数据概念
 
-这页底层仍然是 profile 概念：
+这页底层是 key 概念：
 
-- 一个 profile = 一组 `provider + baseUrl + apiKey`
-- 一个 profile 下包含多个模型条目 `models[]`
-
-这不是 UI 上的 bug，UI bug 在于页面交互状态曾经不清晰。
+- 一个 key = 一组 `name + baseUrl + apiKey`
+- 一个 key 下包含多个发现的模型 `models[]`
 
 ### 当前交互状态
 
@@ -133,43 +131,41 @@
 
 | 状态 | 说明 |
 |---|---|
-| `idle` + 无 profile | 显示“还没有模型”的空状态 |
+| `idle` + 无 key | 显示”还没有模型”的空状态 |
 | `creating` | 显示新建编辑器 |
-| `editing` | 显示已选中 profile 的编辑器 |
-| `idle` + 有 profile | 显示“请选择一个配置”的占位态 |
+| `editing` | 显示已选中 key 的编辑器 |
+| `idle` + 有 key | 显示”请选择一个配置”的占位态 |
 
 ### 页面结构
 
-- 左侧：Profile 列表
-- 右侧：Profile 编辑器或空状态
-- 底部：槽位分配（novel / image / video）
+- 左侧：Key 列表
+- 右侧：Key 编辑器或空状态
 
 ### 编辑器字段
 
 #### 身份区
 
-- `profileName`
-- `provider`
+- `keyName`
 
 #### 凭据区
 
 - `apiKey`
 - `baseUrl`
-- 刷新 provider 模型列表按钮
+- 刷新远端模型列表按钮
 
 #### 模型区
 
 - 每个 model entry 包含：
   - `id`
-  - `alias`
-  - `apiFormat`
-  - `capabilities`
+  - `capability`（text/image/video，自动推断）
+  - `alias`（自动推断）
+  - `enabled`
 
 ### 重要交互
 
-- 空状态点击“添加模型”会直接进入编辑器
-- 已有 profile 但未选中时，不再默认渲染隐式新建编辑器
-- 刷新模型列表后，可按 provider 返回结果填充模型条目
+- 空状态点击”添加模型”会直接进入编辑器
+- 已有 key 但未选中时，不再默认渲染隐式新建编辑器
+- 刷新模型列表后，由 model-registry 自动推断能力和别名
 
 ## 6. 图片生成模块
 
@@ -186,7 +182,7 @@
 
 ### 主区 UI
 
-- 顶部 profile chip：只显示 `provider · modelAlias`，无参数入口；所有参数（尺寸 / 数量 / 质量 / 输出格式等）集中在 BottomPanel 的 properties tab，主区不再出现任何参数线索
+- 顶部 key chip：只显示 `modelAlias`，无参数入口；所有参数（尺寸 / 数量 / 质量 / 输出格式等）集中在 BottomPanel 的 properties tab，主区不再出现任何参数线索
 - Prompt 输入：大尺寸文本区 + 右下角 Generate 主按钮；生成中图标旋转；错误以可关闭的 banner 呈现
 - 画廊：1:1 正方形卡片网格，`object-fit: contain` 保证非方图不被裁切，棋盘纹底色；卡片支持分页，默认每页 12 张
 - 卡片交互：

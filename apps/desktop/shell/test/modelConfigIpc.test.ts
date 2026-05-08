@@ -22,45 +22,26 @@ import { _setModelConfigDirForTest, registerConfigIpc } from '../main/ipc/config
 const TEST_MODEL_DIR = path.join(process.cwd(), 'test-tmp-model-config');
 
 const SAMPLE_CONFIG: ModelConfig = {
-  profiles: [
+  keys: [
     {
-      schemaVersion: 2,
-      id: 'model_001',
+      id: 'key_001',
       name: 'Main relay',
-      provider: 'openai',
       apiKey: 'sk-test',
       baseUrl: 'https://relay.example.com/v1',
       models: [
-        {
-          id: 'gpt-4o-mini',
-          alias: 'GPT 4o mini',
-          apiFormat: 'openai-chat-completions',
-          capabilities: ['text'],
-        },
+        { id: 'gpt-4o-mini', alias: 'GPT 4o mini', capability: 'text', enabled: true },
       ],
     },
     {
-      schemaVersion: 2,
-      id: 'model_002',
+      id: 'key_002',
       name: 'Image relay',
-      provider: 'openai',
       apiKey: 'sk-image',
       baseUrl: 'https://relay.example.com/v1',
       models: [
-        {
-          id: 'gpt-image-1',
-          alias: 'GPT Image 1',
-          apiFormat: 'openai-images',
-          capabilities: ['image'],
-        },
+        { id: 'gpt-image-1', alias: 'GPT Image 1', capability: 'image', enabled: true },
       ],
     },
   ],
-  selected: {
-    novel: { profileId: 'model_001', modelId: 'gpt-4o-mini' },
-    image: { profileId: 'model_002', modelId: 'gpt-image-1' },
-    video: null,
-  },
 };
 
 describe('model config IPC', () => {
@@ -75,7 +56,7 @@ describe('model config IPC', () => {
     if (existsSync(TEST_MODEL_DIR)) rmSync(TEST_MODEL_DIR, { recursive: true, force: true });
   });
 
-  it('writes one v2 YAML file per profile and a v2 index', async () => {
+  it('writes one YAML file per key in keys/ directory', async () => {
     registerConfigIpc();
     const saveCall = handle.mock.calls.find(([channel]) => channel === 'config:save-model');
     expect(saveCall).toBeTruthy();
@@ -83,61 +64,69 @@ describe('model config IPC', () => {
     const [, saveHandler] = saveCall!;
     await saveHandler({}, SAMPLE_CONFIG);
 
-    const index = parseFlatYaml(readFileSync(path.join(TEST_MODEL_DIR, 'index.yaml'), 'utf-8'));
-    expect(index).toMatchObject({
-      version: 2,
-      order: 'model_001,model_002',
-      'selected.novel.profileId': 'model_001',
-      'selected.novel.modelId': 'gpt-4o-mini',
-      'selected.image.profileId': 'model_002',
-      'selected.image.modelId': 'gpt-image-1',
-    });
-
-    const profile = parseFlatYaml(readFileSync(path.join(TEST_MODEL_DIR, 'profiles', 'model_001.yaml'), 'utf-8'));
-    expect(profile).toMatchObject({
-      schemaVersion: 2,
-      id: 'model_001',
+    const keyFile = parseFlatYaml(readFileSync(path.join(TEST_MODEL_DIR, 'keys', 'key_001.yaml'), 'utf-8'));
+    expect(keyFile).toMatchObject({
+      id: 'key_001',
       name: 'Main relay',
-      provider: 'openai',
       apiKey: 'sk-test',
       baseUrl: 'https://relay.example.com/v1',
       'models.0.id': 'gpt-4o-mini',
-      'models.0.apiFormat': 'openai-chat-completions',
-      'models.0.capabilities': 'text',
+      'models.0.capability': 'text',
+      'models.0.alias': 'GPT 4o mini',
+      'models.0.enabled': true,
     });
   });
 
-  it('migrates legacy config.yaml into v2 model profiles on read', async () => {
-    mkdirSync(TEST_MODEL_DIR, { recursive: true });
+  it('round-trips save then load', async () => {
+    registerConfigIpc();
+    const saveCall = handle.mock.calls.find(([channel]) => channel === 'config:save-model');
+    const loadCall = handle.mock.calls.find(([channel]) => channel === 'config:load-model');
+
+    await saveCall![1]({}, SAMPLE_CONFIG);
+    const result = (await loadCall![1]({})) as ModelConfig;
+
+    expect(result.keys).toHaveLength(2);
+    expect(result.keys[0].id).toBe('key_001');
+    expect(result.keys[0].models[0].id).toBe('gpt-4o-mini');
+    expect(result.keys[1].id).toBe('key_002');
+  });
+
+  it('migrates old profile-based config on first read', async () => {
+    // Seed old-style profiles directory
+    const profilesDir = path.join(TEST_MODEL_DIR, 'profiles');
+    mkdirSync(profilesDir, { recursive: true });
     writeFileSync(
-      path.join(TEST_MODEL_DIR, 'config.yaml'),
+      path.join(profilesDir, 'model_001.yaml'),
       stringifyFlatYaml({
-        'novel.provider': 'openai',
-        'novel.apiKey': 'legacy-key',
-        'novel.baseUrl': 'https://relay.example.com/v1',
-        'novel.model': 'gpt-4o-mini',
+        schemaVersion: 2,
+        id: 'model_001',
+        name: 'Legacy Profile',
+        provider: 'openai',
+        apiKey: 'legacy-key',
+        baseUrl: 'https://relay.example.com/v1',
+        'models.0.id': 'gpt-4o-mini',
+        'models.0.alias': 'GPT 4o mini',
+        'models.0.apiFormat': 'openai-chat-completions',
+        'models.0.capabilities': 'text',
       }),
       'utf-8',
     );
 
     registerConfigIpc();
     const loadCall = handle.mock.calls.find(([channel]) => channel === 'config:load-model');
-    expect(loadCall).toBeTruthy();
+    const result = (await loadCall![1]({})) as ModelConfig;
 
-    const [, loadHandler] = loadCall!;
-    const result = (await loadHandler({})) as ModelConfig;
-    expect(result.profiles).toHaveLength(1);
-    expect(result.profiles[0]).toMatchObject({
-      schemaVersion: 2,
+    expect(result.keys).toHaveLength(1);
+    expect(result.keys[0]).toMatchObject({
       id: 'model_001',
-      provider: 'openai',
+      name: 'Legacy Profile',
       apiKey: 'legacy-key',
+      baseUrl: 'https://relay.example.com/v1',
     });
-    expect(result.profiles[0]!.models).toEqual([
-      expect.objectContaining({ id: 'gpt-4o-mini', apiFormat: 'openai-chat-completions', capabilities: ['text'] }),
-    ]);
-    expect(result.selected.novel).toEqual({ profileId: 'model_001', modelId: 'gpt-4o-mini' });
-    expect(result.selected.image).toBeNull();
-    expect(result.selected.video).toBeNull();
+    expect(result.keys[0].models[0]).toMatchObject({
+      id: 'gpt-4o-mini',
+      capability: 'text',
+      enabled: true,
+    });
   });
 });

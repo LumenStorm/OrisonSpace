@@ -4,14 +4,7 @@ import { detectSystemLocale, availableLocales } from '../i18n/useI18n';
 import type { UserPreferencesConfig } from '@orison/shared-contracts';
 import type { ModelConfig } from '@orison/shared-contracts';
 
-const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  profiles: [],
-  selected: {
-    novel: null,
-    image: null,
-    video: null,
-  },
-};
+const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
 
 const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
   theme: 'system',

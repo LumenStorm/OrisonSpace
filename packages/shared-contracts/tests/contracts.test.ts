@@ -13,16 +13,14 @@ import {
   projectAssetListQuerySchema,
   projectAssetListResponseSchema,
   taskDetailResponseSchema,
-  modelApiFormatSchema,
   textGenerationRequestSchema,
   textGenerationResponseSchema,
   imageGenerationRequestSchema,
   videoGenerationRequestSchema,
-  modelProfileV2Schema,
-  modelEntrySchema,
-  slotAssignmentMapSchema,
-  resolvedModelProfileSchema,
-  modelConfigV2Schema,
+  apiKeyEntrySchema,
+  discoveredModelSchema,
+  modelConfigSchema,
+  resolveModelInfo,
 } from '../src';
 
 describe('shared contracts', () => {
@@ -204,193 +202,100 @@ describe('shared contracts', () => {
   });
 });
 
-describe('model api format and v2 model schemas', () => {
-  it('enumerates every shipping apiFormat', () => {
-    expect(modelApiFormatSchema.parse('openai-chat-completions')).toBe('openai-chat-completions');
-    expect(modelApiFormatSchema.parse('openai-responses')).toBe('openai-responses');
-    expect(modelApiFormatSchema.parse('claude-messages')).toBe('claude-messages');
-    expect(modelApiFormatSchema.parse('gemini-generate-content')).toBe('gemini-generate-content');
-    expect(modelApiFormatSchema.parse('openai-images')).toBe('openai-images');
-    expect(modelApiFormatSchema.parse('gemini-images')).toBe('gemini-images');
-    expect(modelApiFormatSchema.parse('gemini-image-edit')).toBe('gemini-image-edit');
-    expect(modelApiFormatSchema.parse('sora-videos')).toBe('sora-videos');
-    expect(() => modelApiFormatSchema.parse('unknown-format')).toThrow();
+describe('model config v3 schemas', () => {
+  it('parses text generation request', () => {
+    const text = textGenerationRequestSchema.parse({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+    expect(text.model).toBe('gpt-4o');
   });
 
-  it('preserves apiFormat and namespaced providerOptions on text/image/video requests', () => {
-    const text = textGenerationRequestSchema.parse({
-      model: 'claude-3-5-sonnet',
-      messages: [{ role: 'user', content: 'hi' }],
-      apiFormat: 'claude-messages',
-      providerOptions: {
-        'claude-messages': { thinking: { type: 'enabled' } },
-        'openai-chat-completions': { tools: [] },
-      },
-    });
-    expect(text.apiFormat).toBe('claude-messages');
-    expect(text.providerOptions?.['claude-messages']?.thinking).toBeDefined();
-    expect(text.providerOptions?.['openai-chat-completions']?.tools).toEqual([]);
-
+  it('parses image generation request', () => {
     const image = imageGenerationRequestSchema.parse({
       model: 'dall-e-3',
       prompt: 'a city at dusk',
-      apiFormat: 'openai-images',
-      providerOptions: { 'openai-images': { style: 'vivid' } },
     });
-    expect(image.apiFormat).toBe('openai-images');
-    expect(image.providerOptions?.['openai-images']?.style).toBe('vivid');
+    expect(image.model).toBe('dall-e-3');
+  });
 
+  it('parses video generation request', () => {
     const video = videoGenerationRequestSchema.parse({
       model: 'sora-1.0',
       prompt: 'rolling waves',
-      apiFormat: 'sora-videos',
       duration: 10,
-      width: 1920,
-      height: 1080,
     });
-    expect(video.apiFormat).toBe('sora-videos');
+    expect(video.model).toBe('sora-1.0');
   });
 
-  it('accepts usage/finishReason/id/created on text generation responses', () => {
+  it('parses text generation response', () => {
     const parsed = textGenerationResponseSchema.parse({
-      provider: 'openai',
       model: 'gpt-4o',
       text: 'hello',
-      id: 'resp-123',
-      created: 1715155200,
       usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       finishReason: 'stop',
     });
     expect(parsed.usage?.totalTokens).toBe(30);
     expect(parsed.finishReason).toBe('stop');
-    expect(parsed.id).toBe('resp-123');
   });
 
-  it('accepts image/mask/referenceImages on image generation requests', () => {
+  it('parses image generation request with image/mask', () => {
     const parsed = imageGenerationRequestSchema.parse({
       model: 'gpt-image-1',
-      prompt: 'replace the sofa with a leather chesterfield',
-      apiFormat: 'openai-images',
+      prompt: 'replace the sofa',
       image: { b64Json: 'YWJj', mimeType: 'image/png' },
       mask: { b64Json: 'ZGVm', mimeType: 'image/png' },
-      referenceImages: [
-        { b64Json: 'Z2hp', mimeType: 'image/png' },
-      ],
     });
-    expect(parsed.image?.mimeType).toBe('image/png');
-    expect(parsed.mask?.b64Json).toBe('ZGVm');
-    expect(parsed.referenceImages?.length).toBe(1);
+    expect(parsed.image).toBeDefined();
+    expect(parsed.mask).toBeDefined();
   });
 
-  it('accepts gemini-image-edit apiFormat', () => {
-    expect(modelApiFormatSchema.parse('gemini-image-edit')).toBe('gemini-image-edit');
-  });
-
-  it('parses a v2 profile with multiple model entries', () => {
-    const profile = modelProfileV2Schema.parse({
-      schemaVersion: 2,
-      id: 'profile-7f21',
-      name: 'OpenAI Main',
-      provider: 'openai',
+  it('parses ApiKeyEntry with discovered models', () => {
+    const entry = apiKeyEntrySchema.parse({
+      id: 'key-1',
+      name: 'My OpenAI',
       baseUrl: 'https://api.openai.com',
-      apiKey: 'sk-...',
+      apiKey: 'sk-xxx',
       models: [
-        {
-          id: 'gpt-4o',
-          alias: 'GPT-4o 主力',
-          apiFormat: 'openai-chat-completions',
-          capabilities: ['text'],
-        },
-        {
-          id: 'dall-e-3',
-          alias: 'DALL-E 3',
-          apiFormat: 'openai-images',
-          capabilities: ['image'],
-        },
+        { id: 'gpt-4o', capability: 'text', alias: 'GPT-4o', enabled: true },
+        { id: 'dall-e-3', capability: 'image', alias: 'DALL·E', enabled: false },
       ],
     });
-    expect(profile.models).toHaveLength(2);
-    expect(profile.models[1].alias).toBe('DALL-E 3');
+    expect(entry.models).toHaveLength(2);
+    expect(entry.models[0].enabled).toBe(true);
   });
 
-  it('rejects a v2 profile with empty models', () => {
-    expect(() =>
-      modelProfileV2Schema.parse({
-        schemaVersion: 2,
-        id: 'p',
-        name: 'p',
-        provider: 'openai',
-        baseUrl: 'https://api.openai.com',
-        apiKey: 'sk',
-        models: [],
-      })
-    ).toThrow();
-  });
-
-  it('parses slot assignment map with mixed null and pair', () => {
-    const map = slotAssignmentMapSchema.parse({
-      novel: { profileId: 'p1', modelId: 'gpt-4o' },
-      image: { profileId: 'p1', modelId: 'dall-e-3' },
-      video: null,
-    });
-    expect(map.novel?.modelId).toBe('gpt-4o');
-    expect(map.video).toBeNull();
-  });
-
-  it('rejects slot assignment with missing modelId', () => {
-    expect(() =>
-      slotAssignmentMapSchema.parse({
-        novel: { profileId: 'p1' },
-        image: null,
-        video: null,
-      })
-    ).toThrow();
-  });
-
-  it('parses ResolvedModelProfile with all required fields', () => {
-    const resolved = resolvedModelProfileSchema.parse({
-      profileId: 'p1',
-      modelId: 'gpt-4o',
-      apiFormat: 'openai-chat-completions',
-      baseUrl: 'https://api.openai.com',
-      apiKey: 'sk',
-      capabilities: ['text'],
-    });
-    expect(resolved.modelId).toBe('gpt-4o');
-  });
-
-  it('parses ModelConfigV2 end to end', () => {
-    const config = modelConfigV2Schema.parse({
-      schemaVersion: 2,
-      profiles: [
+  it('parses ModelConfig with multiple keys', () => {
+    const config = modelConfigSchema.parse({
+      keys: [
         {
-          schemaVersion: 2,
-          id: 'p1',
+          id: 'k1',
           name: 'OpenAI',
-          provider: 'openai',
           baseUrl: 'https://api.openai.com',
           apiKey: 'sk',
-          models: [
-            { id: 'gpt-4o', alias: 'GPT-4o', apiFormat: 'openai-chat-completions', capabilities: ['text'] },
-          ],
+          models: [{ id: 'gpt-4o', capability: 'text', alias: 'GPT-4o', enabled: true }],
         },
       ],
-      selected: {
-        novel: { profileId: 'p1', modelId: 'gpt-4o' },
-        image: null,
-        video: null,
-      },
     });
-    expect(config.profiles[0].models[0].id).toBe('gpt-4o');
+    expect(config.keys[0].models[0].id).toBe('gpt-4o');
   });
 
-  it('allows a model entry where alias mirrors id', () => {
-    const entry = modelEntrySchema.parse({
+  it('parses DiscoveredModel', () => {
+    const model = discoveredModelSchema.parse({
       id: 'gpt-4o',
-      alias: 'gpt-4o',
-      apiFormat: 'openai-chat-completions',
-      capabilities: ['text'],
+      capability: 'text',
+      alias: 'GPT-4o',
+      enabled: true,
     });
-    expect(entry.alias).toBe(entry.id);
+    expect(model.capability).toBe('text');
+  });
+
+  it('resolveModelInfo matches known patterns', () => {
+    expect(resolveModelInfo('dall-e-3').capability).toBe('image');
+    expect(resolveModelInfo('dall-e-3').alias).toBe('DALL·E');
+    expect(resolveModelInfo('gpt-4o-mini').capability).toBe('text');
+    expect(resolveModelInfo('sora-1.0').capability).toBe('video');
+    expect(resolveModelInfo('unknown-model-xyz').capability).toBe('text');
+    expect(resolveModelInfo('unknown-model-xyz').alias).toBe('unknown-model-xyz');
   });
 });

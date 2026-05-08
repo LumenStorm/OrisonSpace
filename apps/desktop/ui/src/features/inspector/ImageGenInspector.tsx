@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { ModelProfile, SlotAssignment } from '@orison/shared-contracts';
+import type { ModelRef } from '@orison/shared-contracts';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import {
@@ -21,18 +21,16 @@ import { CUSTOM_SIZE_OPTION, SizeField } from './image-gen-fields/SizeField';
  * Inspector panel rendered when `activeModule === 'image_gen'`. It is the
  * single source of truth for image-generation parameters; the editor reads
  * them from the same store and does not render any parameter controls.
- *
- * Field visibility is driven by the active model's family (see
- * `shared/imageGen/schema.ts`).
  */
 export function ImageGenInspector() {
   const {
     resolvedLocale,
     modelConfig,
-    setModelConfig,
     family,
     params,
     customSize,
+    selectedImageRef,
+    setSelectedImageRef,
     setImageGenParam,
     setImageGenCustomSize,
     setImageGenCustomDimensions,
@@ -41,10 +39,11 @@ export function ImageGenInspector() {
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     modelConfig: s.modelConfig,
-    setModelConfig: s.setModelConfig,
     family: s.imageGenFamily,
     params: s.imageGenParams,
     customSize: s.imageGenCustomSize,
+    selectedImageRef: s.selectedImageRef,
+    setSelectedImageRef: s.setSelectedImageRef,
     setImageGenParam: s.setImageGenParam,
     setImageGenCustomSize: s.setImageGenCustomSize,
     setImageGenCustomDimensions: s.setImageGenCustomDimensions,
@@ -53,24 +52,16 @@ export function ImageGenInspector() {
   })));
 
   const { t } = useI18n(resolvedLocale);
-  const imageProfiles = modelConfig.profiles.filter((profile) =>
-    profile.models.some((m) => m.capabilities.includes('image')),
-  );
-  const selectedSlot = modelConfig.selected.image;
-  const selectedProfile = selectedSlot
-    ? modelConfig.profiles.find((p) => p.id === selectedSlot.profileId) ?? null
-    : null;
-  const selectedModelId = selectedSlot?.modelId ?? null;
+  const keys = modelConfig.keys;
+  const selectedModelId = selectedImageRef?.modelId ?? null;
 
   const placeholderText = (() => {
-    if (modelConfig.profiles.length === 0) return t('imageGen.params.noProfilesYet');
-    if (imageProfiles.length === 0) return t('imageGen.params.noImageProfile');
+    if (keys.length === 0) return t('imageGen.params.noProfilesYet');
+    const hasImage = keys.some((k) => k.models.some((m) => m.enabled && m.capability === 'image'));
+    if (!hasImage) return t('imageGen.params.noImageProfile');
     return t('imageGen.params.selectModel');
   })();
 
-  // Re-sanitize params whenever the selected model id changes — the user
-  // may have edited the profile's model entries in settings without
-  // changing the slot.
   useEffect(() => {
     reconcile(selectedModelId);
   }, [selectedModelId, reconcile]);
@@ -78,24 +69,24 @@ export function ImageGenInspector() {
   const spec = IMAGE_FAMILIES[family];
   const visible = (field: ImageGenField) => spec.fields.includes(field);
 
-  function handleProfileChange(slot: SlotAssignment | null) {
-    const profile: ModelProfile | null = slot
-      ? imageProfiles.find((p) => p.id === slot.profileId) ?? null
-      : null;
-    const modelEntry = profile?.models.find((m) => m.id === slot?.modelId) ?? null;
-    appendOutputEntry({
-      scope: 'model',
-      level: profile ? 'success' : 'info',
-      message: profile && modelEntry
-        ? `Selected image model: ${profile.provider} · ${modelEntry.alias}`
-        : 'Cleared image model selection',
-      detail: profile && modelEntry ? `${profile.provider}/${modelEntry.id}` : undefined,
-    });
-    void setModelConfig({
-      ...modelConfig,
-      selected: { ...modelConfig.selected, image: slot },
-    });
-    reconcile(slot?.modelId ?? null);
+  function handleProfileChange(ref: ModelRef | null) {
+    if (ref) {
+      const key = keys.find((k) => k.id === ref.keyId);
+      const model = key?.models.find((m) => m.id === ref.modelId);
+      appendOutputEntry({
+        scope: 'model',
+        level: 'success',
+        message: model ? `Selected image model: ${key!.name} · ${model.alias}` : 'Selected image model',
+        detail: model ? `${key!.name}/${model.id}` : undefined,
+      });
+    } else {
+      appendOutputEntry({
+        scope: 'model',
+        level: 'info',
+        message: 'Cleared image model selection',
+      });
+    }
+    setSelectedImageRef(ref);
   }
 
   return (
@@ -106,11 +97,12 @@ export function ImageGenInspector() {
 
       <div className="inspector-fields-row">
         <ProfileField
-          profiles={imageProfiles}
-          selectedSlot={selectedSlot}
+          keys={keys}
+          selectedRef={selectedImageRef}
           onChange={handleProfileChange}
           label={t('imageGen.params.model')}
           placeholder={placeholderText}
+          capability="image"
         />
 
         {visible('size') && (
@@ -215,7 +207,6 @@ export function ImageGenInspector() {
           </label>
         )}
       </div>
-      {selectedProfile ? null : null}
     </div>
   );
 }

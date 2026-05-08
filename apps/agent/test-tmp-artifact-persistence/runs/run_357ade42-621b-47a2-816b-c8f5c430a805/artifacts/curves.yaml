@@ -1,0 +1,32 @@
+schema_version: 1
+field_version: 0
+generated_by: curve-planner-agent
+source_refs: []
+data:
+  growth_curve:
+    character_id: c1
+    start_state: 迷茫
+    wound_or_lack: 失去搭档
+    desire: 真相
+    need: 接受
+    turning_points: []
+    regressions: []
+    end_state: 释然
+    linked_episode_ids:
+      - ep_1
+  pacing_curve:
+    unit: episode
+    points:
+      - refId: ep_1
+        intensity: 6
+    target_shape: rising
+    risks: []
+  emotion_curve:
+    unit: episode
+    points:
+      - refId: ep_1
+        primaryEmotion: 紧张
+        valence: -0.3
+        arousal: 0.7
+    emotional_promises: []
+    catharsis_points: []

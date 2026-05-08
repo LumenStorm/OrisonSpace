@@ -24,29 +24,17 @@ const TEST_MODEL_DIR = path.join(process.cwd(), 'test-tmp-story-sync-bridge');
 const ORIGINAL_FETCH = globalThis.fetch;
 
 const SAMPLE_CONFIG: ModelConfig = {
-  profiles: [
+  keys: [
     {
-      schemaVersion: 2,
-      id: 'profile_text',
+      id: 'key_text',
       name: 'Text',
-      provider: 'openai',
       apiKey: 'sk-text',
       baseUrl: 'https://relay.example.com',
       models: [
-        {
-          id: 'gpt-4o-mini',
-          alias: 'GPT 4o mini',
-          apiFormat: 'openai-chat-completions',
-          capabilities: ['text'],
-        },
+        { id: 'gpt-4o-mini', alias: 'GPT 4o mini', capability: 'text', enabled: true },
       ],
     },
   ],
-  selected: {
-    novel: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
-    image: null,
-    video: null,
-  },
 };
 
 async function seedConfig() {
@@ -103,7 +91,7 @@ describe('story-sync bridge', () => {
 
     const handler = pickHandler('storySync:run');
     const result = (await handler({}, {
-      slot: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
+      ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
       runId: 'run_1',
       chapterId: 'ch_1',
       candidate: { content: '一把铜钥匙' },
@@ -129,7 +117,7 @@ describe('story-sync bridge', () => {
 
     const handler = pickHandler('storySync:run');
     const result = (await handler({}, {
-      slot: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
+      ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
       runId: 'run_1',
       chapterId: 'ch_1',
       candidate: { content: '...' },
@@ -158,7 +146,7 @@ describe('story-sync bridge', () => {
 
     const handler = pickHandler('storySync:run');
     const result = (await handler({}, {
-      slot: { profileId: 'profile_text', modelId: 'gpt-4o-mini' },
+      ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
       runId: 'r',
       chapterId: 'c',
       candidate: { content: '...' },
@@ -170,14 +158,14 @@ describe('story-sync bridge', () => {
     expect(result.summary).toMatch(/parse failed/i);
   });
 
-  it('returns fallbackToRules=true when slot is missing', async () => {
+  it('returns fallbackToRules=true when key is missing', async () => {
     registerStorySyncIpc();
 
     globalThis.fetch = vi.fn();
 
     const handler = pickHandler('storySync:run');
     const result = (await handler({}, {
-      slot: { profileId: 'no_such', modelId: 'gpt-4o' },
+      ref: { keyId: 'no_such', modelId: 'gpt-4o' },
       runId: 'r',
       chapterId: 'c',
       candidate: { content: '...' },

@@ -1,27 +1,30 @@
-import type { ModelProfile, SlotAssignment } from '@orison/shared-contracts';
+import type { ApiKeyEntry, ModelRef } from '@orison/shared-contracts';
 
 type ProfileFieldProps = {
-  profiles: ModelProfile[];
-  selectedSlot: SlotAssignment | null;
-  onChange: (slot: SlotAssignment | null) => void;
+  keys: ApiKeyEntry[];
+  selectedRef: ModelRef | null;
+  onChange: (ref: ModelRef | null) => void;
   label: string;
   placeholder: string;
+  capability?: 'text' | 'image' | 'video';
 };
 
 type FlatOption = {
   value: string;
-  slot: SlotAssignment;
+  ref: ModelRef;
   label: string;
 };
 
-function flatten(profiles: ModelProfile[]): FlatOption[] {
+function flatten(keys: ApiKeyEntry[], capability?: string): FlatOption[] {
   const out: FlatOption[] = [];
-  for (const profile of profiles) {
-    for (const model of profile.models) {
+  for (const key of keys) {
+    for (const model of key.models) {
+      if (!model.enabled) continue;
+      if (capability && model.capability !== capability) continue;
       out.push({
-        value: `${profile.id}:${model.id}`,
-        slot: { profileId: profile.id, modelId: model.id },
-        label: `${profile.provider} · ${model.alias}`,
+        value: `${key.id}:${model.id}`,
+        ref: { keyId: key.id, modelId: model.id },
+        label: `${key.name} · ${model.alias}`,
       });
     }
   }
@@ -29,14 +32,15 @@ function flatten(profiles: ModelProfile[]): FlatOption[] {
 }
 
 export function ProfileField({
-  profiles,
-  selectedSlot,
+  keys,
+  selectedRef,
   onChange,
   label,
   placeholder,
+  capability,
 }: ProfileFieldProps) {
-  const options = flatten(profiles);
-  const selectedKey = selectedSlot ? `${selectedSlot.profileId}:${selectedSlot.modelId}` : '';
+  const options = flatten(keys, capability);
+  const selectedKey = selectedRef ? `${selectedRef.keyId}:${selectedRef.modelId}` : '';
   return (
     <label className="inspector-field-item">
       <div className="inspector-label">{label}</div>
@@ -45,7 +49,7 @@ export function ProfileField({
         value={selectedKey}
         onChange={(e) => {
           const next = options.find((opt) => opt.value === e.target.value);
-          onChange(next ? next.slot : null);
+          onChange(next ? next.ref : null);
         }}
       >
         <option value="">{placeholder}</option>

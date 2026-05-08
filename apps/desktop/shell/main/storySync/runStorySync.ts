@@ -1,67 +1,43 @@
 import type {
-  ResolvedModelProfile,
+  ResolvedModel,
   RunStorySyncPayload,
   RunStorySyncResult,
   TextGenerationRequest,
   TextGenerationResponse,
 } from '@orison/shared-contracts';
 import {
-  ProtocolCapabilityError,
   ProtocolHttpError,
   ProtocolNotImplementedError,
   ProtocolSchemaError,
-  assertCapability,
-  getProtocol,
+  generateText,
 } from '@orison/model-protocols';
 import { buildStorySyncMessages, parseStorySyncResponse } from '@orison/story-sync';
-import { resolveSlot } from '../ipc/modelGatewayIpc';
+import { resolveModel } from '../ipc/modelGatewayIpc';
 
 const FALLBACK: Pick<RunStorySyncResult, 'patches' | 'fallbackToRules'> = {
   patches: [],
   fallbackToRules: true,
 };
 
-/**
- * Run the story-sync LLM extraction locally on the desktop main process.
- *
- * Flow:
- *   load slot -> resolve profile (decrypt apiKey) -> build messages
- *   -> dispatch via model-protocols.generateText -> parse + safety-check
- *
- * Failure mode: never throws. On any LLM-side error (HTTP, schema,
- * not-implemented) we return `fallbackToRules: true` with empty patches so
- * the renderer can submit the orchestration run anyway and let agent's
- * rules path take over.
- */
 export async function runStorySync(payload: RunStorySyncPayload): Promise<RunStorySyncResult> {
-  let profile: ResolvedModelProfile;
+  let resolved: ResolvedModel;
   try {
-    profile = resolveSlot(payload.slot);
+    resolved = resolveModel(payload.ref);
   } catch (error) {
     return {
       ...FALLBACK,
-      summary: `story-sync slot resolve failed: ${(error as Error).message}`,
-    };
-  }
-
-  if (!profile.capabilities.includes('text')) {
-    return {
-      ...FALLBACK,
-      summary: `story-sync slot ${profile.modelId} is not text-capable`,
+      summary: `story-sync resolve failed: ${(error as Error).message}`,
     };
   }
 
   let textResponse: TextGenerationResponse;
   try {
-    assertCapability(profile.apiFormat, 'generateText');
-    const adapter = getProtocol(profile.apiFormat);
-    const request = buildTextRequest(profile, payload);
-    textResponse = await adapter.generateText!(profile, request);
+    const request = buildTextRequest(resolved, payload);
+    textResponse = await generateText(resolved, request);
   } catch (error) {
     if (
       error instanceof ProtocolHttpError ||
       error instanceof ProtocolSchemaError ||
-      error instanceof ProtocolCapabilityError ||
       error instanceof ProtocolNotImplementedError
     ) {
       return {
@@ -95,7 +71,7 @@ export async function runStorySync(payload: RunStorySyncPayload): Promise<RunSto
 }
 
 function buildTextRequest(
-  profile: ResolvedModelProfile,
+  resolved: ResolvedModel,
   payload: RunStorySyncPayload,
 ): TextGenerationRequest {
   const messages = buildStorySyncMessages({
@@ -105,7 +81,7 @@ function buildTextRequest(
     context: payload.context,
   });
   return {
-    model: profile.modelId,
+    model: resolved.modelId,
     messages,
     temperature: 0.2,
   };

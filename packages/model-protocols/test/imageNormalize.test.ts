@@ -7,25 +7,17 @@ const ORIGINAL_FETCH = globalThis.fetch;
 
 function buildResponse(images: Array<Record<string, string | undefined>>): ImageGenerationResponse {
   return {
-    provider: 'openai',
     model: 'dall-e-3',
     images: images as ImageGenerationResponse['images'],
   };
 }
 
 describe('normalizeImageResponse', () => {
-  it('passes through entries that already have b64Json + mimeType', async () => {
+  it('passes through entries that already have b64Json', async () => {
     const result = await normalizeImageResponse(
-      buildResponse([{ b64Json: 'AAA=', mimeType: 'image/png' }]),
+      buildResponse([{ b64Json: 'AAA=' }]),
     );
     expect(result.images[0].b64Json).toBe('AAA=');
-    expect(result.images[0].mimeType).toBe('image/png');
-    expect(result.images[0].dataUrl).toBe('data:image/png;base64,AAA=');
-  });
-
-  it('defaults missing mimeType to image/png', async () => {
-    const result = await normalizeImageResponse(buildResponse([{ b64Json: 'BBB=' }]));
-    expect(result.images[0].mimeType).toBe('image/png');
   });
 
   it('downloads url-only entries and encodes as base64', async () => {
@@ -41,10 +33,6 @@ describe('normalizeImageResponse', () => {
         buildResponse([{ url: 'https://example.test/img.jpg' }]),
       );
       expect(result.images[0].b64Json).toBe(Buffer.from(fakeBytes).toString('base64'));
-      expect(result.images[0].mimeType).toBe('image/jpeg');
-      expect(result.images[0].dataUrl).toBe(
-        `data:image/jpeg;base64,${Buffer.from(fakeBytes).toString('base64')}`,
-      );
     } finally {
       globalThis.fetch = ORIGINAL_FETCH;
     }
