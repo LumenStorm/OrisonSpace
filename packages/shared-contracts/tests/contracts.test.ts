@@ -15,6 +15,7 @@ import {
   taskDetailResponseSchema,
   modelApiFormatSchema,
   textGenerationRequestSchema,
+  textGenerationResponseSchema,
   imageGenerationRequestSchema,
   videoGenerationRequestSchema,
   modelProfileV2Schema,
@@ -211,27 +212,33 @@ describe('model api format and v2 model schemas', () => {
     expect(modelApiFormatSchema.parse('gemini-generate-content')).toBe('gemini-generate-content');
     expect(modelApiFormatSchema.parse('openai-images')).toBe('openai-images');
     expect(modelApiFormatSchema.parse('gemini-images')).toBe('gemini-images');
+    expect(modelApiFormatSchema.parse('gemini-image-edit')).toBe('gemini-image-edit');
     expect(modelApiFormatSchema.parse('sora-videos')).toBe('sora-videos');
     expect(() => modelApiFormatSchema.parse('unknown-format')).toThrow();
   });
 
-  it('preserves apiFormat and providerOptions on text/image/video requests', () => {
+  it('preserves apiFormat and namespaced providerOptions on text/image/video requests', () => {
     const text = textGenerationRequestSchema.parse({
       model: 'claude-3-5-sonnet',
       messages: [{ role: 'user', content: 'hi' }],
       apiFormat: 'claude-messages',
-      providerOptions: { thinking: { type: 'enabled' } },
+      providerOptions: {
+        'claude-messages': { thinking: { type: 'enabled' } },
+        'openai-chat-completions': { tools: [] },
+      },
     });
     expect(text.apiFormat).toBe('claude-messages');
-    expect(text.providerOptions?.thinking).toBeDefined();
+    expect(text.providerOptions?.['claude-messages']?.thinking).toBeDefined();
+    expect(text.providerOptions?.['openai-chat-completions']?.tools).toEqual([]);
 
     const image = imageGenerationRequestSchema.parse({
       model: 'dall-e-3',
       prompt: 'a city at dusk',
       apiFormat: 'openai-images',
-      providerOptions: { style: 'vivid' },
+      providerOptions: { 'openai-images': { style: 'vivid' } },
     });
     expect(image.apiFormat).toBe('openai-images');
+    expect(image.providerOptions?.['openai-images']?.style).toBe('vivid');
 
     const video = videoGenerationRequestSchema.parse({
       model: 'sora-1.0',
@@ -242,6 +249,41 @@ describe('model api format and v2 model schemas', () => {
       height: 1080,
     });
     expect(video.apiFormat).toBe('sora-videos');
+  });
+
+  it('accepts usage/finishReason/id/created on text generation responses', () => {
+    const parsed = textGenerationResponseSchema.parse({
+      provider: 'openai',
+      model: 'gpt-4o',
+      text: 'hello',
+      id: 'resp-123',
+      created: 1715155200,
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
+    });
+    expect(parsed.usage?.totalTokens).toBe(30);
+    expect(parsed.finishReason).toBe('stop');
+    expect(parsed.id).toBe('resp-123');
+  });
+
+  it('accepts image/mask/referenceImages on image generation requests', () => {
+    const parsed = imageGenerationRequestSchema.parse({
+      model: 'gpt-image-1',
+      prompt: 'replace the sofa with a leather chesterfield',
+      apiFormat: 'openai-images',
+      image: { b64Json: 'YWJj', mimeType: 'image/png' },
+      mask: { b64Json: 'ZGVm', mimeType: 'image/png' },
+      referenceImages: [
+        { b64Json: 'Z2hp', mimeType: 'image/png' },
+      ],
+    });
+    expect(parsed.image?.mimeType).toBe('image/png');
+    expect(parsed.mask?.b64Json).toBe('ZGVm');
+    expect(parsed.referenceImages?.length).toBe(1);
+  });
+
+  it('accepts gemini-image-edit apiFormat', () => {
+    expect(modelApiFormatSchema.parse('gemini-image-edit')).toBe('gemini-image-edit');
   });
 
   it('parses a v2 profile with multiple model entries', () => {

@@ -2,6 +2,7 @@ import type {
   GenerationProvider,
   ImageGenerationRequest,
   ImageGenerationResponse,
+  ImageInput,
   ProviderModel,
   SlotAssignment,
   TextGenerationRequest,
@@ -38,6 +39,14 @@ type GenerateImageInput = {
   slot: SlotAssignment;
   prompt: string;
   params: ImageGenerationParams;
+  /**
+   * When set, triggers the image-edit path. OpenAI → `/v1/images/edits` with
+   * `mask` applied when present. Gemini image-edit adapters silently drop
+   * `mask` and use `image` as a reference alongside the prompt.
+   */
+  image?: ImageInput;
+  mask?: ImageInput;
+  referenceImages?: ImageInput[];
 };
 
 type GenerateTextInput = {
@@ -70,6 +79,9 @@ export async function generateImage({
   slot,
   prompt,
   params,
+  image,
+  mask,
+  referenceImages,
 }: GenerateImageInput): Promise<ImageGenerationResponse> {
   if (!window.orisonDesktop?.generateImage) {
     throw new Error('Desktop model gateway is unavailable');
@@ -86,6 +98,9 @@ export async function generateImage({
   if (params.outputCompression !== undefined) request.outputCompression = params.outputCompression;
   if (params.moderation !== undefined) request.moderation = params.moderation;
   if (params.user !== undefined && params.user !== '') request.user = params.user;
+  if (image) request.image = image;
+  if (mask) request.mask = mask;
+  if (referenceImages && referenceImages.length > 0) request.referenceImages = referenceImages;
   return window.orisonDesktop.generateImage({ slot, request });
 }
 

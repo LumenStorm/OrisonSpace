@@ -1,5 +1,7 @@
 import type {
+  GenerationFinishReason,
   GenerationMessage,
+  GenerationUsage,
   ResolvedModelProfile,
   TextGenerationRequest,
   TextGenerationResponse,
@@ -12,7 +14,13 @@ import type { ProtocolAdapter, ProtocolCallContext } from '../types';
  * `x-api-key` + `anthropic-version`.
  */
 type ClaudeMessagesResponse = {
+  id?: string;
   content?: Array<{ type?: string; text?: string }>;
+  stop_reason?: string;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+  };
 };
 
 function splitSystem(messages: GenerationMessage[]): { system: string | undefined; conversation: { role: string; content: string }[] } {
@@ -26,6 +34,35 @@ function splitSystem(messages: GenerationMessage[]): { system: string | undefine
   return { system: system || undefined, conversation };
 }
 
+function mapFinishReason(raw: string | undefined): GenerationFinishReason | undefined {
+  switch (raw) {
+    case 'end_turn':
+    case 'stop_sequence':
+      return 'stop';
+    case 'max_tokens':
+      return 'length';
+    case 'tool_use':
+      return 'tool_use';
+    case undefined:
+      return undefined;
+    default:
+      return 'other';
+  }
+}
+
+function mapUsage(raw: ClaudeMessagesResponse['usage']): GenerationUsage | undefined {
+  if (!raw) return undefined;
+  const prompt = raw.input_tokens;
+  const completion = raw.output_tokens;
+  const total =
+    prompt !== undefined && completion !== undefined ? prompt + completion : undefined;
+  return {
+    promptTokens: prompt,
+    completionTokens: completion,
+    totalTokens: total,
+  };
+}
+
 async function generateText(
   profile: ResolvedModelProfile,
   request: TextGenerationRequest,
@@ -33,6 +70,7 @@ async function generateText(
 ): Promise<TextGenerationResponse> {
   const baseUrl = trimTrailingSlash(profile.baseUrl);
   const { system, conversation } = splitSystem(request.messages);
+  const opts = request.providerOptions?.['claude-messages'] ?? {};
   const raw = await postJson<ClaudeMessagesResponse>({
     url: `${baseUrl}/v1/messages`,
     headers: {
@@ -45,7 +83,7 @@ async function generateText(
       messages: conversation,
       temperature: request.temperature,
       max_tokens: request.maxTokens ?? 1024,
-      ...(request.providerOptions ?? {}),
+      ...opts,
     },
     signal: ctx?.signal,
   });
@@ -54,6 +92,9 @@ async function generateText(
     provider: 'anthropic',
     model: profile.modelId,
     text: raw.content?.map((part) => part.text ?? '').join('') ?? '',
+    id: raw.id,
+    usage: mapUsage(raw.usage),
+    finishReason: mapFinishReason(raw.stop_reason),
     raw,
   };
 }

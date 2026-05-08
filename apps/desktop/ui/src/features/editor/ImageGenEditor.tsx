@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { CreativeFieldKey, ModelEntry, ModelProfile, SlotAssignment } from '@orison/shared-contracts';
+import type { CreativeFieldKey, ImageInput, ModelEntry, ModelProfile, SlotAssignment } from '@orison/shared-contracts';
 import { generateImage } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -8,6 +8,8 @@ import { ImageEditDialog } from './ImageEditDialog';
 import { createImageName, fileNameOf, joinProjectPath, toDataUrl } from './imageGenUtils';
 
 const GENERATION_IMAGE_DIR = 'temp/images/generation';
+const MAX_UPLOAD_SIZE = 25 * 1024 * 1024; // 25MB
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const PAGE_SIZE = 12;
 
 export type GeneratedImageItem = {
@@ -55,6 +57,8 @@ export function ImageGenEditor() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [uploadedImage, setUploadedImage] = useState<(ImageInput & { dataUrl: string }) | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const hydratedPages = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -193,6 +197,31 @@ export function ImageGenEditor() {
     [results, clampedPage],
   );
 
+  const isEditMode = !!uploadedImage;
+
+  function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      setError(t('imageGen.uploadInvalidType'));
+      return;
+    }
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setError(t('imageGen.uploadTooLarge'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const b64Json = dataUrl.replace(/^data:[^;]+;base64,/, '');
+      setUploadedImage({ b64Json, mimeType: file.type, dataUrl });
+      setError(null);
+    };
+    reader.readAsDataURL(file);
+    // Reset input so the same file can be re-selected
+    event.target.value = '';
+  }
+
   async function handleGenerate() {
     if (!currentProject?.path || !prompt.trim() || !resolvedSlot) return;
     setLoading(true);
@@ -200,10 +229,12 @@ export function ImageGenEditor() {
 
     try {
       const payload = paramsToRequestPayload(imageGenParams, imageGenFamily);
+      // In edit mode, force n=1 (API constraint for /images/edits)
+      if (isEditMode) payload.n = 1;
       appendOutputEntry({
         scope: 'image',
         level: 'info',
-        message: 'Image generation request started',
+        message: isEditMode ? 'Image edit request started' : 'Image generation request started',
         detail: `${resolvedSlot.profile.provider} · ${resolvedSlot.entry.alias} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
       });
 
@@ -211,6 +242,7 @@ export function ImageGenEditor() {
         slot: resolvedSlot.slot,
         prompt: prompt.trim(),
         params: payload,
+        image: uploadedImage ? { b64Json: uploadedImage.b64Json, mimeType: uploadedImage.mimeType } : undefined,
       });
 
       const saved = await Promise.all(
@@ -283,9 +315,13 @@ export function ImageGenEditor() {
 
   async function handleSaveEdit(
     item: GeneratedImageItem,
-    payload: { b64Json: string; mimeType: string; maskB64Json?: string },
+    payload: { b64Json: string; mimeType: string; maskB64Json?: string; intent: 'save' | 'generate' },
   ) {
     if (!currentProject?.path) return;
+    if (payload.intent === 'generate') {
+      await handleGenerateVariant(item, payload);
+      return;
+    }
 
     const editName = createImageName(`${fileNameOf(item.tempRelativePath)} edited`, 0);
     const editedFile = await window.orisonDesktop.saveBase64Image(currentProject.path, {
@@ -325,6 +361,98 @@ export function ImageGenEditor() {
       message: `Saved edited image to ${GENERATION_IMAGE_DIR}`,
       detail: editedFile.relativePath,
     });
+  }
+
+  /**
+   * Send an edited image back to the image model as an edit request.
+   * OpenAI → `/v1/images/edits` with mask honored.
+   * Gemini image-edit adapters drop the mask and use the image as a
+   * reference alongside the current prompt; the user is expected to describe
+   * the intended change in the prompt textarea.
+   */
+  async function handleGenerateVariant(
+    item: GeneratedImageItem,
+    payload: { b64Json: string; mimeType: string; maskB64Json?: string },
+  ) {
+    if (!currentProject?.path || !resolvedSlot) return;
+    const variantPrompt = prompt.trim() || item.prompt;
+    if (!variantPrompt) {
+      appendOutputEntry({
+        scope: 'image',
+        level: 'error',
+        message: t('imageGen.generateFailed'),
+        detail: 'Prompt is empty',
+      });
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const params = paramsToRequestPayload(imageGenParams, imageGenFamily);
+      appendOutputEntry({
+        scope: 'image',
+        level: 'info',
+        message: 'Image edit request started',
+        detail: `${resolvedSlot.profile.provider} · ${resolvedSlot.entry.alias}`,
+      });
+
+      const response = await generateImage({
+        slot: resolvedSlot.slot,
+        prompt: variantPrompt,
+        params,
+        image: { b64Json: payload.b64Json, mimeType: payload.mimeType },
+        mask: payload.maskB64Json
+          ? { b64Json: payload.maskB64Json, mimeType: 'image/png' }
+          : undefined,
+      });
+
+      const saved = await Promise.all(
+        response.images.map(async (image, index) => {
+          if (!image.b64Json) {
+            throw new Error(t('imageGen.missingBase64'));
+          }
+          const file = await window.orisonDesktop.saveBase64Image(currentProject.path!, {
+            b64Json: image.b64Json,
+            mimeType: image.mimeType ?? 'image/png',
+            directory: GENERATION_IMAGE_DIR,
+            fileName: createImageName(`${variantPrompt} variant`, index),
+          });
+          return {
+            id: `variant-${Date.now()}-${index}`,
+            prompt: variantPrompt,
+            b64Json: image.b64Json,
+            mimeType: image.mimeType ?? 'image/png',
+            dataUrl: image.dataUrl ?? toDataUrl(image.b64Json, image.mimeType ?? 'image/png'),
+            tempRelativePath: file.relativePath,
+            tempFullPath: file.fullPath,
+            assetAdded: false,
+            source: 'edited',
+          } satisfies GeneratedImageItem;
+        }),
+      );
+
+      setResults((current) => [...saved, ...current]);
+      setPage(0);
+      setEditing(null);
+      appendOutputEntry({
+        scope: 'image',
+        level: 'success',
+        message: `Saved ${saved.length} variant${saved.length === 1 ? '' : 's'} to ${GENERATION_IMAGE_DIR}`,
+        detail: saved.map((entry) => entry.tempRelativePath).join(', '),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('imageGen.generateFailed');
+      setError(message);
+      appendOutputEntry({
+        scope: 'image',
+        level: 'error',
+        message: 'Image edit request failed',
+        detail: message,
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleAddAsset(item: GeneratedImageItem) {
@@ -441,15 +569,49 @@ export function ImageGenEditor() {
             onChange={(e) => setPrompt(e.target.value)}
             rows={4}
           />
+          {uploadedImage ? (
+            <div className="image-gen-upload-preview">
+              <img className="image-gen-upload-thumb" src={uploadedImage.dataUrl} alt="" />
+              <button
+                type="button"
+                className="image-gen-upload-remove"
+                onClick={() => setUploadedImage(null)}
+                aria-label={t('imageGen.removeUpload')}
+                title={t('imageGen.removeUpload')}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">close</span>
+              </button>
+            </div>
+          ) : null}
           <div className="image-gen-prompt-footer">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_TYPES.join(',')}
+              className="image-gen-upload-input"
+              onChange={handleFileSelect}
+            />
+            <button
+              type="button"
+              className="image-gen-upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={t('imageGen.uploadImage')}
+              title={t('imageGen.uploadImage')}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">add_photo_alternate</span>
+            </button>
             <button
               type="button"
               className={loading ? 'image-gen-btn is-loading' : 'image-gen-btn'}
               disabled={!canGenerate}
               onClick={() => void handleGenerate()}
             >
-              <span className="material-symbols-outlined image-gen-btn-icon" aria-hidden="true">auto_awesome</span>
-              {loading ? t('imageGen.generating') : t('imageGen.generate')}
+              <span className="material-symbols-outlined image-gen-btn-icon" aria-hidden="true">
+                {isEditMode ? 'edit' : 'auto_awesome'}
+              </span>
+              {loading
+                ? (isEditMode ? t('imageGen.editing') : t('imageGen.generating'))
+                : (isEditMode ? t('imageGen.editMode') : t('imageGen.generate'))}
             </button>
           </div>
         </div>

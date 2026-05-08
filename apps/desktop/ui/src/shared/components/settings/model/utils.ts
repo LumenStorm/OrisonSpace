@@ -53,11 +53,25 @@ export const API_FORMAT_OPTIONS: ModelApiFormat[] = [
   'gemini-generate-content',
   'openai-images',
   'gemini-images',
+  'gemini-image-edit',
   'sora-videos',
 ];
 
 export function getProviderDescriptor(provider: GenerationProvider): ProviderDescriptor {
   return PROVIDER_DESCRIPTORS.find((p) => p.id === provider) ?? PROVIDER_DESCRIPTORS[0];
+}
+
+/**
+ * Infer the provider from a baseUrl so users don't need to pick one manually.
+ * - Contains 'anthropic' → anthropic
+ * - Contains 'googleapis' → gcp
+ * - Everything else → openai (covers NewAPI / OneAPI relays)
+ */
+export function inferProviderFromUrl(baseUrl: string): GenerationProvider {
+  const lower = baseUrl.toLowerCase();
+  if (lower.includes('anthropic')) return 'anthropic';
+  if (lower.includes('googleapis')) return 'gcp';
+  return 'openai';
 }
 
 export function emptyProfileDraft(): ProfileDraft {
@@ -66,7 +80,7 @@ export function emptyProfileDraft(): ProfileDraft {
     name: '',
     provider: 'openai',
     apiKey: '',
-    baseUrl: PROVIDER_DESCRIPTORS[0].defaultBaseUrl,
+    baseUrl: '',
     models: [],
   };
 }
@@ -89,6 +103,7 @@ export function profileToDraft(profile: ModelProfile): ProfileDraft {
 
 export function draftToProfile(draft: ProfileDraft, fallbackId: string): ModelProfile {
   const id = draft.id ?? fallbackId;
+  const provider = inferProviderFromUrl(draft.baseUrl);
   const trimmed = draft.models
     .filter((m) => m.id.trim().length > 0)
     .map<ModelEntry>((m) => ({
@@ -102,7 +117,7 @@ export function draftToProfile(draft: ProfileDraft, fallbackId: string): ModelPr
     schemaVersion: 2,
     id,
     name: draft.name.trim() || fallbackId,
-    provider: draft.provider,
+    provider,
     apiKey: draft.apiKey,
     baseUrl: draft.baseUrl,
     models: trimmed.length > 0
@@ -110,8 +125,8 @@ export function draftToProfile(draft: ProfileDraft, fallbackId: string): ModelPr
       : [
         {
           id: 'default',
-          alias: draft.name || draft.provider,
-          apiFormat: inferApiFormat('default', draft.provider),
+          alias: draft.name || provider,
+          apiFormat: inferApiFormat('default', provider),
           capabilities: ['text'],
         },
       ],

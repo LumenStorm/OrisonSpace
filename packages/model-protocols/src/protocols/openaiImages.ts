@@ -3,13 +3,16 @@ import type {
   ImageGenerationResponse,
   ResolvedModelProfile,
 } from '@orison/shared-contracts';
-import { postJson, trimTrailingSlash } from '../http';
+import { base64ToBlob, postJson, postMultipart, trimTrailingSlash } from '../http';
 import { ProtocolHttpError } from '../errors';
 import { normalizeImageResponse } from '../imageNormalize';
 import type { ProtocolAdapter, ProtocolCallContext } from '../types';
 
 /**
- * `apiFormat: 'openai-images'` — POST {baseUrl}/images/generations.
+ * `apiFormat: 'openai-images'` — generation and editing.
+ *
+ * - No `request.image` → POST {baseUrl}/images/generations (JSON)
+ * - `request.image` present → POST {baseUrl}/images/edits (multipart)
  *
  * Family detection (gpt-image-2 / gpt-image-1 / fallback dall-e-style) is
  * preserved verbatim from the previous server-side adapter so existing
@@ -27,6 +30,17 @@ function detectImageFamily(model: string): 'gpt-image-2' | 'gpt-image-1' | 'fall
 }
 
 async function generateImage(
+  profile: ResolvedModelProfile,
+  request: ImageGenerationRequest,
+  ctx?: ProtocolCallContext,
+): Promise<ImageGenerationResponse> {
+  if (request.image) {
+    return editImage(profile, request, ctx);
+  }
+  return generateFromPrompt(profile, request, ctx);
+}
+
+async function generateFromPrompt(
   profile: ResolvedModelProfile,
   request: ImageGenerationRequest,
   ctx?: ProtocolCallContext,
@@ -59,7 +73,7 @@ async function generateImage(
     body.response_format = 'b64_json';
   }
 
-  Object.assign(body, request.providerOptions ?? {});
+  Object.assign(body, request.providerOptions?.['openai-images'] ?? {});
 
   const raw = await postJson<OpenAiImageResponse>({
     url: `${baseUrl}/images/generations`,
@@ -68,6 +82,86 @@ async function generateImage(
     signal: ctx?.signal,
   });
 
+  return buildResponse(profile, raw);
+}
+
+/**
+ * OpenAI /v1/images/edits — multipart/form-data.
+ *
+ * Required: image + prompt. Optional: mask (PNG with alpha=0 marking the area
+ * to edit; must be same dimensions as image), n, size, response_format,
+ * user. gpt-image-1 accepts additional fields (quality, background,
+ * output_format, output_compression, moderation) — those are forwarded when
+ * the family detects gpt-image-1 or via providerOptions.
+ *
+ * NewAPI's docs only list the DALL-E-2 subset, but the endpoint accepts the
+ * full OpenAI set; providerOptions['openai-images'] is the escape hatch for
+ * any field we don't hard-code here.
+ */
+async function editImage(
+  profile: ResolvedModelProfile,
+  request: ImageGenerationRequest,
+  ctx?: ProtocolCallContext,
+): Promise<ImageGenerationResponse> {
+  if (!request.image) {
+    throw new ProtocolHttpError('editImage called without request.image', 500);
+  }
+  const baseUrl = trimTrailingSlash(profile.baseUrl);
+  const family = detectImageFamily(profile.modelId);
+
+  const form = new FormData();
+  form.set('model', profile.modelId);
+  form.set('prompt', request.prompt);
+  form.set(
+    'image',
+    base64ToBlob(request.image.b64Json, request.image.mimeType),
+    'image.png',
+  );
+  if (request.mask) {
+    form.set(
+      'mask',
+      base64ToBlob(request.mask.b64Json, request.mask.mimeType),
+      'mask.png',
+    );
+  }
+  if (request.n !== undefined) form.set('n', String(request.n));
+  if (request.size) form.set('size', request.size);
+  if (request.user) form.set('user', request.user);
+
+  if (family === 'gpt-image-2' || family === 'gpt-image-1') {
+    if (request.quality) form.set('quality', request.quality);
+    if (request.background) form.set('background', request.background);
+    if (request.outputFormat) form.set('output_format', request.outputFormat);
+    if (request.outputCompression !== undefined) {
+      form.set('output_compression', String(request.outputCompression));
+    }
+    if (request.moderation) form.set('moderation', request.moderation);
+  } else {
+    // DALL-E-2 style needs response_format to get base64 back
+    form.set('response_format', 'b64_json');
+  }
+
+  // Escape hatch for any field we don't hard-code (gpt-image-1 extras, etc.)
+  const extra = request.providerOptions?.['openai-images'] ?? {};
+  for (const [key, value] of Object.entries(extra)) {
+    if (value === undefined || value === null) continue;
+    form.set(key, typeof value === 'string' ? value : JSON.stringify(value));
+  }
+
+  const raw = await postMultipart<OpenAiImageResponse>({
+    url: `${baseUrl}/images/edits`,
+    headers: { authorization: `Bearer ${profile.apiKey}` },
+    formData: form,
+    signal: ctx?.signal,
+  });
+
+  return buildResponse(profile, raw);
+}
+
+async function buildResponse(
+  profile: ResolvedModelProfile,
+  raw: OpenAiImageResponse,
+): Promise<ImageGenerationResponse> {
   const response: ImageGenerationResponse = {
     provider: 'openai',
     model: profile.modelId,

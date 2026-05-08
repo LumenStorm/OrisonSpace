@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { inferApiFormat } from '@orison/model-protocols';
-import type { GenerationProvider, ModelApiFormat } from '@orison/shared-contracts';
+import type { ModelApiFormat } from '@orison/shared-contracts';
 import type { RemoteModel } from '../../../api/generation';
 import { CapabilityToggleGroup } from './CapabilityToggleGroup';
 import { ProviderBadge } from './ProviderBadge';
@@ -8,8 +8,7 @@ import { EditorBanner } from './EditorBanner';
 import { EditorFooter } from './EditorFooter';
 import {
   API_FORMAT_OPTIONS,
-  PROVIDER_DESCRIPTORS,
-  getProviderDescriptor,
+  inferProviderFromUrl,
   type ProfileDraft,
   type ProfileDraftModel,
 } from './utils';
@@ -50,16 +49,6 @@ export function ProfileEditor({
   const [showApiKey, setShowApiKey] = useState(false);
   const isNew = draft.id === null;
 
-  const handleProviderChange = (next: GenerationProvider) => {
-    if (next === draft.provider) return;
-    const descriptor = getProviderDescriptor(next);
-    onChange({
-      provider: next,
-      models: [],
-      baseUrl: descriptor.defaultBaseUrl,
-    });
-  };
-
   const canApply = isDirty && draft.models.length > 0 && draft.models.every((m) => m.id.trim().length > 0);
 
   return (
@@ -68,7 +57,7 @@ export function ProfileEditor({
         <h4 className="model-editor-title">
           {isNew ? t('settings.addModel') : t('settings.modelDetails')}
         </h4>
-        <ProviderBadge provider={draft.provider} t={t} />
+        <ProviderBadge provider={inferProviderFromUrl(draft.baseUrl)} t={t} />
       </header>
 
       {refreshError ? (
@@ -89,21 +78,6 @@ export function ProfileEditor({
             placeholder={t('settings.modelNamePlaceholder')}
             onChange={(event) => onChange({ name: event.target.value })}
           />
-        </label>
-
-        <label className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.provider')}</span>
-          <select
-            className="sidebar-settings-input"
-            value={draft.provider}
-            onChange={(event) => handleProviderChange(event.target.value as GenerationProvider)}
-          >
-            {PROVIDER_DESCRIPTORS.map((descriptor) => (
-              <option key={descriptor.id} value={descriptor.id}>
-                {t(descriptor.labelKey)}
-              </option>
-            ))}
-          </select>
         </label>
       </div>
 
@@ -179,7 +153,7 @@ export function ProfileEditor({
                     onChange={(event) =>
                       onUpdateModelEntry(index, {
                         id: event.target.value,
-                        apiFormat: inferApiFormat(event.target.value, draft.provider) as ModelApiFormat,
+                        apiFormat: inferApiFormat(event.target.value, inferProviderFromUrl(draft.baseUrl)) as ModelApiFormat,
                       })
                     }
                   />

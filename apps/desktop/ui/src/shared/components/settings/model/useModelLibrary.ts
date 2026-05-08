@@ -13,6 +13,7 @@ import { useAppStore } from '../../../store/appStore';
 import {
   draftToProfile,
   emptyProfileDraft,
+  inferProviderFromUrl,
   isProfileDirty,
   nextProfileId,
   profileToDraft,
@@ -86,10 +87,6 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   }, [profiles, draft.id]);
 
   function updateDraft(values: Partial<ProfileDraft>) {
-    if ('provider' in values && values.provider !== draft.provider) {
-      setNotice(t('settings.providerSwitchedReset'));
-      setRemoteModels([]);
-    }
     setDraft((current) => ({ ...current, ...values }));
   }
 
@@ -186,8 +183,9 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     setRefreshing(true);
     setRefreshError(null);
     try {
+      const provider = inferProviderFromUrl(draft.baseUrl);
       const models = await loadProviderModels({
-        provider: draft.provider,
+        provider,
         apiKey: draft.apiKey,
         baseUrl: draft.baseUrl,
       });
@@ -195,7 +193,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
         scope: 'model',
         level: 'success',
         message: `Fetched ${models.length} model${models.length === 1 ? '' : 's'}`,
-        detail: `${draft.provider} ${draft.baseUrl}`,
+        detail: `${provider} ${draft.baseUrl}`,
       });
       setRemoteModels(models);
       // Pre-fill the model rows with one entry per remote id, defaulting
@@ -207,7 +205,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
           models: models.map((m) => ({
             id: m.id,
             alias: m.id,
-            apiFormat: inferApiFormat(m.id, current.provider) as ModelApiFormat,
+            apiFormat: inferApiFormat(m.id, provider) as ModelApiFormat,
             capabilities: (m.capabilities.length > 0 ? m.capabilities : ['text']) as ModelCapability[],
           })),
         }));

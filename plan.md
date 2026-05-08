@@ -1,129 +1,31 @@
-# 当前计划与进度摘要
+# Plan: 统一走 OpenAI 兼容层列模型 + 生图页面上传图片
 
-## 一、当前系统已经完成的主线
+## 需求 1：列模型统一走 OpenAI 兼容层
 
-### 1. 小说工作流
+**`packages/model-protocols/src/listModels.ts`**
+- 删除 switch(provider) 分支，统一走 `GET {baseUrl}/v1/models` + `Authorization: Bearer {key}`
+- 保留函数签名不变（不破坏调用方）
 
-- 章节生成
-- 章节候选审核
-- story-sync 补丁提取
-- 长期记忆抽取
-- Auto Mode 自动推进
+## 需求 2：生图页面上传图片
 
-### 2. 桌面端创作能力
+在 prompt 区域的 footer 中加一个上传按钮，上传后显示缩略图预览。
+- 无图片 → 按钮文案"生成"，走 `/images/generations`
+- 有图片 → 按钮文案"编辑"，走 `/images/edits`
 
-- 登录 / 注册 / 项目页 / 工作区
-- 本地项目文件读写
-- 创作字段同步
-- 模型配置页
-- 图片生成与项目资产保存
+### UI 风格（遵循 design.md + image-gen.css 现有 token）
 
-### 3. 模型网关迁移
+- 上传按钮放在 `.image-gen-prompt-footer` 左侧，与生成按钮对齐
+- 使用 material-symbols-outlined icon `add_photo_alternate`
+- 缩略图预览用 `.image-gen-card` 同风格的圆角 + border
+- 删除按钮用 `close` icon，hover 高亮
 
-- 服务端 generation route 已删除
-- desktop main 直接连 provider
-- `packages/model-protocols` 已落地
-- `packages/story-sync` 已落地
+### API 限制（edit 模式自动强制）
 
-## 二、最近已收口的关键问题
+- n 强制为 1
+- 图片格式：PNG/JPEG/WebP，≤25MB
+- 分辨率不超 4096x4096
 
-### 1. 启动鉴权
+## 验证
 
-已完成：
-
-- 启动时先校验 `/v1/auth/me`
-- token 过期自动退出
-- 启动成功后同步最新 user
-- 非 401 错误进入登录页并保留错误提示
-
-### 2. 模型设置页交互
-
-已完成：
-
-- 空状态下点击"添加模型"可进入编辑器
-- 有 profile 但未选择时显示明确占位态
-- 编辑模式已整理成明确状态机，不再依赖隐式条件
-
-### 3. 图片生成模块 UI
-
-已完成：
-
-- 移除主区参数入口，所有参数收归到 BottomPanel properties tab
-- 画廊改为 1:1 正方形卡片网格 + 分页（每页 12 张），按需懒加载二进制
-- 卡片新增：复制 prompt、删除、已入库徽标、generated / edited 角标
-- 预览弹窗支持左右键盘切换、Esc 关闭
-- 编辑弹窗工具栏分三组、Reset to original、Mask 遮罩可视化叠层、Esc 关闭
-
-### 4. 桌面 UI 样式解耦
-
-已完成：
-
-- 原 2092 行的 `shared/styles/editor.css` 按段拆成 7 个子文件
-- `shared/styles/` 重组为 `base/ layout/ editor/` 三层文件夹结构
-- `global.css` 按原顺序串联所有 `@import`，保留级联顺序
-
-## 三、当前架构结论
-
-### 服务端
-
-当前只负责：
-
-- auth
-- project
-- task
-- orchestration proxy
-
-### 桌面主进程
-
-当前负责：
-
-- 模型配置读写
-- 用户偏好读写
-- provider 模型列表刷新
-- 文本 / 图片 / 视频生成
-- story-sync 本地执行
-
-### Agent
-
-当前负责：
-
-- 编排
-- 章节流水线
-- Auto Mode
-- 规则回退
-
-## 四、当前仍值得继续推进的方向
-
-### 1. 文档持续同步
-
-- 根目录文档与 `docs/` 需要保持与代码现状一致
-- 尤其是：
-  - auth 启动流程
-  - 模型配置 schema
-  - IPC surface
-  - server API
-
-### 2. 模型设置页产品表达
-
-虽然底层仍然使用 profile 概念，但 UI 文案后续可以进一步降低歧义，例如：
-
-- “新建模型配置”
-- “选择一个配置”
-- “配置中的模型列表”
-
-### 3. 历史文档整理
-
-部分历史文档存在：
-
-- 编码乱码
-- 旧 generation 路由描述
-- 旧鉴权入口条件描述
-
-这些已经开始同步，但仍需要分批继续清理。
-
-## 五、近期推荐工作顺序
-
-1. 维护当前文档与代码一致
-2. 清理历史乱码文档
-3. 继续收敛 UI 文案与交互状态表达
-4. 再考虑更深的架构优化
+- typecheck 全绿
+- 现有测试不受影响

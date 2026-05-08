@@ -171,7 +171,8 @@
   - 不依赖 dotenv
   - 不做文件系统副作用
 - `listModels(provider, ...)`
-  - 按 `provider` 选择列模型协议
+  - 统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`）
+  - 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
 - `generateText / generateImage / generateVideo`
   - 按 `apiFormat` 选择生成协议
 - 当前支持的 `apiFormat`：
@@ -179,17 +180,27 @@
   - `openai-responses`
   - `claude-messages`
   - `gemini-generate-content`
-  - `openai-images`
-  - `gemini-images`
+  - `openai-images`（含 `/images/edits` multipart 分支，当 `request.image` 存在时自动切换）
+  - `gemini-images`（Imagen `:predict` 端点）
+  - `gemini-image-edit`（Gemini Flash/Pro Image 系列，走 `:generateContent` + `inline_data`）
   - `sora-videos`
+- `providerOptions` 采用命名空间结构 `{ [apiFormat]: { ... } }`，每个 adapter 只读自己的命名空间
+- text adapter 响应统一映射 `id`、`created`、`usage`（`promptTokens`/`completionTokens`/`totalTokens`）、`finishReason`（`stop`/`length`/`content_filter`/`tool_use`/`other`）
+- image adapter 支持 `image`、`mask`、`referenceImages` 字段用于图像编辑
+- 渲染层支持上传参考图进入编辑模式，自动切换到 `/images/edits` 端点并强制 n=1
 - server 不允许 import 这个包
 - 桌面主进程才是它的调用方
 
 ## 鉴权规则
 
-- 当前公开 auth 路由只有：
+- 当前公开 auth 路由：
+  - `GET /v1/auth/public-key`（返回 RSA 公钥）
   - `POST /v1/auth/login`
   - `POST /v1/auth/register`
+- 密码传输加密：
+  - 客户端使用 RSA-OAEP（SHA-256）加密密码后传输
+  - 服务端私钥解密后再做 bcrypt 校验
+  - 密钥对存放于 `apps/server/keys/`（private.pem + public.pem，已 gitignore）
 - `GET /v1/auth/me` 是受保护接口
 - 桌面端启动时使用 `/v1/auth/me` 做 bootstrap
 - `authSlice` 负责区分：

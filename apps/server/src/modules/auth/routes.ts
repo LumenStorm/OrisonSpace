@@ -2,20 +2,26 @@ import type { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { query } from '../../common/db';
+import { rsaDecrypt, rsaPublicKey } from '../../common/rsa';
 import { createToken } from './plugin';
 
 const registerBody = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(1), // RSA-encrypted base64
   displayName: z.string().min(1).optional(),
 });
 
 const loginBody = z.object({
   email: z.string().email(),
-  password: z.string().min(1),
+  password: z.string().min(1), // RSA-encrypted base64
 });
 
 export async function registerAuthRoutes(app: FastifyInstance) {
+  // Public — returns RSA public key for client-side encryption
+  app.get('/v1/auth/public-key', async (_request, reply) => {
+    return reply.code(200).send({ publicKey: rsaPublicKey });
+  });
+
   app.get('/v1/auth/me', async (request, reply) => {
     const result = await query(
       'SELECT id, email, display_name FROM users WHERE id = $1',
@@ -42,7 +48,18 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid input', details: parsed.error.issues });
     }
 
-    const { email, password, displayName } = parsed.data;
+    const { email, password: encryptedPassword, displayName } = parsed.data;
+
+    let password: string;
+    try {
+      password = rsaDecrypt(encryptedPassword);
+    } catch {
+      return reply.code(400).send({ error: 'Failed to decrypt password' });
+    }
+
+    if (password.length < 6) {
+      return reply.code(400).send({ error: 'Password must be at least 6 characters' });
+    }
 
     const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rowCount! > 0) {
@@ -75,7 +92,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid input', details: parsed.error.issues });
     }
 
-    const { email, password } = parsed.data;
+    const { email, password: encryptedPassword } = parsed.data;
+
+    let password: string;
+    try {
+      password = rsaDecrypt(encryptedPassword);
+    } catch {
+      return reply.code(400).send({ error: 'Failed to decrypt password' });
+    }
 
     const result = await query(
       'SELECT id, email, display_name, password_hash FROM users WHERE email = $1',
@@ -105,3 +129,4 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     });
   });
 }
+

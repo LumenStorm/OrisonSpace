@@ -17,6 +17,7 @@ describe('registry', () => {
       'gemini-generate-content',
       'openai-images',
       'gemini-images',
+      'gemini-image-edit',
       'sora-videos',
     ]);
   });
@@ -46,6 +47,7 @@ describe('registry', () => {
   it('exposes the canonical capability map', () => {
     expect(apiFormatCapabilities['openai-chat-completions']).toEqual(['text']);
     expect(apiFormatCapabilities['openai-images']).toEqual(['image']);
+    expect(apiFormatCapabilities['gemini-image-edit']).toEqual(['image']);
     expect(apiFormatCapabilities['sora-videos']).toEqual(['video']);
   });
 });
@@ -76,6 +78,12 @@ describe('inferApiFormat', () => {
   it('routes Imagen ids to gemini-images', () => {
     expect(inferApiFormat('imagen-3.0', 'gcp')).toBe('gemini-images');
     expect(inferApiFormat('imagen-4.0-generate-preview', 'gcp')).toBe('gemini-images');
+  });
+
+  it('routes Gemini flash-image (Nano Banana) ids to gemini-image-edit', () => {
+    expect(inferApiFormat('gemini-2.5-flash-image', 'gcp')).toBe('gemini-image-edit');
+    expect(inferApiFormat('gemini-3.1-flash-image-preview', 'gcp')).toBe('gemini-image-edit');
+    expect(inferApiFormat('gemini-3-pro-image-preview', 'gcp')).toBe('gemini-image-edit');
   });
 
   it('routes Sora-style ids to sora-videos', () => {

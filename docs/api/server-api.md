@@ -11,8 +11,19 @@
 除以下接口外，所有接口都要求 `Authorization: Bearer <token>`：
 
 - `GET /health`
+- `GET /v1/auth/public-key`
 - `POST /v1/auth/register`
 - `POST /v1/auth/login`
+
+## 密码传输加密
+
+登录和注册接口的 `password` 字段必须经过 RSA-OAEP 加密后以 base64 传输：
+
+1. 客户端调用 `GET /v1/auth/public-key` 获取 RSA 公钥（PEM 格式）
+2. 使用 RSA-OAEP + SHA-256 加密明文密码
+3. 将密文 base64 编码后作为 `password` 字段值
+
+服务端使用对应私钥解密后再做 bcrypt 校验。密钥对存放于 `apps/server/keys/`。
 
 ## 接口列表
 
@@ -30,6 +41,20 @@
 
 ---
 
+### GET /v1/auth/public-key
+
+获取 RSA 公钥，用于客户端加密密码。
+
+响应 `200`：
+
+```json
+{
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBI..."
+}
+```
+
+---
+
 ### POST /v1/auth/register
 
 注册用户。
@@ -39,7 +64,7 @@
 ```json
 {
   "email": "creator@example.com",
-  "password": "secret123",
+  "password": "<RSA-OAEP 加密后的 base64 字符串>",
   "displayName": "Creator"
 }
 ```
@@ -60,7 +85,7 @@
 
 错误：
 
-- `400`：输入不合法
+- `400`：输入不合法 / 密码解密失败
 - `409`：邮箱已注册
 
 ---
@@ -74,7 +99,7 @@
 ```json
 {
   "email": "creator@example.com",
-  "password": "secret123"
+  "password": "<RSA-OAEP 加密后的 base64 字符串>"
 }
 ```
 
@@ -94,6 +119,7 @@
 
 错误：
 
+- `400`：密码解密失败
 - `401`：邮箱或密码错误
 
 ---
@@ -386,9 +412,8 @@
 
 桌面端通过 `model:list-provider-models` IPC 触发：
 
-- `provider = openai`：请求 `{baseUrl}/v1/models`
-- `provider = anthropic`：请求 `{baseUrl}/v1/models`
-- `provider = gcp`：请求 `{baseUrl}/v1beta/models?key=...`
+- 统一请求 `{baseUrl}/v1/models`（OpenAI 兼容层）
+- 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
 
 之后由用户在设置页中为每个模型配置：
 

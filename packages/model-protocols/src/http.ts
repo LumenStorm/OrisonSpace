@@ -73,3 +73,55 @@ function safeParseJson(text: string): unknown {
     return null;
   }
 }
+
+/**
+ * Internal helper for protocol adapters that need multipart/form-data (e.g.
+ * OpenAI `/images/edits`). Callers pass a fully-built FormData; we do NOT
+ * set `content-type` manually — `fetch` will attach the correct boundary.
+ */
+export async function postMultipart<T>({
+  url,
+  headers = {},
+  formData,
+  signal,
+}: {
+  url: string;
+  headers?: Record<string, string>;
+  formData: FormData;
+  signal?: AbortSignal;
+}): Promise<T> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: formData,
+    signal,
+  });
+
+  const text = await response.text();
+  const parsed = text ? safeParseJson(text) : null;
+
+  if (!response.ok) {
+    const message =
+      typeof parsed === 'object' && parsed && 'error' in parsed && parsed.error && typeof (parsed as any).error === 'object'
+        ? typeof (parsed as any).error.message === 'string'
+          ? (parsed as any).error.message
+          : `Provider request failed with ${response.status}`
+        : `Provider request failed with ${response.status}`;
+    throw new ProtocolHttpError(message, response.status, text.slice(0, 500));
+  }
+
+  return parsed as T;
+}
+
+/**
+ * Convert a base64 payload to a Blob suitable for FormData uploads.
+ * The input must be raw base64 (no `data:...;base64,` prefix) — the UI
+ * strips that in `dataUrlToBase64` before reaching the gateway.
+ */
+export function base64ToBlob(b64Json: string, mimeType: string): Blob {
+  const binary = globalThis.atob(b64Json);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mimeType });
+}

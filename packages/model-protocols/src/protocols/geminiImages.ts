@@ -29,6 +29,7 @@ async function generateImage(
   const url =
     `${baseUrl}/v1beta/models/${encodeURIComponent(profile.modelId)}:predict` +
     `?key=${encodeURIComponent(profile.apiKey)}`;
+  const opts = request.providerOptions?.['gemini-images'] ?? {};
   const raw = await postJson<GeminiImageResponse>({
     url,
     body: {
@@ -36,7 +37,7 @@ async function generateImage(
       parameters: {
         sampleCount: request.n ?? 1,
         size: request.size,
-        ...(request.providerOptions ?? {}),
+        ...opts,
       },
     },
     signal: ctx?.signal,

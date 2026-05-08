@@ -1,5 +1,7 @@
 import type {
+  GenerationFinishReason,
   GenerationMessage,
+  GenerationUsage,
   ResolvedModelProfile,
   TextGenerationRequest,
   TextGenerationResponse,
@@ -15,8 +17,17 @@ import type { ProtocolAdapter, ProtocolCallContext } from '../types';
  * messages, and the response is an output array.
  */
 type OpenAiResponsesResponse = {
+  id?: string;
+  created_at?: number;
+  status?: string;
+  incomplete_details?: { reason?: string };
   output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
   output_text?: string;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
 };
 
 function joinSystemMessages(messages: GenerationMessage[]): string | undefined {
@@ -43,12 +54,31 @@ function extractText(raw: OpenAiResponsesResponse): string {
   );
 }
 
+function mapFinishReason(raw: OpenAiResponsesResponse): GenerationFinishReason | undefined {
+  if (!raw.status) return undefined;
+  if (raw.status === 'completed') return 'stop';
+  if (raw.status === 'incomplete') {
+    return raw.incomplete_details?.reason === 'max_output_tokens' ? 'length' : 'other';
+  }
+  return 'other';
+}
+
+function mapUsage(raw: OpenAiResponsesResponse['usage']): GenerationUsage | undefined {
+  if (!raw) return undefined;
+  return {
+    promptTokens: raw.input_tokens,
+    completionTokens: raw.output_tokens,
+    totalTokens: raw.total_tokens,
+  };
+}
+
 async function generateText(
   profile: ResolvedModelProfile,
   request: TextGenerationRequest,
   ctx?: ProtocolCallContext,
 ): Promise<TextGenerationResponse> {
   const baseUrl = trimTrailingSlash(profile.baseUrl);
+  const opts = request.providerOptions?.['openai-responses'] ?? {};
   const raw = await postJson<OpenAiResponsesResponse>({
     url: `${baseUrl}/responses`,
     headers: { authorization: `Bearer ${profile.apiKey}` },
@@ -58,7 +88,7 @@ async function generateText(
       instructions: joinSystemMessages(request.messages),
       temperature: request.temperature,
       max_output_tokens: request.maxTokens,
-      ...(request.providerOptions ?? {}),
+      ...opts,
     },
     signal: ctx?.signal,
   });
@@ -67,6 +97,10 @@ async function generateText(
     provider: 'openai',
     model: profile.modelId,
     text: extractText(raw),
+    id: raw.id,
+    created: raw.created_at,
+    usage: mapUsage(raw.usage),
+    finishReason: mapFinishReason(raw),
     raw,
   };
 }

@@ -16,4 +16,5 @@ __pycache__/
 .env
 .env.local
 .env.agent
+*.pem
 .claude/

@@ -30,18 +30,26 @@
   - 生成页会读取 `temp/images/generation/` 中已有图片
   - 画廊支持分页、按需懒加载二进制、复制 prompt、删除、已入库角标
   - 支持本地图片编辑：画笔、画圈、遮罩、裁切；工具栏分组 + Reset + 遮罩叠层可视化 + Esc 关闭
+  - 支持上传参考图进入编辑模式（走 `/images/edits`），自动强制 n=1
   - 预览弹窗支持左右键盘切换
   - 确认保存后移动到 `assets/images/`
 - 模型网关已从服务端迁移到桌面主进程
   - 文本 / 图片 / 视频生成都走 IPC
   - `apiKey` 不再经过 server，也不进入 agent
+  - 模型列表统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`），覆盖直连 OpenAI 和 NewAPI/OneAPI 中继
 
 ### 鉴权与会话
 
 - 服务端提供：
+  - `GET /v1/auth/public-key`（公开，返回 RSA 公钥）
   - `POST /v1/auth/register`
   - `POST /v1/auth/login`
   - `GET /v1/auth/me`
+- 密码传输安全：
+  - 客户端登录/注册前先获取 RSA 公钥
+  - 使用 Web Crypto API（RSA-OAEP + SHA-256）加密密码
+  - 服务端私钥解密后再做 bcrypt 校验
+  - 密钥对存放于 `apps/server/keys/`（已 gitignore）
 - 桌面端启动时会执行 session bootstrap：
   - 本地有 token 时，先调用 `/v1/auth/me`
   - token 过期则自动退出到登录页

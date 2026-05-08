@@ -15,4 +15,5 @@ export { claudeMessagesProtocol } from './protocols/claudeMessages';
 export { geminiGenerateContentProtocol } from './protocols/geminiGenerateContent';
 export { openaiImagesProtocol } from './protocols/openaiImages';
 export { geminiImagesProtocol } from './protocols/geminiImages';
+export { geminiImageEditProtocol } from './protocols/geminiImageEdit';
 export { soraVideosProtocol } from './protocols/soraVideos';

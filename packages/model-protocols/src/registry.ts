@@ -11,6 +11,7 @@ import { claudeMessagesProtocol } from './protocols/claudeMessages';
 import { geminiGenerateContentProtocol } from './protocols/geminiGenerateContent';
 import { openaiImagesProtocol } from './protocols/openaiImages';
 import { geminiImagesProtocol } from './protocols/geminiImages';
+import { geminiImageEditProtocol } from './protocols/geminiImageEdit';
 import { soraVideosProtocol } from './protocols/soraVideos';
 
 const PROTOCOLS: Record<ModelApiFormat, ProtocolAdapter> = {
@@ -20,6 +21,7 @@ const PROTOCOLS: Record<ModelApiFormat, ProtocolAdapter> = {
   'gemini-generate-content': geminiGenerateContentProtocol,
   'openai-images': openaiImagesProtocol,
   'gemini-images': geminiImagesProtocol,
+  'gemini-image-edit': geminiImageEditProtocol,
   'sora-videos': soraVideosProtocol,
 };
 
@@ -49,6 +51,7 @@ export const apiFormatCapabilities: Record<ModelApiFormat, ModelCapability[]> = 
   'gemini-generate-content': ['text'],
   'openai-images': ['image'],
   'gemini-images': ['image'],
+  'gemini-image-edit': ['image'],
   'sora-videos': ['video'],
 };
 
@@ -69,6 +72,10 @@ export function inferApiFormat(
 
   // Image-shaped ids regardless of provider
   if (id.startsWith('dall-e') || id.startsWith('gpt-image')) return 'openai-images';
+  // Gemini "Nano Banana" family (flash-image / pro-image) goes through
+  // generateContent with inline_data parts — distinct from Imagen which uses
+  // `:predict`.
+  if (id.includes('flash-image') || id.includes('pro-image')) return 'gemini-image-edit';
   if (id.startsWith('imagen')) return 'gemini-images';
   // Video-shaped ids regardless of provider
   if (id.startsWith('sora') || id.includes('video')) return 'sora-videos';

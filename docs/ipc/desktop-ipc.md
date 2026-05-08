@@ -141,6 +141,7 @@ type ModelConfig = {
         | 'gemini-generate-content'
         | 'openai-images'
         | 'gemini-images'
+        | 'gemini-image-edit'
         | 'sora-videos'
       capabilities: Array<'text' | 'image' | 'video'>
     }>

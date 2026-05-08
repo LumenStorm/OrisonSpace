@@ -20,10 +20,23 @@ type HistoryEntry = {
   mask: string;
 };
 
+type ImageEditIntent = 'save' | 'generate';
+
 type ImageEditDialogProps = {
   item: GeneratedImageItem;
   onCancel: () => void;
-  onSave: (payload: { b64Json: string; mimeType: string; maskB64Json?: string }) => Promise<void>;
+  /**
+   * `intent`:
+   * - `'save'` (default, no button change) — persist the edited raster directly to temp as a new asset.
+   * - `'generate'` — forward image (and mask for OpenAI) to the image model as an edit request.
+   *   For Gemini adapters the mask is dropped and the image is used as a reference with the prompt.
+   */
+  onSave: (payload: {
+    b64Json: string;
+    mimeType: string;
+    maskB64Json?: string;
+    intent: ImageEditIntent;
+  }) => Promise<void>;
 };
 
 const COLOR_SWATCHES = ['#ff4d4f', '#faad14', '#52c41a', '#1677ff', '#ffffff', '#111827'];
@@ -294,7 +307,7 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
     restoreFromHistory(0);
   }
 
-  async function handleSave() {
+  async function handleSave(intent: ImageEditIntent = 'save') {
     const canvas = canvasRef.current;
     const mask = maskRef.current;
     if (!canvas) return;
@@ -306,6 +319,7 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
         b64Json: dataUrlToBase64(dataUrl),
         mimeType: 'image/png',
         maskB64Json: maskDataUrl ? dataUrlToBase64(maskDataUrl) : undefined,
+        intent,
       });
     } finally {
       setSaving(false);
@@ -363,7 +377,15 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
 
           <div className="image-edit-actions">
             <button type="button" onClick={onCancel}>Cancel</button>
-            <button type="button" className="primary" onClick={() => void handleSave()} disabled={saving}>
+            <button
+              type="button"
+              onClick={() => void handleSave('generate')}
+              disabled={saving}
+              title="Send this image (and mask, for OpenAI) back to the image model as an edit request"
+            >
+              {saving ? 'Working...' : 'Generate Variant'}
+            </button>
+            <button type="button" className="primary" onClick={() => void handleSave('save')} disabled={saving}>
               {saving ? 'Saving...' : 'Save Edit'}
             </button>
           </div>
