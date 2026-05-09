@@ -69,6 +69,15 @@
 | `model:generate-video` | renderer -> main | invoke | 视频生成 |
 | `storySync:run` | renderer -> main | invoke | 本地执行 story-sync 提取 |
 
+### 任务持久化通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `task:list` | renderer -> main | invoke | 按 projectId 查询任务列表（支持 limit） |
+| `task:upsert` | renderer -> main | invoke | 插入或更新任务记录 |
+| `task:update-status` | renderer -> main | invoke | 更新任务状态与错误信息 |
+| `task:delete` | renderer -> main | invoke | 删除任务记录 |
+
 ### 字段同步通道
 
 | 通道 | 方向 | 类型 | 说明 |
@@ -115,6 +124,12 @@ window.orisonDesktop = {
   saveBase64Image,
   moveProjectFile,
   deleteProjectFile,
+  ensureProjectRegistration,
+  // Task persistence (SQLite)
+  listTasks,
+  upsertTask,
+  updateTaskStatus,
+  deleteTask,
 }
 ```
 
@@ -142,6 +157,7 @@ type ModelConfig = {
 说明：
 
 - 一个 key 表示一组凭据（baseUrl + apiKey）
+- `baseUrl` 支持带或不带 `/v1` 后缀，协议层自动补齐
 - `models[]` 从远端 `/v1/models` 发现后自动分类
 - 模型能力和别名由 `model-registry` glob pattern 推断
 - 生成请求使用 `ModelRef`：`{ keyId, modelId }`
@@ -215,6 +231,7 @@ type RunStorySyncResult = {
 | `apps/desktop/shell/main/ipc/configIpc.ts` | 模型配置与用户偏好 |
 | `apps/desktop/shell/main/ipc/modelProviderIpc.ts` | provider 模型列表刷新 |
 | `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` | 文本 / 图片 / 视频生成 |
+| `apps/desktop/shell/main/ipc/taskIpc.ts` | 后台任务持久化（SQLite CRUD） |
 | `apps/desktop/shell/main/ipc/storySyncIpc.ts` | story-sync 入口 |
 | `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` | 创作字段同步 |
 | `apps/desktop/shell/main/ipc/pathGuard.ts` | 路径安全辅助 |

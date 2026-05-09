@@ -77,6 +77,8 @@
   - `assets/images`
 - 新项目默认根目录：`~/Documents/OrisonSpace`
 - 用户主动选择的项目目录和封面图路径，会在当前 Electron 会话里注册为允许根
+- 后台任务通过 `task:*` IPC 通道持久化到本地 SQLite（`~/.orison/tasks.db`）
+- 渲染层 `backgroundTasksSlice` 负责任务生命周期管理与重启恢复
 
 ## 模型配置与桌面模型网关
 
@@ -84,7 +86,7 @@
   - `~/.orison/model/keys/*.yaml`
 - 每个 key 表示一组：
   - `name`
-  - `baseUrl`
+  - `baseUrl`（支持带或不带 `/v1` 后缀）
   - `apiKey`
 - 每个 key 下的 `models[]` 表示发现的模型条目：
   - `id`
@@ -171,10 +173,12 @@
   - 不做文件系统副作用
 - `listModels(request)`
   - 统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`）
+  - `baseUrl` 支持带或不带 `/v1` 后缀（内部通过 `normalizeBaseUrl` 统一补齐）
   - 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
   - 返回 `RemoteModel[]`（id + capability + alias），能力由 `model-registry` 推断
 - `generateText / generateImage / generateVideo`
-  - 统一走 OpenAI 兼容端点（`/chat/completions`、`/images/generations`、`/images/edits`）
+  - 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）
+  - `baseUrl` 同样兼容带或不带 `/v1`
   - 接收 `ResolvedModel`（含 baseUrl、apiKey、modelId、capability）
 - image adapter 支持 `image`、`mask` 字段用于图像编辑
 - 渲染层支持上传参考图进入编辑模式，自动切换到 `/images/edits` 端点并强制 n=1

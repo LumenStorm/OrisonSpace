@@ -49,10 +49,27 @@ function globMatch(pattern: string, value: string): boolean {
 export function resolveModelInfo(modelId: string): { capability: ModelCapability; alias: string } {
   for (const entry of REGISTRY_ENTRIES) {
     if (globMatch(entry.pattern, modelId)) {
-      return { capability: entry.capability, alias: entry.alias };
+      const alias = buildAlias(entry, modelId);
+      return { capability: entry.capability, alias };
     }
   }
   return { capability: 'text', alias: modelId };
+}
+
+/**
+ * Build a version-aware alias by appending the portion matched by the glob wildcard.
+ * e.g. pattern "gpt-image-*" + modelId "gpt-image-1" → "GPT Image 1"
+ */
+function buildAlias(entry: ModelRegistryEntry, modelId: string): string {
+  const starIdx = entry.pattern.indexOf('*');
+  if (starIdx < 0) return entry.alias;
+  const prefix = entry.pattern.slice(0, starIdx);
+  const suffix = entry.pattern.slice(starIdx + 1);
+  let tail = modelId.slice(prefix.length);
+  if (suffix) tail = tail.slice(0, tail.length - suffix.length);
+  tail = tail.replace(/^[-_]+/, '');
+  if (!tail) return entry.alias;
+  return `${entry.alias} ${tail}`;
 }
 
 export function getModelRegistry(): ModelRegistry {

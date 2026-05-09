@@ -1,10 +1,10 @@
 import type { RemoteModel } from '@orison/shared-contracts';
 import { resolveModelInfo } from '@orison/shared-contracts';
-import { getJson } from './http';
+import { getJson, normalizeBaseUrl } from './http';
 import type { ListModelsRequest } from './types';
 
 export async function listModels(request: ListModelsRequest): Promise<RemoteModel[]> {
-  const url = `${request.baseUrl.replace(/\/+$/, '')}/v1/models`;
+  const url = `${normalizeBaseUrl(request.baseUrl)}/models`;
   const body = await getJson<{ data?: Array<{ id?: string }> }>({
     url,
     headers: { authorization: `Bearer ${request.apiKey}` },

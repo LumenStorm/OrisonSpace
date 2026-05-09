@@ -49,9 +49,12 @@ export function ImageGenEditor() {
   const imageGenParams = useAppStore((s) => s.imageGenParams);
   const imageGenFamily = useAppStore((s) => s.imageGenFamily);
   const reconcileImageGenForModel = useAppStore((s) => s.reconcileImageGenForModel);
+  const submitBgTask = useAppStore((s) => s.submitBgTask);
+  const prependImageGenResults = useAppStore((s) => s.prependImageGenResults);
+  const prompt = useAppStore((s) => s.imageGenPrompt);
+  const setPrompt = useAppStore((s) => s.setImageGenPrompt);
   const { t } = useI18n(resolvedLocale);
 
-  const [prompt, setPrompt] = useState('');
   const [results, setResults] = useState<GeneratedImageItem[]>([]);
   const [preview, setPreview] = useState<GeneratedImageItem | null>(null);
   const [editing, setEditing] = useState<GeneratedImageItem | null>(null);
@@ -225,74 +228,86 @@ export function ImageGenEditor() {
 
   async function handleGenerate() {
     if (!currentProject?.path || !prompt.trim() || !resolvedSlot) return;
-    setLoading(true);
     setError(null);
 
-    try {
-      const payload = paramsToRequestPayload(imageGenParams, imageGenFamily);
-      // In edit mode, force n=1 (API constraint for /images/edits)
-      if (isEditMode) payload.n = 1;
-      appendOutputEntry({
-        scope: 'image',
-        level: 'info',
-        message: isEditMode ? 'Image edit request started' : 'Image generation request started',
-        detail: `${resolvedSlot.key.name} · ${resolvedSlot.entry.alias} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
-      });
+    const payload = paramsToRequestPayload(imageGenParams, imageGenFamily);
+    if (isEditMode) payload.n = 1;
 
-      const response = await generateImage({
-        ref: resolvedSlot.ref,
-        prompt: prompt.trim(),
-        params: payload,
-        image: uploadedImage ? { b64Json: uploadedImage.b64Json, mimeType: uploadedImage.mimeType } : undefined,
-      });
+    const capturedPrompt = prompt.trim();
+    const capturedImage = uploadedImage ? { b64Json: uploadedImage.b64Json, mimeType: uploadedImage.mimeType } : undefined;
+    const projectPath = currentProject.path;
+    const ref = resolvedSlot.ref;
 
-      const saved = await Promise.all(
-        response.images.map(async (image, index) => {
-          if (!image.b64Json) {
-            throw new Error(t('imageGen.missingBase64'));
-          }
+    appendOutputEntry({
+      scope: 'image',
+      level: 'info',
+      message: isEditMode ? 'Image edit request started' : 'Image generation request started',
+      detail: `${resolvedSlot.key.name} · ${resolvedSlot.entry.alias} ${payload.size ?? imageGenParams.size} x${payload.n ?? imageGenParams.n}`,
+    });
 
-          const file = await window.orisonDesktop.saveBase64Image(currentProject.path, {
-            b64Json: image.b64Json,
-            mimeType: image.mimeType ?? 'image/png',
-            directory: GENERATION_IMAGE_DIR,
-            fileName: createImageName(prompt, index),
+    setLoading(true);
+
+    submitBgTask({
+      type: 'image_gen',
+      label: `${isEditMode ? '编辑' : '生成'}图片: ${capturedPrompt.slice(0, 40)}`,
+      execute: async (_signal) => {
+        try {
+          const response = await generateImage({
+            ref,
+            prompt: capturedPrompt,
+            params: payload,
+            image: capturedImage,
           });
 
-          return {
-            id: `${Date.now()}-${index}`,
-            prompt: prompt.trim(),
-            b64Json: image.b64Json,
-            mimeType: image.mimeType ?? 'image/png',
-            dataUrl: image.dataUrl ?? toDataUrl(image.b64Json, image.mimeType ?? 'image/png'),
-            tempRelativePath: file.relativePath,
-            tempFullPath: file.fullPath,
-            assetAdded: false,
-            source: 'generated',
-          } satisfies GeneratedImageItem;
-        }),
-      );
+          const saved = await Promise.all(
+            response.images.map(async (image, index) => {
+              if (!image.b64Json) throw new Error(t('imageGen.missingBase64'));
 
-      setResults((current) => [...saved, ...current]);
-      setPage(0);
-      appendOutputEntry({
-        scope: 'image',
-        level: 'success',
-        message: `Saved ${saved.length} generated image${saved.length === 1 ? '' : 's'} to ${GENERATION_IMAGE_DIR}`,
-        detail: saved.map((item) => item.tempRelativePath).join(', '),
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t('imageGen.generateFailed');
-      setError(message);
-      appendOutputEntry({
-        scope: 'image',
-        level: 'error',
-        message: 'Image generation failed',
-        detail: message,
-      });
-    } finally {
-      setLoading(false);
-    }
+              const file = await window.orisonDesktop.saveBase64Image(projectPath, {
+                b64Json: image.b64Json,
+                mimeType: image.mimeType ?? 'image/png',
+                directory: GENERATION_IMAGE_DIR,
+                fileName: createImageName(capturedPrompt, index),
+              });
+
+              return {
+                id: `${Date.now()}-${index}`,
+                prompt: capturedPrompt,
+                b64Json: image.b64Json,
+                mimeType: image.mimeType ?? 'image/png',
+                dataUrl: image.dataUrl ?? toDataUrl(image.b64Json, image.mimeType ?? 'image/png'),
+                tempRelativePath: file.relativePath,
+                tempFullPath: file.fullPath,
+                assetAdded: false,
+                source: 'generated' as const,
+              } satisfies GeneratedImageItem;
+            }),
+          );
+
+          // Update local results for immediate display
+          setResults((current) => [...saved, ...current]);
+          setPage(0);
+
+          // Persist lightweight metadata to store
+          prependImageGenResults(
+            saved.map(({ id, prompt: p, tempRelativePath, mimeType, assetAdded, source }) => ({
+              id, prompt: p, tempRelativePath, mimeType, assetAdded, source,
+            })),
+          );
+
+          appendOutputEntry({
+            scope: 'image',
+            level: 'success',
+            message: `Saved ${saved.length} generated image${saved.length === 1 ? '' : 's'} to ${GENERATION_IMAGE_DIR}`,
+            detail: saved.map((item) => item.tempRelativePath).join(', '),
+          });
+
+          return saved;
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   }
 
   async function promoteToAssetFile(item: GeneratedImageItem) {

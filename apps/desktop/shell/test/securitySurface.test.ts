@@ -16,6 +16,7 @@ describe('preload security surface', () => {
       'createProjectDirectory',
       'deleteEntry',
       'deleteProjectFile',
+      'ensureProjectRegistration',
       'generateImage',
       'generateText',
       'generateVideo',

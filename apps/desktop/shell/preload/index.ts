@@ -11,6 +11,8 @@ import type {
   RunStorySyncPayload,
   RunStorySyncResult,
   SaveBase64ImageInput,
+  TaskRecord,
+  TaskUpsertInput,
   TextGenerationResponse,
   UserPreferencesConfig,
   VideoGenerationResponse,
@@ -81,6 +83,17 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:move-file', projectDir, fromRelativePath, toRelativePath) as Promise<string>,
   deleteProjectFile: (projectDir: string, relativePath: string) =>
     ipcRenderer.invoke('project:delete-file', projectDir, relativePath) as Promise<boolean>,
+  ensureProjectRegistration: (input: { name: string; type: 'novel' | 'script'; localFingerprint: string }) =>
+    ipcRenderer.invoke('project:ensure-registration', input) as Promise<{ projectId: string; name: string; type: string }>,
+  // Task persistence (SQLite)
+  listTasks: (projectId: string, limit?: number) =>
+    ipcRenderer.invoke('task:list', projectId, limit) as Promise<TaskRecord[]>,
+  upsertTask: (input: TaskUpsertInput) =>
+    ipcRenderer.invoke('task:upsert', input) as Promise<void>,
+  updateTaskStatus: (taskId: string, status: string, errorMessage?: string) =>
+    ipcRenderer.invoke('task:update-status', taskId, status, errorMessage) as Promise<void>,
+  deleteTask: (taskId: string) =>
+    ipcRenderer.invoke('task:delete', taskId) as Promise<void>,
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

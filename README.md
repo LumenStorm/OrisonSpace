@@ -43,15 +43,13 @@
 ### 鉴权与会话
 
 - 服务端提供：
-  - `GET /v1/auth/public-key`（公开，返回 RSA 公钥）
   - `POST /v1/auth/register`
   - `POST /v1/auth/login`
   - `GET /v1/auth/me`
 - 密码传输安全：
-  - 客户端登录/注册前先获取 RSA 公钥
-  - 使用 Web Crypto API（RSA-OAEP + SHA-256）加密密码
-  - 服务端私钥解密后再做 bcrypt 校验
-  - 密钥对存放于 `apps/server/keys/`（已 gitignore）
+  - 客户端使用 Web Crypto API 对密码做 SHA-256(password + app_salt) 散列
+  - 散列值通过 HTTPS 传输到服务端
+  - 服务端对收到的散列值做 bcrypt 存储/校验
 - 桌面端启动时会执行 session bootstrap：
   - 本地有 token 时，先调用 `/v1/auth/me`
   - token 过期则自动退出到登录页

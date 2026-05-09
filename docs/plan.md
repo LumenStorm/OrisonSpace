@@ -145,3 +145,11 @@
 - `listModels` 不再接收 `provider` 参数
 - 模型能力识别改为 `model-registry` glob pattern 匹配
 - 生成请求 schema 简化：移除 `apiFormat`、`provider`、`providerOptions` 等字段
+- `baseUrl` 兼容带或不带 `/v1` 后缀（`normalizeBaseUrl` 自动补齐）
+
+### 5. 后台任务持久化（2026-05-09）
+
+- 新增 `backgroundTasksSlice`：管理前端后台任务生命周期
+- 新增 `task:list / task:upsert / task:update-status / task:delete` IPC 通道
+- 任务状态通过 SQLite `tasks` 表持久化，应用重启后可恢复
+- `cancelled` 状态映射为 DB 中的 `failed`（符合 CHECK 约束）

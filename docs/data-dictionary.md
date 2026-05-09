@@ -113,6 +113,33 @@
 - `temp/images/generation` 存放新生成图片与本地编辑结果（待确认）
 - `assets/images` 存放已确认保存的图片资产
 
+## 3.1 本地 SQLite（桌面主进程后台任务）
+
+位置：`~/.orison/tasks.db`
+
+### tasks 表
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `task_id` | TEXT | PK | 前端生成的唯一 ID |
+| `project_id` | TEXT | NOT NULL | 所属项目 |
+| `task_type` | TEXT | NOT NULL | 任务类型（如 `image_gen`） |
+| `name` | TEXT | NOT NULL | 任务显示名 |
+| `description` | TEXT | NOT NULL DEFAULT '' | 描述 |
+| `input_text` | TEXT | NOT NULL DEFAULT '' | 输入文本 |
+| `status` | TEXT | NOT NULL | queued/running/completed/failed |
+| `error_message` | TEXT | 可空 | 错误信息 |
+| `output_payload` | TEXT | 可空 | JSON 序列化的输出 |
+| `created_at` | TEXT | NOT NULL | ISO 时间戳 |
+| `updated_at` | TEXT | NOT NULL | ISO 时间戳 |
+
+说明：
+
+- 用于持久化渲染层 `backgroundTasksSlice` 中的后台任务
+- 应用重启后通过 `task:list` IPC 恢复未完成任务
+- `cancelled` 状态在写入时映射为 `failed`（符合 CHECK 约束）
+- 离线模式（无 projectId）时任务仅存内存，不写 SQLite
+
 ## 4. 模型配置存储（桌面主进程）
 
 模型配置不在服务端数据库中，位于用户目录：
@@ -142,6 +169,7 @@ models:
 - `apiKey` 落盘是加密密文（Electron `safeStorage`）
 - 只有 desktop main 会解密
 - 渲染层、服务端、agent 都不持有 provider 明文 key
+- `baseUrl` 支持带或不带 `/v1` 后缀，协议层通过 `normalizeBaseUrl` 自动补齐
 - `models[]` 从远端 `/v1/models` 发现后，由 `model-registry` 自动推断 `capability` 和 `alias`
 - `enabled` 控制模型是否在 UI 中可选
 

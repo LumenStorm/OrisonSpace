@@ -1,0 +1,84 @@
+import Database from 'better-sqlite3';
+import { existsSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { app } from 'electron';
+
+let db: Database.Database;
+
+function getDbPath(): string {
+  const dataDir = path.join(app.getPath('home'), '.orison', 'data');
+  if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+  return path.join(dataDir, 'projects.db');
+}
+
+export function getDb(): Database.Database {
+  if (!db) {
+    db = new Database(getDbPath());
+    db.pragma('journal_mode = WAL');
+    initSchema(db);
+  }
+  return db;
+}
+
+function initSchema(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS projects (
+      project_id        TEXT PRIMARY KEY,
+      project_name      TEXT NOT NULL,
+      project_type      TEXT NOT NULL CHECK(project_type IN ('novel','script')),
+      local_fingerprint TEXT NOT NULL UNIQUE,
+      created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS tasks (
+      task_id         TEXT PRIMARY KEY,
+      project_id      TEXT NOT NULL REFERENCES projects(project_id),
+      target_id       TEXT,
+      task_type       TEXT NOT NULL,
+      name            TEXT NOT NULL,
+      description     TEXT NOT NULL,
+      input_text      TEXT NOT NULL,
+      status          TEXT NOT NULL CHECK(status IN ('queued','running','completed','failed')),
+      output_type     TEXT,
+      output_payload  TEXT,
+      result_summary  TEXT,
+      rationale       TEXT NOT NULL DEFAULT '',
+      review_hint     TEXT NOT NULL DEFAULT '',
+      retryable       INTEGER NOT NULL DEFAULT 1,
+      error_message   TEXT,
+      created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+      started_at      TEXT,
+      finished_at     TEXT,
+      updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS task_asset_refs (
+      task_id  TEXT NOT NULL REFERENCES tasks(task_id) ON DELETE CASCADE,
+      asset_id TEXT NOT NULL,
+      PRIMARY KEY (task_id, asset_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS project_assets (
+      asset_id       TEXT NOT NULL,
+      project_id     TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+      asset_type     TEXT NOT NULL,
+      asset_name     TEXT NOT NULL,
+      asset_status   TEXT NOT NULL,
+      source_task_id TEXT,
+      summary        TEXT,
+      version        INTEGER NOT NULL DEFAULT 1,
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (project_id, asset_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_created
+      ON tasks (project_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_tasks_project_status
+      ON tasks (project_id, status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_task_asset_refs_asset
+      ON task_asset_refs (asset_id);
+    CREATE INDEX IF NOT EXISTS idx_project_assets_type
+      ON project_assets (project_id, asset_type, updated_at DESC);
+  `);
+}

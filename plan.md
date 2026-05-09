@@ -1,163 +1,142 @@
-# Plan: 模型配置重构 — 命名 Key + 自动发现 + 按需选择
+# 重构计划（2026-05-09）
 
-## 目标
+## 现状总结
 
-将当前 profile-based（provider + baseUrl + apiKey + 手动添加 models + 全局槽位）改为：
-- 用户创建「命名 Key」（name + baseUrl + apiKey）
-- 刷新获取远端模型列表
-- 系统通过内置映射 YAML 自动推断模型类别（text/image/video）和别名
-- 用户勾选启用/禁用模型
-- 去掉全局槽位，改为使用页面（生图/视频/小说）内从已启用模型中选择
+1. **模型网关**：已经是统一 OpenAI 兼容层，key-based 路由（`ModelRef = { keyId, modelId }`），不按模型名称走不同接口。✅ 无需改动。
+
+2. **数据库**：server 端 PostgreSQL 存 users 表，桌面端 SQLite 存项目数据。✅ 已完成迁移。
+
+3. **认证**：已改为客户端 SHA-256 散列。✅ 已完成。
+
+4. **模型设置 UI**：左右两栏布局，CSS 已对齐 design.md 规范。✅ 已完成。
 
 ---
 
-## 新数据模型
+## 任务 4：通用后台任务系统 + 生图页面状态持久化
 
-### 1. 内置模型注册表（`packages/shared-contracts/model-registry.yaml`）
+### 目标
 
-```yaml
-# 模型 ID pattern -> capability + alias 映射
-# glob 风格匹配（大小写不敏感），按顺序命中第一个生效
-# 未命中：capability=text, alias=模型 ID 本身
-entries:
-  - pattern: "dall-e-*"
-    capability: image
-    alias: "DALL·E"
-  - pattern: "gpt-image-*"
-    capability: image
-    alias: "GPT Image"
-  - pattern: "stable-diffusion-*"
-    capability: image
-    alias: "Stable Diffusion"
-  - pattern: "sora*"
-    capability: video
-    alias: "Sora"
-  - pattern: "veo*"
-    capability: video
-    alias: "Veo"
-  - pattern: "cogvideox*"
-    capability: video
-    alias: "CogVideoX"
-  - pattern: "gpt-4o*"
-    capability: text
-    alias: "GPT-4o"
-  - pattern: "gpt-4.1*"
-    capability: text
-    alias: "GPT-4.1"
-  - pattern: "claude-*"
-    capability: text
-    alias: "Claude"
-  - pattern: "gemini-*"
-    capability: text
-    alias: "Gemini"
-  - pattern: "deepseek-*"
-    capability: text
-    alias: "DeepSeek"
-```
+1. 抽象出通用的后台任务队列（BackgroundTask），所有生成类操作（生图、生视频、文本生成）统一走这套机制
+2. 切换页面时正在执行的任务不中断，回来能看到结果
+3. 生图页面的 prompt、结果列表持久化到 store，切换页面不丢失
 
-### 2. 新 TypeScript 类型（替换 ModelProfileV2 / SlotAssignment 等）
+---
+
+### 一、通用后台任务 Slice (`backgroundTasksSlice.ts`)
+
+新建 `apps/desktop/ui/src/shared/store/backgroundTasksSlice.ts`
+
+#### 核心类型
 
 ```ts
-type ApiKeyConfig = {
-  id: string;          // uuid
-  name: string;        // 用户命名，如 "我的 OpenAI"、"中继站"
-  baseUrl: string;
-  apiKey: string;      // safeStorage 加密存储
-};
+type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+type TaskType = 'image_gen' | 'video_gen' | 'text_gen' | 'rewrite';
 
-type DiscoveredModel = {
-  id: string;          // 远端模型 ID
-  capability: ModelCapability;  // 系统推断（text/image/video）
-  alias: string;       // 从 registry 映射得到的显示名
-  enabled: boolean;    // 用户是否启用
-};
+interface BackgroundTask<TResult = unknown> {
+  id: string;
+  type: TaskType;
+  status: TaskStatus;
+  label: string;                 // 用户可见描述，如 "生成图片: a cat..."
+  createdAt: string;
+  updatedAt: string;
+  progress?: number;             // 0-100
+  error?: string;
+  result?: TResult;
+  meta?: Record<string, unknown>; // prompt, params 等任务特定数据
+}
+```
 
-type ApiKeyEntry = ApiKeyConfig & {
-  models: DiscoveredModel[];
-};
+#### Slice 接口
 
-type ModelConfig = {
-  keys: ApiKeyEntry[];
+```ts
+type BackgroundTasksSlice = {
+  bgTasks: BackgroundTask[];
+  
+  // 提交任务：传入执行函数，slice 管理生命周期
+  submitBgTask: <T>(opts: {
+    type: TaskType;
+    label: string;
+    meta?: Record<string, unknown>;
+    execute: (signal: AbortSignal) => Promise<T>;
+  }) => string; // 返回 taskId
+  
+  cancelBgTask: (taskId: string) => void;
+  dismissBgTask: (taskId: string) => void;
+  clearFinishedBgTasks: () => void;
 };
 ```
 
-### 3. 磁盘存储（`~/.orison/model/`）
+#### 关键设计
 
-- `keys/*.yaml` — 每个命名 Key 一个文件（apiKey 经 safeStorage 加密）
-- 删除 `index.yaml`（不再有全局槽位）
-- 删除 `profiles/` 目录（迁移期自动转换）
-
----
-
-## 改动范围
-
-### Layer 1: shared-contracts（类型 + 注册表）
-
-| 文件 | 改动 |
-|------|------|
-| `packages/shared-contracts/model-registry.yaml` | **新建** — 内置模型映射表 |
-| `packages/shared-contracts/src/contracts/model.ts` | 重写：删除 `ModelProfileV2`、`SlotAssignment`、`SlotAssignmentMap`；新增 `ApiKeyConfig`、`DiscoveredModel`、`ApiKeyEntry`、`ModelConfig` |
-| `packages/shared-contracts/src/contracts/generation.ts` | 删除 `generationProviderSchema`、`modelApiFormatSchema`；生成请求改为传 `{ keyId, modelId }` |
-| `packages/shared-contracts/src/ipc.ts` | 更新 `ModelConfig` 类型、`ProviderModelListRequest` 改为 `{ baseUrl, apiKey }`、`OrisonDesktopApi` 接口更新 |
-
-### Layer 2: model-protocols（模型列表 + 生成适配器）
-
-| 文件 | 改动 |
-|------|------|
-| `packages/model-protocols/src/listModels.ts` | 去掉 `provider` 参数；`inferCapabilities` 改为读取 registry 做 pattern 匹配，返回 `{ id, capability, alias }` |
-| 生成适配器 | 统一走 OpenAI 兼容协议（chat-completions / images / videos） |
-
-### Layer 3: desktop shell（IPC + 配置读写 + 生成网关）
-
-| 文件 | 改动 |
-|------|------|
-| `apps/desktop/shell/main/ipc/configIpc.ts` | 读写改为 `keys/*.yaml`；去掉 slot 逻辑；保留 safeStorage 加解密 |
-| `apps/desktop/shell/main/ipc/modelProviderIpc.ts` | 去掉 provider 参数 |
-| `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` | `resolveSlot` → `resolveModel(keyId, modelId)`；统一 OpenAI 兼容协议 |
-| `apps/desktop/shell/preload/index.ts` | 更新 bridge 接口 |
-
-### Layer 4: desktop UI（设置页 + 使用页）
-
-| 文件 | 改动 |
-|------|------|
-| `ModelSettingsPage.tsx` | 重写：左侧 Key 列表，右侧 Key 编辑器 + 模型列表 |
-| `model/ProfileList.tsx` → `model/KeyList.tsx` | 展示命名 Key 列表 |
-| `model/ProfileEditor.tsx` → `model/KeyEditor.tsx` | name + baseUrl + apiKey 表单 + 刷新按钮 |
-| 新增 `model/ModelList.tsx` | 按 text/image/video 分组展示模型，每行有启用开关 |
-| 删除 `ProfileAssignmentRow.tsx` | 不再有全局槽位 |
-| 删除 `ProviderBadge.tsx` | 不再有 provider |
-| `useModelLibrary.ts` | 重写：keys CRUD、刷新模型列表、切换 enabled |
-| `ImageGenEditor.tsx` | 从 store 取已启用 image 模型列表，页面内下拉选择，生成传 `{ keyId, modelId }` |
-| `VideoEditor.tsx` | 同上，取已启用 video 模型列表 |
-| 小说生成组件 | 同上，取已启用 text 模型列表 |
-| `settingsSlice.ts` | `modelConfig` 类型更新，去掉 `selected` |
+- **execute 函数由调用方传入**：slice 不关心 API 细节，只管状态 + AbortController
+- **并发**：同类型可并发，`Map<taskId, AbortController>` 管理取消
+- **持久化**：已完成任务持久化到 localStorage（`orison_bgTasks`），running 的在重启后标记 failed
+- **上限**：保留最近 50 条已完成任务
 
 ---
 
-## 迁移策略
+### 二、生图页面状态提升到 Store
 
-- 读取旧 `profiles/*.yaml` 时自动转换为 `keys/*.yaml`（profile.name → key.name，保留 baseUrl/apiKey/models）
-- 旧 `index.yaml` 中的 slot 信息丢弃
-- 迁移完成后删除旧文件
+在 `imageGenSlice.ts` 中增加：
+
+```ts
+imageGenPrompt: string;
+imageGenResults: ImageGenResultMeta[];  // 轻量版，不含 b64Json
+setImageGenPrompt: (prompt: string) => void;
+prependImageGenResults: (items: ImageGenResultMeta[]) => void;
+markImageGenResultAsset: (id: string) => void;
+```
+
+`ImageGenResultMeta` 只存：
+```ts
+{ id, prompt, tempRelativePath, assetAdded, source, mimeType }
+```
+
+持久化：prompt debounce 写 localStorage，results 存 metadata 列表（不含二进制）。
 
 ---
 
-## 实施顺序
+### 三、ImageGenEditor 改造
 
-1. 新建 `model-registry.yaml` + pattern 匹配工具函数
-2. 重写 `shared-contracts` 类型
-3. 更新 `model-protocols/listModels` — 去 provider，返回 `{ id, capability, alias }`
-4. 更新 shell IPC — configIpc / modelProviderIpc / modelGatewayIpc
-5. 重写设置页 UI — KeyList + KeyEditor + ModelList
-6. 更新使用页 — ImageGenEditor / VideoEditor / 小说组件加模型选择下拉
-7. 迁移逻辑 — 旧 profile → 新 key 自动转换
-8. 清理 — 删除废弃类型/组件，更新测试
+1. `prompt` / `results` 从 store 读取，不再用 `useState`
+2. 生成操作改为：
+   ```ts
+   submitBgTask({
+     type: 'image_gen',
+     label: `生成: ${prompt.slice(0, 30)}...`,
+     meta: { prompt, params },
+     execute: async (signal) => {
+       const response = await generateImage({ ref, prompt, params, image });
+       const saved = await saveToProject(response, projectPath, prompt);
+       return saved; // ImageGenResultMeta[]
+     },
+   });
+   ```
+3. 任务完成后通过 effect 监听 `bgTasks` 变化，自动 merge 到 `imageGenResults`
 
 ---
 
-## 不变的部分
+### 四、任务面板
 
-- `~/.orison/model/` 作为配置目录
-- apiKey 仍用 Electron `safeStorage` 加密
-- 模型列表走 `/v1/models` OpenAI 兼容端点
-- 生成请求走 IPC（renderer → main → 上游 API）
+底部面板 "tasks" tab 展示所有后台任务状态（spinner/✓/✗），支持取消和清除。
+
+---
+
+### 文件变更清单
+
+| 文件 | 操作 |
+|------|------|
+| `store/backgroundTasksSlice.ts` | 新建 |
+| `store/appStore.ts` | 注册新 slice |
+| `store/imageGenSlice.ts` | 增加 prompt/results 持久化 |
+| `store/types.ts` | 增加 BackgroundTask 类型 |
+| `features/editor/ImageGenEditor.tsx` | 从 store 读状态，生成走 submitBgTask |
+| `store/tasksSlice.ts` | 迁移 submitRewrite 使用 backgroundTasksSlice |
+
+---
+
+### 迁移策略
+
+- 现有 `tasksSlice.submitRewrite` 改为内部调用 `submitBgTask`
+- `acceptedPatches` 等 rewrite 特有逻辑保留在 `tasksSlice`
+- 不破坏现有 rewrite 功能

@@ -9,7 +9,7 @@ import type {
   VideoGenerationRequest,
   VideoGenerationResponse,
 } from '@orison/shared-contracts';
-import { base64ToBlob, postJson, postMultipart, trimTrailingSlash } from './http';
+import { base64ToBlob, normalizeBaseUrl, postJson, postMultipart } from './http';
 import { normalizeImageResponse } from './imageNormalize';
 import { ProtocolHttpError, ProtocolNotImplementedError } from './errors';
 import type { ProtocolCallContext } from './types';
@@ -42,7 +42,7 @@ export async function generateText(
   request: TextGenerationRequest,
   ctx?: ProtocolCallContext,
 ): Promise<TextGenerationResponse> {
-  const baseUrl = trimTrailingSlash(model.baseUrl);
+  const baseUrl = normalizeBaseUrl(model.baseUrl);
   const raw = await postJson<OpenAiChatResponse>({
     url: `${baseUrl}/chat/completions`,
     headers: { authorization: `Bearer ${model.apiKey}` },
@@ -84,7 +84,7 @@ async function generateFromPrompt(
   request: ImageGenerationRequest,
   ctx?: ProtocolCallContext,
 ): Promise<ImageGenerationResponse> {
-  const baseUrl = trimTrailingSlash(model.baseUrl);
+  const baseUrl = normalizeBaseUrl(model.baseUrl);
   const body: Record<string, unknown> = {
     model: model.modelId,
     prompt: request.prompt,
@@ -111,7 +111,7 @@ async function editImage(
   ctx?: ProtocolCallContext,
 ): Promise<ImageGenerationResponse> {
   if (!request.image || !('b64Json' in request.image)) throw new ProtocolHttpError('editImage requires base64 image input', 500);
-  const baseUrl = trimTrailingSlash(model.baseUrl);
+  const baseUrl = normalizeBaseUrl(model.baseUrl);
 
   const form = new FormData();
   form.set('model', model.modelId);

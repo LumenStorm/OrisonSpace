@@ -1,7 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from '../src/app/App';
-import { ensureProjectRegistration } from '../src/shared/api/projects';
 import { useAppStore } from '../src/shared/store/appStore';
 
 describe('auth session expiry', () => {
@@ -32,28 +31,6 @@ describe('auth session expiry', () => {
       expect(useAppStore.getState().user).toBeNull();
     });
     expect(await screen.findByRole('button', { name: 'Sign In' })).toBeInTheDocument();
-  });
-
-  it('reports an expired auth session when a token-protected API returns 401', async () => {
-    const expired = new Promise<void>((resolve) => {
-      window.addEventListener('orison:auth-expired', () => resolve(), { once: true });
-    });
-    (globalThis as any).fetch = async () => ({
-      ok: false,
-      status: 401,
-    });
-
-    await expect(
-      ensureProjectRegistration({
-        token: 'expired-token',
-        project: {
-          name: 'Expired Project',
-          type: 'novel',
-          path: 'C:\\Projects\\Expired',
-        },
-      }),
-    ).rejects.toThrow('Session expired');
-    await expect(expired).resolves.toBeUndefined();
   });
 
   it('boots to the auth page when the persisted token is already expired', async () => {

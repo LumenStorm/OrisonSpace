@@ -15,12 +15,14 @@
     "@orison/shared-contracts": "file:..\\..\\..\\packages\\shared-contracts",
     "@orison/model-protocols": "workspace:*",
     "@orison/story-sync": "workspace:*",
+    "better-sqlite3": "12.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@swc/core": "^1.15.30",
+    "@types/better-sqlite3": "7.6.13",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "4.7.0",

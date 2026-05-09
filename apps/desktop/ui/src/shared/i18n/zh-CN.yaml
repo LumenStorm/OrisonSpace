@@ -167,6 +167,10 @@ tasks:
   failed: "任务失败：{summary}"
   retry: "重试"
   accept: "接受任务结果"
+  empty: "暂无后台任务"
+  clearFinished: "清除"
+  cancel: "取消"
+  dismiss: "关闭"
 
 editor:
   startWriting: "开始写作..."
@@ -251,6 +255,8 @@ settings:
   identitySection: "身份"
   credentialsSection: "凭据"
   modelSection: "模型"
+  modelsSection: "模型列表"
+  noModelsHint: "点击刷新从供应商加载可用模型。"
 
 creative:
   empty: "暂无数据"

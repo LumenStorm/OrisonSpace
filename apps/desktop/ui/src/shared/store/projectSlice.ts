@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { ProjectMeta, WorkspaceModule } from './types';
 import type { RecentProjectsSlice } from './recentProjectsSlice';
+import type { BackgroundTasksSlice } from './backgroundTasksSlice';
 
 export type ProjectSlice = {
   currentProject: ProjectMeta | null;
@@ -18,6 +19,9 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
     // Bridge into the recent-projects slice without coupling slice types.
     const addRecent = (get() as unknown as RecentProjectsSlice).addRecentProject;
     if (typeof addRecent === 'function') addRecent(project);
+    // Hydrate background tasks from SQLite for this project.
+    const loadBg = (get() as unknown as BackgroundTasksSlice).loadBgTasks;
+    if (typeof loadBg === 'function') loadBg();
   },
   closeProject: () => set({ currentProject: null }),
   async saveProject() {

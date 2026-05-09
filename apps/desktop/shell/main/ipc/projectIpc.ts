@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, statS
 import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
+import { ensureProject } from '../db/projectRepository';
 import {
   ALLOWED_IMAGE_DIRS,
   buildProjectPath,
@@ -212,5 +213,11 @@ export function registerProjectIpc() {
     } catch {
       return false;
     }
+  });
+
+  /* ── Local project registration (SQLite) ── */
+  ipcMain.handle('project:ensure-registration', async (_, input: { name: string; type: 'novel' | 'script'; localFingerprint: string }) => {
+    const record = ensureProject(input);
+    return { projectId: record.projectId, name: record.name, type: record.type };
   });
 }

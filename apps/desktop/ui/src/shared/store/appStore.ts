@@ -12,6 +12,7 @@ import { createOutputSlice, type OutputSlice } from './outputSlice';
 import { createRecentProjectsSlice, type RecentProjectsSlice } from './recentProjectsSlice';
 import { createImageGenSlice, type ImageGenSlice } from './imageGenSlice';
 import { createOrchestrationSlice, type OrchestrationSlice } from './orchestrationSlice';
+import { createBackgroundTasksSlice, type BackgroundTasksSlice } from './backgroundTasksSlice';
 
 export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter } from './types';
 
@@ -27,7 +28,8 @@ type AppState = AuthSlice &
   OutputSlice &
   RecentProjectsSlice &
   ImageGenSlice &
-  OrchestrationSlice;
+  OrchestrationSlice &
+  BackgroundTasksSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
   ...createAuthSlice(...a),
@@ -43,4 +45,5 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createRecentProjectsSlice(...a),
   ...createImageGenSlice(...a),
   ...createOrchestrationSlice(...a),
+  ...createBackgroundTasksSlice(...a),
 }));

@@ -136,6 +136,12 @@ export type OrisonDesktopApi = {
   saveBase64Image(projectDir: string, input: SaveBase64ImageInput): Promise<SavedImageFile>;
   moveProjectFile(projectDir: string, fromRelativePath: string, toRelativePath: string): Promise<string>;
   deleteProjectFile(projectDir: string, relativePath: string): Promise<boolean>;
+  ensureProjectRegistration(input: { name: string; type: 'novel' | 'script'; localFingerprint: string }): Promise<{ projectId: string; name: string; type: string }>;
+  // Task persistence (SQLite)
+  listTasks(projectId: string, limit?: number): Promise<TaskRecord[]>;
+  upsertTask(input: TaskUpsertInput): Promise<void>;
+  updateTaskStatus(taskId: string, status: string, errorMessage?: string): Promise<void>;
+  deleteTask(taskId: string): Promise<void>;
 };
 
 export type FileTreeEntry = {
@@ -162,4 +168,28 @@ export type SavedImageFile = {
 export type BinaryFilePayload = {
   base64: string;
   mimeType: string;
+};
+
+/* ── Task persistence types ── */
+
+export type TaskRecord = {
+  taskId: string;
+  projectId: string;
+  taskType: string;
+  name: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  errorMessage?: string;
+  outputPayload?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TaskUpsertInput = {
+  taskId: string;
+  projectId: string;
+  taskType: string;
+  name: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  errorMessage?: string;
+  outputPayload?: string;
 };

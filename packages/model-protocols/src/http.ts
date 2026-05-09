@@ -12,6 +12,12 @@ export function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 
+/** Normalize baseUrl: ensure it ends with /v1 (user may or may not include it). */
+export function normalizeBaseUrl(value: string): string {
+  const base = trimTrailingSlash(value);
+  return base.endsWith('/v1') ? base : `${base}/v1`;
+}
+
 /**
  * Internal helper for protocol adapters: POSTs JSON, parses JSON, and maps
  * non-2xx responses to `ProtocolHttpError` with a body excerpt for triage.

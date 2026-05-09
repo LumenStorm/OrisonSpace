@@ -167,6 +167,10 @@ tasks:
   failed: "Task failed: {summary}"
   retry: "Retry"
   accept: "Accept Task Result"
+  empty: "No background tasks"
+  clearFinished: "Clear"
+  cancel: "Cancel"
+  dismiss: "Dismiss"
 
 editor:
   startWriting: "Start writing..."
@@ -251,6 +255,8 @@ settings:
   identitySection: "Identity"
   credentialsSection: "Credentials"
   modelSection: "Model"
+  modelsSection: "Models"
+  noModelsHint: "Click refresh to load available models from the provider."
 
 creative:
   empty: "No data yet"

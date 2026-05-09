@@ -7,6 +7,7 @@ import { registerFieldSyncIpc } from './ipc/fieldSyncIpc';
 import { registerModelProviderIpc } from './ipc/modelProviderIpc';
 import { registerModelGatewayIpc } from './ipc/modelGatewayIpc';
 import { registerStorySyncIpc } from './ipc/storySyncIpc';
+import { registerTaskIpc } from './ipc/taskIpc';
 
 /* ── CSP ── */
 
@@ -62,6 +63,7 @@ function createWindow() {
   registerModelGatewayIpc();
   registerStorySyncIpc();
   registerFieldSyncIpc();
+  registerTaskIpc();
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);

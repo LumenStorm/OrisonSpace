@@ -107,6 +107,25 @@ export type ImageGenSlice = {
    */
   setImageGenCustomDimensions: (width: number, height: number) => void;
   resetImageGenParams: () => void;
+
+  /** Persisted prompt text — survives page switches. */
+  imageGenPrompt: string;
+  setImageGenPrompt: (prompt: string) => void;
+
+  /** Lightweight result metadata (no b64). Survives page switches. */
+  imageGenResultsMeta: ImageGenResultMeta[];
+  prependImageGenResults: (items: ImageGenResultMeta[]) => void;
+  markResultAsset: (id: string) => void;
+  clearImageGenResults: () => void;
+};
+
+export type ImageGenResultMeta = {
+  id: string;
+  prompt: string;
+  tempRelativePath: string;
+  mimeType: string;
+  assetAdded: boolean;
+  source: 'generated' | 'loaded' | 'edited';
 };
 
 export const createImageGenSlice: StateCreator<ImageGenSlice, [], [], ImageGenSlice> = (set, get) => ({
@@ -223,5 +242,29 @@ export const createImageGenSlice: StateCreator<ImageGenSlice, [], [], ImageGenSl
       params: nextParams,
       customSize: false,
     });
+  },
+
+  imageGenPrompt: storage.get<string>('imageGenPrompt', ''),
+  setImageGenPrompt(prompt) {
+    set({ imageGenPrompt: prompt });
+    storage.set('imageGenPrompt', prompt);
+  },
+
+  imageGenResultsMeta: storage.get<ImageGenResultMeta[]>('imageGenResultsMeta', []),
+  prependImageGenResults(items) {
+    const merged = [...items, ...get().imageGenResultsMeta].slice(0, 200);
+    set({ imageGenResultsMeta: merged });
+    storage.set('imageGenResultsMeta', merged);
+  },
+  markResultAsset(id) {
+    const updated = get().imageGenResultsMeta.map((r) =>
+      r.id === id ? { ...r, assetAdded: true } : r,
+    );
+    set({ imageGenResultsMeta: updated });
+    storage.set('imageGenResultsMeta', updated);
+  },
+  clearImageGenResults() {
+    set({ imageGenResultsMeta: [] });
+    storage.set('imageGenResultsMeta', []);
   },
 });
