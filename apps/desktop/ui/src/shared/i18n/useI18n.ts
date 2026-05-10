@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import yaml from 'js-yaml';
 
 /* ── 自动扫描 i18n/*.yaml ── */
@@ -57,16 +57,13 @@ export function detectSystemLocale(): string {
 /* ── Hook ── */
 export function useI18n(locale: string) {
   const [messages, setMessages] = useState<Messages | null>(cache.get(locale) ?? null);
-  const [fallback, setFallback] = useState<Messages | null>(cache.get('en-US') ?? null);
+  const fallback = useMemo(() => cache.get('en-US') ?? null, []);
 
   useEffect(() => {
     let cancelled = false;
     // 同时加载目标语言和 fallback
-    Promise.all([loadMessages(locale), loadMessages('en-US')]).then(([msgs, fallbackMsgs]) => {
-      if (!cancelled) {
-        setMessages(msgs);
-        setFallback(fallbackMsgs);
-      }
+    Promise.all([loadMessages(locale), loadMessages('en-US')]).then(([msgs]) => {
+      if (!cancelled) setMessages(msgs);
     });
     return () => { cancelled = true; };
   }, [locale]);

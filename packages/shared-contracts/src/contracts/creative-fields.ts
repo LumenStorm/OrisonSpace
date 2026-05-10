@@ -67,7 +67,6 @@ export const worldSettingSchema = z.object({
   tone_rules: z.array(z.string()).default([]),
   open_questions: z.array(z.string()).default([])
 });
-export type WorldSetting = z.infer<typeof worldSettingSchema>;
 
 // ── Outline V2 总大纲 ──
 
@@ -256,64 +255,12 @@ export const assetCardTypeSchema = z.enum([
 
 export const assetCardStatusSchema = z.enum(['draft', 'active', 'deprecated', 'locked']);
 
-export const supportedAssetArchiveTypes = ['character', 'location', 'prop'] as const;
-export const supportedAssetArchiveTypeSchema = z.enum(supportedAssetArchiveTypes);
-
-export const assetArchiveSchema = z.object({
-  path: z.string().min(1),
-  slug: z.string().min(1),
-  schemaVersion: z.number().int().positive().default(1),
-});
-
-export const assetImageKindSchema = z.enum([
-  'primary',
-  'portrait',
-  'full_body',
-  'scene_reference',
-  'prop_detail',
-  'costume',
-  'mood',
-]);
-
-export const assetGalleryImageSchema = z.object({
-  id: z.string().min(1),
-  path: z.string().min(1),
-  kind: assetImageKindSchema,
-  prompt: z.string().optional(),
-  model: z.string().optional(),
-  createdAt: z.string().datetime().optional(),
-  notes: z.string().optional(),
-});
-
-export const assetVisualsSchema = z.object({
-  primaryImage: z.string().optional(),
-  gallery: z.array(assetGalleryImageSchema).default([]),
-});
-
-export const assetRegistryEntrySchema = z.object({
-  id: z.string().min(1),
-  type: supportedAssetArchiveTypeSchema,
-  name: z.string().min(1),
-  summary: z.string().optional(),
-  status: assetCardStatusSchema.default('draft'),
-  tags: z.array(z.string()).default([]),
-  archivePath: z.string().min(1),
-  primaryImage: z.string().optional(),
-});
-
-export const assetRegistrySchema = z.object({
-  items: z.array(assetRegistryEntrySchema).default([]),
-  updatedAt: z.string().datetime().optional(),
-});
-
 export const assetCardSchema = z.object({
   id: z.string().min(1),
   type: assetCardTypeSchema,
   name: z.string().min(1),
   summary: z.string().optional(),
   details: z.record(z.string(), z.unknown()).optional(),
-  archive: assetArchiveSchema.optional(),
-  visuals: assetVisualsSchema.optional(),
   tags: z.array(z.string()).default([]),
   relationships: z.array(z.object({
     targetId: z.string().min(1),
@@ -322,13 +269,10 @@ export const assetCardSchema = z.object({
   })).default([]),
   firstAppearance: z.string().optional(),
   sourceRefs: z.array(z.string()).default([]),
-  status: assetCardStatusSchema.default('draft'),
-  locked: z.boolean().default(false),
+  status: assetCardStatusSchema.default('draft')
 });
 
 export const assetCardsSchema = z.array(assetCardSchema);
-export type AssetCard = z.infer<typeof assetCardSchema>;
-export type AssetCards = z.infer<typeof assetCardsSchema>;
 
 // ── Relationship Graph 人物关系网 ──
 
@@ -364,18 +308,4 @@ export const relationshipGraphSchema = z.object({
   layout: z.record(z.string(), z.unknown()).optional(),
   version: z.number().int().nonnegative().default(0),
   updatedBy: z.enum(['user', 'agent', 'sync']).default('agent')
-});
-export type RelationshipGraph = z.infer<typeof relationshipGraphSchema>;
-
-export const guidedPlanningBaselineFieldsSchema = z.object({
-  creative_brief: creativeBriefSchema.optional(),
-  world_setting: worldSettingSchema.optional(),
-  outline_v2: outlineV2Schema.optional(),
-  episode_outlines: episodeOutlinesSchema.optional(),
-  growth_curve: growthCurveSchema.optional(),
-  pacing_curve: pacingCurveSchema.optional(),
-  emotion_curve: emotionCurveSchema.optional(),
-  asset_cards: assetCardsSchema.optional(),
-  relationship_graph: relationshipGraphSchema.optional(),
-  foreshadow_registry: foreshadowRegistrySchema.optional(),
 });

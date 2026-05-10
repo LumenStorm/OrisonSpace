@@ -167,69 +167,12 @@ describe('creative-fields schemas', () => {
     expect(card.relationships).toHaveLength(1);
   });
 
-  it('assetCardSchema preserves archive dossier metadata for supported archive types', () => {
-    const card = assetCardSchema.parse({
-      id: 'char_lin_qi',
-      type: 'character',
-      name: '林七',
-      summary: '冷静克制的调查员',
-      tags: ['主角'],
-      relationships: [],
-      sourceRefs: ['assets/characters/lin-qi.yaml', 'assets/images/lin-qi-main.png'],
-      status: 'active',
-      archive: {
-        path: 'assets/characters/lin-qi.yaml',
-        slug: 'lin-qi',
-        schemaVersion: 1,
-      },
-      visuals: {
-        primaryImage: 'assets/images/lin-qi-main.png',
-        gallery: [
-          {
-            id: 'img_main',
-            path: 'assets/images/lin-qi-main.png',
-            kind: 'primary',
-            prompt: 'detective portrait',
-          },
-        ],
-      },
-      details: {
-        profile: {
-          role: '主角',
-          occupation: '调查员',
-        },
-        persona: {
-          personality: '冷静',
-          motivation: '寻找真相',
-        },
-      },
-    });
-
-    expect(card.archive?.path).toBe('assets/characters/lin-qi.yaml');
-    expect(card.visuals?.gallery[0].kind).toBe('primary');
-    expect((card.details as Record<string, any>).profile.role).toBe('主角');
-  });
-
   it('assetCardsSchema 校验资产卡数组', () => {
     const cards = assetCardsSchema.parse([
       { id: 'char_1', type: 'character', name: '角色A' },
       { id: 'loc_1', type: 'location', name: '暗城广场' }
     ]);
     expect(cards).toHaveLength(2);
-  });
-
-  it('assetCardsSchema keeps unsupported legacy card types compatible', () => {
-    const cards = assetCardsSchema.parse([
-      {
-        id: 'rule_1',
-        type: 'rule',
-        name: '午夜后不得出城',
-        summary: '世界规则',
-      },
-    ]);
-
-    expect(cards[0].type).toBe('rule');
-    expect(cards[0].archive).toBeUndefined();
   });
 
   it('relationshipGraphSchema 校验人物关系网', () => {

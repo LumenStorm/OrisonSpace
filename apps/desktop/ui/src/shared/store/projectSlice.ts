@@ -2,8 +2,6 @@ import type { StateCreator } from 'zustand';
 import type { ProjectMeta, WorkspaceModule } from './types';
 import type { RecentProjectsSlice } from './recentProjectsSlice';
 import type { BackgroundTasksSlice } from './backgroundTasksSlice';
-import type { GuidedNovelSlice } from './guidedNovelSlice';
-import { restoreGuidedNovelSession } from '../api/guidedNovel';
 
 export type ProjectSlice = {
   currentProject: ProjectMeta | null;
@@ -24,23 +22,8 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
     // Hydrate background tasks from SQLite for this project.
     const loadBg = (get() as unknown as BackgroundTasksSlice).loadBgTasks;
     if (typeof loadBg === 'function') loadBg();
-    if (project.type === 'novel' && window.orisonDesktop?.loadGuidedNovelState) {
-      window.orisonDesktop.loadGuidedNovelState(project.path)
-        .then(async (state) => {
-          if (get().currentProject?.path !== project.path) return;
-          const setGuidedNovelState = (get() as unknown as GuidedNovelSlice).setGuidedNovelState;
-          if (typeof setGuidedNovelState === 'function') setGuidedNovelState(state);
-          if (state?.session) {
-            const restoredState = await restoreGuidedNovelSession(state);
-            if (get().currentProject?.path === project.path && typeof setGuidedNovelState === 'function') {
-              setGuidedNovelState(restoredState);
-            }
-          }
-        })
-        .catch(() => {});
-    }
   },
-  closeProject: () => set({ currentProject: null, guidedNovelState: null } as Partial<ProjectSlice>),
+  closeProject: () => set({ currentProject: null }),
   async saveProject() {
     const project = get().currentProject;
     if (!project?.path) return;

@@ -8,13 +8,11 @@ import {
   pacingCurveSchema,
   emotionCurveSchema,
   assetCardsSchema,
-  assetRegistrySchema,
   relationshipGraphSchema,
   foreshadowRegistrySchema,
   fieldMetadataSchema,
   creativeFieldKeySchema
 } from './creative-fields';
-import { guidedNovelProjectStateSchema, guidedPlanningBaselineSchema } from './guided-novel';
 
 // ── Meta ──
 
@@ -218,12 +216,8 @@ export const projectDocumentSchema = z.object({
   growth_curve: growthCurveSchema.optional(),
   pacing_curve: pacingCurveSchema.optional(),
   emotion_curve: emotionCurveSchema.optional(),
-  asset_registry: assetRegistrySchema.optional(),
   asset_cards: assetCardsSchema.optional(),
   relationship_graph: relationshipGraphSchema.optional(),
   foreshadow_registry: foreshadowRegistrySchema.optional(),
   field_metadata: z.record(creativeFieldKeySchema, fieldMetadataSchema).optional()
 });
-
-export const projectGuidedNovelStateSchema = guidedNovelProjectStateSchema;
-export const projectGuidedPlanningBaselineSchema = guidedPlanningBaselineSchema;

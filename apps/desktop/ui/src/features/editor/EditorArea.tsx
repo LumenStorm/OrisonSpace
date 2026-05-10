@@ -3,7 +3,7 @@ import { FileEditor } from './FileEditor';
 import { FileTabBar } from './FileTabBar';
 import { ModuleEditor } from './ModuleEditor';
 
-const moduleAlwaysOwnsEditor = new Set<WorkspaceModule>(['image_gen', 'video', 'storyboard', 'guided_novel']);
+const moduleAlwaysOwnsEditor = new Set<WorkspaceModule>(['image_gen', 'video', 'storyboard']);
 
 export function EditorArea() {
   const activeModule = useAppStore((state) => state.activeModule);

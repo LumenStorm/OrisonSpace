@@ -382,33 +382,3 @@ pnpm lint
 ## License
 
 Private
-
----
-
-## Guided Novel Auto Mode
-
-- Added a guided novel workflow skeleton with:
-  - `Story Interview`
-  - `Planning Workspace`
-  - `Chapter Review`
-  - `Change Review`
-  - `Impact Review`
-- Agent now supports:
-  - interview session state transitions
-  - planning baseline generation
-  - chapter-derived change checklist suggestions
-  - downstream impact review recommendations
-- Desktop now supports:
-  - local guided workflow YAML persistence
-  - `guidedNovel:load` / `guidedNovel:save` IPC
-  - UI store and workspace scaffolding
-- Accepted change checklist items are written back into `creative fields`
-
-## Novel Workspace
-
-Novel projects now open into a novel-first workspace with:
-
-- a dedicated `Novel Home` landing page
-- object-based navigation for chapters, world, characters, locations, props, and images
-- `Guided Novel` as the main AI writing cockpit
-- separate context and system rails for ongoing writing state, review queues, and patches

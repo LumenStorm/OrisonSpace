@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.8.1",
   "pnpm": {
-    "onlyBuiltDependencies": ["@swc/core", "bcrypt", "better-sqlite3", "electron", "esbuild"]
+    "onlyBuiltDependencies": ["@swc/core", "bcrypt", "electron", "esbuild"]
   },
   "scripts": {
     "dev": "pnpm --filter @orison/desktop-shell dev",

@@ -84,69 +84,6 @@ describe('orchestration proxy', () => {
     expect(captured[0].url).toMatch(/\/v1\/orchestration\/actions$/);
   });
 
-  it('forwards guided novel session routes to the agent', async () => {
-    globalThis.fetch = buildMock(captured, {
-      session: {
-        sessionId: 'guided-1',
-        projectPath: 'C:\\demo',
-        status: 'interviewing',
-        baselineVersion: 0,
-        createdAt: '2026-05-10T00:00:00.000Z',
-        updatedAt: '2026-05-10T00:00:00.000Z',
-      },
-    }, 202);
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/guided-novel/sessions',
-      headers: { authorization: 'Bearer token', 'content-type': 'application/json' },
-      payload: { projectPath: 'C:\\demo' },
-    });
-
-    expect(response.statusCode).toBe(202);
-    expect(captured[0].url).toMatch(/\/v1\/guided-novel\/sessions$/);
-    expect((captured[0].init?.headers as Record<string, string>).authorization).toBe('Bearer token');
-  });
-
-  it('forwards guided novel restore and action routes', async () => {
-    globalThis.fetch = buildMock(captured, { session: { sessionId: 'guided-1', status: 'planning' } });
-
-    await app.inject({
-      method: 'POST',
-      url: '/v1/guided-novel/sessions/restore',
-      headers: { 'content-type': 'application/json' },
-      payload: { session: { sessionId: 'guided-1' } },
-    });
-    await app.inject({
-      method: 'POST',
-      url: '/v1/guided-novel/sessions/guided-1/interview',
-      headers: { 'content-type': 'application/json' },
-      payload: { answer: 'A memory noir.' },
-    });
-    await app.inject({
-      method: 'POST',
-      url: '/v1/guided-novel/sessions/guided-1/chapters/next',
-    });
-    await app.inject({
-      method: 'POST',
-      url: '/v1/guided-novel/sessions/guided-1/chapter/approve',
-    });
-    await app.inject({
-      method: 'POST',
-      url: '/v1/guided-novel/sessions/guided-1/change-review/accept',
-      headers: { 'content-type': 'application/json' },
-      payload: { chapterId: 'chapter-1', items: [] },
-    });
-
-    expect(captured.map((call) => call.url)).toEqual([
-      expect.stringMatching(/\/v1\/guided-novel\/sessions\/restore$/),
-      expect.stringMatching(/\/v1\/guided-novel\/sessions\/guided-1\/interview$/),
-      expect.stringMatching(/\/v1\/guided-novel\/sessions\/guided-1\/chapters\/next$/),
-      expect.stringMatching(/\/v1\/guided-novel\/sessions\/guided-1\/chapter\/approve$/),
-      expect.stringMatching(/\/v1\/guided-novel\/sessions\/guided-1\/change-review\/accept$/),
-    ]);
-  });
-
   it('forwards POST /v1/orchestration/auto-mode (previously 404)', async () => {
     globalThis.fetch = buildMock(captured, { autoModeId: 'auto-1', status: 'running' }, 202);
 

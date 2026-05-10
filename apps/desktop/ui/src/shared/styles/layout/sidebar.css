@@ -3,11 +3,10 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 56px;
+  width: 48px;
   height: 100%;
-  background:
-    linear-gradient(180deg, var(--surface-container-lowest), var(--surface-container-low));
-  border-right: 1px solid rgba(199, 199, 191, 0.5);
+  background: var(--surface-container-low);
+  border-right: 1px solid var(--outline-variant);
   overflow: hidden;
 }
 
@@ -16,8 +15,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.75rem 0.45rem;
+  gap: 0.15rem;
+  padding: 0.4rem 0;
 }
 
 .icon-rail-bottom {
@@ -28,124 +27,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border: 0;
-  border-radius: 0.85rem;
+  border-radius: 0.35rem;
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
   font: inherit;
-  transition: background 0.15s, color 0.15s, transform 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .icon-rail-btn:hover {
   background: var(--hover-overlay);
   color: var(--on-surface);
-  transform: translateY(-1px);
 }
 
 .icon-rail-btnActive {
-  background: linear-gradient(135deg, var(--accent-soft), rgba(107, 122, 106, 0.08));
-  color: var(--accent-strong);
-  box-shadow: inset 0 0 0 1px rgba(107, 122, 106, 0.16);
+  background: var(--active-indicator);
+  color: var(--on-surface);
 }
 
 .icon-rail-btn .material-symbols-outlined {
   font-size: 20px;
-}
-
-.object-list-pane {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  padding: 1rem 0.85rem 1rem 1rem;
-  border-right: 1px solid rgba(199, 199, 191, 0.45);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(244, 243, 241, 0.94));
-  overflow: hidden;
-}
-
-[data-theme="dark"] .object-list-pane {
-  background:
-    linear-gradient(180deg, rgba(30, 33, 32, 0.96), rgba(24, 27, 26, 0.98));
-}
-
-.object-list-header {
-  display: grid;
-  gap: 0.4rem;
-  padding: 0.35rem 0.2rem 0.95rem;
-  border-bottom: 1px solid rgba(199, 199, 191, 0.35);
-}
-
-.object-list-header h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-.object-list-kicker {
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-strong);
-}
-
-.object-list-empty {
-  margin: 1rem 0 0;
-  padding: 1rem;
-  border: 1px dashed rgba(199, 199, 191, 0.6);
-  border-radius: 1rem;
-  color: var(--on-surface-variant);
-  line-height: 1.6;
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.object-list-items {
-  display: grid;
-  gap: 0.45rem;
-  padding: 1rem 0 0;
-  overflow: auto;
-}
-
-.object-list-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 46px;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid transparent;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.58);
-  color: var(--on-surface);
-  font: inherit;
-  font-size: 0.85rem;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
-}
-
-.object-list-item:hover {
-  border-color: rgba(107, 122, 106, 0.22);
-  background: rgba(255, 255, 255, 0.86);
-  transform: translateX(2px);
-}
-
-.object-list-item.is-active {
-  border-color: rgba(107, 122, 106, 0.24);
-  background: linear-gradient(135deg, var(--accent-soft), rgba(255, 255, 255, 0.9));
-  box-shadow: var(--shadow-soft);
-}
-
-[data-theme="dark"] .object-list-item {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-[data-theme="dark"] .object-list-item:hover {
-  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Icon Rail Popover (settings / account) ── */

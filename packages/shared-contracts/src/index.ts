@@ -9,7 +9,6 @@ export * from './contracts/story-memory';
 export * from './contracts/novel-orchestration';
 export * from './contracts/generation';
 export * from './contracts/model';
-export * from './contracts/guided-novel';
 export * from './ipc';
 export * from './orchestration';
 export * from './config';

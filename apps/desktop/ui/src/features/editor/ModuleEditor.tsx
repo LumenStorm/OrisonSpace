@@ -6,7 +6,6 @@ import { StoryboardCanvas } from './StoryboardCanvas';
 import { VideoEditor } from './VideoEditor';
 import { AcceptedPatchesView } from './AcceptedPatchesView';
 import { NovelScriptWithCreative } from './NovelScriptWithCreative';
-import { NovelWorkspaceRouter } from '../novel-workspace/NovelWorkspaceRouter';
 
 const simpleEditors = {
   outline: OutlineEditor,
@@ -17,11 +16,6 @@ const simpleEditors = {
 
 export function ModuleEditor() {
   const activeModule = useAppStore((state) => state.activeModule);
-  const currentProject = useAppStore((state) => state.currentProject);
-
-  if (currentProject?.type === 'novel' && (activeModule === 'novel' || activeModule === 'script' || activeModule === 'guided_novel')) {
-    return <NovelWorkspaceRouter />;
-  }
 
   if (activeModule === 'novel' || activeModule === 'script') {
     return (
@@ -32,9 +26,7 @@ export function ModuleEditor() {
     );
   }
 
-  const Editor = activeModule in simpleEditors
-    ? simpleEditors[activeModule as keyof typeof simpleEditors]
-    : OutlineEditor;
+  const Editor = simpleEditors[activeModule];
 
   return (
     <>

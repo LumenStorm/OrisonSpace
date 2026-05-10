@@ -35,7 +35,6 @@ export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
   ],
   // image_gen renders the dedicated <ImageGenInspector />; no static fields here.
   image_gen: [],
-  guided_novel: [],
 };
 
 export const aspectRatios: Record<WorkspaceModule, string[]> = {
@@ -45,7 +44,6 @@ export const aspectRatios: Record<WorkspaceModule, string[]> = {
   storyboard: ['16:9', '2.35:1', '4:3', '9:16'],
   video: ['16:9', '2.35:1', '4:3', '9:16'],
   image_gen: [],
-  guided_novel: [],
 };
 
 export const promptKeys: Record<WorkspaceModule, string> = {
@@ -55,7 +53,6 @@ export const promptKeys: Record<WorkspaceModule, string> = {
   storyboard: 'inspector.storyboard.prompt',
   video: 'inspector.video.prompt',
   image_gen: 'inspector.imageGen.prompt',
-  guided_novel: 'guidedNovel.interviewPrompt',
 };
 
 export const actionKeys: Record<WorkspaceModule, string> = {
@@ -65,5 +62,4 @@ export const actionKeys: Record<WorkspaceModule, string> = {
   storyboard: 'inspector.storyboard.rewrite',
   video: 'inspector.video.rewrite',
   image_gen: 'inspector.imageGen.generate',
-  guided_novel: 'guidedNovel.confirm',
 };
