@@ -1,7 +1,6 @@
-# Orison Space — English
 auth:
   brand: "Orison Space"
-  tagline: "One line to video — AI-powered storytelling"
+  tagline: "One line to video - AI-powered storytelling"
   login: "Login"
   register: "Register"
   displayName: "Display Name"
@@ -12,7 +11,6 @@ auth:
   createAccount: "Create Account"
   showPassword: "Show password"
   hidePassword: "Hide password"
-
 projects:
   brand: "Orison Space"
   logout: "Logout"
@@ -34,20 +32,26 @@ projects:
   pickCover: "Choose cover image"
   emptyTitle: "No projects yet"
   emptyHint: "Create a new project or open an existing one to get started"
-
 nav:
   project: "Project"
   outline: "Outline"
   creative: "Creative"
+  guidedNovel: "Guided Writing"
+  novelHome: "Home"
   novel: "Novel"
   script: "Script"
+  chapters: "Chapters"
+  storyWorld: "Story World"
+  characters: "Characters"
+  locations: "Locations"
+  props: "Props"
+  images: "Images"
   storyboard: "Storyboard"
   video: "Video"
   imageGen: "Image Gen"
   settings: "Settings"
   account: "Account"
   logout: "Logout"
-
 projectTree:
   title: "Project Files"
   assets: "Assets"
@@ -56,10 +60,9 @@ projectTree:
   scenes: "Scenes"
   assetsDir: "Assets"
   projectConfig: "Project Config"
-
 outline:
   projectTitle: "Project Title"
-  loglinePlaceholder: "Logline — one sentence that captures the story"
+  loglinePlaceholder: "Logline - one sentence that captures the story"
   visualStyle: "Visual Style"
   narrativeStyle: "Narrative Style"
   pacing: "Pacing"
@@ -69,14 +72,12 @@ outline:
   noActs: "No acts yet. Add one to start structuring your story."
   actTitle: "Act title"
   actSummary: "Write the act summary..."
-
 script:
   chapters: "Chapters"
   chapterDefault: "Chapter {n}"
   startWriting: "Start writing this chapter..."
   selectChapter: "Select a chapter to start editing"
   addChapter: "Add Chapter"
-
 topbar:
   save: "Save"
   undo: "Undo"
@@ -95,12 +96,10 @@ topbar:
   account: "Account"
   about: "About"
   shortcuts: "Shortcuts"
-
 storyboard:
   cameraLens: "Camera Lens"
   lightingMood: "Lighting Mood"
   shotType: "Shot Type"
-
 video:
   previewPlaceholder: "Video preview will appear here"
   noClips: "No clips yet. Generate video from storyboard shots to populate the timeline."
@@ -110,7 +109,6 @@ video:
   promptPlaceholder: "Describe the video content to generate..."
   generate: "Generate Video"
   clips: "Video Clips"
-
 inspector:
   title: "Inspector"
   parameters: "{module} Parameters"
@@ -160,7 +158,6 @@ inspector:
       resolution: ["1080p", "2K", "4K"]
       frameRate: ["24fps", "30fps", "60fps"]
       outputFormat: ["MP4", "MOV", "WebM"]
-
 tasks:
   runRewrite: "Run AI Rewrite"
   inProgress: "Task in progress..."
@@ -171,7 +168,6 @@ tasks:
   clearFinished: "Clear"
   cancel: "Cancel"
   dismiss: "Dismiss"
-
 editor:
   startWriting: "Start writing..."
   bold: "Bold"
@@ -182,13 +178,11 @@ editor:
   bulletList: "Bullet List"
   orderedList: "Ordered List"
   heading: "Heading {level}"
-
 welcome:
   brand: "Orison Space"
-  tagline: "One line to video — AI-powered storytelling"
+  tagline: "One line to video - AI-powered storytelling"
   newProject: "New Project"
   openProject: "Open Project"
-
 settings:
   general: "General"
   modelConfig: "Models"
@@ -238,7 +232,7 @@ settings:
   noUsage: "Unassigned"
   deleteModel: "Delete model"
   deleteConfirmTitle: "Delete model?"
-  deleteConfirmDesc: "\"{name}\" will be removed from the library and any usage assignment will be cleared. This cannot be undone."
+  deleteConfirmDesc: "{name} will be removed from the library and any usage assignment will be cleared. This cannot be undone."
   deleteConfirmAction: "Delete"
   emptyTitle: "No models yet"
   emptyHint: "Add your first model and assign it to novel, image, or video usage."
@@ -257,9 +251,60 @@ settings:
   modelSection: "Model"
   modelsSection: "Models"
   noModelsHint: "Click refresh to load available models from the provider."
-
 creative:
   empty: "No data yet"
+  assetArchive:
+    createCharacter: "New Character"
+    createLocation: "New Location"
+    createProp: "New Prop"
+    newCharacterName: "New Character"
+    newLocationName: "New Location"
+    newPropName: "New Prop"
+    noSummary: "No summary yet"
+    legacyTitle: "Legacy Cards"
+    generateImage: "Generate Image"
+    addGalleryImage: "Add Gallery Image"
+    saveDossier: "Save Dossier"
+    deleteArchive: "Delete Archive"
+    deleteConfirmTitle: "Delete archive?"
+    deleteConfirmBody: "Deleting this archive will also remove its dossier file and attached images. This cannot be undone."
+    confirmDelete: "Confirm Delete"
+    cancelDelete: "Cancel"
+    galleryTitle: "Image Archive"
+    noImages: "No images attached yet."
+    field:
+      name: "Name"
+      summary: "Summary"
+      tags: "Tags"
+      firstAppearance: "First Appearance"
+      role: "Role"
+      occupation: "Occupation"
+      personality: "Personality"
+      motivation: "Motivation"
+      category: "Category"
+      region: "Region"
+      atmosphere: "Atmosphere"
+      rules: "Rules"
+      owner: "Owner"
+      function: "Function"
+      risk: "Risk"
+    type:
+      character: "Character"
+      location: "Location"
+      prop: "Prop"
+    status:
+      draft: "Draft"
+      active: "Active"
+      locked: "Locked"
+      archived: "Archived"
+    imageKind:
+      primary: "Primary"
+      portrait: "Portrait"
+      full_body: "Full Body"
+      scene_reference: "Scene Reference"
+      prop_detail: "Prop Detail"
+      costume: "Costume"
+      mood: "Mood"
   tabs:
     creative_brief: "Brief"
     world_setting: "World"
@@ -319,7 +364,6 @@ creative:
     turningPoints: "Turning Points"
     targetShape: "Target Shape"
     catharsis: "Catharsis"
-
 imageGen:
   title: "Image Generation"
   promptPlaceholder: "Describe the image you want to generate..."
@@ -346,7 +390,7 @@ imageGen:
   delete: "Delete"
   deleteConfirm: "Delete this generated image? This cannot be undone."
   deleteFailed: "Failed to delete image"
-  cannotDeleteAsset: "Already added to assets — remove from the library first"
+  cannotDeleteAsset: "Already added to assets - remove from the library first"
   dismiss: "Dismiss"
   uploadImage: "Upload reference image"
   removeUpload: "Remove reference image"
@@ -377,12 +421,12 @@ imageGen:
     user: "User"
     userPlaceholder: "Optional, forwarded for abuse monitoring"
     selectModel: "Select an image model"
-    noProfilesYet: "No models configured yet — add one in Settings"
+    noProfilesYet: "No models configured yet - add one in Settings"
     noImageProfile: "No image-capable model in the library"
     sizeCustom: "Custom..."
     customWidth: "Width"
     customHeight: "Height"
-    customConstraints: "Multiples of 16 · Edge 256–3840 · Aspect < 3:1 · Pixels 655K–8.3M"
+    customConstraints: "Multiples of 16, edge 256-3840, aspect < 3:1, pixels 655K-8.3M"
     customError:
       notNumeric: "Please enter valid numbers"
       notMultipleOf16: "Width and height must be multiples of 16"
@@ -403,24 +447,20 @@ imageGen:
     moderationValue:
       auto: "auto"
       low: "low"
-
 bottomPanel:
   properties: "Properties"
   tasks: "Tasks"
   output: "Output"
   noOutput: "No output yet"
-
 fileEditor:
   readOnly: "This file type is not editable"
   unsaved: "Unsaved"
-
 contextMenu:
   newFile: "New File"
   newFolder: "New Folder"
   rename: "Rename"
   delete: "Delete"
   openInExplorer: "Open in Explorer"
-
 autoMode:
   title: "Auto Mode"
   hint: "Auto Mode will sequentially progress all unfinished chapters."
@@ -443,7 +483,6 @@ autoMode:
     completed: "Completed"
     cancelled: "Cancelled"
     failed: "Failed"
-
 orchestration:
   startMain: "Start Main Run"
   starting: "Starting..."
@@ -457,7 +496,6 @@ orchestration:
   refreshFailed: "Failed to refresh: {status}"
   actionFailed: "Action failed: {status}"
   unknownError: "Unknown error"
-
 novelChapter:
   noProject: "No project is currently open"
   startFailed: "Failed to start chapter: {status}"
@@ -468,8 +506,8 @@ novelChapter:
   unnamed: "(Untitled {id})"
   selectChapter: "Select a chapter to trigger generation."
   result: "Result"
-  generating: "Generating, please wait…"
-  empty: "No candidate yet — pick a chapter and trigger generation."
+  generating: "Generating, please wait..."
+  empty: "No candidate yet - pick a chapter and trigger generation."
   wordCount: "Word count: {count}"
   acceptCandidate: "Accept Candidate"
   rejectCandidate: "Discard Candidate"
@@ -480,7 +518,7 @@ novelChapter:
     final: "Final"
   runStatusValue:
     idle: "Idle"
-    running: "Generating…"
+    running: "Generating..."
     pending: "Awaiting review"
     accepted: "Accepted"
     rejected: "Discarded"
@@ -490,7 +528,6 @@ novelChapter:
     continue: "Continue"
     polish: "Polish"
     review: "Review"
-
 memory:
   empty: "No memory entries yet. They are archived automatically after chapter generation."
   chapterHeader: "Chapter {n}"
@@ -500,3 +537,35 @@ memory:
     chapter_summary: "Chapter Summary"
     character_mentions: "Character Mentions"
     foreshadow_seed: "Foreshadow Seed"
+guidedNovel:
+  title: "Guided Writing"
+  unavailable: "The guided writing flow is unavailable for the current state."
+  interviewTitle: "Story Interview"
+  interviewDefaultPrompt: "Tell me the subject, emotional tone, and one-sentence story concept you want to write."
+  interviewPrompt: "Describe the subject, protagonist, conflict, and any required atmosphere or constraints."
+  interviewContinue: "Continue Interview"
+  planningKicker: "Planning"
+  planningTitle: "Creative Planning"
+  planningDescription: "Before automatic writing begins, confirm the refined premise, brief, and current baseline."
+  planningBriefTitle: "Creative Brief"
+  planningWorldTitle: "World Premise"
+  noBrief: "No creative brief has been generated yet."
+  noWorldPremise: "No world premise has been generated yet."
+  confirm: "Confirm Baseline"
+  continueWriting: "Generate Next Chapter"
+  reviewKicker: "Review"
+  chapterTaskTitle: "Chapter Task Card"
+  noChapterTask: "No chapter task card has been generated yet."
+  chapterReviewTitle: "Chapter Review"
+  chapterReviewDescription: "Review this chapter before deciding whether to accept related asset and setting changes."
+  approveChapter: "Approve Chapter"
+  requestRevision: "Request Rewrite"
+  changeReviewTitle: "Change Review"
+  changeReviewDescription: "Accept, edit, or reject structured changes from this chapter before continuing."
+  noPendingChanges: "There are no pending changes."
+  acceptChanges: "Accept Changes"
+  impactKicker: "Impact"
+  impactTitle: "Impact Review"
+  impactDescription: "Review how this change affects later chapters, characters, and settings."
+  continueAction: "Continue Writing"
+  replanAction: "Replan"

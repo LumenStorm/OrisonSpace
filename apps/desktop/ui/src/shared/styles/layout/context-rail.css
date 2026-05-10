@@ -1,0 +1,72 @@
+.context-rail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 1rem 1rem 1rem 0.25rem;
+  border-left: 1px solid rgba(199, 199, 191, 0.45);
+  background:
+    linear-gradient(180deg, rgba(244, 243, 241, 0.8), rgba(239, 238, 236, 0.94));
+  overflow: hidden;
+}
+
+[data-theme="dark"] .context-rail {
+  background:
+    linear-gradient(180deg, rgba(37, 40, 39, 0.98), rgba(30, 33, 32, 0.96));
+}
+
+.context-rail-header {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.35rem 0.9rem 1rem;
+  border-bottom: 1px solid rgba(199, 199, 191, 0.35);
+}
+
+.context-rail-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+.context-rail-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.context-rail-sections {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 0 0;
+  overflow: auto;
+}
+
+.context-rail-section {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(199, 199, 191, 0.35);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 8px 24px rgba(45, 52, 51, 0.04);
+}
+
+[data-theme="dark"] .context-rail-section {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.context-rail-section h3 {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.context-rail-section p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+}

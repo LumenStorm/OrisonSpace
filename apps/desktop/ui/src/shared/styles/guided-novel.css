@@ -1,0 +1,180 @@
+.guided-novel-panel {
+  display: grid;
+  gap: 1.15rem;
+  min-height: 100%;
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid rgba(199, 199, 191, 0.4);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at top right, rgba(176, 122, 61, 0.14), transparent 24%),
+    radial-gradient(circle at top left, rgba(107, 122, 106, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(244, 243, 241, 0.92));
+  box-shadow: var(--shadow-soft);
+  overflow: auto;
+}
+
+[data-theme="dark"] .guided-novel-panel {
+  background:
+    radial-gradient(circle at top right, rgba(176, 122, 61, 0.18), transparent 24%),
+    radial-gradient(circle at top left, rgba(143, 168, 142, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(30, 33, 32, 0.98), rgba(24, 27, 26, 0.98));
+}
+
+.guided-novel-header {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.guided-novel-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.guided-novel-header p {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--on-surface-variant);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.guided-novel-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.guided-novel-textarea {
+  width: 100%;
+  min-height: 220px;
+  padding: 1rem 1.05rem;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(199, 199, 191, 0.55);
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+}
+
+[data-theme="dark"] .guided-novel-textarea {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guided-novel-textarea:focus {
+  border-color: rgba(107, 122, 106, 0.55);
+  box-shadow: 0 0 0 3px rgba(107, 122, 106, 0.12);
+}
+
+.guided-novel-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.95rem;
+}
+
+.guided-novel-card,
+.guided-novel-list-item {
+  padding: 1rem 1.05rem;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(199, 199, 191, 0.38);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+[data-theme="dark"] .guided-novel-card,
+[data-theme="dark"] .guided-novel-list-item {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guided-novel-card h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.guided-novel-card p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  line-height: 1.65;
+}
+
+.guided-novel-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.guided-novel-list > p {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed rgba(199, 199, 191, 0.6);
+  border-radius: 1rem;
+  color: var(--on-surface-variant);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.guided-novel-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.guided-novel-list-item strong {
+  font-size: 0.84rem;
+}
+
+.guided-novel-list-item span {
+  color: var(--on-surface-variant);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.guided-novel-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.guided-novel-primary,
+.guided-novel-secondary {
+  border-radius: 999px;
+  padding: 0.78rem 1.18rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.guided-novel-primary:hover,
+.guided-novel-secondary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.guided-novel-primary {
+  border: 1px solid var(--accent-strong);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: var(--surface-container-lowest);
+}
+
+.guided-novel-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.guided-novel-secondary {
+  border: 1px solid rgba(199, 199, 191, 0.65);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--on-surface);
+}
+
+[data-theme="dark"] .guided-novel-secondary {
+  background: rgba(255, 255, 255, 0.05);
+}

@@ -45,6 +45,7 @@ export function ImageGenEditor() {
   const resolvedSlot = resolveImageSlot(modelConfig.keys, selectedImageRef);
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
+  const assetArchiveTarget = useAppStore((s) => s.assetArchiveTarget);
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
   const imageGenParams = useAppStore((s) => s.imageGenParams);
   const imageGenFamily = useAppStore((s) => s.imageGenFamily);
@@ -479,19 +480,68 @@ export function ImageGenEditor() {
       nextItem = { ...item, savedRelativePath: `assets/images/${fileNameOf(item.tempRelativePath)}` };
     }
 
-    const assetCard = {
-      id: `image_${Date.now()}`,
-      type: 'image',
-      name: nextItem.prompt.slice(0, 48) || t('imageGen.generatedImage'),
-      summary: nextItem.prompt,
-      tags: ['generated'],
-      relationships: [],
-      sourceRefs: [nextItem.savedRelativePath],
-      status: 'active',
-      locked: false,
-    };
+    const targetCard = assetArchiveTarget
+      ? assetCards.find((card) => card.id === assetArchiveTarget.assetId)
+      : null;
 
-    updateField('asset_cards' as CreativeFieldKey, [...assetCards, assetCard]);
+    if (targetCard) {
+      const targetMode = assetArchiveTarget?.mode ?? 'gallery';
+      const galleryItem = {
+        id: `img_${Date.now()}`,
+        path: nextItem.savedRelativePath,
+        kind:
+          targetMode === 'primary'
+            ? ('primary' as const)
+            : ('scene_reference' as const),
+        prompt: nextItem.prompt,
+      };
+
+      const nextCards = assetCards.map((card) => {
+        if (card.id !== targetCard.id) return card;
+        const currentGallery = card.visuals?.gallery ?? [];
+        const visuals = {
+          primaryImage:
+            targetMode === 'primary' || !card.visuals?.primaryImage
+              ? nextItem.savedRelativePath
+              : card.visuals?.primaryImage,
+          gallery: [...currentGallery, galleryItem],
+        };
+        const sourceRefs = new Set(card.sourceRefs ?? []);
+        sourceRefs.add(nextItem.savedRelativePath);
+        return {
+          ...card,
+          visuals,
+          sourceRefs: [...sourceRefs],
+        };
+      });
+
+      updateField('asset_cards' as CreativeFieldKey, nextCards);
+    } else {
+      const assetCard = {
+        id: `visual_${Date.now()}`,
+        type: 'visual_motif' as const,
+        name: nextItem.prompt.slice(0, 48) || t('imageGen.generatedImage'),
+        summary: nextItem.prompt,
+        tags: ['generated'],
+        relationships: [],
+        sourceRefs: [nextItem.savedRelativePath],
+        status: 'active' as const,
+        locked: false,
+        visuals: {
+          primaryImage: nextItem.savedRelativePath,
+          gallery: [
+            {
+              id: `img_${Date.now()}`,
+              path: nextItem.savedRelativePath,
+              kind: 'primary' as const,
+              prompt: nextItem.prompt,
+            },
+          ],
+        },
+      };
+
+      updateField('asset_cards' as CreativeFieldKey, [...assetCards, assetCard]);
+    }
     setResults((current) =>
       current.map((entry) => entry.id === item.id ? { ...entry, assetAdded: true } : entry),
     );
@@ -576,6 +626,13 @@ export function ImageGenEditor() {
             <span className="image-gen-profile-empty">{t('imageGen.noModel')}</span>
           )}
         </div>
+
+        {assetArchiveTarget ? (
+          <div className="image-gen-target-chip">
+            <span>Archive target</span>
+            <strong>{assetArchiveTarget.assetId}</strong>
+          </div>
+        ) : null}
 
         <div className="image-gen-prompt-surface">
           <textarea

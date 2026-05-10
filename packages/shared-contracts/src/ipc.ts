@@ -9,6 +9,7 @@ import type {
 } from './contracts/generation';
 import type { ModelCapability, ModelConfig, DiscoveredModel } from './contracts/model';
 import type { NovelStorySyncPayload } from './contracts/novel-orchestration';
+import type { GuidedNovelProjectState } from './contracts/guided-novel';
 
 export const desktopIpcSchema = z.object({
   channel: z.enum([
@@ -22,7 +23,10 @@ export const desktopIpcSchema = z.object({
     'model:generate-image',
     'model:generate-video',
     'storySync:run',
-    'field:sync'
+    'field:sync',
+    'assetArchive:delete',
+    'guidedNovel:load',
+    'guidedNovel:save',
   ])
 });
 
@@ -114,6 +118,9 @@ export type OrisonDesktopApi = {
   isMaximized(): Promise<boolean>;
   platform: string;
   syncField(projectPath: string, field: string, data: unknown): Promise<void>;
+  deleteAssetArchive(projectPath: string, assetId: string): Promise<void>;
+  loadGuidedNovelState(projectPath: string): Promise<GuidedNovelProjectState | null>;
+  saveGuidedNovelState(projectPath: string, state: GuidedNovelProjectState): Promise<void>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
   listRemoteModels(request: ListRemoteModelsRequest): Promise<RemoteModel[]>;

@@ -16,10 +16,12 @@ export type CreativeFieldsSlice = {
   creativeFields: Partial<Record<CreativeFieldKey, unknown>>;
   fieldMetadata: Partial<Record<CreativeFieldKey, FieldMetadata>>;
   activeCreativeTab: CreativeFieldKey;
+  assetArchiveTarget: { assetId: string; mode: 'primary' | 'gallery' } | null;
   pendingPatch: ProjectFieldPatch | null;
   patchSelections: Record<string, boolean>;
 
   setActiveCreativeTab: (tab: CreativeFieldKey) => void;
+  setAssetArchiveTarget: (target: { assetId: string; mode: 'primary' | 'gallery' } | null) => void;
   loadCreativeFields: (doc: ProjectDocument) => void;
   updateField: (field: CreativeFieldKey, data: unknown) => void;
   toggleFieldLock: (field: CreativeFieldKey) => void;
@@ -45,10 +47,12 @@ export const createCreativeFieldsSlice: StateCreator<
   creativeFields: {},
   fieldMetadata: {},
   activeCreativeTab: 'world_setting',
+  assetArchiveTarget: null,
   pendingPatch: null,
   patchSelections: {},
 
   setActiveCreativeTab: (tab) => set({ activeCreativeTab: tab }),
+  setAssetArchiveTarget: (target) => set({ assetArchiveTarget: target }),
 
   loadCreativeFields: (doc) => {
     const fields: Partial<Record<CreativeFieldKey, unknown>> = {};

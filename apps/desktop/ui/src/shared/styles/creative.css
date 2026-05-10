@@ -244,6 +244,186 @@
   font-size: 0.72rem;
 }
 
+.asset-archive-workspace {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 1rem;
+  min-height: 0;
+}
+
+.asset-archive-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.asset-archive-create-row,
+.asset-archive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.asset-archive-btn {
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  color: var(--on-surface);
+  padding: 0.45rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.asset-archive-btn.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.asset-archive-btn.is-danger {
+  border-color: #c84b4b;
+  color: #c84b4b;
+}
+
+.asset-archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.asset-archive-list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.asset-archive-list-item.is-active {
+  border-color: var(--accent);
+  background: var(--surface-container-high);
+}
+
+.asset-archive-list-type,
+.asset-archive-path,
+.asset-archive-gallery-kind {
+  color: var(--on-surface-variant);
+  font-size: 0.76rem;
+}
+
+.asset-archive-meta {
+  margin: 0.25rem 0 0;
+}
+
+.asset-archive-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.8rem;
+  background: var(--surface);
+}
+
+.asset-archive-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.asset-archive-header h3,
+.asset-archive-gallery h4,
+.asset-archive-legacy h4 {
+  margin: 0;
+}
+
+.asset-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.asset-archive-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.asset-archive-field span {
+  font-size: 0.76rem;
+  color: var(--on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.asset-archive-field input {
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.45rem;
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+  padding: 0.55rem 0.7rem;
+}
+
+.asset-archive-gallery-list,
+.asset-archive-legacy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.asset-archive-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #c84b4b66;
+  border-radius: 0.65rem;
+  background: #c84b4b12;
+}
+
+.asset-archive-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.asset-archive-error {
+  margin: 0;
+  color: #c84b4b;
+  font-size: 0.88rem;
+}
+
+.asset-archive-gallery-item,
+.asset-archive-legacy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.55rem;
+  background: var(--surface-container-low);
+}
+
+@media (max-width: 960px) {
+  .asset-archive-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-archive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-archive-header {
+    flex-direction: column;
+  }
+}
+
 /* ── Relationship Graph ── */
 .graph-toolbar {
   display: flex;

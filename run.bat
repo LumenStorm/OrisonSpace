@@ -1,6 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
+set "ELECTRON_RUN_AS_NODE="
 
 if not "%1"=="" (
     set "choice=%1"
@@ -28,23 +29,71 @@ set /p choice="  Select [0-9]: "
 
 :runchoice
 if "%choice%"=="0" exit /b 0
-if "%choice%"=="1" ( call :killport 4000 && call :killport 18422 && start "OrisonAgent" cmd /k "pnpm dev:agent" && start "OrisonServer" cmd /k "pnpm dev:server" && ping -n 5 127.0.0.1 >nul && pnpm dev && goto done )
-if "%choice%"=="2" ( pnpm dev && goto done )
-if "%choice%"=="3" ( call :killport 4000 && pnpm dev:server && goto done )
-if "%choice%"=="4" ( call :killport 18422 && pnpm dev:agent && goto done )
-if "%choice%"=="5" ( pnpm build && goto done )
-if "%choice%"=="6" ( pnpm build:desktop && goto done )
-if "%choice%"=="7" ( pnpm build:server && goto done )
-if "%choice%"=="8" ( pnpm test && goto done )
-if "%choice%"=="9" ( pnpm typecheck && goto done )
+if "%choice%"=="1" goto dev_all
+if "%choice%"=="2" goto dev_electron
+if "%choice%"=="3" goto dev_server
+if "%choice%"=="4" goto dev_agent
+if "%choice%"=="5" goto build_all
+if "%choice%"=="6" goto build_desktop
+if "%choice%"=="7" goto build_server
+if "%choice%"=="8" goto run_tests
+if "%choice%"=="9" goto run_typecheck
 
 echo   Invalid: %choice%
+goto done
 
 :done
 echo.
 if not "%1"=="" ( pause && exit /b )
 pause
 goto menu
+
+:dev_all
+call :killport 4000
+call :killport 18422
+start "OrisonAgent" powershell -NoExit -NoProfile -ExecutionPolicy Bypass -Command "Set-Location -LiteralPath '%~dp0'; Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue; pnpm dev:agent"
+start "OrisonServer" powershell -NoExit -NoProfile -ExecutionPolicy Bypass -Command "Set-Location -LiteralPath '%~dp0'; Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue; pnpm dev:server"
+ping -n 5 127.0.0.1 >nul
+call :runpnpm dev
+goto done
+
+:dev_electron
+call :runpnpm dev
+goto done
+
+:dev_server
+call :killport 4000
+call :runpnpm dev:server
+goto done
+
+:dev_agent
+call :killport 18422
+call :runpnpm dev:agent
+goto done
+
+:build_all
+call :runpnpm build
+goto done
+
+:build_desktop
+call :runpnpm build:desktop
+goto done
+
+:build_server
+call :runpnpm build:server
+goto done
+
+:run_tests
+call :runpnpm test
+goto done
+
+:run_typecheck
+call :runpnpm typecheck
+goto done
+
+:runpnpm
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-Location -LiteralPath '%~dp0'; Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue; pnpm %~1"
+exit /b %errorlevel%
 
 :killport
 for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":%~1 " ^| findstr "LISTENING"') do (

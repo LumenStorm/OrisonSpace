@@ -6,6 +6,8 @@ coverage/
 playwright-report/
 test-results/
 .turbo/
+.cache/
+.pnpm-store/
 temp/
 pnpm-lock.yaml
 .DS_Store

@@ -10,6 +10,7 @@ import type {
   RemoteModel,
   RunStorySyncPayload,
   RunStorySyncResult,
+  GuidedNovelProjectState,
   SaveBase64ImageInput,
   TaskRecord,
   TaskUpsertInput,
@@ -39,6 +40,12 @@ export const exposedDesktopApi = {
   // 字段同步
   syncField: (projectPath: string, field: string, data: unknown) =>
     ipcRenderer.invoke('field:sync', projectPath, field, data) as Promise<void>,
+  deleteAssetArchive: (projectPath: string, assetId: string) =>
+    ipcRenderer.invoke('assetArchive:delete', projectPath, assetId) as Promise<void>,
+  loadGuidedNovelState: (projectPath: string) =>
+    ipcRenderer.invoke('guidedNovel:load', projectPath) as Promise<GuidedNovelProjectState | null>,
+  saveGuidedNovelState: (projectPath: string, state: GuidedNovelProjectState) =>
+    ipcRenderer.invoke('guidedNovel:save', projectPath, state) as Promise<void>,
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,

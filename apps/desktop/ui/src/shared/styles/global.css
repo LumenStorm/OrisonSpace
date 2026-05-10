@@ -11,6 +11,10 @@
 @import "./layout/topbar.css";
 @import "./layout/workspace.css";
 @import "./layout/sidebar.css";
+@import "./layout/context-rail.css";
+@import "./layout/system-rail.css";
+@import "./layout/novel-home.css";
+@import "./guided-novel.css";
 
 @import "./inspector.css";
 

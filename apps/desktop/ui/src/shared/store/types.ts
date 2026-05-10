@@ -1,8 +1,31 @@
 import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
-export type WorkspaceModule = 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'image_gen';
+export type WorkspaceModule =
+  | 'outline'
+  | 'novel'
+  | 'script'
+  | 'storyboard'
+  | 'video'
+  | 'image_gen'
+  | 'guided_novel';
 export type BottomPanelTab = 'properties' | 'tasks' | 'output';
+export type NovelWorkspaceRoute =
+  | 'home'
+  | 'guided'
+  | 'objects'
+  | 'chapter'
+  | 'storyboard'
+  | 'video';
+export type NovelObjectCategory =
+  | 'chapters'
+  | 'story_world'
+  | 'characters'
+  | 'locations'
+  | 'props'
+  | 'images';
+export type SystemRailTab = 'runs' | 'tasks' | 'reviews' | 'patches';
+export type ContextRailTab = 'context' | 'insights' | 'history';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
 export type LocaleSetting = 'system' | (string & {});
 export type TaskRequest = z.infer<typeof taskRequestSchema>;

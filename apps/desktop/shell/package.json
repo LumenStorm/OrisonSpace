@@ -5,8 +5,9 @@
   "type": "module",
   "main": "dist/main/index.cjs",
   "scripts": {
-    "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "native:rebuild": "node ./scripts/rebuild-better-sqlite3.mjs",
+    "dev": "pnpm run native:rebuild && electron-vite dev",
+    "build": "pnpm run native:rebuild && electron-vite build",
     "test": "vitest --run",
     "lint": "echo shell lint placeholder",
     "typecheck": "tsc -p tsconfig.json --noEmit"

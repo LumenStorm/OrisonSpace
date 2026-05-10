@@ -54,6 +54,70 @@ export async function registerOrchestrationProxy(app: FastifyInstance) {
 
   // ── Auto-mode forwarding (closes the gap that previously 404'd at server) ──
 
+  app.post('/v1/guided-novel/sessions', async (request, reply) => {
+    const res = await fetch(`${base}/v1/guided-novel/sessions`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(request.body),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.post('/v1/guided-novel/sessions/restore', async (request, reply) => {
+    const res = await fetch(`${base}/v1/guided-novel/sessions/restore`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(request.body),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.get('/v1/guided-novel/sessions/:sessionId', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const res = await fetch(`${base}/v1/guided-novel/sessions/${encodeURIComponent(sessionId)}`, {
+      headers: forwardHeaders(request),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/interview', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const res = await fetch(`${base}/v1/guided-novel/sessions/${encodeURIComponent(sessionId)}/interview`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(request.body),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/chapters/next', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const res = await fetch(`${base}/v1/guided-novel/sessions/${encodeURIComponent(sessionId)}/chapters/next`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/chapter/approve', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const res = await fetch(`${base}/v1/guided-novel/sessions/${encodeURIComponent(sessionId)}/chapter/approve`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/change-review/accept', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const res = await fetch(`${base}/v1/guided-novel/sessions/${encodeURIComponent(sessionId)}/change-review/accept`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(request.body),
+    });
+    return relayJson(res, reply);
+  });
+
   app.post('/v1/orchestration/auto-mode', async (request, reply) => {
     const res = await fetch(`${base}/v1/orchestration/auto-mode`, {
       method: 'POST',

@@ -1,0 +1,95 @@
+.system-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+  border-top: 1px solid rgba(199, 199, 191, 0.45);
+  border-left: 1px solid rgba(199, 199, 191, 0.18);
+  border-radius: 1.25rem 1.25rem 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(244, 243, 241, 0.92));
+  box-shadow: 0 -10px 30px rgba(45, 52, 51, 0.04);
+  overflow: hidden;
+}
+
+[data-theme="dark"] .system-rail {
+  background:
+    linear-gradient(180deg, rgba(37, 40, 39, 0.98), rgba(30, 33, 32, 0.96));
+}
+
+.system-rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem 0;
+}
+
+.system-rail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.system-rail-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.system-rail-tab:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.system-rail-tab.is-active {
+  border-color: rgba(107, 122, 106, 0.24);
+  background: linear-gradient(135deg, var(--accent-soft), rgba(255, 255, 255, 0.92));
+  color: var(--accent-strong);
+}
+
+.system-rail-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem;
+}
+
+.system-rail-placeholder {
+  display: grid;
+  gap: 0.5rem;
+  min-height: 100%;
+  padding: 1rem;
+  border: 1px dashed rgba(199, 199, 191, 0.6);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.45);
+  align-content: start;
+}
+
+[data-theme="dark"] .system-rail-placeholder {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.system-rail-placeholder h3,
+.system-rail-placeholder p {
+  margin: 0;
+}
+
+.system-rail-placeholder h3 {
+  font-size: 0.9rem;
+}
+
+.system-rail-placeholder p {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+}

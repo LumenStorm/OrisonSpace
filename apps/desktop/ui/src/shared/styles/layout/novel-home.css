@@ -1,0 +1,135 @@
+.novel-home {
+  display: grid;
+  gap: 1.35rem;
+  min-height: 100%;
+  padding: 1rem 1.15rem 1.2rem;
+  border: 1px solid rgba(199, 199, 191, 0.4);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at top right, rgba(176, 122, 61, 0.14), transparent 26%),
+    radial-gradient(circle at top left, rgba(107, 122, 106, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 243, 241, 0.88));
+  box-shadow: var(--shadow-soft);
+  overflow: auto;
+}
+
+[data-theme="dark"] .novel-home {
+  background:
+    radial-gradient(circle at top right, rgba(176, 122, 61, 0.18), transparent 26%),
+    radial-gradient(circle at top left, rgba(143, 168, 142, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(30, 33, 32, 0.98), rgba(24, 27, 26, 0.98));
+}
+
+.novel-home-hero {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.2rem 0;
+}
+
+.novel-home-kicker {
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.novel-home-hero h1 {
+  margin: 0;
+  max-width: 14ch;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.novel-home-hero p {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--on-surface-variant);
+}
+
+.novel-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.novel-home-primary,
+.novel-home-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.8rem 1.25rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.novel-home-primary {
+  border: 1px solid var(--accent-strong);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: var(--surface-container-lowest);
+}
+
+.novel-home-secondary {
+  border: 1px solid rgba(199, 199, 191, 0.6);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--on-surface);
+}
+
+.novel-home-primary:hover,
+.novel-home-secondary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+[data-theme="dark"] .novel-home-secondary {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.novel-home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.novel-home-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border: 1px solid rgba(199, 199, 191, 0.35);
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+[data-theme="dark"] .novel-home-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.novel-home-card h2,
+.novel-home-card p {
+  margin: 0;
+}
+
+.novel-home-card h2 {
+  font-size: 0.96rem;
+  font-weight: 650;
+}
+
+.novel-home-card p {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--on-surface-variant);
+}
+
+@media (max-width: 960px) {
+  .novel-home-grid {
+    grid-template-columns: 1fr;
+  }
+}

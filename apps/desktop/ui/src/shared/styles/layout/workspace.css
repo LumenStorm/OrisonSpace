@@ -18,6 +18,13 @@
   overflow: hidden;
 }
 
+.workspace-body-novel {
+  grid-template-columns: 56px minmax(220px, 0.9fr) minmax(0, 1.8fr) minmax(280px, 0.92fr);
+  background:
+    radial-gradient(circle at top left, rgba(107, 122, 106, 0.08), transparent 28%),
+    linear-gradient(180deg, var(--surface-container-lowest), var(--surface));
+}
+
 /* ── Resize Handle ── */
 .resize-handle {
   width: 4px;
@@ -47,11 +54,22 @@
   overflow: hidden;
 }
 
+.workspace-body-novel .workspace-main {
+  padding: 0.9rem 0 0;
+  gap: 0.9rem;
+  background: transparent;
+}
+
 .workspace-content {
   flex: 1;
   min-height: 0;
   overflow: auto;
   padding: 2rem;
+}
+
+.workspace-body-novel .workspace-content {
+  padding: 0 0.9rem 0 0;
+  overflow: hidden;
 }
 
 /* ── Bottom Panel Wrapper (transition) ── */
@@ -291,5 +309,22 @@
 
   .workspace-bottom-wrapper {
     display: none;
+  }
+
+  .workspace-body-novel {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .workspace-body-novel .object-list-pane,
+  .workspace-body-novel .context-rail {
+    display: none;
+  }
+
+  .workspace-body-novel .workspace-main {
+    padding: 0.6rem 0 0;
+  }
+
+  .workspace-body-novel .workspace-content {
+    padding-right: 0.6rem;
   }
 }

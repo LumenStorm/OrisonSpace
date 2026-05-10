@@ -4,6 +4,8 @@ import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
 import { registerConfigIpc } from './ipc/configIpc';
 import { registerFieldSyncIpc } from './ipc/fieldSyncIpc';
+import { registerAssetArchiveIpc } from './ipc/assetArchiveIpc';
+import { registerGuidedNovelIpc } from './ipc/guidedNovelIpc';
 import { registerModelProviderIpc } from './ipc/modelProviderIpc';
 import { registerModelGatewayIpc } from './ipc/modelGatewayIpc';
 import { registerStorySyncIpc } from './ipc/storySyncIpc';
@@ -63,6 +65,8 @@ function createWindow() {
   registerModelGatewayIpc();
   registerStorySyncIpc();
   registerFieldSyncIpc();
+  registerAssetArchiveIpc();
+  registerGuidedNovelIpc();
   registerTaskIpc();
 
   if (process.env.ELECTRON_RENDERER_URL) {

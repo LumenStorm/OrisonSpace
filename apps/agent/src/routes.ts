@@ -8,12 +8,77 @@ import {
 import { createRunService } from './engine/runService';
 import { createActionService } from './engine/actionService';
 import { createAutoModeService } from './engine/autoMode/autoModeService';
+import { createGuidedNovelSessionService } from './engine/guidedNovel/sessionService';
 
 const runService = createRunService();
 const actionService = createActionService();
 const autoModeService = createAutoModeService();
+const guidedNovelSessionService = createGuidedNovelSessionService();
 
 export async function registerOrchestrationRoutes(app: FastifyInstance) {
+  app.post('/v1/guided-novel/sessions', async (request, reply) => {
+    const state = await guidedNovelSessionService.start(request.body);
+    return reply.code(202).send(state);
+  });
+
+  app.post('/v1/guided-novel/sessions/restore', async (request, reply) => {
+    try {
+      const state = guidedNovelSessionService.restore(request.body);
+      return reply.send(state);
+    } catch (error) {
+      return reply.code(400).send({ error: error instanceof Error ? error.message : 'unknown error' });
+    }
+  });
+
+  app.get('/v1/guided-novel/sessions/:sessionId', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const state = guidedNovelSessionService.get(sessionId);
+    if (!state) {
+      return reply.code(404).send({ error: `guided novel session not found: ${sessionId}` });
+    }
+    return reply.send(state);
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/interview', async (request, reply) => {
+    try {
+      const { sessionId } = request.params as { sessionId: string };
+      const state = await guidedNovelSessionService.submitInterviewAnswer(sessionId, request.body);
+      return reply.send(state);
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : 'unknown error' });
+    }
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/chapters/next', async (request, reply) => {
+    try {
+      const { sessionId } = request.params as { sessionId: string };
+      const state = await guidedNovelSessionService.confirmPlanning(sessionId);
+      return reply.send(state);
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : 'unknown error' });
+    }
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/chapter/approve', async (request, reply) => {
+    try {
+      const { sessionId } = request.params as { sessionId: string };
+      const state = guidedNovelSessionService.approveChapter(sessionId);
+      return reply.send(state);
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : 'unknown error' });
+    }
+  });
+
+  app.post('/v1/guided-novel/sessions/:sessionId/change-review/accept', async (request, reply) => {
+    try {
+      const { sessionId } = request.params as { sessionId: string };
+      const state = guidedNovelSessionService.acceptChangeReview(sessionId, request.body);
+      return reply.send(state);
+    } catch (error) {
+      return reply.code(404).send({ error: error instanceof Error ? error.message : 'unknown error' });
+    }
+  });
+
   app.post('/v1/orchestration/runs', async (request, reply) => {
     const body = request.body as Record<string, unknown>;
 
