@@ -6,6 +6,7 @@ import type {
   ModelRef,
 } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
+import { authJsonHeaders, authHeaders, throwIfSessionExpired } from './session';
 
 export type NovelChapterRunMode = z.infer<typeof novelChapterRunRequestSchema>['mode'];
 export type AutoModeState = z.infer<typeof novelAutoModeStateSchema>;
@@ -71,9 +72,10 @@ export async function startChapterRun(input: StartChapterRunInput): Promise<unkn
 
   const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify(body),
   });
+  throwIfSessionExpired(res);
   if (!res.ok) {
     throw new Error(`startChapterRun:${res.status}`);
   }
@@ -87,7 +89,7 @@ export async function startAutoMode(
 ): Promise<AutoModeState> {
   const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({
       projectPath,
       mode: 'generate',
@@ -95,6 +97,7 @@ export async function startAutoMode(
       ...(plotSummary?.trim() ? { plotSummary: plotSummary.trim() } : {}),
     }),
   });
+  throwIfSessionExpired(res);
   if (!res.ok) {
     throw new Error(`startAutoMode:${res.status}`);
   }
@@ -104,9 +107,10 @@ export async function startAutoMode(
 export async function performAutoModeAction(autoModeId: string, action: AutoModeAction): Promise<AutoModeState> {
   const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode/actions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({ autoModeId, action }),
   });
+  throwIfSessionExpired(res);
   if (!res.ok) {
     throw new Error(`autoModeAction:${action}:${res.status}`);
   }
@@ -116,7 +120,9 @@ export async function performAutoModeAction(autoModeId: string, action: AutoMode
 export async function refreshAutoMode(autoModeId: string): Promise<AutoModeState | null> {
   const res = await fetch(
     `${API_BASE}/v1/orchestration/auto-mode/${encodeURIComponent(autoModeId)}`,
+    { headers: authHeaders() },
   );
+  throwIfSessionExpired(res);
   if (!res.ok) return null;
   return (await res.json()) as AutoModeState;
 }

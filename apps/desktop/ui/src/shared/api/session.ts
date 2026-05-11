@@ -1,3 +1,5 @@
+import { storage } from '../store/storage';
+
 export const AUTH_EXPIRED_EVENT = 'orison:auth-expired';
 
 export class SessionExpiredError extends Error {
@@ -15,4 +17,13 @@ export function throwIfSessionExpired(response: Response): void {
   if (response.status !== 401) return;
   reportSessionExpired();
   throw new SessionExpiredError();
+}
+
+export function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = storage.getString('token', '');
+  return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
+}
+
+export function authJsonHeaders(): Record<string, string> {
+  return authHeaders({ 'Content-Type': 'application/json' });
 }

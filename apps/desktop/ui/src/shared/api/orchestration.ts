@@ -1,6 +1,7 @@
 import type { z } from 'zod';
 import type { orchestrationRunSchema, orchestrationActionSchema } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
+import { authHeaders, authJsonHeaders, throwIfSessionExpired } from './session';
 
 export type RunSnapshot = z.infer<typeof orchestrationRunSchema>;
 export type OrchestrationAction = z.infer<typeof orchestrationActionSchema>;
@@ -8,9 +9,10 @@ export type OrchestrationAction = z.infer<typeof orchestrationActionSchema>;
 export async function startOrchestrationRun(projectPath: string, requirement: string): Promise<RunSnapshot> {
   const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({ projectPath, requirement }),
   });
+  throwIfSessionExpired(res);
   if (!res.ok) {
     throw new Error(`startOrchestrationRun:${res.status}`);
   }
@@ -18,7 +20,10 @@ export async function startOrchestrationRun(projectPath: string, requirement: st
 }
 
 export async function fetchOrchestrationRun(runId: string): Promise<RunSnapshot> {
-  const res = await fetch(`${API_BASE}/v1/orchestration/runs/${encodeURIComponent(runId)}`);
+  const res = await fetch(`${API_BASE}/v1/orchestration/runs/${encodeURIComponent(runId)}`, {
+    headers: authHeaders(),
+  });
+  throwIfSessionExpired(res);
   if (!res.ok) {
     throw new Error(`fetchOrchestrationRun:${res.status}`);
   }
@@ -31,9 +36,10 @@ export async function performOrchestrationAction(
 ): Promise<RunSnapshot> {
   const res = await fetch(`${API_BASE}/v1/orchestration/actions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({ runId, ...action }),
   });
+  throwIfSessionExpired(res);
   if (!res.ok) {
     throw new Error(`performOrchestrationAction:${res.status}`);
   }
