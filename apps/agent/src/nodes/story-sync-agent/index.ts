@@ -34,6 +34,15 @@ export type StorySyncDeps = Record<string, never>;
 export function createStorySyncNode(_deps: StorySyncDeps = {}): OrchestrationNode {
   return {
     id: 'story-sync-agent',
+    contract: {
+      nodeId: 'story-sync-agent',
+      displayName: 'Story Sync Agent',
+      inputSchemaName: 'chapterContextAndCandidate',
+      outputSchemaName: 'novelStorySyncPayload',
+      requiredArtifactKeys: ['context.chapterContext', 'chapter.candidate'],
+      producedArtifactKeys: ['story.sync'],
+      sideEffects: ['persist_artifact'],
+    },
     async run(input: NodeRunInput): Promise<NodeRunResult> {
       const ctx = input.run.artifacts?.['context.chapterContext'] as Record<string, any> | undefined;
       const candidate = input.run.artifacts?.['chapter.candidate'] as Record<string, any> | undefined;
