@@ -44,6 +44,18 @@ export const agentContractSchema = z.object({
 
 export type AgentContract = z.infer<typeof agentContractSchema>;
 
+export const reusableAgentNodeContractSchema = z.object({
+  nodeId: z.string().min(1),
+  displayName: z.string().min(1),
+  inputSchemaName: z.string().min(1),
+  outputSchemaName: z.string().min(1),
+  requiredArtifactKeys: z.array(z.string().min(1)).default([]),
+  producedArtifactKeys: z.array(z.string().min(1)).default([]),
+  sideEffects: z.array(z.enum(['persist_artifact', 'apply_patch', 'call_model', 'write_project'])).default([]),
+});
+
+export type ReusableAgentNodeContract = z.infer<typeof reusableAgentNodeContractSchema>;
+
 // ── Field Dependency Graph ──
 
 export const fieldDependencyEdgeSchema = z.object({

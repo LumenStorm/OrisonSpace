@@ -72,6 +72,8 @@ export type NovelMemoryExtractionPayload = z.infer<typeof novelMemoryExtractionP
 
 export const novelAutoModeStatusSchema = z.enum([
   'idle',
+  'planning',
+  'awaiting_approval',
   'running',
   'paused',
   'completed',
@@ -80,6 +82,16 @@ export const novelAutoModeStatusSchema = z.enum([
 ]);
 
 export type NovelAutoModeStatus = z.infer<typeof novelAutoModeStatusSchema>;
+
+export const novelAutoModePlanningSchema = z.object({
+  status: z.enum(['not_started', 'generated', 'approved']).default('not_started'),
+  bundlePath: z.string().min(1).optional(),
+  artifactKeys: z.array(z.string().min(1)).default([]),
+  generatedAt: z.string().datetime().optional(),
+  approvedAt: z.string().datetime().optional(),
+});
+
+export type NovelAutoModePlanning = z.infer<typeof novelAutoModePlanningSchema>;
 
 export const novelAutoModeStateSchema = z.object({
   autoModeId: z.string().min(1),
@@ -96,6 +108,8 @@ export const novelAutoModeStateSchema = z.object({
   lastError: z.string().nullable().default(null),
   mode: z.enum(['generate', 'continue', 'polish']).optional(),
   reviewMode: z.enum(['pass', 'revise', 'escalate']).optional(),
+  plotSummary: z.string().optional(),
+  planning: novelAutoModePlanningSchema.optional(),
   schemaVersion: z.number().int().nonnegative().optional(),
 });
 
@@ -104,6 +118,7 @@ export type NovelAutoModeState = z.infer<typeof novelAutoModeStateSchema>;
 export const novelAutoModeStartRequestSchema = z.object({
   projectPath: z.string().min(1),
   chapterIds: z.array(z.string().min(1)).optional(),
+  plotSummary: z.string().optional(),
   mode: z.enum(['generate', 'continue', 'polish']).default('generate'),
 });
 
@@ -111,7 +126,7 @@ export type NovelAutoModeStartRequest = z.infer<typeof novelAutoModeStartRequest
 
 export const novelAutoModeActionSchema = z.object({
   autoModeId: z.string().min(1),
-  action: z.enum(['pause', 'resume', 'cancel']),
+  action: z.enum(['approve_plan', 'pause', 'resume', 'cancel']),
 });
 
 export type NovelAutoModeAction = z.infer<typeof novelAutoModeActionSchema>;

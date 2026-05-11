@@ -7,7 +7,8 @@ import {
   creativeRunContextSchema,
   workflowSyncEventSchema,
   fieldDependencyGraphSchema,
-  assetPatchCandidateSchema
+  assetPatchCandidateSchema,
+  reusableAgentNodeContractSchema
 } from '../src';
 
 describe('agent-contract schemas', () => {
@@ -104,6 +105,22 @@ describe('agent-contract schemas', () => {
     });
     expect(patch.action).toBe('add');
     expect(patch.autoApply).toBe(false);
+  });
+
+  it('reusableAgentNodeContractSchema accepts workflow-agnostic node metadata', () => {
+    const parsed = reusableAgentNodeContractSchema.parse({
+      nodeId: 'story-sync-agent',
+      displayName: 'Story Sync Agent',
+      inputSchemaName: 'chapterContextAndCandidate',
+      outputSchemaName: 'novelStorySyncPayload',
+      requiredArtifactKeys: ['context.chapterContext', 'chapter.candidate'],
+      producedArtifactKeys: ['story.sync'],
+      sideEffects: ['persist_artifact'],
+    });
+
+    expect(parsed.nodeId).toBe('story-sync-agent');
+    expect(parsed.requiredArtifactKeys).toContain('chapter.candidate');
+    expect(parsed.producedArtifactKeys).toEqual(['story.sync']);
   });
 
   it('creativeRunRequestSchema 校验最小请求', () => {
