@@ -4,10 +4,10 @@
 
 > 当前定位：AI 驱动的影视 / 小说创作 IDE。用户从一句话、一个章节、一个分镜想法开始，逐步构建大纲、正文、创作字段、分镜与后续生成资产；AI 负责辅助生成、审阅建议与可控修改。
 
-产品形态：以本地项目为核心，`server` 提供认证、项目登记、任务查询与 Agent 代理，桌面端主进程直接连接第三方模型。
+产品形态：以本地项目为核心，`server` 提供认证与 Agent 编排代理，桌面端主进程直接连接第三方模型。
 
 - 本地项目文件仍然是创作内容的唯一事实来源
-- `apps/server` 负责公开 API、JWT 鉴权、项目与任务元数据、Agent 代理
+- `apps/server` 负责公开 API、JWT 鉴权与 `/v1/orchestration/*` Agent 代理
 - `apps/agent` 负责编排流程、章节生成、规则回退、自动模式
 - `apps/desktop/shell` 负责 IPC、安全边界、模型调用、story-sync 本地执行
 - `apps/desktop/ui` 负责创作、审核、设置、项目管理与工作区交互
@@ -185,10 +185,8 @@ OneLine2Video/
 │        ├─ common/                   db / error / util
 │        └─ modules/
 │           ├─ auth/                  register / login / me
-│           ├─ project/               项目登记与查询
-│           ├─ task/                  任务表与详情
 │           ├─ orchestration/         转发到 Agent
-│           ├─ asset/ review/ user/ audit/ quota/
+│           └─ asset/ review/ user/ audit/ quota/ 预留占位目录
 ├─ packages/
 │  ├─ shared-contracts/               Zod schema、IPC 类型、跨进程契约
 │  ├─ model-protocols/                统一 OpenAI 兼容适配层（text/image/video 生成 + listModels）
@@ -273,12 +271,6 @@ pnpm lint
 ### 受保护接口
 
 - `GET /v1/auth/me`
-- `POST /v1/projects`
-- `POST /v1/tasks`
-- `GET /v1/tasks/:taskId`
-- `GET /v1/tasks/:taskId/detail`
-- `GET /v1/projects/:projectId/tasks`
-- `GET /v1/projects/:projectId/assets`
 - `/v1/orchestration/*` -> 代理到 Agent
 
 ### 已移除
@@ -321,13 +313,11 @@ pnpm lint
 
 ### PostgreSQL
 
-服务端数据库负责：
+服务端数据库当前负责：
 
 - `users`
-- `projects`
-- `tasks`
-- `task_asset_refs`
-- `project_assets`
+
+项目文件、创作字段与后台任务持久化由桌面端本地项目目录和本地 SQLite 承担。
 
 服务端不保存完整创作正文。
 

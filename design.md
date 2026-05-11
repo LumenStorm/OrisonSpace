@@ -13,7 +13,7 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 - 用户主导创作
 - AI 提供生成、补全、审阅与可控修改
 - 本地项目文件是创作主存
-- 服务端负责认证、任务与编排代理
+- 服务端负责认证与编排代理
 - 模型调用发生在用户机器上
 
 ## 二、当前总体架构
@@ -46,8 +46,6 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 - Fastify
 - 负责：
   - auth
-  - project
-  - task
   - orchestration proxy
 
 ### 4. Agent
@@ -90,30 +88,30 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 ## 五、模型配置设计
 
-当前模型配置采用 profile + models[] 结构：
+当前模型配置采用 key-based 结构：
 
-- 一个 profile = 一组 `provider + baseUrl + apiKey`
-- profile 下有多个模型条目
+- 一个 key = 一组 `name + baseUrl + apiKey`
+- 一个 key 下有多个模型条目
 - 每个模型条目有：
   - `id`
   - `alias`
-  - `apiFormat`
-  - `capabilities`
+  - `capability`
+  - `enabled`
 
 槽位选择为：
 
-- `novel -> { profileId, modelId }`
-- `image -> { profileId, modelId }`
-- `video -> { profileId, modelId }`
+- `novel -> { keyId, modelId }`
+- `image -> { keyId, modelId }`
+- `video -> { keyId, modelId }`
 
 ### UI 交互状态
 
 模型设置页当前分为：
 
-- 无 profile 的空状态
-- 有 profile 但未选择的占位状态
+- 无 key 的空状态
+- 有 key 但未选择的占位状态
 - 新建中状态
-- 编辑已有 profile 状态
+- 编辑已有 key 状态
 
 ## 六、模型网关设计
 
@@ -177,7 +175,7 @@ Story Sync 现在是“两段式”：
 当前系统已经不是“服务端统一中转模型请求”的设计，而是：
 
 - 桌面端拥有模型调用权
-- 服务端只负责认证、任务和代理
+- 服务端只负责认证和代理
 - agent 只做编排与规则逻辑
 - 本地项目文件继续作为创作真相源
 

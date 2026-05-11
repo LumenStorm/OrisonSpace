@@ -2,15 +2,16 @@
 
 ## 1. 数据边界总览
 
-系统采用“本地创作文件 + 服务端元数据”双层结构：
+系统采用“本地创作文件 + 服务端认证 + 桌面本地状态”结构：
 
 - 本地项目目录负责创作正文与创作字段
-- PostgreSQL 负责用户、项目登记、任务与资产索引
+- PostgreSQL 当前只负责用户认证数据
+- 桌面本地 SQLite 负责后台任务恢复
 - 桌面主进程负责模型配置与 provider 调用
 
 ## 2. PostgreSQL（服务端）
 
-服务端数据库由 `apps/server/src/common/db.ts` 初始化，主要表如下。
+服务端数据库由 `apps/server/src/common/db.ts` 初始化，当前只创建 `users` 表。
 
 ### 2.1 users
 
@@ -24,64 +25,24 @@
 
 ### 2.2 projects
 
-| 字段 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `project_id` | VARCHAR(5) | PK | 五位顺序项目号（如 `00001`） |
-| `project_name` | VARCHAR(255) | NOT NULL | 项目名称 |
-| `project_type` | VARCHAR(32) | NOT NULL | `novel` / `script` |
-| `local_fingerprint` | VARCHAR(255) | UNIQUE NOT NULL | 本地项目指纹 |
-| `created_at` | TIMESTAMPTZ | NOT NULL | 创建时间 |
-| `updated_at` | TIMESTAMPTZ | NOT NULL | 更新时间 |
+当前服务端实现不创建 `projects` 表。项目元数据以本地项目目录中的 `project.yaml` 为主，桌面端最近项目列表由渲染层状态与本地项目读取逻辑维护。
 
 ### 2.3 tasks
 
-| 字段 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `task_id` | VARCHAR(32) | PK | 服务端生成任务号 |
-| `project_id` | VARCHAR(5) | FK -> projects | 所属项目 |
-| `target_id` | VARCHAR(128) | 可空 | 目标实体 |
-| `task_type` | VARCHAR(64) | NOT NULL | 任务类型 |
-| `name` | VARCHAR(255) | NOT NULL | 任务名 |
-| `description` | TEXT | NOT NULL | 任务描述 |
-| `input_text` | TEXT | NOT NULL | 输入文本 |
-| `status` | VARCHAR(32) | NOT NULL | queued/running/completed/failed |
-| `output_type` | VARCHAR(32) | 可空 | 输出类型 |
-| `output_payload` | JSONB | 可空 | 输出负载 |
-| `result_summary` | TEXT | 可空 | 结果摘要 |
-| `rationale` | TEXT | NOT NULL DEFAULT '' | 解释 |
-| `review_hint` | TEXT | NOT NULL DEFAULT '' | 审核提示 |
-| `retryable` | BOOLEAN | NOT NULL DEFAULT TRUE | 是否可重试 |
-| `error_message` | TEXT | 可空 | 错误信息 |
-| `created_at` | TIMESTAMPTZ | NOT NULL | 创建时间 |
-| `started_at` | TIMESTAMPTZ | 可空 | 开始时间 |
-| `finished_at` | TIMESTAMPTZ | 可空 | 结束时间 |
-| `updated_at` | TIMESTAMPTZ | NOT NULL | 更新时间 |
+当前服务端实现不创建 `tasks` 表。桌面端后台任务通过 Electron 主进程写入本地 SQLite，见本文档 3.1。
 
 ### 2.4 task_asset_refs
 
-| 字段 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `task_id` | VARCHAR(32) | FK -> tasks ON DELETE CASCADE | 任务 ID |
-| `asset_id` | VARCHAR(128) | PK(task_id, asset_id) | 关联资产 ID |
+当前服务端实现不创建 `task_asset_refs` 表。任务与资产关系目前由本地项目文件、任务输出负载和创作字段同步逻辑表达。
 
 ### 2.5 project_assets
 
-| 字段 | 类型 | 约束 | 说明 |
-|---|---|---|---|
-| `project_id` | VARCHAR(5) | PK(project_id, asset_id), FK -> projects ON DELETE CASCADE | 项目 ID |
-| `asset_id` | VARCHAR(128) | PK(project_id, asset_id) | 资产 ID |
-| `asset_type` | VARCHAR(32) | NOT NULL | 当前多为 `unknown` |
-| `asset_name` | VARCHAR(255) | NOT NULL | 资产名 |
-| `asset_status` | VARCHAR(32) | NOT NULL | 状态 |
-| `source_task_id` | VARCHAR(32) | 可空 | 来源任务 |
-| `summary` | TEXT | 可空 | 摘要 |
-| `version` | INTEGER | NOT NULL DEFAULT 1 | 版本 |
-| `updated_at` | TIMESTAMPTZ | NOT NULL | 更新时间 |
+当前服务端实现不创建 `project_assets` 表。确认保存后的图片资产写入本地项目 `assets/images/`，结构化资产卡写入 `project.yaml`。
 
 关键点：
 
-- 主键是 `(project_id, asset_id)`，避免跨项目同名资产冲突
-- 任务列表和资产列表都走 keyset 分页
+- 服务端数据库当前没有项目/任务/资产索引表
+- 如后续恢复服务端索引，需要同步更新 API 文档、数据字典和模块边界
 
 ## 3. 本地项目文件（创作内容主存）
 
@@ -91,10 +52,10 @@
 <project>/
 ├─ project.yaml
 ├─ chapters/
-│  ├─ ch-001.md
+│  ├─ ch_001.md
 │  └─ ...
 ├─ scenes/
-│  ├─ sc-001.md
+│  ├─ sc_001.md
 │  └─ ...
 ├─ memory/
 │  └─ story-memory.yaml
@@ -239,9 +200,8 @@ Agent 侧 auto mode 持久化位置：
 
 | 源字段 | 目标字段 | 说明 |
 |---|---|---|
-| `tasks.project_id` | `projects.project_id` | 任务所属项目 |
-| `task_asset_refs.task_id` | `tasks.task_id` | 任务资产关联 |
-| `project_assets.project_id` | `projects.project_id` | 项目资产索引 |
+| `local tasks.project_id` | renderer project id | 桌面本地后台任务所属项目 |
+| `project.yaml novel.chapters[].content_file` | `chapters/*.md` | 章节正文路径 |
 | `modelConfig.keys[].models[].id` | `ModelRef.modelId` | 生成请求模型引用 |
 | `storyboard.shots[].source_ref` | novel/script 实体 ID | 分镜来源引用 |
 

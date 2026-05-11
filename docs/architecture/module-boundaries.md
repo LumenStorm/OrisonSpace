@@ -158,8 +158,6 @@
   - 翻译错误为 HTTP 响应
 - 当前服务端只拥有这些责任：
   - `auth`
-  - `project`
-  - `task`
   - `orchestration proxy`
 - 服务端 generation 模块已删除
 - 服务端不再直接请求任何第三方模型 provider
@@ -192,13 +190,11 @@
 ## 鉴权规则
 
 - 当前公开 auth 路由：
-  - `GET /v1/auth/public-key`（返回 RSA 公钥）
   - `POST /v1/auth/login`
   - `POST /v1/auth/register`
-- 密码传输加密：
-  - 客户端使用 RSA-OAEP（SHA-256）加密密码后传输
-  - 服务端私钥解密后再做 bcrypt 校验
-  - 密钥对存放于 `apps/server/keys/`（private.pem + public.pem，已 gitignore）
+- 密码传输安全：
+  - 客户端使用 Web Crypto API 计算 `SHA-256(password + "orison:auth:v1")`
+  - 服务端直接对收到的十六进制摘要做 bcrypt 存储/校验
 - `GET /v1/auth/me` 是受保护接口
 - 桌面端启动时使用 `/v1/auth/me` 做 bootstrap
 - `authSlice` 负责区分：
