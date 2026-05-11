@@ -439,6 +439,11 @@ contextMenu:
 autoMode:
   title: "Auto Mode"
   hint: "Auto Mode will sequentially progress all unfinished chapters."
+  plotSummary: "Plot summary"
+  plotSummaryPlaceholder: "Write the human-approved story premise before starting."
+  plotSummaryStatus: "Plot: {value}"
+  approvePlan: "Approve Plan"
+  bundlePath: "Planning bundle: {path}"
   start: "Start Auto Mode"
   pause: "Pause"
   resume: "Resume"
@@ -453,6 +458,8 @@ autoMode:
   unknownError: "Unknown error"
   statusValue:
     idle: "Idle"
+    planning: "Planning"
+    awaiting_approval: "Awaiting approval"
     running: "Running"
     paused: "Paused"
     completed: "Completed"

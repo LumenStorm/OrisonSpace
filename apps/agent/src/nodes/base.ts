@@ -1,6 +1,15 @@
 import type { ReusableAgentNodeContract } from '@orison/shared-contracts';
 import type { NodeRunInput, NodeRunResult } from '../contracts/run';
 
+type SimpleNodeContractConfig = {
+  displayName?: string;
+  inputSchemaName?: string;
+  outputSchemaName?: string;
+  requiredArtifactKeys?: string[];
+  producedArtifactKeys?: string[];
+  sideEffects?: ReusableAgentNodeContract['sideEffects'];
+};
+
 export type OrchestrationNode = {
   id: string;
   contract?: ReusableAgentNodeContract;
@@ -11,9 +20,7 @@ function createSimpleNode(
   id: string,
   stateKey: string,
   valueFactory: (requirement: string) => unknown,
-  contract?: Omit<ReusableAgentNodeContract, 'nodeId' | 'producedArtifactKeys'> & {
-    producedArtifactKeys?: string[];
-  }
+  contract?: SimpleNodeContractConfig
 ): OrchestrationNode {
   return {
     id,

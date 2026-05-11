@@ -10,7 +10,7 @@ import { API_BASE } from '../constants';
 export type NovelChapterRunMode = z.infer<typeof novelChapterRunRequestSchema>['mode'];
 export type AutoModeState = z.infer<typeof novelAutoModeStateSchema>;
 
-export type AutoModeAction = 'pause' | 'resume' | 'cancel';
+export type AutoModeAction = 'approve_plan' | 'pause' | 'resume' | 'cancel';
 
 type StartChapterRunInput = {
   projectPath: string;
@@ -80,7 +80,11 @@ export async function startChapterRun(input: StartChapterRunInput): Promise<unkn
   return res.json();
 }
 
-export async function startAutoMode(projectPath: string, chapterIds?: string[]): Promise<AutoModeState> {
+export async function startAutoMode(
+  projectPath: string,
+  chapterIds?: string[],
+  plotSummary?: string,
+): Promise<AutoModeState> {
   const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -88,6 +92,7 @@ export async function startAutoMode(projectPath: string, chapterIds?: string[]):
       projectPath,
       mode: 'generate',
       ...(chapterIds && chapterIds.length > 0 ? { chapterIds } : {}),
+      ...(plotSummary?.trim() ? { plotSummary: plotSummary.trim() } : {}),
     }),
   });
   if (!res.ok) {

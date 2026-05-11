@@ -57,7 +57,8 @@ export type NovelChapterSlice = {
 
   autoModeState: AutoModeState | null;
   autoModeError: string | null;
-  startAutoMode: (chapterIds?: string[]) => Promise<void>;
+  startAutoMode: (chapterIds?: string[], plotSummary?: string) => Promise<void>;
+  approveAutoModePlan: () => Promise<void>;
   pauseAutoMode: () => Promise<void>;
   resumeAutoMode: () => Promise<void>;
   cancelAutoMode: () => Promise<void>;
@@ -202,7 +203,7 @@ export const createNovelChapterSlice: StateCreator<
   autoModeState: null,
   autoModeError: null,
 
-  async startAutoMode(chapterIds) {
+  async startAutoMode(chapterIds, plotSummary) {
     const project = get().currentProject;
     if (!project?.path) {
       set({ autoModeError: AUTO_PROJECT_KEY });
@@ -210,7 +211,7 @@ export const createNovelChapterSlice: StateCreator<
     }
     set({ autoModeError: null });
     try {
-      const state = await startAutoMode(project.path, chapterIds);
+      const state = await startAutoMode(project.path, chapterIds, plotSummary);
       set({ autoModeState: state });
     } catch (error) {
       set({ autoModeError: errorKeyFromAutoStart(error) });
@@ -219,6 +220,10 @@ export const createNovelChapterSlice: StateCreator<
 
   async pauseAutoMode() {
     await applyAutoModeAction(get, set, 'pause');
+  },
+
+  async approveAutoModePlan() {
+    await applyAutoModeAction(get, set, 'approve_plan');
   },
 
   async resumeAutoMode() {

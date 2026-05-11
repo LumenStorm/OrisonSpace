@@ -358,6 +358,28 @@
   color: var(--outline);
 }
 
+.auto-mode-console-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  color: var(--on-surface-variant);
+  font-size: 0.75rem;
+}
+
+.auto-mode-console-field textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface-container);
+  color: var(--on-surface);
+  font: inherit;
+  line-height: 1.4;
+  padding: 0.45rem 0.5rem;
+}
+
 .auto-mode-console-actions {
   display: flex;
   flex-wrap: wrap;
