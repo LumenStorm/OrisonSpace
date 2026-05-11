@@ -94,7 +94,8 @@ describe('novel auto mode runner', () => {
     const runner = createNovelAutoModeRunner();
     const state = await runner.start({ projectPath: TEST_DIR, mode: 'generate' });
 
-    expect(state.status).toBe('running');
+    expect(state.status).toBe('awaiting_approval');
+    expect(state.planning?.status).toBe('generated');
     expect(state.totalChapters).toBe(2); // 只有 ch_b 和 ch_c 待生成
     expect(state.pendingChapterIds).toEqual(['ch_b', 'ch_c']);
     expect(state.completedChapterIds).toEqual([]);
@@ -115,6 +116,7 @@ describe('novel auto mode runner', () => {
   it('runOnce 推进一章后该章节进入 completed', { timeout: 60000 }, async () => {
     const runner = createNovelAutoModeRunner();
     await runner.start({ projectPath: TEST_DIR, mode: 'generate' });
+    await runner.approvePlan();
 
     const next = await runner.runOnce();
     expect(next.completedChapterIds).toContain('ch_b');
@@ -125,6 +127,7 @@ describe('novel auto mode runner', () => {
   it('全部 runOnce 后状态变为 completed', { timeout: 120000 }, async () => {
     const runner = createNovelAutoModeRunner();
     await runner.start({ projectPath: TEST_DIR, mode: 'generate' });
+    await runner.approvePlan();
     await runner.runOnce();
     await runner.runOnce();
     const final = await runner.runOnce();
@@ -136,6 +139,7 @@ describe('novel auto mode runner', () => {
   it('pause 阻止 runOnce 推进，resume 后继续', { timeout: 60000 }, async () => {
     const runner = createNovelAutoModeRunner();
     await runner.start({ projectPath: TEST_DIR, mode: 'generate' });
+    await runner.approvePlan();
 
     runner.pause();
     expect(runner.getState().status).toBe('paused');
@@ -155,6 +159,7 @@ describe('novel auto mode runner', () => {
   it('cancel 立即标记 cancelled，runOnce 不再执行', async () => {
     const runner = createNovelAutoModeRunner();
     await runner.start({ projectPath: TEST_DIR, mode: 'generate' });
+    await runner.approvePlan();
     runner.cancel();
     const state = runner.getState();
     expect(state.status).toBe('cancelled');

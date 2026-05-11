@@ -65,11 +65,14 @@ export function createAutoModeService(): AutoModeService {
       const initial = await runner.start({
         projectPath: parsed.projectPath,
         chapterIds: parsed.chapterIds,
+        plotSummary: parsed.plotSummary,
         mode: parsed.mode,
       });
       trackSession(initial, runner);
       // 不 await：后台异步推进
-      void backgroundDrive(initial.autoModeId);
+      if (initial.status === 'running') {
+        void backgroundDrive(initial.autoModeId);
+      }
       return initial;
     },
 
@@ -80,6 +83,10 @@ export function createAutoModeService(): AutoModeService {
         throw new Error(`auto mode session not found: ${parsed.autoModeId}`);
       }
       switch (parsed.action) {
+        case 'approve_plan':
+          await runner.approvePlan();
+          void backgroundDrive(parsed.autoModeId);
+          break;
         case 'pause':
           runner.pause();
           break;

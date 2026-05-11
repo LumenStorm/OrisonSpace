@@ -7,10 +7,16 @@ import type {
   NovelAutoModeStatus,
 } from '@orison/shared-contracts';
 import { runNovelPipeline } from '../novelPipeline';
+import {
+  approveFullNovelPlanning,
+  createFullNovelPlanningBundle,
+  FULL_NOVEL_PLANNING_KEYS,
+} from './fullNovelPlanning';
 
 export type NovelAutoModeStartParams = {
   projectPath: string;
   chapterIds?: string[];
+  plotSummary?: string;
   mode?: 'generate' | 'continue' | 'polish';
   reviewMode?: 'pass' | 'revise' | 'escalate';
 };
@@ -30,6 +36,7 @@ export type NovelAutoModeRunner = {
   pause(): void;
   /** 恢复（paused → running；其他状态保持）。 */
   resume(): void;
+  approvePlan(): Promise<NovelAutoModeState>;
   /** 取消（→ cancelled）。 */
   cancel(): void;
   /** 获取当前状态快照（不可变）。 */
@@ -114,21 +121,37 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
       }
 
       const startedAt = nowIso();
-      return commitAsync({
-        autoModeId: `auto_${crypto.randomUUID()}`,
+      const autoModeId = `auto_${crypto.randomUUID()}`;
+      const plan = createFullNovelPlanningBundle({
         projectPath,
-        status: 'running',
-        pendingChapterIds: pending,
+        autoModeId,
+        plotSummary: params.plotSummary,
+        requestedChapterIds: params.chapterIds,
+      });
+      const plannedPending = params.chapterIds?.length ? [...params.chapterIds] : readPendingChapters(projectPath);
+      const finalPending = plannedPending.length > 0 ? plannedPending : plan.chapterIds;
+      return commitAsync({
+        autoModeId,
+        projectPath,
+        status: 'awaiting_approval',
+        pendingChapterIds: finalPending,
         completedChapterIds: [],
         currentChapterId: null,
         currentRunId: null,
-        totalChapters: pending.length,
+        totalChapters: finalPending.length,
         startedAt,
         updatedAt: startedAt,
         finishedAt: undefined,
         lastError: null,
         mode,
         reviewMode: params.reviewMode ?? 'pass',
+        plotSummary: plan.bundle.plotSummary,
+        planning: {
+          status: 'generated',
+          bundlePath: plan.bundlePath,
+          artifactKeys: [...FULL_NOVEL_PLANNING_KEYS],
+          generatedAt: startedAt,
+        },
       });
     },
 
@@ -209,6 +232,22 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
       if (cur.status === 'paused') {
         setStatus('running');
       }
+    },
+
+    async approvePlan(): Promise<NovelAutoModeState> {
+      const cur = ensureStarted();
+      if (cur.status !== 'awaiting_approval') return cur;
+      approveFullNovelPlanning(cur.projectPath, cur.autoModeId);
+      return commitAsync({
+        ...cur,
+        status: 'running',
+        planning: {
+          ...(cur.planning ?? { status: 'generated', artifactKeys: [] }),
+          status: 'approved',
+          approvedAt: nowIso(),
+        },
+        updatedAt: nowIso(),
+      });
     },
 
     cancel(): void {
