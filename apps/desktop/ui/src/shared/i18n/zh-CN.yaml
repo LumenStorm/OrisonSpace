@@ -1,444 +1,449 @@
-# Orison Space — 简体中文
+﻿# Orison Space 鈥?绠€浣撲腑鏂?
 auth:
   brand: "Orison Space"
-  tagline: "一句话到视频 — AI 驱动的影视创作"
-  login: "登录"
-  register: "注册"
-  displayName: "显示名称"
-  email: "邮箱"
-  password: "密码"
-  pleaseWait: "请稍候..."
-  signIn: "登录"
-  createAccount: "创建账号"
-  showPassword: "显示密码"
-  hidePassword: "隐藏密码"
+  tagline: "涓€鍙ヨ瘽鍒拌棰?鈥?AI 椹卞姩鐨勫奖瑙嗗垱浣?
+  login: "鐧诲綍"
+  register: "娉ㄥ唽"
+  displayName: "鏄剧ず鍚嶇О"
+  email: "閭"
+  password: "瀵嗙爜"
+  pleaseWait: "璇风◢鍊?.."
+  signIn: "鐧诲綍"
+  createAccount: "鍒涘缓璐﹀彿"
+  showPassword: "鏄剧ず瀵嗙爜"
+  hidePassword: "闅愯棌瀵嗙爜"
 
 projects:
   brand: "Orison Space"
-  logout: "退出登录"
-  newProject: "新建项目"
-  openProject: "打开项目"
-  projectName: "项目名称"
-  projectType: "项目类型"
-  typeNovel: "小说"
-  typeScript: "剧本"
-  create: "创建"
-  cancel: "取消"
-  recentProjects: "最近项目"
-  refresh: "刷新"
-  refreshing: "刷新中..."
-  location: "存储位置"
-  locationPlaceholder: "选择项目文件夹..."
-  coverImage: "封面图"
-  optional: "（可选）"
-  pickCover: "选择封面图片"
-  emptyTitle: "还没有项目"
-  emptyHint: "创建一个新项目或打开已有项目开始创作"
+  logout: "閫€鍑虹櫥褰?
+  newProject: "鏂板缓椤圭洰"
+  openProject: "鎵撳紑椤圭洰"
+  projectName: "椤圭洰鍚嶇О"
+  projectType: "椤圭洰绫诲瀷"
+  typeNovel: "灏忚"
+  typeScript: "鍓ф湰"
+  create: "鍒涘缓"
+  cancel: "鍙栨秷"
+  recentProjects: "鏈€杩戦」鐩?
+  refresh: "鍒锋柊"
+  refreshing: "鍒锋柊涓?.."
+  location: "瀛樺偍浣嶇疆"
+  locationPlaceholder: "閫夋嫨椤圭洰鏂囦欢澶?.."
+  coverImage: "灏侀潰鍥?
+  optional: "锛堝彲閫夛級"
+  pickCover: "閫夋嫨灏侀潰鍥剧墖"
+  emptyTitle: "杩樻病鏈夐」鐩?
+  emptyHint: "鍒涘缓涓€涓柊椤圭洰鎴栨墦寮€宸叉湁椤圭洰寮€濮嬪垱浣?
 
 nav:
-  project: "项目"
-  outline: "大纲"
-  creative: "创作"
-  novel: "小说"
-  script: "剧本"
-  storyboard: "分镜"
-  video: "视频"
-  imageGen: "生图"
-  settings: "设置"
-  account: "个人中心"
-  logout: "退出登录"
+  project: "椤圭洰"
+  outline: "澶х翰"
+  creative: "鍒涗綔"
+  novel: "灏忚"
+  script: "鍓ф湰"
+  storyboard: "鍒嗛暅"
+  video: "瑙嗛"
+  imageGen: "鐢熷浘"
+  settings: "璁剧疆"
+  account: "涓汉涓績"
+  logout: "閫€鍑虹櫥褰?
 
 projectTree:
-  title: "项目文件"
-  assets: "素材"
-  config: "配置"
-  chapters: "章节"
-  scenes: "场景"
-  assetsDir: "素材"
-  projectConfig: "项目配置"
+  title: "椤圭洰鏂囦欢"
+  assets: "绱犳潗"
+  config: "閰嶇疆"
+  chapters: "绔犺妭"
+  scenes: "鍦烘櫙"
+  assetsDir: "绱犳潗"
+  projectConfig: "椤圭洰閰嶇疆"
 
 outline:
-  projectTitle: "项目标题"
-  loglinePlaceholder: "Logline — 一句话概括故事"
-  visualStyle: "视觉风格"
-  narrativeStyle: "叙事风格"
-  pacing: "节奏"
-  reference: "参考"
-  acts: "幕"
-  addAct: "添加幕"
-  noActs: "暂无幕。添加一个来开始构建故事结构。"
-  actTitle: "幕标题"
-  actSummary: "撰写幕概要..."
+  projectTitle: "椤圭洰鏍囬"
+  loglinePlaceholder: "Logline 鈥?涓€鍙ヨ瘽姒傛嫭鏁呬簨"
+  visualStyle: "瑙嗚椋庢牸"
+  narrativeStyle: "鍙欎簨椋庢牸"
+  pacing: "鑺傚"
+  reference: "鍙傝€?
+  acts: "骞?
+  addAct: "娣诲姞骞?
+  noActs: "鏆傛棤骞曘€傛坊鍔犱竴涓潵寮€濮嬫瀯寤烘晠浜嬬粨鏋勩€?
+  actTitle: "骞曟爣棰?
+  actSummary: "鎾板啓骞曟瑕?.."
 
 script:
-  chapters: "章节"
-  chapterDefault: "第 {n} 章"
-  startWriting: "开始撰写本章..."
-  selectChapter: "选择一个章节开始编辑"
-  addChapter: "添加章节"
+  chapters: "绔犺妭"
+  chapterDefault: "绗?{n} 绔?
+  startWriting: "寮€濮嬫挵鍐欐湰绔?.."
+  selectChapter: "閫夋嫨涓€涓珷鑺傚紑濮嬬紪杈?
+  addChapter: "娣诲姞绔犺妭"
 
 topbar:
-  save: "保存"
-  undo: "撤回"
-  redo: "恢复"
-  export: "导出"
-  menuFile: "文件"
-  menuEdit: "编辑"
-  menuView: "视图"
-  menuHelp: "帮助"
-  newProject: "新建项目"
-  openProject: "打开项目"
-  backToProjects: "返回项目列表"
-  toggleProjectTree: "项目文件树"
-  toggleBottomPanel: "底部面板"
-  settings: "设置"
-  account: "账户"
-  about: "关于"
-  shortcuts: "快捷键"
-  checkForUpdate: "检查更新"
+  save: "淇濆瓨"
+  undo: "鎾ゅ洖"
+  redo: "鎭㈠"
+  export: "瀵煎嚭"
+  menuFile: "鏂囦欢"
+  menuEdit: "缂栬緫"
+  menuView: "瑙嗗浘"
+  menuHelp: "甯姪"
+  newProject: "鏂板缓椤圭洰"
+  openProject: "鎵撳紑椤圭洰"
+  backToProjects: "杩斿洖椤圭洰鍒楄〃"
+  toggleProjectTree: "椤圭洰鏂囦欢鏍?
+  toggleBottomPanel: "搴曢儴闈㈡澘"
+  settings: "璁剧疆"
+  account: "璐︽埛"
+  about: "鍏充簬"
+  shortcuts: "蹇嵎閿?
+  checkForUpdate: "妫€鏌ユ洿鏂?
 
 storyboard:
-  cameraLens: "镜头焦距"
-  lightingMood: "光影氛围"
-  shotType: "镜头类型"
+  cameraLens: "闀滃ご鐒﹁窛"
+  lightingMood: "鍏夊奖姘涘洿"
+  shotType: "闀滃ご绫诲瀷"
 
 video:
-  previewPlaceholder: "视频预览将在此显示"
-  noClips: "暂无片段。从分镜生成视频以填充时间线。"
-  resolution: "分辨率"
-  frameRate: "帧率"
-  outputFormat: "输出格式"
-  promptPlaceholder: "描述要生成的视频内容..."
-  generate: "生成视频"
-  clips: "视频片段"
+  previewPlaceholder: "瑙嗛棰勮灏嗗湪姝ゆ樉绀?
+  noClips: "鏆傛棤鐗囨銆備粠鍒嗛暅鐢熸垚瑙嗛浠ュ～鍏呮椂闂寸嚎銆?
+  resolution: "鍒嗚鲸鐜?
+  frameRate: "甯х巼"
+  outputFormat: "杈撳嚭鏍煎紡"
+  promptPlaceholder: "鎻忚堪瑕佺敓鎴愮殑瑙嗛鍐呭..."
+  generate: "鐢熸垚瑙嗛"
+  clips: "瑙嗛鐗囨"
 
 inspector:
-  title: "检查器"
-  parameters: "{module} 参数"
-  aspectRatio: "画面比例"
-  generateWithAI: "AI 生成"
+  title: "妫€鏌ュ櫒"
+  parameters: "{module} 鍙傛暟"
+  aspectRatio: "鐢婚潰姣斾緥"
+  generateWithAI: "AI 鐢熸垚"
   outline:
-    visualStyle: "视觉风格"
-    narrativeStyle: "叙事风格"
-    pacing: "节奏"
-    tone: "基调"
-    rewrite: "改写大纲"
-    prompt: "描述如何优化故事大纲..."
+    visualStyle: "瑙嗚椋庢牸"
+    narrativeStyle: "鍙欎簨椋庢牸"
+    pacing: "鑺傚"
+    tone: "鍩鸿皟"
+    rewrite: "鏀瑰啓澶х翰"
+    prompt: "鎻忚堪濡備綍浼樺寲鏁呬簨澶х翰..."
     options:
-      visualStyle: ["电影感", "动漫", "水彩", "黑色电影", "写实"]
-      narrativeStyle: ["线性", "非线性", "单元式", "平行"]
-      pacing: ["慢热", "快节奏", "韵律感", "渐进"]
-      tone: ["暗黑", "明快", "悬疑", "喜剧", "戏剧"]
+      visualStyle: ["鐢靛奖鎰?, "鍔ㄦ极", "姘村僵", "榛戣壊鐢靛奖", "鍐欏疄"]
+      narrativeStyle: ["绾挎€?, "闈炵嚎鎬?, "鍗曞厓寮?, "骞宠"]
+      pacing: ["鎱㈢儹", "蹇妭濂?, "闊靛緥鎰?, "娓愯繘"]
+      tone: ["鏆楅粦", "鏄庡揩", "鎮枒", "鍠滃墽", "鎴忓墽"]
   script:
-    sceneType: "场景类型"
-    timeOfDay: "时间"
-    dialogueStyle: "对白风格"
-    format: "格式"
-    rewrite: "改写场景"
-    prompt: "描述对白或场景调整..."
+    sceneType: "鍦烘櫙绫诲瀷"
+    timeOfDay: "鏃堕棿"
+    dialogueStyle: "瀵圭櫧椋庢牸"
+    format: "鏍煎紡"
+    rewrite: "鏀瑰啓鍦烘櫙"
+    prompt: "鎻忚堪瀵圭櫧鎴栧満鏅皟鏁?.."
     options:
-      sceneType: ["室内", "室外", "内外交替"]
-      timeOfDay: ["白天", "夜晚", "黎明", "黄昏", "连续"]
-      dialogueStyle: ["自然", "正式", "诗意", "极简"]
-      format: ["电影剧本", "小说", "舞台剧"]
+      sceneType: ["瀹ゅ唴", "瀹ゅ", "鍐呭浜ゆ浛"]
+      timeOfDay: ["鐧藉ぉ", "澶滄櫄", "榛庢槑", "榛勬槒", "杩炵画"]
+      dialogueStyle: ["鑷劧", "姝ｅ紡", "璇楁剰", "鏋佺畝"]
+      format: ["鐢靛奖鍓ф湰", "灏忚", "鑸炲彴鍓?]
   storyboard:
-    cameraLens: "镜头焦距"
-    lightingMood: "光影氛围"
-    shotType: "镜头类型"
-    rewrite: "渲染帧"
-    prompt: "描述画面细节以优化图像..."
+    cameraLens: "闀滃ご鐒﹁窛"
+    lightingMood: "鍏夊奖姘涘洿"
+    shotType: "闀滃ご绫诲瀷"
+    rewrite: "娓叉煋甯?
+    prompt: "鎻忚堪鐢婚潰缁嗚妭浠ヤ紭鍖栧浘鍍?.."
     options:
-      cameraLens: ["24mm 广角", "35mm 标准", "50mm 人像", "85mm 长焦"]
-      lightingMood: ["自然光", "高调", "低调", "霓虹", "黄金时刻"]
-      shotType: ["远景", "中景", "特写", "大特写", "过肩"]
+      cameraLens: ["24mm 骞胯", "35mm 鏍囧噯", "50mm 浜哄儚", "85mm 闀跨劍"]
+      lightingMood: ["鑷劧鍏?, "楂樿皟", "浣庤皟", "闇撹櫣", "榛勯噾鏃跺埢"]
+      shotType: ["杩滄櫙", "涓櫙", "鐗瑰啓", "澶х壒鍐?, "杩囪偐"]
   video:
-    resolution: "分辨率"
-    frameRate: "帧率"
-    outputFormat: "输出格式"
-    rewrite: "生成视频"
-    prompt: "描述视频生成参数..."
+    resolution: "鍒嗚鲸鐜?
+    frameRate: "甯х巼"
+    outputFormat: "杈撳嚭鏍煎紡"
+    rewrite: "鐢熸垚瑙嗛"
+    prompt: "鎻忚堪瑙嗛鐢熸垚鍙傛暟..."
     options:
       resolution: ["1080p", "2K", "4K"]
       frameRate: ["24fps", "30fps", "60fps"]
       outputFormat: ["MP4", "MOV", "WebM"]
 
 tasks:
-  runRewrite: "运行 AI 改写"
-  inProgress: "任务进行中..."
-  failed: "任务失败：{summary}"
-  retry: "重试"
-  accept: "接受任务结果"
-  empty: "暂无后台任务"
-  clearFinished: "清除"
-  cancel: "取消"
-  dismiss: "关闭"
+  runRewrite: "杩愯 AI 鏀瑰啓"
+  inProgress: "浠诲姟杩涜涓?.."
+  failed: "浠诲姟澶辫触锛歿summary}"
+  retry: "閲嶈瘯"
+  accept: "鎺ュ彈浠诲姟缁撴灉"
+  empty: "鏆傛棤鍚庡彴浠诲姟"
+  clearFinished: "娓呴櫎"
+  cancel: "鍙栨秷"
+  dismiss: "鍏抽棴"
 
 editor:
-  startWriting: "开始写作..."
-  bold: "粗体"
-  italic: "斜体"
-  strikethrough: "删除线"
-  codeBlock: "代码块"
-  quote: "引用"
-  bulletList: "无序列表"
-  orderedList: "有序列表"
-  heading: "标题 {level}"
+  startWriting: "寮€濮嬪啓浣?.."
+  bold: "绮椾綋"
+  italic: "鏂滀綋"
+  strikethrough: "鍒犻櫎绾?
+  codeBlock: "浠ｇ爜鍧?
+  quote: "寮曠敤"
+  bulletList: "鏃犲簭鍒楄〃"
+  orderedList: "鏈夊簭鍒楄〃"
+  heading: "鏍囬 {level}"
 
 welcome:
   brand: "Orison Space"
-  tagline: "一句话到视频 — AI 驱动的影视创作"
-  newProject: "新建项目"
-  openProject: "打开项目"
+  tagline: "涓€鍙ヨ瘽鍒拌棰?鈥?AI 椹卞姩鐨勫奖瑙嗗垱浣?
+  newProject: "鏂板缓椤圭洰"
+  openProject: "鎵撳紑椤圭洰"
 
 settings:
-  general: "通用"
-  modelConfig: "模型配置"
-  modelSubtitle: "管理可复用的模型库，并把模型指派给小说、图片、视频用途。"
-  theme: "主题"
-  themeSystem: "跟随系统"
-  themeLight: "浅色"
-  themeDark: "深色"
-  language: "语言"
-  languageSystem: "跟随系统"
-  model: "AI 模型"
-  modelType: "用途指派"
-  modelDetails: "模型详情"
-  provider: "供应商"
+  general: "閫氱敤"
+  modelConfig: "妯″瀷閰嶇疆"
+  modelSubtitle: "绠＄悊鍙鐢ㄧ殑妯″瀷搴擄紝骞舵妸妯″瀷鎸囨淳缁欏皬璇淬€佸浘鐗囥€佽棰戠敤閫斻€?
+  theme: "涓婚"
+  themeSystem: "璺熼殢绯荤粺"
+  themeLight: "娴呰壊"
+  themeDark: "娣辫壊"
+  language: "璇█"
+  languageSystem: "璺熼殢绯荤粺"
+  model: "AI 妯″瀷"
+  modelType: "鐢ㄩ€旀寚娲?
+  modelDetails: "妯″瀷璇︽儏"
+  provider: "渚涘簲鍟?
   apiKey: "API Key"
-  apiKeyPlaceholder: "输入 API Key..."
-  apiKeyEncrypted: "API Key 通过系统钥匙串加密保存"
+  apiKeyPlaceholder: "杈撳叆 API Key..."
+  apiKeyEncrypted: "API Key 閫氳繃绯荤粺閽ュ寵涓插姞瀵嗕繚瀛?
   baseUrl: "Base URL"
   baseUrlPlaceholder: "https://api.openai.com/v1"
-  modelName: "模型"
-  profileName: "模型名称"
-  modelList: "模型库"
-  modelSelectPlaceholder: "请先获取模型列表"
+  modelName: "妯″瀷"
+  profileName: "妯″瀷鍚嶇О"
+  modelList: "妯″瀷搴?
+  modelSelectPlaceholder: "璇峰厛鑾峰彇妯″瀷鍒楄〃"
   modelNamePlaceholder: "gpt-5.4"
-  addModel: "添加模型"
-  novelModel: "小说模型"
-  imageModel: "图像模型"
-  videoModel: "视频模型"
-  videoModelPlaceholder: "视频生成模型暂作占位，后续接入 provider。"
-  save: "保存"
-  saving: "保存中..."
-  saved: "已保存"
-  applyChanges: "应用更改"
-  applied: "已应用"
-  unsavedHint: "有未应用的更改"
-  refreshModels: "获取模型列表"
-  refreshFailed: "获取模型列表失败"
-  refreshFailedBanner: "刷新模型列表失败"
-  showKey: "显示"
-  hideKey: "隐藏"
-  autoApply: "自动应用 AI 结果"
-  autoApplyDesc: "开启后 AI 生成完成自动应用，仅异常时转人工审查"
-  updateManifestUrl: "更新清单 URL"
-  updateManifestHint: "应用通过这个地址拉取 JSON 清单（含 latestVersion / downloadUrl）。留空则不检查更新。"
-  usedFor: "用作"
-  usedForNovel: "小说"
-  usedForImage: "图片"
-  usedForVideo: "视频"
-  noUsage: "未指派"
-  deleteModel: "删除模型"
-  deleteConfirmTitle: "删除模型？"
-  deleteConfirmDesc: "「{name}」将从模型库中移除，并清除其用途指派。此操作不可撤销。"
-  deleteConfirmAction: "删除"
-  emptyTitle: "还没有模型"
-  emptyHint: "添加你的第一个模型，并指派给小说、图片或视频用途。"
-  emptyAction: "新建模型"
-  selectProfileHint: "在左侧选择一个模型以编辑详情。"
-  providerOpenai: "OpenAI 兼容"
+  addModel: "娣诲姞妯″瀷"
+  novelModel: "灏忚妯″瀷"
+  imageModel: "鍥惧儚妯″瀷"
+  videoModel: "瑙嗛妯″瀷"
+  videoModelPlaceholder: "瑙嗛鐢熸垚妯″瀷鏆備綔鍗犱綅锛屽悗缁帴鍏?provider銆?
+  save: "淇濆瓨"
+  saving: "淇濆瓨涓?.."
+  saved: "宸蹭繚瀛?
+  applyChanges: "搴旂敤鏇存敼"
+  applied: "宸插簲鐢?
+  unsavedHint: "鏈夋湭搴旂敤鐨勬洿鏀?
+  refreshModels: "鑾峰彇妯″瀷鍒楄〃"
+  refreshFailed: "鑾峰彇妯″瀷鍒楄〃澶辫触"
+  refreshFailedBanner: "鍒锋柊妯″瀷鍒楄〃澶辫触"
+  showKey: "鏄剧ず"
+  hideKey: "闅愯棌"
+  autoApply: "鑷姩搴旂敤 AI 缁撴灉"
+  autoApplyDesc: "寮€鍚悗 AI 鐢熸垚瀹屾垚鑷姩搴旂敤锛屼粎寮傚父鏃惰浆浜哄伐瀹℃煡"
+  updateManifestUrl: "鏇存柊娓呭崟 URL"
+  updateManifestHint: "搴旂敤閫氳繃杩欎釜鍦板潃鎷夊彇 JSON 娓呭崟锛堝惈 latestVersion / downloadUrl锛夈€傜暀绌哄垯涓嶆鏌ユ洿鏂般€?
+  usedFor: "鐢ㄤ綔"
+  usedForNovel: "灏忚"
+  usedForImage: "鍥剧墖"
+  usedForVideo: "瑙嗛"
+  noUsage: "鏈寚娲?
+  deleteModel: "鍒犻櫎妯″瀷"
+  deleteConfirmTitle: "鍒犻櫎妯″瀷锛?
+  deleteConfirmDesc: "銆寋name}銆嶅皢浠庢ā鍨嬪簱涓Щ闄わ紝骞舵竻闄ゅ叾鐢ㄩ€旀寚娲俱€傛鎿嶄綔涓嶅彲鎾ら攢銆?
+  deleteConfirmAction: "鍒犻櫎"
+  emptyTitle: "杩樻病鏈夋ā鍨?
+  emptyHint: "娣诲姞浣犵殑绗竴涓ā鍨嬶紝骞舵寚娲剧粰灏忚銆佸浘鐗囨垨瑙嗛鐢ㄩ€斻€?
+  emptyAction: "鏂板缓妯″瀷"
+  selectProfileHint: "鍦ㄥ乏渚ч€夋嫨涓€涓ā鍨嬩互缂栬緫璇︽儏銆?
+  providerOpenai: "OpenAI 鍏煎"
   providerGcp: "Google Gemini"
   providerAnthropic: "Anthropic Claude"
-  providerSwitchedReset: "已切换 Provider，模型与能力已重置"
-  capabilityText: "文本"
-  capabilityImage: "图片"
-  capabilityVideo: "视频"
-  capabilities: "能力"
-  identitySection: "身份"
-  credentialsSection: "凭据"
-  modelSection: "模型"
-  modelsSection: "模型列表"
-  noModelsHint: "点击刷新从供应商加载可用模型。"
+  providerSwitchedReset: "宸插垏鎹?Provider锛屾ā鍨嬩笌鑳藉姏宸查噸缃?
+  capabilityText: "鏂囨湰"
+  capabilityImage: "鍥剧墖"
+  capabilityVideo: "瑙嗛"
+  capabilities: "鑳藉姏"
+  identitySection: "韬唤"
+  credentialsSection: "鍑嵁"
+  modelSection: "妯″瀷"
+  modelsSection: "妯″瀷鍒楄〃"
+  noModelsHint: "鐐瑰嚮鍒锋柊浠庝緵搴斿晢鍔犺浇鍙敤妯″瀷銆?
 
 creative:
-  empty: "暂无数据"
+  empty: "鏆傛棤鏁版嵁"
   tabs:
-    creative_brief: "创作简报"
-    world_setting: "世设"
-    asset_cards: "资产卡"
-    relationship_graph: "关系网"
-    outline: "总大纲"
-    episode_outlines: "集纲"
-    growth_curve: "成长曲线"
-    pacing_curve: "节奏曲线"
-    emotion_curve: "情感曲线"
-    foreshadow_registry: "伏笔登记"
+    creative_brief: "鍒涗綔绠€鎶?
+    world_setting: "涓栬"
+    asset_cards: "璧勪骇鍗?
+    relationship_graph: "鍏崇郴缃?
+    outline: "鎬诲ぇ绾?
+    episode_outlines: "闆嗙翰"
+    growth_curve: "鎴愰暱鏇茬嚎"
+    pacing_curve: "鑺傚鏇茬嚎"
+    emotion_curve: "鎯呮劅鏇茬嚎"
+    foreshadow_registry: "浼忕瑪鐧昏"
   foreshadow:
-    empty: "暂无伏笔条目"
+    empty: "鏆傛棤浼忕瑪鏉＄洰"
   field:
-    version: "版本 {v}"
-    stale: "需要重新生成"
-    locked: "已锁定"
-    unlocked: "未锁定"
-    lock: "锁定字段"
-    unlock: "解锁字段"
+    version: "鐗堟湰 {v}"
+    stale: "闇€瑕侀噸鏂扮敓鎴?
+    locked: "宸查攣瀹?
+    unlocked: "鏈攣瀹?
+    lock: "閿佸畾瀛楁"
+    unlock: "瑙ｉ攣瀛楁"
   patch:
-    title: "补丁审核"
-    field: "字段"
-    action: "操作"
-    generatedBy: "生成者"
-    applySelected: "应用选中"
-    rejectAll: "全部拒绝"
-    set: "覆写"
-    merge: "合并"
-    delete: "删除"
+    title: "琛ヤ竵瀹℃牳"
+    field: "瀛楁"
+    action: "鎿嶄綔"
+    generatedBy: "鐢熸垚鑰?
+    applySelected: "搴旂敤閫変腑"
+    rejectAll: "鍏ㄩ儴鎷掔粷"
+    set: "瑕嗗啓"
+    merge: "鍚堝苟"
+    delete: "鍒犻櫎"
   graph:
-    addEdge: "添加关系"
-    deleteSelected: "删除选中"
-    noNodes: "暂无节点"
+    addEdge: "娣诲姞鍏崇郴"
+    deleteSelected: "鍒犻櫎閫変腑"
+    noNodes: "鏆傛棤鑺傜偣"
   worldSetting:
-    premise: "前提"
-    era: "时代"
-    locations: "地点"
-    rules: "规则"
-    toneRules: "基调规则"
+    premise: "鍓嶆彁"
+    era: "鏃朵唬"
+    locations: "鍦扮偣"
+    rules: "瑙勫垯"
+    toneRules: "鍩鸿皟瑙勫垯"
   outline:
-    title: "标题"
+    title: "鏍囬"
     logline: "Logline"
-    centralConflict: "核心冲突"
-    acts: "幕"
-    endingDirection: "结局方向"
+    centralConflict: "鏍稿績鍐茬獊"
+    acts: "骞?
+    endingDirection: "缁撳眬鏂瑰悜"
   brief:
-    requirement: "原始需求"
-    genre: "类型"
-    theme: "主题"
-    tone: "基调"
-    audience: "受众"
-    taboos: "禁忌"
+    requirement: "鍘熷闇€姹?
+    genre: "绫诲瀷"
+    theme: "涓婚"
+    tone: "鍩鸿皟"
+    audience: "鍙椾紬"
+    taboos: "绂佸繉"
   curves:
-    character: "角色"
-    arc: "弧线"
-    turningPoints: "转折点"
-    targetShape: "目标形态"
-    catharsis: "宣泄点"
+    character: "瑙掕壊"
+    arc: "寮х嚎"
+    turningPoints: "杞姌鐐?
+    targetShape: "鐩爣褰㈡€?
+    catharsis: "瀹ｆ硠鐐?
 
 imageGen:
-  title: "图像生成"
-  promptPlaceholder: "描述要生成的图像内容..."
-  generate: "生成图像"
-  generating: "生成中..."
-  results: "生成结果"
-  size: "尺寸"
-  count: "数量"
-  noProject: "请先打开项目。"
-  noModel: "未选择图像模型"
-  noResults: "暂无生成结果"
-  generateFailed: "图像生成失败"
-  missingBase64: "后端未返回 base64 图像"
-  preview: "预览"
-  edit: "编辑"
-  saved: "已保存"
-  addToAssets: "加入素材库"
-  addedToAssets: "已加入"
-  generatedImage: "生成图片"
-  actions: "图片操作"
-  copyPrompt: "复制提示词"
-  copied: "提示词已复制"
-  copyFailed: "复制失败"
-  delete: "删除"
-  deleteConfirm: "确定删除这张生成图片吗？此操作不可恢复。"
-  deleteFailed: "删除失败"
-  cannotDeleteAsset: "已加入素材库，请先从素材库移除"
-  dismiss: "关闭"
-  uploadImage: "上传参考图"
-  removeUpload: "移除参考图"
-  editMode: "编辑图像"
-  editing: "编辑中..."
-  uploadTooLarge: "图片不能超过 25MB"
-  uploadInvalidType: "仅支持 PNG、JPEG、WebP 格式"
-  previousImage: "上一张"
-  nextImage: "下一张"
-  reset: "重置"
-  resetConfirm: "恢复到原始图像？"
+  title: "鍥惧儚鐢熸垚"
+  promptPlaceholder: "鎻忚堪瑕佺敓鎴愮殑鍥惧儚鍐呭..."
+  generate: "鐢熸垚鍥惧儚"
+  generating: "鐢熸垚涓?.."
+  results: "鐢熸垚缁撴灉"
+  size: "灏哄"
+  count: "鏁伴噺"
+  noProject: "璇峰厛鎵撳紑椤圭洰銆?
+  noModel: "鏈€夋嫨鍥惧儚妯″瀷"
+  noResults: "鏆傛棤鐢熸垚缁撴灉"
+  generateFailed: "鍥惧儚鐢熸垚澶辫触"
+  missingBase64: "鍚庣鏈繑鍥?base64 鍥惧儚"
+  preview: "棰勮"
+  edit: "缂栬緫"
+  saved: "宸蹭繚瀛?
+  addToAssets: "鍔犲叆绱犳潗搴?
+  addedToAssets: "宸插姞鍏?
+  generatedImage: "鐢熸垚鍥剧墖"
+  actions: "鍥剧墖鎿嶄綔"
+  copyPrompt: "澶嶅埗鎻愮ず璇?
+  copied: "鎻愮ず璇嶅凡澶嶅埗"
+  copyFailed: "澶嶅埗澶辫触"
+  delete: "鍒犻櫎"
+  deleteConfirm: "纭畾鍒犻櫎杩欏紶鐢熸垚鍥剧墖鍚楋紵姝ゆ搷浣滀笉鍙仮澶嶃€?
+  deleteFailed: "鍒犻櫎澶辫触"
+  cannotDeleteAsset: "宸插姞鍏ョ礌鏉愬簱锛岃鍏堜粠绱犳潗搴撶Щ闄?
+  dismiss: "鍏抽棴"
+  uploadImage: "涓婁紶鍙傝€冨浘"
+  removeUpload: "绉婚櫎鍙傝€冨浘"
+  editMode: "缂栬緫鍥惧儚"
+  editing: "缂栬緫涓?.."
+  uploadTooLarge: "鍥剧墖涓嶈兘瓒呰繃 25MB"
+  uploadInvalidType: "浠呮敮鎸?PNG銆丣PEG銆乄ebP 鏍煎紡"
+  previousImage: "涓婁竴寮?
+  nextImage: "涓嬩竴寮?
+  reset: "閲嶇疆"
+  resetConfirm: "鎭㈠鍒板師濮嬪浘鍍忥紵"
   badge:
-    generated: "新"
-    edited: "已编辑"
+    generated: "鏂?
+    edited: "宸茬紪杈?
   pager:
-    prev: "上一页"
-    next: "下一页"
+    prev: "涓婁竴椤?
+    next: "涓嬩竴椤?
     status: "{current} / {total}"
   params:
-    model: "模型"
-    size: "尺寸"
-    count: "数量"
-    quality: "质量"
-    outputFormat: "输出格式"
-    background: "背景"
-    moderation: "审核等级"
-    outputCompression: "压缩率"
-    user: "用户标识"
-    userPlaceholder: "可选，用于服务端追踪"
-    selectModel: "选择图像模型"
-    noProfilesYet: "尚未配置任何模型，请先到设置中添加"
-    noImageProfile: "模型库里没有图像能力的模型"
-    sizeCustom: "自定义..."
-    customWidth: "宽度"
-    customHeight: "高度"
-    customConstraints: "16 的倍数 · 边长 256–3840 · 比例 < 3:1 · 总像素 65万–830万"
+    model: "妯″瀷"
+    size: "灏哄"
+    count: "鏁伴噺"
+    quality: "璐ㄩ噺"
+    outputFormat: "杈撳嚭鏍煎紡"
+    background: "鑳屾櫙"
+    moderation: "瀹℃牳绛夌骇"
+    outputCompression: "鍘嬬缉鐜?
+    user: "鐢ㄦ埛鏍囪瘑"
+    userPlaceholder: "鍙€夛紝鐢ㄤ簬鏈嶅姟绔拷韪?
+    selectModel: "閫夋嫨鍥惧儚妯″瀷"
+    noProfilesYet: "灏氭湭閰嶇疆浠讳綍妯″瀷锛岃鍏堝埌璁剧疆涓坊鍔?
+    noImageProfile: "妯″瀷搴撻噷娌℃湁鍥惧儚鑳藉姏鐨勬ā鍨?
+    sizeCustom: "鑷畾涔?.."
+    customWidth: "瀹藉害"
+    customHeight: "楂樺害"
+    customConstraints: "16 鐨勫€嶆暟 路 杈归暱 256鈥?840 路 姣斾緥 < 3:1 路 鎬诲儚绱?65涓団€?30涓?
     customError:
-      notNumeric: "请输入有效数值"
-      notMultipleOf16: "宽高必须是 16 的倍数"
-      edgeTooSmall: "宽高最少 256 px"
-      edgeTooLarge: "宽高最多 3840 px"
-      aspectOutOfRange: "比例需小于 3:1"
-      pixelsTooFew: "总像素不足 65 万"
-      pixelsTooMany: "总像素超过 830 万"
+      notNumeric: "璇疯緭鍏ユ湁鏁堟暟鍊?
+      notMultipleOf16: "瀹介珮蹇呴』鏄?16 鐨勫€嶆暟"
+      edgeTooSmall: "瀹介珮鏈€灏?256 px"
+      edgeTooLarge: "瀹介珮鏈€澶?3840 px"
+      aspectOutOfRange: "姣斾緥闇€灏忎簬 3:1"
+      pixelsTooFew: "鎬诲儚绱犱笉瓒?65 涓?
+      pixelsTooMany: "鎬诲儚绱犺秴杩?830 涓?
     qualityValue:
-      auto: "自动"
-      low: "低"
-      medium: "中"
-      high: "高"
+      auto: "鑷姩"
+      low: "浣?
+      medium: "涓?
+      high: "楂?
     backgroundValue:
-      auto: "自动"
-      transparent: "透明"
-      opaque: "不透明"
+      auto: "鑷姩"
+      transparent: "閫忔槑"
+      opaque: "涓嶉€忔槑"
     moderationValue:
-      auto: "标准"
-      low: "宽松"
+      auto: "鏍囧噯"
+      low: "瀹芥澗"
 
 bottomPanel:
-  properties: "属性"
-  tasks: "任务"
-  output: "输出"
-  timeline: "时间线"
-  noOutput: "暂无输出"
+  properties: "灞炴€?
+  tasks: "浠诲姟"
+  output: "杈撳嚭"
+  timeline: "鏃堕棿绾?
+  noOutput: "鏆傛棤杈撳嚭"
 
 fileEditor:
-  readOnly: "此文件类型暂不支持编辑"
-  unsaved: "未保存"
-  confirmCloseTitle: "未保存的更改"
-  confirmCloseDesc: "{name} 有未保存的更改，是否在关闭前保存？"
-  cancel: "取消"
-  dontSave: "不保存"
-  save: "保存"
-  close: "关闭"
-  closeOthers: "关闭其他"
-  closeToRight: "关闭右侧"
-  reopenClosed: "重新打开关闭的标签"
-  copyPath: "复制路径"
-  showInExplorer: "在资源管理器中显示"
+  readOnly: "姝ゆ枃浠剁被鍨嬫殏涓嶆敮鎸佺紪杈?
+  unsaved: "鏈繚瀛?
+  confirmCloseTitle: "鏈繚瀛樼殑鏇存敼"
+  confirmCloseDesc: "{name} 鏈夋湭淇濆瓨鐨勬洿鏀癸紝鏄惁鍦ㄥ叧闂墠淇濆瓨锛?
+  cancel: "鍙栨秷"
+  dontSave: "涓嶄繚瀛?
+  save: "淇濆瓨"
+  close: "鍏抽棴"
+  closeOthers: "鍏抽棴鍏朵粬"
+  closeToRight: "鍏抽棴鍙充晶"
+  reopenClosed: "閲嶆柊鎵撳紑鍏抽棴鐨勬爣绛?
+  copyPath: "澶嶅埗璺緞"
+  showInExplorer: "鍦ㄨ祫婧愮鐞嗗櫒涓樉绀?
 
 contextMenu:
-  newFile: "新建文件"
-  newFolder: "新建文件夹"
-  rename: "重命名"
-  delete: "删除"
-  openInExplorer: "在资源管理器中打开"
+  newFile: "鏂板缓鏂囦欢"
+  newFolder: "鏂板缓鏂囦欢澶?
+  rename: "閲嶅懡鍚?
+  delete: "鍒犻櫎"
+  openInExplorer: "鍦ㄨ祫婧愮鐞嗗櫒涓墦寮€"
 
 autoMode:
   title: "自动模式"
-  hint: "自动模式将依次推进所有未定稿章节。"
+  hint: "先根据剧情概括生成资产包，确认后再连续推进未完成章节。"
+  plotSummary: "剧情概括"
+  plotSummaryPlaceholder: "先输入人工确认的剧情概括，再启动全自动模式。"
+  plotSummaryStatus: "剧情：{value}"
+  approvePlan: "确认资产包并开始写作"
+  bundlePath: "资产包：{path}"
   start: "启动自动模式"
   pause: "暂停"
   resume: "恢复"
@@ -453,6 +458,8 @@ autoMode:
   unknownError: "未知错误"
   statusValue:
     idle: "未启动"
+    planning: "规划中"
+    awaiting_approval: "等待确认"
     running: "运行中"
     paused: "已暂停"
     completed: "已完成"
@@ -460,103 +467,103 @@ autoMode:
     failed: "失败"
 
 orchestration:
-  startMain: "启动主链路"
-  starting: "启动中..."
-  needsHumanReview: "流程需要人工介入"
-  acceptCurrent: "接受当前结果"
-  abortRun: "终止流程"
+  startMain: "鍚姩涓婚摼璺?
+  starting: "鍚姩涓?.."
+  needsHumanReview: "娴佺▼闇€瑕佷汉宸ヤ粙鍏?
+  acceptCurrent: "鎺ュ彈褰撳墠缁撴灉"
+  abortRun: "缁堟娴佺▼"
   runId: "Run: {id}"
-  status: "状态: {value}"
-  reviewSummary: "审核: {verdict} - {summary}"
-  startFailed: "启动失败: {status}"
-  refreshFailed: "刷新失败: {status}"
-  actionFailed: "操作失败: {status}"
-  unknownError: "未知错误"
+  status: "鐘舵€? {value}"
+  reviewSummary: "瀹℃牳: {verdict} - {summary}"
+  startFailed: "鍚姩澶辫触: {status}"
+  refreshFailed: "鍒锋柊澶辫触: {status}"
+  actionFailed: "鎿嶄綔澶辫触: {status}"
+  unknownError: "鏈煡閿欒"
 
 novelChapter:
-  noProject: "当前未打开项目"
-  startFailed: "启动章节失败: {status}"
-  noCandidate: "本次 run 未产出 candidate"
-  acceptFailed: "接受失败"
-  unknownError: "未知错误"
-  emptyList: "当前项目暂无章节。"
-  unnamed: "（未命名 {id}）"
-  selectChapter: "请选择一个章节以触发生成。"
-  result: "结果"
-  generating: "生成中，请稍候…"
-  empty: "尚无候选，请先选择章节并触发生成。"
-  wordCount: "字数：{count}"
-  acceptCandidate: "接受候选"
-  rejectCandidate: "丢弃候选"
+  noProject: "褰撳墠鏈墦寮€椤圭洰"
+  startFailed: "鍚姩绔犺妭澶辫触: {status}"
+  noCandidate: "鏈 run 鏈骇鍑?candidate"
+  acceptFailed: "鎺ュ彈澶辫触"
+  unknownError: "鏈煡閿欒"
+  emptyList: "褰撳墠椤圭洰鏆傛棤绔犺妭銆?
+  unnamed: "锛堟湭鍛藉悕 {id}锛?
+  selectChapter: "璇烽€夋嫨涓€涓珷鑺備互瑙﹀彂鐢熸垚銆?
+  result: "缁撴灉"
+  generating: "鐢熸垚涓紝璇风◢鍊欌€?
+  empty: "灏氭棤鍊欓€夛紝璇峰厛閫夋嫨绔犺妭骞惰Е鍙戠敓鎴愩€?
+  wordCount: "瀛楁暟锛歿count}"
+  acceptCandidate: "鎺ュ彈鍊欓€?
+  rejectCandidate: "涓㈠純鍊欓€?
   statusValue:
-    draft: "草稿"
-    generating: "生成中"
-    revised: "已修订"
-    final: "已定稿"
+    draft: "鑽夌"
+    generating: "鐢熸垚涓?
+    revised: "宸蹭慨璁?
+    final: "宸插畾绋?
   runStatusValue:
-    idle: "待生成"
-    running: "生成中…"
-    pending: "等待审阅"
-    accepted: "已接受"
-    rejected: "已丢弃"
-    failed: "失败"
+    idle: "寰呯敓鎴?
+    running: "鐢熸垚涓€?
+    pending: "绛夊緟瀹￠槄"
+    accepted: "宸叉帴鍙?
+    rejected: "宸蹭涪寮?
+    failed: "澶辫触"
   actionLabel:
-    generate: "生成本章"
-    continue: "续写"
-    polish: "润色"
-    review: "复审"
+    generate: "鐢熸垚鏈珷"
+    continue: "缁啓"
+    polish: "娑﹁壊"
+    review: "澶嶅"
 
 memory:
-  empty: "暂无记忆条目。生成章节后将自动归档。"
-  chapterHeader: "第{n}章"
-  charactersLabel: "角色：{names}"
-  foreshadowBadge: "伏笔"
+  empty: "鏆傛棤璁板繂鏉＄洰銆傜敓鎴愮珷鑺傚悗灏嗚嚜鍔ㄥ綊妗ｃ€?
+  chapterHeader: "绗瑊n}绔?
+  charactersLabel: "瑙掕壊锛歿names}"
+  foreshadowBadge: "浼忕瑪"
   typeValue:
-    chapter_summary: "章节摘要"
-    character_mentions: "角色提及"
-    foreshadow_seed: "悬念线索"
+    chapter_summary: "绔犺妭鎽樿"
+    character_mentions: "瑙掕壊鎻愬強"
+    foreshadow_seed: "鎮康绾跨储"
 
 update:
-  title: "更新"
-  available: "发现新版本"
-  availableDesc: "当前版本 v{current}，最新版本 v{latest}。"
-  upToDate: "已是最新版本"
-  upToDateDesc: "你的版本 v{current} 已是最新。"
-  notConfigured: "未配置更新清单"
-  notConfiguredDesc: "请先到「设置 → 通用 → 更新清单 URL」填入清单地址。"
-  error: "检查更新失败"
-  later: "稍后"
-  download: "前往下载"
-  ok: "好的"
+  title: "鏇存柊"
+  available: "鍙戠幇鏂扮増鏈?
+  availableDesc: "褰撳墠鐗堟湰 v{current}锛屾渶鏂扮増鏈?v{latest}銆?
+  upToDate: "宸叉槸鏈€鏂扮増鏈?
+  upToDateDesc: "浣犵殑鐗堟湰 v{current} 宸叉槸鏈€鏂般€?
+  notConfigured: "鏈厤缃洿鏂版竻鍗?
+  notConfiguredDesc: "璇峰厛鍒般€岃缃?鈫?閫氱敤 鈫?鏇存柊娓呭崟 URL銆嶅～鍏ユ竻鍗曞湴鍧€銆?
+  error: "妫€鏌ユ洿鏂板け璐?
+  later: "绋嶅悗"
+  download: "鍓嶅線涓嬭浇"
+  ok: "濂界殑"
 
 findReplace:
-  findPlaceholder: "查找..."
-  replacePlaceholder: "替换..."
-  caseSensitive: "区分大小写"
-  previous: "上一个"
-  next: "下一个"
-  close: "关闭"
-  replace: "替换"
-  replaceAll: "全部替换"
+  findPlaceholder: "鏌ユ壘..."
+  replacePlaceholder: "鏇挎崲..."
+  caseSensitive: "鍖哄垎澶у皬鍐?
+  previous: "涓婁竴涓?
+  next: "涓嬩竴涓?
+  close: "鍏抽棴"
+  replace: "鏇挎崲"
+  replaceAll: "鍏ㄩ儴鏇挎崲"
 
 shortcuts:
-  find: "查找"
-  replace: "替换"
-  commandPalette: "命令面板"
-  quickOpen: "快速打开文件"
-  tabs: "标签页"
-  nextTab: "下一个标签"
-  prevTab: "上一个标签"
+  find: "鏌ユ壘"
+  replace: "鏇挎崲"
+  commandPalette: "鍛戒护闈㈡澘"
+  quickOpen: "蹇€熸墦寮€鏂囦欢"
+  tabs: "鏍囩椤?
+  nextTab: "涓嬩竴涓爣绛?
+  prevTab: "涓婁竴涓爣绛?
 
 commandPalette:
-  title: "命令面板"
-  commandPlaceholder: "输入命令..."
-  filePlaceholder: "搜索文件..."
-  noResults: "没有匹配的命令"
+  title: "鍛戒护闈㈡澘"
+  commandPlaceholder: "杈撳叆鍛戒护..."
+  filePlaceholder: "鎼滅储鏂囦欢..."
+  noResults: "娌℃湁鍖归厤鐨勫懡浠?
 
 timeline:
-  noProject: "打开项目以查看历史记录。"
-  notARepo: "此项目不是 Git 仓库。"
-  loading: "加载历史..."
-  noCommits: "暂无提交记录。"
-  changedFiles: "变更文件"
+  noProject: "鎵撳紑椤圭洰浠ユ煡鐪嬪巻鍙茶褰曘€?
+  notARepo: "姝ら」鐩笉鏄?Git 浠撳簱銆?
+  loading: "鍔犺浇鍘嗗彶..."
+  noCommits: "鏆傛棤鎻愪氦璁板綍銆?
+  changedFiles: "鍙樻洿鏂囦欢"
