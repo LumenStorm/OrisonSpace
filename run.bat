@@ -28,17 +28,61 @@ set /p choice="  Select [0-9]: "
 
 :runchoice
 if "%choice%"=="0" exit /b 0
-if "%choice%"=="1" ( call :killport 4000 && call :killport 18422 && start "OrisonAgent" cmd /k "pnpm dev:agent" && start "OrisonServer" cmd /k "pnpm dev:server" && ping -n 5 127.0.0.1 >nul && pnpm dev && goto done )
-if "%choice%"=="2" ( pnpm dev && goto done )
-if "%choice%"=="3" ( call :killport 4000 && pnpm dev:server && goto done )
-if "%choice%"=="4" ( call :killport 18422 && pnpm dev:agent && goto done )
-if "%choice%"=="5" ( pnpm build && goto done )
-if "%choice%"=="6" ( pnpm build:desktop && goto done )
-if "%choice%"=="7" ( pnpm build:server && goto done )
-if "%choice%"=="8" ( pnpm test && goto done )
-if "%choice%"=="9" ( pnpm typecheck && goto done )
+if "%choice%"=="1" goto devall
+if "%choice%"=="2" goto develectron
+if "%choice%"=="3" goto devserver
+if "%choice%"=="4" goto devagent
+if "%choice%"=="5" goto buildall
+if "%choice%"=="6" goto builddesktop
+if "%choice%"=="7" goto buildserver
+if "%choice%"=="8" goto testall
+if "%choice%"=="9" goto typecheck
 
 echo   Invalid: %choice%
+goto done
+
+:devall
+call :killport 43117
+call :killport 18422
+start "OrisonAgent" /D "%~dp0" cmd /k "pnpm dev:agent"
+start "OrisonServer" /D "%~dp0" cmd /k "pnpm dev:server"
+ping -n 5 127.0.0.1 >nul
+pnpm dev
+goto done
+
+:develectron
+pnpm dev
+goto done
+
+:devserver
+call :killport 43117
+pnpm dev:server
+goto done
+
+:devagent
+call :killport 18422
+pnpm dev:agent
+goto done
+
+:buildall
+pnpm build
+goto done
+
+:builddesktop
+pnpm build:desktop
+goto done
+
+:buildserver
+pnpm build:server
+goto done
+
+:testall
+pnpm test
+goto done
+
+:typecheck
+pnpm typecheck
+goto done
 
 :done
 echo.

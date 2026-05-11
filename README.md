@@ -238,7 +238,7 @@ pnpm install
 
 ```powershell
 pnpm dev           # 启动桌面端（desktop-shell）
-pnpm dev:server    # 启动服务端 http://localhost:4000
+pnpm dev:server    # 启动服务端 http://localhost:43117
 pnpm dev:agent     # 启动 Agent http://localhost:18422
 ```
 
