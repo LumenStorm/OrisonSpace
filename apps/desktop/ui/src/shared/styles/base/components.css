@@ -146,3 +146,80 @@
 .error-boundary-btn:hover {
   background: var(--hover-overlay);
 }
+
+/* ── Command Palette ── */
+.cmd-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.cmd-palette {
+  width: min(520px, 90vw);
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.cmd-palette-input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  border-bottom: 1px solid var(--outline-variant);
+  background: transparent;
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.cmd-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.cmd-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--on-surface);
+}
+
+.cmd-palette-item.is-selected {
+  background: var(--hover-overlay);
+}
+
+.cmd-palette-item-icon {
+  font-size: 1.1rem;
+  color: var(--on-surface-variant);
+}
+
+.cmd-palette-item-label {
+  flex: 1;
+}
+
+.cmd-palette-item-shortcut {
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+  opacity: 0.7;
+}
+
+.cmd-palette-empty {
+  padding: 0.8rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--on-surface-variant);
+  text-align: center;
+}

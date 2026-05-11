@@ -30,6 +30,10 @@
   - novel workbench
   - memory
   - auto mode
+  - command-palette
+  - timeline
+  - bottom-panel
+  - top-bar
 - 一个 feature 的入口组件应主要负责：
   - 状态选择
   - 子视图编排
@@ -56,7 +60,7 @@
   - `tokens.css` / `global.css` 保留在根
   - `base/` 存放基础原语（`components.css` `welcome.css`）
   - `layout/` 存放应用外壳样式（`workspace.css` `topbar.css` `sidebar.css` `pages.css`）
-  - `editor/` 存放编辑器相关样式（`tiptap.css` `script.css` `video.css` `image-gen.css` `image-dialog.css` `novel.css` `file.css`）
+  - `editor/` 存放编辑器相关样式（`tiptap.css` `script.css` `video.css` `image-gen.css` `image-dialog.css` `novel.css` `file.css` `timeline.css`）
   - 叶子文件 `inspector.css` / `creative.css` 暂留根目录
 - `global.css` 是唯一入口，按顺序 `@import` 其他文件
   - 级联顺序必须保留：`.image-gen-inspector-*` 必须排在 `.image-gen-*` 之后、`components.css` 保持在所有 editor 样式之后

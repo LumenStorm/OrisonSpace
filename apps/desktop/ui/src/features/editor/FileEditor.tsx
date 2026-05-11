@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { isImageFileName } from '../../shared/utils/fileType';
 import { MarkdownEditor } from './file-editor/MarkdownEditor';
@@ -9,19 +8,6 @@ import { ReadOnlyPreview } from './file-editor/ReadOnlyPreview';
 export function FileEditor() {
   const activeFilePath = useAppStore((s) => s.activeFilePath);
   const openFiles = useAppStore((s) => s.openFiles);
-  const saveFile = useAppStore((s) => s.saveFile);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        const path = useAppStore.getState().activeFilePath;
-        if (path) saveFile(path);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [saveFile]);
 
   const file = openFiles.find((f) => f.path === activeFilePath);
   if (!file) return null;

@@ -84,6 +84,29 @@
 |---|---|---|---|
 | `field:sync` | renderer -> main | invoke | 将单个创作字段同步回项目文件 |
 
+### 版本与更新通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `app:get-version` | renderer -> main | invoke | 获取当前应用版本号 |
+| `update:check` | renderer -> main | invoke | 检查是否有新版本可用 |
+
+### 日志通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `log:open-dir` | renderer -> main | invoke | 打开日志目录 |
+| `log:write` | renderer -> main | invoke | 写入一条日志 |
+
+### Git 通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `git:is-repo` | renderer -> main | invoke | 检查目录是否为 Git 仓库 |
+| `git:log` | renderer -> main | invoke | 获取提交历史（默认 50 条） |
+| `git:commit-diff` | renderer -> main | invoke | 获取指定提交的变更文件列表 |
+| `git:file-at-commit` | renderer -> main | invoke | 读取指定提交中某文件的内容 |
+
 ---
 
 ## 当前暴露的 preload API
@@ -130,6 +153,17 @@ window.orisonDesktop = {
   upsertTask,
   updateTaskStatus,
   deleteTask,
+  // Logging
+  openLogsDir,
+  writeLog,
+  // Version + update
+  getAppVersion,
+  checkForUpdate,
+  // Git
+  gitIsRepo,
+  gitLog,
+  gitCommitDiff,
+  gitFileAtCommit,
 }
 ```
 

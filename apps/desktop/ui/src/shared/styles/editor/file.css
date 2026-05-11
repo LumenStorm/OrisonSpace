@@ -211,3 +211,99 @@
   box-shadow: var(--shadow-soft);
   background: var(--surface-container-lowest);
 }
+
+/* ── Find / Replace Bar ── */
+.find-replace-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface-container);
+  border-bottom: 1px solid var(--outline-variant);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.find-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.find-replace-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.find-replace-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.find-replace-count {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  min-width: 3.2em;
+  text-align: center;
+}
+
+.find-replace-toggle,
+.find-replace-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.find-replace-toggle:hover,
+.find-replace-btn:hover {
+  background: var(--hover-overlay);
+}
+
+.find-replace-toggle.is-active {
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+}
+
+.find-replace-btn .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.find-replace-action {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.find-replace-action:hover:not(:disabled) {
+  background: var(--hover-overlay);
+}
+
+.find-replace-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

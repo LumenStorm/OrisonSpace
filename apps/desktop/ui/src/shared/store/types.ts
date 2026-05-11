@@ -2,7 +2,7 @@ import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
 export type WorkspaceModule = 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'image_gen';
-export type BottomPanelTab = 'properties' | 'tasks' | 'output';
+export type BottomPanelTab = 'properties' | 'tasks' | 'output' | 'timeline';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
 export type LocaleSetting = 'system' | (string & {});
 export type TaskRequest = z.infer<typeof taskRequestSchema>;

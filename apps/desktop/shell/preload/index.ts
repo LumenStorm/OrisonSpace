@@ -3,6 +3,8 @@ import type {
   GenerateImagePayload,
   GenerateTextPayload,
   GenerateVideoPayload,
+  GitCommitEntry,
+  GitFileDiff,
   ImageGenerationResponse,
   ListRemoteModelsRequest,
   ModelConfig,
@@ -14,6 +16,7 @@ import type {
   TaskRecord,
   TaskUpsertInput,
   TextGenerationResponse,
+  UpdateCheckResult,
   UserPreferencesConfig,
   VideoGenerationResponse,
 } from '@orison/shared-contracts';
@@ -94,6 +97,16 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('task:update-status', taskId, status, errorMessage) as Promise<void>,
   deleteTask: (taskId: string) =>
     ipcRenderer.invoke('task:delete', taskId) as Promise<void>,
+  // Logging
+  openLogsDir: () => ipcRenderer.invoke('log:open-dir') as Promise<string>,
+  writeLog: (payload: { level: 'debug' | 'info' | 'warn' | 'error' | 'fatal'; message: string; meta?: Record<string, unknown> }) =>
+    ipcRenderer.invoke('log:write', payload) as Promise<void>,
+  getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
+  checkForUpdate: () => ipcRenderer.invoke('update:check') as Promise<UpdateCheckResult>,
+  gitIsRepo: (dir: string) => ipcRenderer.invoke('git:is-repo', dir) as Promise<boolean>,
+  gitLog: (dir: string, depth?: number) => ipcRenderer.invoke('git:log', dir, depth) as Promise<GitCommitEntry[]>,
+  gitCommitDiff: (dir: string, oid: string) => ipcRenderer.invoke('git:commit-diff', dir, oid) as Promise<GitFileDiff[]>,
+  gitFileAtCommit: (dir: string, oid: string, filepath: string) => ipcRenderer.invoke('git:file-at-commit', dir, oid, filepath) as Promise<string | null>,
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

@@ -95,6 +95,7 @@ topbar:
   account: "Account"
   about: "About"
   shortcuts: "Shortcuts"
+  checkForUpdate: "Check for Updates"
 
 storyboard:
   cameraLens: "Camera Lens"
@@ -231,6 +232,8 @@ settings:
   hideKey: "Hide"
   autoApply: "Auto-apply AI results"
   autoApplyDesc: "When enabled, AI results are applied automatically. Only escalations require manual review."
+  updateManifestUrl: "Update manifest URL"
+  updateManifestHint: "App fetches a JSON manifest (with latestVersion / downloadUrl) from this URL. Leave empty to disable update checks."
   usedFor: "Used for"
   usedForNovel: "Novel"
   usedForImage: "Image"
@@ -408,11 +411,23 @@ bottomPanel:
   properties: "Properties"
   tasks: "Tasks"
   output: "Output"
+  timeline: "Timeline"
   noOutput: "No output yet"
 
 fileEditor:
   readOnly: "This file type is not editable"
   unsaved: "Unsaved"
+  confirmCloseTitle: "Unsaved changes"
+  confirmCloseDesc: "{name} has unsaved changes. Save before closing?"
+  cancel: "Cancel"
+  dontSave: "Don't save"
+  save: "Save"
+  close: "Close"
+  closeOthers: "Close others"
+  closeToRight: "Close to the right"
+  reopenClosed: "Reopen closed editor"
+  copyPath: "Copy path"
+  showInExplorer: "Reveal in file manager"
 
 contextMenu:
   newFile: "New File"
@@ -500,3 +515,48 @@ memory:
     chapter_summary: "Chapter Summary"
     character_mentions: "Character Mentions"
     foreshadow_seed: "Foreshadow Seed"
+
+update:
+  title: "Updates"
+  available: "Update available"
+  availableDesc: "Current version v{current}, latest v{latest}."
+  upToDate: "Up to date"
+  upToDateDesc: "You're on v{current}, the latest release."
+  notConfigured: "Update manifest not configured"
+  notConfiguredDesc: "Open Settings → General → Update manifest URL and provide a URL first."
+  error: "Update check failed"
+  later: "Later"
+  download: "Download"
+  ok: "OK"
+
+findReplace:
+  findPlaceholder: "Find..."
+  replacePlaceholder: "Replace..."
+  caseSensitive: "Match case"
+  previous: "Previous"
+  next: "Next"
+  close: "Close"
+  replace: "Replace"
+  replaceAll: "Replace all"
+
+shortcuts:
+  find: "Find"
+  replace: "Replace"
+  commandPalette: "Command Palette"
+  quickOpen: "Quick Open File"
+  tabs: "Tabs"
+  nextTab: "Next Tab"
+  prevTab: "Previous Tab"
+
+commandPalette:
+  title: "Command Palette"
+  commandPlaceholder: "Type a command..."
+  filePlaceholder: "Search files..."
+  noResults: "No matching commands"
+
+timeline:
+  noProject: "Open a project to view its history."
+  notARepo: "This project is not a Git repository."
+  loading: "Loading history..."
+  noCommits: "No commits found."
+  changedFiles: "Changed files"

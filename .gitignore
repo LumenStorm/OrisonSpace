@@ -18,3 +18,5 @@ __pycache__/
 .env.agent
 *.pem
 .claude/
+apps/agent/logs/
+apps/server/logs/

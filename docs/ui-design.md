@@ -116,6 +116,42 @@
 - settings
 - account
 
+### EditorArea 标签栏 (FileTabBar)
+
+编辑区顶部的文件标签栏，支持：
+
+| 功能 | 触发方式 | 说明 |
+|---|---|---|
+| 关闭标签 | 中键点击 / 标签 × 按钮 / `Ctrl+W` | 未保存时弹出确认对话框（保存/不保存/取消） |
+| 切换标签 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | 循环切换已打开文件 |
+| 重新打开 | `Ctrl+Shift+T` | 从 `recentlyClosed` 栈恢复最近关闭的文件 |
+| 右键菜单 | 标签右键 | 关闭 / 关闭其他 / 关闭右侧 / 重新打开已关闭 / 复制路径 / 在资源管理器中显示 |
+
+### 查找与替换 (FindReplaceBar)
+
+编辑器内嵌的查找替换栏：
+
+| 快捷键 | 功能 |
+|---|---|
+| `Ctrl+F` | 打开查找栏 |
+| `Ctrl+H` | 打开替换栏 |
+| `Enter` / `Shift+Enter` | 下一个 / 上一个匹配 |
+| `Escape` | 关闭 |
+
+支持大小写切换、逐个替换、全部替换。通过 `FindReplaceAdapter` 接口适配 Markdown (Tiptap) 和 Code (textarea) 两种编辑器。
+
+### 命令面板 (CommandPalette)
+
+| 快捷键 | 模式 | 说明 |
+|---|---|---|
+| `Ctrl+Shift+P` | 命令模式 | 搜索并执行已注册命令 |
+| `Ctrl+P` | 文件模式 | 快速搜索并打开项目文件 |
+
+- 组件：`features/command-palette/CommandPalette.tsx`
+- 命令注册：`features/command-palette/commandRegistry.ts`
+- 状态：`commandPaletteSlice`（`open` / `mode` / `query`）
+- 支持 fuzzy match 过滤
+
 ## 5. 模型设置页
 
 ### 当前数据概念
@@ -213,12 +249,14 @@ BottomPanel 当前包含：
 - properties
 - tasks
 - output
+- timeline
 
 其中：
 
 - properties：根据当前模块显示参数或设置字段
 - tasks：任务流与状态
 - output：真实输出控制台，不再是纯占位
+- timeline：Git 提交历史时间线，展示提交列表与选中提交的变更文件
 
 ## 9. 当前 UI 设计与代码的一致性说明
 
@@ -236,7 +274,7 @@ BottomPanel 当前包含：
   - 根：`tokens.css`、`global.css`（唯一入口）、`inspector.css`、`creative.css`
   - `base/`：`components.css`、`welcome.css`
   - `layout/`：`workspace.css`、`topbar.css`、`sidebar.css`、`pages.css`
-  - `editor/`：`tiptap.css`、`script.css`、`video.css`、`image-gen.css`、`image-dialog.css`、`novel.css`、`file.css`
+  - `editor/`：`tiptap.css`、`script.css`、`video.css`、`image-gen.css`、`image-dialog.css`、`novel.css`、`file.css`、`timeline.css`
 - `global.css` 通过 `@import` 串联所有文件，顺序与原单文件时期一致，级联敏感规则（例如 `.image-gen-inspector-*` 排在 `.image-gen-*` 之后、`components.css` 作为末尾层）必须保留
 - 渲染层只 import 一次 `global.css`，不单独引入子文件
 
@@ -249,3 +287,6 @@ BottomPanel 当前包含：
 - 模型设置页交互状态
 - 图片生成入口和保存路径
 - story-sync 在 UI 中的触发方式
+- 底部面板标签增减
+- 编辑器快捷键或命令面板命令变更
+- FileTabBar 右键菜单项变更

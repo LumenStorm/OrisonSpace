@@ -5,6 +5,7 @@ type Props = { onClose: () => void };
 
 export function AboutDialog({ onClose }: Props) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
+  const appVersion = useAppStore((s) => s.appVersion);
   const { t } = useI18n(resolvedLocale);
 
   return (
@@ -19,7 +20,7 @@ export function AboutDialog({ onClose }: Props) {
 
         <div className="settings-dialog-body about-dialog-body">
           <div className="about-dialog-brand">{t('welcome.brand')}</div>
-          <div className="about-dialog-version">v0.1.0</div>
+          <div className="about-dialog-version">v{appVersion || '—'}</div>
           <p className="about-dialog-desc">{t('welcome.tagline')}</p>
         </div>
       </div>

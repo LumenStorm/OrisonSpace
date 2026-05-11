@@ -1,5 +1,6 @@
 import { app, BrowserWindow, session } from 'electron';
 import path from 'node:path';
+import { getLogger, installGlobalErrorHandlers } from './logger';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
 import { registerConfigIpc } from './ipc/configIpc';
@@ -8,6 +9,9 @@ import { registerModelProviderIpc } from './ipc/modelProviderIpc';
 import { registerModelGatewayIpc } from './ipc/modelGatewayIpc';
 import { registerStorySyncIpc } from './ipc/storySyncIpc';
 import { registerTaskIpc } from './ipc/taskIpc';
+import { registerLogIpc } from './ipc/logIpc';
+import { registerUpdateIpc } from './ipc/updateIpc';
+import { registerGitIpc } from './ipc/gitIpc';
 
 /* ── CSP ── */
 
@@ -64,6 +68,17 @@ function createWindow() {
   registerStorySyncIpc();
   registerFieldSyncIpc();
   registerTaskIpc();
+  registerLogIpc();
+  registerUpdateIpc();
+  registerGitIpc();
+
+  // Prevent Chromium from swallowing shortcuts we handle in the renderer
+  const passthroughKeys = new Set(['Tab', 'n', 'w', 't']);
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.control || input.meta) && passthroughKeys.has(input.key)) {
+      event.preventDefault();
+    }
+  });
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
@@ -73,6 +88,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  installGlobalErrorHandlers();
+  getLogger().info({ platform: process.platform, version: app.getVersion() }, 'desktop main starting');
   createWindow();
 
   app.on('activate', () => {

@@ -8,6 +8,8 @@ type Props = {
   setLocale: (locale: LocaleSetting) => void;
   autoApplyPatches: boolean;
   setAutoApplyPatches: (value: boolean) => void;
+  updateManifestUrl: string;
+  setUpdateManifestUrl: (url: string) => void;
 };
 
 export function GeneralSettingsPage({
@@ -18,6 +20,8 @@ export function GeneralSettingsPage({
   setLocale,
   autoApplyPatches,
   setAutoApplyPatches,
+  updateManifestUrl,
+  setUpdateManifestUrl,
 }: Props) {
   return (
     <div className="settings-page">
@@ -71,6 +75,21 @@ export function GeneralSettingsPage({
         </label>
         <span className="sidebar-settings-hint">{t('settings.autoApplyDesc')}</span>
       </div>
+
+      <div className="sidebar-settings-divider" />
+
+      <label className="sidebar-settings-input-row">
+        <span className="sidebar-settings-input-label">{t('settings.updateManifestUrl')}</span>
+        <input
+          type="url"
+          className="sidebar-settings-input"
+          placeholder="https://example.com/orison/latest.json"
+          value={updateManifestUrl}
+          onChange={(e) => setUpdateManifestUrl(e.target.value)}
+          spellCheck={false}
+        />
+      </label>
+      <span className="sidebar-settings-hint">{t('settings.updateManifestHint')}</span>
     </div>
   );
 }

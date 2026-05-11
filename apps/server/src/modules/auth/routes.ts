@@ -5,13 +5,13 @@ import { query } from '../../common/db';
 import { createToken } from './plugin';
 
 const registerBody = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(v => v.trim().toLowerCase()),
   password: z.string().min(1),
   displayName: z.string().min(1).optional(),
 });
 
 const loginBody = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform(v => v.trim().toLowerCase()),
   password: z.string().min(1),
 });
 

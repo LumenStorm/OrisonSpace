@@ -6,6 +6,8 @@ import { WindowControls, detectIsMac } from '../../shared/components/WindowContr
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { AccountDialog } from '../../shared/components/AccountDialog';
 import { AboutDialog } from '../../shared/components/AboutDialog';
+import { UpdateAvailableDialog } from '../../shared/components/UpdateAvailableDialog';
+import { ShortcutsDialog } from '../../shared/components/ShortcutsDialog';
 import { useGlobalShortcuts } from '../../shared/hooks/useGlobalShortcuts';
 import { useOpenProject } from '../../shared/hooks/useOpenProject';
 import { MenuDropdown, type MenuItem } from './MenuDropdown';
@@ -17,6 +19,13 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const currentProject = useAppStore((s) => s.currentProject);
   const saveProject = useAppStore((s) => s.saveProject);
   const saveChaptersToProject = useAppStore((s) => s.saveChaptersToProject);
+  const saveAllOpenFiles = useAppStore((s) => s.saveAllOpenFiles);
+  const requestCloseFile = useAppStore((s) => s.requestCloseFile);
+  const reopenLastClosedFile = useAppStore((s) => s.reopenLastClosedFile);
+  const cycleActiveFile = useAppStore((s) => s.cycleActiveFile);
+  const checkForUpdate = useAppStore((s) => s.checkForUpdate);
+  const appVersion = useAppStore((s) => s.appVersion);
+  const openPalette = useAppStore((s) => s.openPalette);
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
   const undoLen = useAppStore((s) => s.undoStack.length);
@@ -30,12 +39,14 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
     await saveProject();
     await saveChaptersToProject();
-  }, [saveProject, saveChaptersToProject]);
+    await saveAllOpenFiles();
+  }, [saveProject, saveChaptersToProject, saveAllOpenFiles]);
 
   const handleUndo = useCallback(() => undo(), [undo]);
   const handleRedo = useCallback(() => redo(), [redo]);
@@ -47,7 +58,18 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
     'y': handleRedo,
     'n': () => setShowNewDialog(true),
     'o': () => handleOpen(),
-  }), [handleSave, handleUndo, handleRedo, handleOpen]);
+    'w': () => {
+      const active = useAppStore.getState().activeFilePath;
+      if (active) requestCloseFile(active);
+    },
+    'Shift+t': () => { void reopenLastClosedFile(); },
+    'tab': () => cycleActiveFile(1),
+    'Shift+tab': () => cycleActiveFile(-1),
+    'p': () => openPalette('files'),
+    'Shift+p': () => openPalette('commands'),
+    'b': toggleProjectTree,
+    'j': toggleBottomPanel,
+  }), [handleSave, handleUndo, handleRedo, handleOpen, requestCloseFile, reopenLastClosedFile, cycleActiveFile, openPalette, toggleProjectTree, toggleBottomPanel]);
 
   useGlobalShortcuts(shortcuts);
 
@@ -72,16 +94,18 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
   ];
 
   const viewItems: MenuItem[] = [
-    { type: 'action', label: t('topbar.toggleProjectTree'), handler: toggleProjectTree },
-    { type: 'action', label: t('topbar.toggleBottomPanel'), handler: toggleBottomPanel },
+    { type: 'action', label: t('topbar.toggleProjectTree'), shortcut: `${modKey}B`, handler: toggleProjectTree },
+    { type: 'action', label: t('topbar.toggleBottomPanel'), shortcut: `${modKey}J`, handler: toggleBottomPanel },
     { type: 'separator' },
     { type: 'action', label: t('topbar.settings'), handler: () => setShowSettings(true) },
     { type: 'action', label: t('topbar.account'), handler: () => setShowAccount(true) },
   ];
 
   const helpItems: MenuItem[] = [
+    { type: 'action', label: t('topbar.checkForUpdate'), handler: () => { void checkForUpdate(); } },
+    { type: 'separator' },
     { type: 'action', label: t('topbar.about'), handler: () => setShowAbout(true) },
-    { type: 'action', label: t('topbar.shortcuts'), handler: () => {} },
+    { type: 'action', label: t('topbar.shortcuts'), handler: () => setShowShortcuts(true) },
   ];
 
   const menus = [
@@ -105,7 +129,10 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
       <header className="workspace-topbar">
         {isMac && <div className="topbar-traffic-light-spacer" />}
 
-        <div className="workspace-brand">{t('welcome.brand')}</div>
+        <div className="workspace-brand">
+          {t('welcome.brand')}
+          {appVersion && <span className="workspace-brand-version">v{appVersion}</span>}
+        </div>
 
         {!minimal && (
           <nav className="topbar-menu" aria-label="Main Menu" role="menubar">
@@ -142,6 +169,8 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
       {showAccount && <AccountDialog onClose={() => setShowAccount(false)} />}
       {showAbout && <AboutDialog onClose={() => setShowAbout(false)} />}
+      {showShortcuts && <ShortcutsDialog onClose={() => setShowShortcuts(false)} />}
+      <UpdateAvailableDialog />
     </>
   );
 }

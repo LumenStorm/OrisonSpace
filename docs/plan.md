@@ -153,3 +153,20 @@
 - 新增 `task:list / task:upsert / task:update-status / task:delete` IPC 通道
 - 任务状态通过 SQLite `tasks` 表持久化，应用重启后可恢复
 - `cancelled` 状态映射为 DB 中的 `failed`（符合 CHECK 约束）
+
+### 6. 编辑器体验增强（2026-05-10）
+
+- FileTabBar：右键上下文菜单、未保存关闭确认、`recentlyClosed` 栈、`Ctrl+W/Tab/Shift+T` 快捷键
+- FindReplaceBar：`Ctrl+F/H` 查找替换，adapter 模式适配 Markdown/Code 编辑器
+- CommandPalette：`Ctrl+Shift+P` 命令面板 / `Ctrl+P` 文件搜索，fuzzy match
+- Git Timeline：底部面板新增 timeline 标签，基于 isomorphic-git 展示提交历史与变更文件
+- 主进程日志系统：pino 文件流 + `logIpc` 暴露给渲染层
+- 版本号与更新检查：`AboutDialog` + `UpdateAvailableDialog`
+
+### 7. 认证与快捷键修复（2026-05-10）
+
+- 登录注册 email 归一化：客户端 `trim().toLowerCase()`，服务端 zod `.transform()`
+- 密码预哈希统一：客户端 `SHA256(password + "orison:auth:v1")` 后发送，后端直接 `bcrypt.compare`
+- 快捷键补全：`Ctrl+B`（项目树）、`Ctrl+J`（底部面板）注册到 `useGlobalShortcuts`
+- Electron `before-input-event`：阻止 Chromium 拦截 `Ctrl+Tab/N/W/T`
+- 帮助 → 快捷键：新增 `ShortcutsDialog` 弹窗，按分类展示所有快捷键

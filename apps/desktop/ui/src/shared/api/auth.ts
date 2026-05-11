@@ -28,12 +28,14 @@ async function postAuth(path: string, body: Record<string, unknown>, fallbackErr
 }
 
 export async function loginRequest(email: string, password: string): Promise<AuthSuccess> {
+  const normalizedEmail = email.trim().toLowerCase();
   const hashed = await hashPassword(password);
-  return postAuth('/v1/auth/login', { email, password: hashed }, 'Login failed');
+  return postAuth('/v1/auth/login', { email: normalizedEmail, password: hashed }, 'Login failed');
 }
 
 export async function registerRequest(email: string, password: string, displayName?: string): Promise<AuthSuccess> {
+  const normalizedEmail = email.trim().toLowerCase();
   const hashed = await hashPassword(password);
-  return postAuth('/v1/auth/register', { email, password: hashed, displayName }, 'Registration failed');
+  return postAuth('/v1/auth/register', { email: normalizedEmail, password: hashed, displayName }, 'Registration failed');
 }
 

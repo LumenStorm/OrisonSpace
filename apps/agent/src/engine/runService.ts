@@ -12,6 +12,7 @@ import { writeArtifactYaml, buildContextPacket, writeContextPacketYaml } from '.
 import { syncForeshadowRegistryFromEpisodes } from './foreshadowLedger';
 import { runNovelPipeline } from './novelPipeline';
 import { runStore } from '../store/runStore';
+import { logger } from '../common/logger';
 import type { RunSnapshot, StartRunCommand } from '../contracts/run';
 
 export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'escalate'; forcePythonFailure?: boolean }) {
@@ -182,7 +183,7 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
         // 落盘：为当前节点写入瘦身上下文包
         if (node.contract) {
           const packet = buildContextPacket(node.contract, run.artifacts, context.fieldVersions, run.runId);
-          try { writeContextPacketYaml(configRoot, run.runId, node.id, packet); } catch (err) { console.warn(`[${run.runId}] context-packet 落盘失败 (${node.id}):`, err); }
+          try { writeContextPacketYaml(configRoot, run.runId, node.id, packet); } catch (err) { logger.warn({ runId: run.runId, nodeId: node.id, err }, 'context-packet write failed'); }
         }
 
         run = {
@@ -300,7 +301,7 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
               source_refs: [`artifact:${stateKey}`]
             });
           }
-        } catch (err) { console.warn(`[${run.runId}] artifact 落盘失败 (${node.id}):`, err); }
+        } catch (err) { logger.warn({ runId: run.runId, nodeId: node.id, err }, 'artifact write failed'); }
 
         if (result.review) {
           const route = routeReview(result.review.verdict);

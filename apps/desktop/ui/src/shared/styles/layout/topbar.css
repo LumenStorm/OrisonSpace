@@ -951,6 +951,73 @@
   filter: brightness(1.05);
 }
 
+.workspace-brand-version {
+  margin-left: 0.45rem;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.update-release-notes {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.update-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.update-btn-secondary,
+.update-btn-primary {
+  min-width: 88px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.update-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--outline-variant);
+  color: var(--on-surface);
+}
+
+.update-btn-secondary:hover {
+  background: var(--hover-overlay);
+}
+
+.update-btn-primary {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--surface-container-lowest);
+}
+
+.update-btn-primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
 @media (max-width: 640px) {
   .settings-dialog {
     width: calc(100vw - 1rem);
@@ -1046,4 +1113,54 @@
   font-size: 0.85rem;
   color: var(--on-surface-variant);
   line-height: 1.5;
+}
+
+/* ── Shortcuts Dialog ── */
+
+.shortcuts-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.shortcuts-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+  margin: 0 0 0.5rem;
+}
+
+.shortcuts-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.shortcuts-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 0;
+}
+
+.shortcuts-row dt {
+  font-size: 0.85rem;
+  color: var(--on-surface);
+}
+
+.shortcuts-row dd {
+  margin: 0;
+}
+
+.shortcuts-row kbd {
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  color: var(--on-surface-variant);
 }

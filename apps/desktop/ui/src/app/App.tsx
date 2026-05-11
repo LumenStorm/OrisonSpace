@@ -4,6 +4,7 @@ import { TopBar } from '../features/top-bar/TopBar';
 import { AuthPage } from '../pages/auth/AuthPage';
 import { ProjectsPage } from '../pages/projects/ProjectsPage';
 import { WorkspacePage } from '../pages/workspace/WorkspacePage';
+import { CommandPalette } from '../features/command-palette/CommandPalette';
 import { AUTH_EXPIRED_EVENT } from '../shared/api/session';
 
 export function App() {
@@ -14,11 +15,13 @@ export function App() {
   const bootstrapAuth = useAppStore((s) => s.bootstrapAuth);
   const loadUserPreferences = useAppStore((s) => s.loadUserPreferences);
   const loadModelConfig = useAppStore((s) => s.loadModelConfig);
+  const loadAppVersion = useAppStore((s) => s.loadAppVersion);
 
   useEffect(() => {
     void loadUserPreferences();
     void loadModelConfig();
-  }, [loadUserPreferences, loadModelConfig]);
+    void loadAppVersion();
+  }, [loadUserPreferences, loadModelConfig, loadAppVersion]);
 
   useEffect(() => {
     window.addEventListener(AUTH_EXPIRED_EVENT, logout);
@@ -37,6 +40,7 @@ export function App() {
     <>
       <TopBar minimal={minimal} />
       {authStatus !== 'authenticated' ? <AuthPage /> : !currentProject ? <ProjectsPage /> : <WorkspacePage />}
+      <CommandPalette />
     </>
   );
 }

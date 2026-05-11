@@ -22,7 +22,11 @@ export const desktopIpcSchema = z.object({
     'model:generate-image',
     'model:generate-video',
     'storySync:run',
-    'field:sync'
+    'field:sync',
+    'git:is-repo',
+    'git:log',
+    'git:commit-diff',
+    'git:file-at-commit',
   ])
 });
 
@@ -95,6 +99,38 @@ export type UserPreferencesConfig = {
   theme: string;
   locale: string;
   autoApplyPatches: boolean;
+  updateManifestUrl?: string;
+};
+
+/* ── Update check IPC ── */
+
+export type UpdateManifest = {
+  /** Latest available version (semver-like, e.g. "0.2.0"). */
+  latestVersion: string;
+  /** External URL the user follows to download the new build. */
+  downloadUrl: string;
+  /** Optional human-readable changelog. */
+  releaseNotes?: string;
+};
+
+export type UpdateCheckResult =
+  | { status: 'up-to-date'; currentVersion: string; latestVersion: string }
+  | { status: 'available'; currentVersion: string; latestVersion: string; downloadUrl: string; releaseNotes?: string }
+  | { status: 'not-configured' }
+  | { status: 'error'; message: string };
+
+/* ── Git IPC types ── */
+
+export type GitCommitEntry = {
+  oid: string;
+  message: string;
+  author: string;
+  timestamp: number;
+};
+
+export type GitFileDiff = {
+  filepath: string;
+  status: 'added' | 'modified' | 'deleted';
 };
 
 /**
@@ -142,6 +178,17 @@ export type OrisonDesktopApi = {
   upsertTask(input: TaskUpsertInput): Promise<void>;
   updateTaskStatus(taskId: string, status: string, errorMessage?: string): Promise<void>;
   deleteTask(taskId: string): Promise<void>;
+  // Logging
+  openLogsDir(): Promise<string>;
+  writeLog(payload: { level: 'debug' | 'info' | 'warn' | 'error' | 'fatal'; message: string; meta?: Record<string, unknown> }): Promise<void>;
+  // Version + update
+  getAppVersion(): Promise<string>;
+  checkForUpdate(): Promise<UpdateCheckResult>;
+  // Git
+  gitIsRepo(dir: string): Promise<boolean>;
+  gitLog(dir: string, depth?: number): Promise<GitCommitEntry[]>;
+  gitCommitDiff(dir: string, oid: string): Promise<GitFileDiff[]>;
+  gitFileAtCommit(dir: string, oid: string, filepath: string): Promise<string | null>;
 };
 
 export type FileTreeEntry = {

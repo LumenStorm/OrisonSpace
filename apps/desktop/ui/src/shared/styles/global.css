@@ -24,6 +24,7 @@
 @import "./editor/image-dialog.css";
 @import "./editor/novel.css";
 @import "./editor/file.css";
+@import "./editor/timeline.css";
 
 @import "./layout/pages.css";
 @import "./creative.css";

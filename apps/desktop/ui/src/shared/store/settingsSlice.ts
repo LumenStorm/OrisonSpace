@@ -24,6 +24,12 @@ export type SettingsSlice = {
   loadModelConfig: () => Promise<void>;
   autoApplyPatches: boolean;
   setAutoApplyPatches: (value: boolean) => void;
+  /** Application version, populated at bootstrap via preload. Empty until loaded. */
+  appVersion: string;
+  loadAppVersion: () => Promise<void>;
+  /** URL to remote update manifest. Empty string means "not configured". */
+  updateManifestUrl: string;
+  setUpdateManifestUrl: (url: string) => void;
 };
 
 function resolveLocale(locale: LocaleSetting): string {
@@ -44,27 +50,30 @@ function saveUserPreferencesSnapshot(config: UserPreferencesConfig): void {
   window.orisonDesktop?.saveUserPreferences?.(config).catch(() => {});
 }
 
+function buildPrefs(get: () => SettingsSlice, overrides: Partial<UserPreferencesConfig> = {}): UserPreferencesConfig {
+  const s = get();
+  const base: UserPreferencesConfig = {
+    theme: s.theme,
+    locale: s.locale,
+    autoApplyPatches: s.autoApplyPatches,
+  };
+  if (s.updateManifestUrl) base.updateManifestUrl = s.updateManifestUrl;
+  return { ...base, ...overrides };
+}
+
 export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSlice> = (set, get) => ({
   theme: DEFAULT_USER_PREFERENCES.theme as ThemeSetting,
   setTheme(theme) {
     applyTheme(theme);
     set({ theme });
-    saveUserPreferencesSnapshot({
-      theme,
-      locale: get().locale,
-      autoApplyPatches: get().autoApplyPatches,
-    });
+    saveUserPreferencesSnapshot(buildPrefs(get, { theme }));
   },
 
   locale: DEFAULT_USER_PREFERENCES.locale as LocaleSetting,
   resolvedLocale: resolveLocale(DEFAULT_USER_PREFERENCES.locale),
   setLocale(locale) {
     set({ locale, resolvedLocale: resolveLocale(locale) });
-    saveUserPreferencesSnapshot({
-      theme: get().theme,
-      locale,
-      autoApplyPatches: get().autoApplyPatches,
-    });
+    saveUserPreferencesSnapshot(buildPrefs(get, { locale }));
   },
   async loadUserPreferences() {
     if (!window.orisonDesktop?.loadUserPreferences) return;
@@ -78,6 +87,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
         locale,
         resolvedLocale: resolveLocale(locale),
         autoApplyPatches: config.autoApplyPatches,
+        updateManifestUrl: config.updateManifestUrl ?? '',
       });
     } catch {
       // Keep defaults when preferences cannot be read.
@@ -103,10 +113,24 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
   autoApplyPatches: DEFAULT_USER_PREFERENCES.autoApplyPatches,
   setAutoApplyPatches(value) {
     set({ autoApplyPatches: value });
-    saveUserPreferencesSnapshot({
-      theme: get().theme,
-      locale: get().locale,
-      autoApplyPatches: value,
-    });
+    saveUserPreferencesSnapshot(buildPrefs(get, { autoApplyPatches: value }));
+  },
+
+  appVersion: '',
+  async loadAppVersion() {
+    if (!window.orisonDesktop?.getAppVersion) return;
+    try {
+      const version = await window.orisonDesktop.getAppVersion();
+      set({ appVersion: version });
+    } catch {
+      // Keep empty version.
+    }
+  },
+
+  updateManifestUrl: '',
+  setUpdateManifestUrl(url) {
+    const trimmed = url.trim();
+    set({ updateManifestUrl: trimmed });
+    saveUserPreferencesSnapshot(buildPrefs(get, { updateManifestUrl: trimmed || undefined }));
   },
 });

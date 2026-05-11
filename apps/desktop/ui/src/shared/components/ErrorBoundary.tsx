@@ -14,7 +14,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info.componentStack);
+    void window.orisonDesktop?.writeLog?.({
+      level: 'error',
+      message: error.message || 'Unhandled renderer error',
+      meta: {
+        stack: error.stack,
+        componentStack: info.componentStack ?? undefined,
+      },
+    });
   }
 
   private handleReload = () => {

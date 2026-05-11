@@ -18,12 +18,14 @@ export function SettingsDialog({ onClose }: Props) {
     resolvedLocale, theme, setTheme, locale, setLocale,
     modelConfig, setModelConfig,
     autoApplyPatches, setAutoApplyPatches,
+    updateManifestUrl, setUpdateManifestUrl,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     theme: s.theme, setTheme: s.setTheme,
     locale: s.locale, setLocale: s.setLocale,
     modelConfig: s.modelConfig, setModelConfig: s.setModelConfig,
     autoApplyPatches: s.autoApplyPatches, setAutoApplyPatches: s.setAutoApplyPatches,
+    updateManifestUrl: s.updateManifestUrl, setUpdateManifestUrl: s.setUpdateManifestUrl,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -64,6 +66,8 @@ export function SettingsDialog({ onClose }: Props) {
                 setLocale={setLocale}
                 autoApplyPatches={autoApplyPatches}
                 setAutoApplyPatches={setAutoApplyPatches}
+                updateManifestUrl={updateManifestUrl}
+                setUpdateManifestUrl={setUpdateManifestUrl}
               />
             ) : (
               <ModelSettingsPage

@@ -72,6 +72,10 @@ setLocale(locale)  // 持久化到 localStorage
 - AuthPage、ProjectsPage、TopBar、SideNav
 - OutlineEditor、ScriptEditor、VideoEditor
 - InspectorPanel、TaskFeedPanel
+- FileTabBar、ConfirmCloseDialog
+- FindReplaceBar
+- CommandPalette
+- TimelinePanel、BottomPanel
 
 ## 三、自定义标题栏 ✅
 

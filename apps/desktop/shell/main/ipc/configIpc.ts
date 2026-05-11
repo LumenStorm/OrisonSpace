@@ -200,6 +200,10 @@ function readUserPreferences(): UserPreferencesConfig {
         typeof raw?.autoApplyPatches === 'boolean'
           ? raw.autoApplyPatches
           : DEFAULT_USER_PREFERENCES.autoApplyPatches,
+      updateManifestUrl:
+        typeof raw?.updateManifestUrl === 'string' && raw.updateManifestUrl.length > 0
+          ? raw.updateManifestUrl
+          : undefined,
     };
   } catch {
     return { ...DEFAULT_USER_PREFERENCES };
@@ -210,7 +214,17 @@ function writeUserPreferences(config: UserPreferencesConfig): void {
   const p = getUserPreferencesPath();
   const dir = path.dirname(p);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(p, stringifyFlatYaml(config), 'utf-8');
+  const flat: Record<string, string | number | boolean | null> = {
+    theme: config.theme,
+    locale: config.locale,
+    autoApplyPatches: config.autoApplyPatches,
+  };
+  if (config.updateManifestUrl) flat.updateManifestUrl = config.updateManifestUrl;
+  writeFileSync(p, stringifyFlatYaml(flat), 'utf-8');
+}
+
+export function readUserPreferencesFromDisk(): UserPreferencesConfig {
+  return readUserPreferences();
 }
 
 /* ── Resolver helpers reused by gateway / story-sync IPC ── */
