@@ -467,103 +467,103 @@ autoMode:
     failed: "失败"
 
 orchestration:
-  startMain: "鍚姩涓婚摼璺?
-  starting: "鍚姩涓?.."
-  needsHumanReview: "娴佺▼闇€瑕佷汉宸ヤ粙鍏?
-  acceptCurrent: "鎺ュ彈褰撳墠缁撴灉"
-  abortRun: "缁堟娴佺▼"
+  startMain: "启动主流程"
+  starting: "启动中..."
+  needsHumanReview: "流程需要人工确认"
+  acceptCurrent: "接受当前结果"
+  abortRun: "终止流程"
   runId: "Run: {id}"
-  status: "鐘舵€? {value}"
-  reviewSummary: "瀹℃牳: {verdict} - {summary}"
-  startFailed: "鍚姩澶辫触: {status}"
-  refreshFailed: "鍒锋柊澶辫触: {status}"
-  actionFailed: "鎿嶄綔澶辫触: {status}"
-  unknownError: "鏈煡閿欒"
+  status: "状态：{value}"
+  reviewSummary: "审核：{verdict} - {summary}"
+  startFailed: "启动失败：{status}"
+  refreshFailed: "刷新失败：{status}"
+  actionFailed: "操作失败：{status}"
+  unknownError: "未知错误"
 
 novelChapter:
-  noProject: "褰撳墠鏈墦寮€椤圭洰"
-  startFailed: "鍚姩绔犺妭澶辫触: {status}"
-  noCandidate: "鏈 run 鏈骇鍑?candidate"
-  acceptFailed: "鎺ュ彈澶辫触"
-  unknownError: "鏈煡閿欒"
-  emptyList: "褰撳墠椤圭洰鏆傛棤绔犺妭銆?
-  unnamed: "锛堟湭鍛藉悕 {id}锛?
-  selectChapter: "璇烽€夋嫨涓€涓珷鑺備互瑙﹀彂鐢熸垚銆?
-  result: "缁撴灉"
-  generating: "鐢熸垚涓紝璇风◢鍊欌€?
-  empty: "灏氭棤鍊欓€夛紝璇峰厛閫夋嫨绔犺妭骞惰Е鍙戠敓鎴愩€?
-  wordCount: "瀛楁暟锛歿count}"
-  acceptCandidate: "鎺ュ彈鍊欓€?
-  rejectCandidate: "涓㈠純鍊欓€?
+  noProject: "当前未打开项目"
+  startFailed: "启动章节失败：{status}"
+  noCandidate: "本次运行没有产出候选章节"
+  acceptFailed: "接受失败"
+  unknownError: "未知错误"
+  emptyList: "当前项目暂无章节。"
+  unnamed: "（未命名 {id}）"
+  selectChapter: "请选择一个章节以触发生成。"
+  result: "结果"
+  generating: "生成中，请稍候..."
+  empty: "暂无候选内容，请先选择章节并触发生成。"
+  wordCount: "字数：{count}"
+  acceptCandidate: "接受候选"
+  rejectCandidate: "丢弃候选"
   statusValue:
-    draft: "鑽夌"
-    generating: "鐢熸垚涓?
-    revised: "宸蹭慨璁?
-    final: "宸插畾绋?
+    draft: "草稿"
+    generating: "生成中"
+    revised: "已修订"
+    final: "已定稿"
   runStatusValue:
-    idle: "寰呯敓鎴?
-    running: "鐢熸垚涓€?
-    pending: "绛夊緟瀹￠槄"
-    accepted: "宸叉帴鍙?
-    rejected: "宸蹭涪寮?
-    failed: "澶辫触"
+    idle: "待生成"
+    running: "生成中..."
+    pending: "等待审核"
+    accepted: "已接受"
+    rejected: "已丢弃"
+    failed: "失败"
   actionLabel:
-    generate: "鐢熸垚鏈珷"
-    continue: "缁啓"
-    polish: "娑﹁壊"
-    review: "澶嶅"
+    generate: "生成本章"
+    continue: "续写"
+    polish: "润色"
+    review: "复审"
 
 memory:
-  empty: "鏆傛棤璁板繂鏉＄洰銆傜敓鎴愮珷鑺傚悗灏嗚嚜鍔ㄥ綊妗ｃ€?
-  chapterHeader: "绗瑊n}绔?
-  charactersLabel: "瑙掕壊锛歿names}"
-  foreshadowBadge: "浼忕瑪"
+  empty: "暂无记忆条目。生成章节后会自动归档。"
+  chapterHeader: "第 {n} 章"
+  charactersLabel: "角色：{names}"
+  foreshadowBadge: "伏笔"
   typeValue:
-    chapter_summary: "绔犺妭鎽樿"
-    character_mentions: "瑙掕壊鎻愬強"
-    foreshadow_seed: "鎮康绾跨储"
+    chapter_summary: "章节摘要"
+    character_mentions: "角色提及"
+    foreshadow_seed: "伏笔线索"
 
 update:
-  title: "鏇存柊"
-  available: "鍙戠幇鏂扮増鏈?
-  availableDesc: "褰撳墠鐗堟湰 v{current}锛屾渶鏂扮増鏈?v{latest}銆?
-  upToDate: "宸叉槸鏈€鏂扮増鏈?
-  upToDateDesc: "浣犵殑鐗堟湰 v{current} 宸叉槸鏈€鏂般€?
-  notConfigured: "鏈厤缃洿鏂版竻鍗?
-  notConfiguredDesc: "璇峰厛鍒般€岃缃?鈫?閫氱敤 鈫?鏇存柊娓呭崟 URL銆嶅～鍏ユ竻鍗曞湴鍧€銆?
-  error: "妫€鏌ユ洿鏂板け璐?
-  later: "绋嶅悗"
-  download: "鍓嶅線涓嬭浇"
-  ok: "濂界殑"
+  title: "更新"
+  available: "发现新版本"
+  availableDesc: "当前版本 v{current}，最新版本 v{latest}。"
+  upToDate: "已是最新版本"
+  upToDateDesc: "你的版本 v{current} 已是最新。"
+  notConfigured: "未配置更新清单"
+  notConfiguredDesc: "请先到设置 → 通用 → 更新清单 URL 填入清单地址。"
+  error: "检查更新失败"
+  later: "稍后"
+  download: "前往下载"
+  ok: "好的"
 
 findReplace:
-  findPlaceholder: "鏌ユ壘..."
-  replacePlaceholder: "鏇挎崲..."
-  caseSensitive: "鍖哄垎澶у皬鍐?
-  previous: "涓婁竴涓?
-  next: "涓嬩竴涓?
-  close: "鍏抽棴"
-  replace: "鏇挎崲"
-  replaceAll: "鍏ㄩ儴鏇挎崲"
+  findPlaceholder: "查找..."
+  replacePlaceholder: "替换..."
+  caseSensitive: "区分大小写"
+  previous: "上一个"
+  next: "下一个"
+  close: "关闭"
+  replace: "替换"
+  replaceAll: "全部替换"
 
 shortcuts:
-  find: "鏌ユ壘"
-  replace: "鏇挎崲"
-  commandPalette: "鍛戒护闈㈡澘"
-  quickOpen: "蹇€熸墦寮€鏂囦欢"
-  tabs: "鏍囩椤?
-  nextTab: "涓嬩竴涓爣绛?
-  prevTab: "涓婁竴涓爣绛?
+  find: "查找"
+  replace: "替换"
+  commandPalette: "命令面板"
+  quickOpen: "快速打开文件"
+  tabs: "标签页"
+  nextTab: "下一个标签"
+  prevTab: "上一个标签"
 
 commandPalette:
-  title: "鍛戒护闈㈡澘"
-  commandPlaceholder: "杈撳叆鍛戒护..."
-  filePlaceholder: "鎼滅储鏂囦欢..."
-  noResults: "娌℃湁鍖归厤鐨勫懡浠?
+  title: "命令面板"
+  commandPlaceholder: "输入命令..."
+  filePlaceholder: "搜索文件..."
+  noResults: "没有匹配的命令"
 
 timeline:
-  noProject: "鎵撳紑椤圭洰浠ユ煡鐪嬪巻鍙茶褰曘€?
-  notARepo: "姝ら」鐩笉鏄?Git 浠撳簱銆?
-  loading: "鍔犺浇鍘嗗彶..."
-  noCommits: "鏆傛棤鎻愪氦璁板綍銆?
-  changedFiles: "鍙樻洿鏂囦欢"
+  noProject: "打开项目以查看历史记录。"
+  notARepo: "此项目不是 Git 仓库。"
+  loading: "加载历史..."
+  noCommits: "暂无提交记录。"
+  changedFiles: "变更文件"

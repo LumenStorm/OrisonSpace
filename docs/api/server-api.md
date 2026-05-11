@@ -3,7 +3,7 @@
 ## Base URL
 
 默认本地开发地址：
-`http://localhost:4000`
+`http://localhost:43117`
 
 ## 鉴权
 
@@ -217,7 +217,7 @@
 - 请求体大小限制：`1 MB`
 - CORS 白名单：
 - `http://localhost:5173`
-- `http://localhost:4000`
+- `http://localhost:43117`
 - `app://.`
 
 ---

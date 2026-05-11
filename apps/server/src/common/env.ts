@@ -4,7 +4,7 @@ import { DEFAULT_AGENT_URL } from '@orison/shared-contracts';
 const isProd = process.env.NODE_ENV === 'production';
 
 const envSchema = z.object({
-  PORT: z.coerce.number().default(4000),
+  PORT: z.coerce.number().default(43117),
   LOG_LEVEL: z.string().default('info'),
   DEMO_ACCESS_TOKEN: z.string().default('demo-access-token'),
   DATABASE_URL: z.string().default('postgresql://postgres:root@localhost:5432/orison_dev'),

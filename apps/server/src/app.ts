@@ -16,7 +16,7 @@ export function buildServer() {
 
   const allowedOrigins = [
     'http://localhost:5173',
-    'http://localhost:4000',
+    'http://localhost:43117',
     'app://.',
   ];
 
