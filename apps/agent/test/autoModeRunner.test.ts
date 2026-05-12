@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import YAML from 'yaml';
 import { createNovelAutoModeRunner } from '../src/engine/autoMode/novelAutoModeRunner';
 
 /**
@@ -100,6 +101,29 @@ describe('novel auto mode runner', () => {
     expect(state.pendingChapterIds).toEqual(['ch_b', 'ch_c']);
     expect(state.completedChapterIds).toEqual([]);
     expect(state.autoModeId).toMatch(/^auto_/);
+  });
+
+  it('start bootstraps planning and chapter slots for a desktop project with only project.json', async () => {
+    if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(
+      path.join(TEST_DIR, 'project.json'),
+      JSON.stringify({ name: '43', type: 'novel', projectId: null }, null, 2),
+      'utf8',
+    );
+
+    const runner = createNovelAutoModeRunner();
+    const state = await runner.start({
+      projectPath: TEST_DIR,
+      mode: 'generate',
+      plotSummary: 'A city records every lie as public weather.',
+    });
+
+    expect(state.status).toBe('awaiting_approval');
+    expect(state.pendingChapterIds).toEqual(['ch_001', 'ch_002', 'ch_003', 'ch_004', 'ch_005', 'ch_006']);
+    const project = YAML.parse(readFileSync(path.join(TEST_DIR, 'project.yaml'), 'utf8')) as any;
+    expect(project.meta.name).toBe('43');
+    expect(project.novel.chapters).toHaveLength(6);
   });
 
   it('提供显式 chapterIds 时使用它们而非自动选择', async () => {

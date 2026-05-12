@@ -112,6 +112,15 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
       const { projectPath, mode = 'generate' } = params;
       modelRuntime = params.modelRuntime;
 
+      const startedAt = nowIso();
+      const autoModeId = `auto_${crypto.randomUUID()}`;
+      const plan = createFullNovelPlanningBundle({
+        projectPath,
+        autoModeId,
+        plotSummary: params.plotSummary,
+        requestedChapterIds: params.chapterIds,
+      });
+
       // 1. 计算 pending chapters
       let pending: string[];
       if (params.chapterIds && params.chapterIds.length > 0) {
@@ -124,16 +133,7 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
         pending = readPendingChapters(projectPath);
       }
 
-      const startedAt = nowIso();
-      const autoModeId = `auto_${crypto.randomUUID()}`;
-      const plan = createFullNovelPlanningBundle({
-        projectPath,
-        autoModeId,
-        plotSummary: params.plotSummary,
-        requestedChapterIds: params.chapterIds,
-      });
-      const plannedPending = params.chapterIds?.length ? [...params.chapterIds] : readPendingChapters(projectPath);
-      const finalPending = plannedPending.length > 0 ? plannedPending : plan.chapterIds;
+      const finalPending = pending.length > 0 ? pending : plan.chapterIds;
       return commitAsync({
         autoModeId,
         projectPath,

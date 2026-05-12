@@ -37,10 +37,37 @@ export type CreateFullNovelPlanningBundleResult = {
 
 function readProject(projectPath: string): Record<string, any> {
   const projectFile = path.join(projectPath, 'project.yaml');
-  if (!existsSync(projectFile)) {
-    throw new Error(`Project not found at ${projectPath}: project.yaml missing`);
+  if (existsSync(projectFile)) {
+    return (YAML.parse(readFileSync(projectFile, 'utf8')) ?? {}) as Record<string, any>;
   }
-  return (YAML.parse(readFileSync(projectFile, 'utf8')) ?? {}) as Record<string, any>;
+
+  const desktopMetaFile = path.join(projectPath, 'project.json');
+  if (existsSync(desktopMetaFile)) {
+    const meta = JSON.parse(readFileSync(desktopMetaFile, 'utf8')) as Record<string, any>;
+    const projectName = typeof meta.name === 'string' && meta.name.trim() ? meta.name.trim() : path.basename(projectPath);
+    const projectId =
+      typeof meta.projectId === 'string' && meta.projectId.trim() ? meta.projectId.trim() : projectName;
+    return {
+      meta: {
+        id: projectId,
+        name: projectName,
+        type: typeof meta.type === 'string' ? meta.type : 'novel',
+        version: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      outline: {
+        title: projectName,
+        acts: [],
+      },
+      storyboard: {
+        shots: [],
+      },
+      novel: {},
+    };
+  }
+
+  throw new Error(`Project not found at ${projectPath}: project.yaml/project.json missing`);
 }
 
 function writeProject(projectPath: string, project: Record<string, any>): void {

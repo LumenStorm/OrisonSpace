@@ -47,4 +47,25 @@ describe('full novel planning bundle', () => {
     expect(project.creative.asset_cards).toHaveLength(3);
     expect(project.novel.chapters.map((chapter: any) => chapter.id)).toEqual(['ch_001', 'ch_002', 'ch_003']);
   });
+
+  it('bootstraps a project.yaml for a new desktop project that only has project.json', () => {
+    rmSync(path.join(TEST_DIR, 'project.yaml'), { force: true });
+    writeFileSync(
+      path.join(TEST_DIR, 'project.json'),
+      JSON.stringify({ name: 'Desktop Novel', type: 'novel', projectId: 'desk_001' }, null, 2),
+      'utf8',
+    );
+
+    const result = createFullNovelPlanningBundle({
+      projectPath: TEST_DIR,
+      autoModeId: 'auto_desktop',
+      plotSummary: 'A forgotten archivist rewrites a city memory.',
+    });
+
+    expect(result.chapterIds).toEqual(['ch_001', 'ch_002', 'ch_003', 'ch_004', 'ch_005', 'ch_006']);
+    const project = YAML.parse(readFileSync(path.join(TEST_DIR, 'project.yaml'), 'utf8')) as any;
+    expect(project.meta).toMatchObject({ id: 'desk_001', name: 'Desktop Novel', type: 'novel' });
+    expect(project.novel.chapters).toHaveLength(6);
+    expect(project.creative.creative_brief.rawRequirement).toBe('A forgotten archivist rewrites a city memory.');
+  });
 });
