@@ -482,6 +482,9 @@ orchestration:
 
 novelChapter:
   noProject: "No project is currently open"
+  model: "Writing model"
+  modelAuto: "Auto text model"
+  noTextModel: "Add a text model in Settings"
   startFailed: "Failed to start chapter: {status}"
   noCandidate: "Run did not produce a candidate"
   acceptFailed: "Accept failed"

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { orchestrationRunSchema } from '@orison/shared-contracts';
+import type { NovelModelRuntime } from '@orison/shared-contracts';
 import type { RunSnapshot } from '../contracts/run';
 import type { RegistryNode } from './registry';
 import { createNovelNodeRegistry } from './registry';
@@ -29,11 +30,12 @@ export async function runNovelPipeline(params: {
   instruction?: string;
   reviewMode?: 'pass' | 'revise' | 'escalate';
   forcePythonFailure?: boolean;
+  modelRuntime?: NovelModelRuntime;
 }): Promise<RunSnapshot> {
-  const { projectPath, chapterId, mode, instruction, reviewMode = 'pass', forcePythonFailure = false } = params;
+  const { projectPath, chapterId, mode, instruction, reviewMode = 'pass', forcePythonFailure = false, modelRuntime } = params;
 
   // 构建节点注册表
-  const { tsNodes, pythonNodes } = createNovelNodeRegistry(chapterId, projectPath, reviewMode);
+  const { tsNodes, pythonNodes } = createNovelNodeRegistry(chapterId, projectPath, reviewMode, modelRuntime?.modelId);
 
   const allNodes: NovelPipelineNode[] = [
     // TS 节点
@@ -118,6 +120,7 @@ export async function runNovelPipeline(params: {
                 reviewMode,
               },
             },
+            modelEnv: modelRuntime ? { apiKey: modelRuntime.apiKey, baseUrl: modelRuntime.baseUrl } : undefined,
           },
           pn.config.execution.timeoutMs
         );

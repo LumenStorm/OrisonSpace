@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { resolveErrorKey } from '../orchestration/errors';
+import { NovelModelSelector } from '../novel-workbench/NovelModelSelector';
 
 export function AutoModeConsole() {
   const [plotSummary, setPlotSummary] = useState('');
@@ -37,6 +38,7 @@ export function AutoModeConsole() {
           <strong>{t('autoMode.title')}</strong>
         </header>
         <p className="auto-mode-console-hint">{t('autoMode.hint')}</p>
+        <NovelModelSelector />
         <label className="auto-mode-console-field">
           <span>{t('autoMode.plotSummary')}</span>
           <textarea

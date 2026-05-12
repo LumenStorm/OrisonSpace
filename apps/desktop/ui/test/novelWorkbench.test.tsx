@@ -115,6 +115,32 @@ describe('NovelWorkbench', () => {
     expect(useAppStore.getState().startChapterRun).toHaveBeenCalledWith('ch_002', 'generate');
   });
 
+  it('can choose a text model from project model settings for novel writing', async () => {
+    useAppStore.setState({
+      activeChapterId: 'ch_002',
+      selectedNovelRef: null,
+      modelConfig: {
+        keys: [
+          {
+            id: 'key_001',
+            name: 'OpenAI',
+            baseUrl: 'https://api.openai.com/v1',
+            apiKey: 'sk-test',
+            models: [{ id: 'gpt-5.4', alias: 'GPT-5.4', capability: 'text', enabled: true }],
+          },
+        ],
+      },
+    } as any);
+    render(<NovelWorkbench />);
+
+    await userEvent.selectOptions(
+      screen.getAllByRole('combobox', { name: /(写作模型|Writing model|novelChapter\.model)/ })[0],
+      'key_001:gpt-5.4',
+    );
+
+    expect(useAppStore.getState().selectedNovelRef).toEqual({ keyId: 'key_001', modelId: 'gpt-5.4' });
+  });
+
   it('candidate 出现时显示 accept / reject 按钮和正文', () => {
     useAppStore.setState({
       activeChapterId: 'ch_002',

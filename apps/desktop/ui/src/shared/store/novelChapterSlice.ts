@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { z } from 'zod';
-import type { storyMemoryEntrySchema } from '@orison/shared-contracts';
+import type { ModelConfig, ModelRef, storyMemoryEntrySchema } from '@orison/shared-contracts';
 import {
   performAutoModeAction,
   refreshAutoMode,
@@ -10,6 +10,8 @@ import {
   type AutoModeState,
   type NovelChapterRunMode,
 } from '../api/novelChapter';
+import { resolveNovelModelRuntime } from '../model/novelModel';
+import { storage } from './storage';
 
 export type ChapterStatus = 'draft' | 'generating' | 'revised' | 'final';
 
@@ -55,6 +57,9 @@ export type NovelChapterSlice = {
   memoryEntries: StoryMemoryEntry[];
   setMemoryEntries: (entries: StoryMemoryEntry[]) => void;
 
+  selectedNovelRef: ModelRef | null;
+  setSelectedNovelRef: (ref: ModelRef | null) => void;
+
   autoModeState: AutoModeState | null;
   autoModeError: string | null;
   startAutoMode: (chapterIds?: string[], plotSummary?: string) => Promise<void>;
@@ -91,7 +96,7 @@ function errorKeyFromAutoStart(error: unknown): string {
 }
 
 export const createNovelChapterSlice: StateCreator<
-  NovelChapterSlice & { currentProject: { path?: string } | null },
+  NovelChapterSlice & { currentProject: { path?: string } | null; modelConfig: ModelConfig },
   [],
   [],
   NovelChapterSlice
@@ -133,6 +138,7 @@ export const createNovelChapterSlice: StateCreator<
         chapterId,
         mode,
         instruction,
+        modelRuntime: resolveNovelModelRuntime(get().modelConfig.keys, get().selectedNovelRef),
       })) as {
         runId: string;
         artifacts?: {
@@ -200,6 +206,12 @@ export const createNovelChapterSlice: StateCreator<
   memoryEntries: [],
   setMemoryEntries: (entries) => set({ memoryEntries: [...entries] }),
 
+  selectedNovelRef: storage.get<ModelRef | null>('selectedNovelRef', null),
+  setSelectedNovelRef(ref) {
+    storage.set('selectedNovelRef', ref);
+    set({ selectedNovelRef: ref });
+  },
+
   autoModeState: null,
   autoModeError: null,
 
@@ -211,7 +223,12 @@ export const createNovelChapterSlice: StateCreator<
     }
     set({ autoModeError: null });
     try {
-      const state = await startAutoMode(project.path, chapterIds, plotSummary);
+      const state = await startAutoMode(
+        project.path,
+        chapterIds,
+        plotSummary,
+        resolveNovelModelRuntime(get().modelConfig.keys, get().selectedNovelRef),
+      );
       set({ autoModeState: state });
     } catch (error) {
       set({ autoModeError: errorKeyFromAutoStart(error) });

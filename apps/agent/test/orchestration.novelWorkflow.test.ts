@@ -134,6 +134,26 @@ describe('novel chapter workflow', () => {
     expect((candidate?.content as string).length).toBeGreaterThan(0);
   });
 
+  it('startNovelChapter can use request-scoped novel model config instead of process env', { timeout: 60000 }, async () => {
+    delete process.env.OPENAI_API_KEY;
+    const service = createRunService();
+
+    const run = await service.startNovelChapter({
+      projectPath: TEST_PROJECT_DIR,
+      chapterId: 'ch_002',
+      mode: 'generate',
+      modelRuntime: {
+        keyId: 'key_001',
+        modelId: 'gpt-selected',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'request-scoped-key',
+      },
+    });
+
+    expect(run.status).toBe('delivered');
+    expect(run.artifacts?.['chapter.candidate']).toBeDefined();
+  });
+
   it('startNovelChapter 的 continue 模式加载已有草稿', { timeout: 60000 }, async () => {
     const service = createRunService();
 

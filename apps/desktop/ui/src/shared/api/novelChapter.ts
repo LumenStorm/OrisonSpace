@@ -4,6 +4,7 @@ import type {
   novelAutoModeStateSchema,
   RunStorySyncResult,
   ModelRef,
+  NovelModelRuntime,
 } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
 import { authJsonHeaders, authHeaders, throwIfSessionExpired } from './session';
@@ -23,6 +24,7 @@ type StartChapterRunInput = {
    * the orchestration request is posted to server.
    */
   storySyncRef?: ModelRef | null;
+  modelRuntime?: NovelModelRuntime | null;
   storySyncContext?: {
     runId?: string;
     candidate?: Record<string, unknown>;
@@ -68,6 +70,7 @@ export async function startChapterRun(input: StartChapterRunInput): Promise<unkn
     mode: input.mode,
   };
   if (input.instruction) body.instruction = input.instruction;
+  if (input.modelRuntime) body.modelRuntime = input.modelRuntime;
   if (Object.keys(artifacts).length > 0) body.artifacts = artifacts;
 
   const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
@@ -86,6 +89,7 @@ export async function startAutoMode(
   projectPath: string,
   chapterIds?: string[],
   plotSummary?: string,
+  modelRuntime?: NovelModelRuntime | null,
 ): Promise<AutoModeState> {
   const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode`, {
     method: 'POST',
@@ -95,6 +99,7 @@ export async function startAutoMode(
       mode: 'generate',
       ...(chapterIds && chapterIds.length > 0 ? { chapterIds } : {}),
       ...(plotSummary?.trim() ? { plotSummary: plotSummary.trim() } : {}),
+      ...(modelRuntime ? { modelRuntime } : {}),
     }),
   });
   throwIfSessionExpired(res);

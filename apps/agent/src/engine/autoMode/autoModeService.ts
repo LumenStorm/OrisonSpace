@@ -67,6 +67,7 @@ export function createAutoModeService(): AutoModeService {
         chapterIds: parsed.chapterIds,
         plotSummary: parsed.plotSummary,
         mode: parsed.mode,
+        modelRuntime: parsed.modelRuntime,
       });
       trackSession(initial, runner);
       // 不 await：后台异步推进

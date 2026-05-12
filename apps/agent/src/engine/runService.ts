@@ -343,6 +343,7 @@ export function createRunService(options?: { reviewMode?: 'pass' | 'revise' | 'e
         chapterId: request.chapterId,
         mode: request.mode,
         instruction: request.instruction,
+        modelRuntime: request.modelRuntime,
         reviewMode,
         forcePythonFailure,
       });

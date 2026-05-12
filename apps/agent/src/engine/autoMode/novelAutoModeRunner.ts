@@ -5,6 +5,7 @@ import YAML from 'yaml';
 import type {
   NovelAutoModeState,
   NovelAutoModeStatus,
+  NovelModelRuntime,
 } from '@orison/shared-contracts';
 import { runNovelPipeline } from '../novelPipeline';
 import {
@@ -19,6 +20,7 @@ export type NovelAutoModeStartParams = {
   plotSummary?: string;
   mode?: 'generate' | 'continue' | 'polish';
   reviewMode?: 'pass' | 'revise' | 'escalate';
+  modelRuntime?: NovelModelRuntime;
 };
 
 export type NovelAutoModePersist = (state: NovelAutoModeState) => void | Promise<void>;
@@ -72,6 +74,7 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
   let state: NovelAutoModeState | null = null;
   const persist = options.persist;
   let pendingPersist: Promise<void> = Promise.resolve();
+  let modelRuntime: NovelModelRuntime | undefined;
 
   function ensureStarted(): NovelAutoModeState {
     if (!state) {
@@ -107,6 +110,7 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
   return {
     async start(params: NovelAutoModeStartParams): Promise<NovelAutoModeState> {
       const { projectPath, mode = 'generate' } = params;
+      modelRuntime = params.modelRuntime;
 
       // 1. 计算 pending chapters
       let pending: string[];
@@ -145,6 +149,7 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
         lastError: null,
         mode,
         reviewMode: params.reviewMode ?? 'pass',
+        modelRef: modelRuntime ? { keyId: modelRuntime.keyId, modelId: modelRuntime.modelId } : undefined,
         plotSummary: plan.bundle.plotSummary,
         planning: {
           status: 'generated',
@@ -192,6 +197,7 @@ export function createNovelAutoModeRunner(options: NovelAutoModeRunnerOptions = 
           chapterId: nextChapter,
           mode,
           reviewMode,
+          modelRuntime,
         });
 
         const completed = [...cur.completedChapterIds, nextChapter];

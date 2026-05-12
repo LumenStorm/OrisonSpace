@@ -2,6 +2,19 @@ import { z } from 'zod';
 import { storyMemoryEntrySchema } from './story-memory';
 import { fieldPatchEntrySchema } from './project-patch';
 
+export const novelModelRefSchema = z.object({
+  keyId: z.string().min(1),
+  modelId: z.string().min(1),
+});
+
+export const novelModelRuntimeSchema = novelModelRefSchema.extend({
+  baseUrl: z.string().url(),
+  apiKey: z.string().min(1),
+});
+
+export type NovelModelRef = z.infer<typeof novelModelRefSchema>;
+export type NovelModelRuntime = z.infer<typeof novelModelRuntimeSchema>;
+
 // ── 章节候选补丁 ──
 
 export const chapterCandidatePatchSchema = z.object({
@@ -24,6 +37,7 @@ export const novelChapterRunRequestSchema = z.object({
   chapterId: z.string().min(1),
   mode: z.enum(['generate', 'continue', 'polish', 'review']),
   instruction: z.string().optional(),
+  modelRuntime: novelModelRuntimeSchema.optional(),
 });
 
 export type NovelChapterRunRequest = z.infer<typeof novelChapterRunRequestSchema>;
@@ -109,6 +123,7 @@ export const novelAutoModeStateSchema = z.object({
   mode: z.enum(['generate', 'continue', 'polish']).optional(),
   reviewMode: z.enum(['pass', 'revise', 'escalate']).optional(),
   plotSummary: z.string().optional(),
+  modelRef: novelModelRefSchema.optional(),
   planning: novelAutoModePlanningSchema.optional(),
   schemaVersion: z.number().int().nonnegative().optional(),
 });
@@ -120,6 +135,7 @@ export const novelAutoModeStartRequestSchema = z.object({
   chapterIds: z.array(z.string().min(1)).optional(),
   plotSummary: z.string().optional(),
   mode: z.enum(['generate', 'continue', 'polish']).default('generate'),
+  modelRuntime: novelModelRuntimeSchema.optional(),
 });
 
 export type NovelAutoModeStartRequest = z.infer<typeof novelAutoModeStartRequestSchema>;

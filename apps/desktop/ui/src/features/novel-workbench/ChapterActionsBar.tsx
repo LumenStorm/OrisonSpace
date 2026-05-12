@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterRunMode } from '../../shared/store/novelChapterSlice';
+import { NovelModelSelector } from './NovelModelSelector';
 
 const ACTION_MODES: NovelChapterRunMode[] = ['generate', 'continue', 'polish', 'review'];
 
@@ -28,6 +29,7 @@ export function ChapterActionsBar() {
 
   return (
     <div className="novel-chapter-actions-bar" aria-label="Chapter Actions">
+      <NovelModelSelector />
       {ACTION_MODES.map((mode) => (
         <button
           key={mode}

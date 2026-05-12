@@ -8,6 +8,7 @@ import {
   novelAutoModeActionSchema,
   novelAutoModeStartRequestSchema,
   novelAutoModeStateSchema,
+  novelChapterRunRequestSchema,
 } from '../src/contracts/novel-orchestration';
 
 describe('orchestration schemas', () => {
@@ -95,6 +96,32 @@ describe('orchestration schemas', () => {
 
     expect(parsed.status).toBe('awaiting_approval');
     expect(parsed.planning?.artifactKeys).toContain('episode_outlines');
+  });
+
+  it('accepts selected novel writing model runtime config', () => {
+    const chapter = novelChapterRunRequestSchema.parse({
+      projectPath: 'I:/workspace/novel_001',
+      chapterId: 'ch_001',
+      mode: 'generate',
+      modelRuntime: {
+        keyId: 'key_001',
+        modelId: 'gpt-5.4',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'sk-test',
+      },
+    });
+    expect(chapter.modelRuntime?.modelId).toBe('gpt-5.4');
+
+    const auto = novelAutoModeStartRequestSchema.parse({
+      projectPath: 'I:/workspace/novel_001',
+      modelRuntime: {
+        keyId: 'key_001',
+        modelId: 'gpt-5.4',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'sk-test',
+      },
+    });
+    expect(auto.modelRuntime?.keyId).toBe('key_001');
   });
 
   it('accepts plot summary on start and approve_plan action', () => {

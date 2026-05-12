@@ -124,6 +124,25 @@ describe('novel auto mode runner', () => {
     expect(next.currentRunId).toBeTruthy();
   });
 
+  it('runOnce uses the selected novel model runtime config', { timeout: 60000 }, async () => {
+    delete process.env.OPENAI_API_KEY;
+    const runner = createNovelAutoModeRunner();
+    await runner.start({
+      projectPath: TEST_DIR,
+      mode: 'generate',
+      modelRuntime: {
+        keyId: 'key_001',
+        modelId: 'gpt-selected',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'request-scoped-key',
+      },
+    });
+    await runner.approvePlan();
+
+    const next = await runner.runOnce();
+    expect(next.completedChapterIds).toContain('ch_b');
+  });
+
   it('全部 runOnce 后状态变为 completed', { timeout: 120000 }, async () => {
     const runner = createNovelAutoModeRunner();
     await runner.start({ projectPath: TEST_DIR, mode: 'generate' });

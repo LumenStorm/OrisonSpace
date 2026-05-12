@@ -482,6 +482,9 @@ orchestration:
 
 novelChapter:
   noProject: "当前未打开项目"
+  model: "写作模型"
+  modelAuto: "自动选择文本模型"
+  noTextModel: "请先在设置中添加文本模型"
   startFailed: "启动章节失败: {status}"
   noCandidate: "本次 run 未产出 candidate"
   acceptFailed: "接受失败"
