@@ -23,7 +23,7 @@
 
 Agent Panel 独立于 Bottom Panel，从顶部到窗口底部全高显示。Bottom Panel 仅影响 Editor Area 的高度，不截断 Agent Panel。
 
-通过 Icon Rail 底部的 agent 按钮 toggle。
+通过 Icon Rail top section 的 agent 按钮 toggle。
 
 ## Agent Panel 内部结构（参考 Claude Code 风格）
 
@@ -171,7 +171,7 @@ ui/src/shared/store/appStore.ts          — 注册 agentSlice
 ui/src/shared/store/panelsSlice.ts       — agentPanelOpen + agentPanelWidth
 ui/src/shared/constants.ts               — AGENT_PANEL_WIDTH_DEFAULT/MIN/MAX
 ui/src/widgets/layout/WorkspaceLayout.tsx — grid 追加 agent panel 列
-ui/src/features/side-nav/SideNav.tsx     — Icon Rail 底部新增 agent toggle
+ui/src/features/side-nav/SideNav.tsx     — Icon Rail top section 新增 agent toggle
 
 shell/main/ipc/modelGatewayHttp.ts       — 路由分发到 desktopApiHttp
 shell/main/index.ts                      — 注册新 HTTP 路由

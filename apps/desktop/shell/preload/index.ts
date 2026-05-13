@@ -107,6 +107,11 @@ export const exposedDesktopApi = {
   gitLog: (dir: string, depth?: number) => ipcRenderer.invoke('git:log', dir, depth) as Promise<GitCommitEntry[]>,
   gitCommitDiff: (dir: string, oid: string) => ipcRenderer.invoke('git:commit-diff', dir, oid) as Promise<GitFileDiff[]>,
   gitFileAtCommit: (dir: string, oid: string, filepath: string) => ipcRenderer.invoke('git:file-at-commit', dir, oid, filepath) as Promise<string | null>,
+  // Tool event notifications (pushed from Shell when Agent executes tools)
+  onToolEvent: (callback: (data: { type: string; [key: string]: unknown }) => void) => {
+    ipcRenderer.on('tool:event', (_e, data) => callback(data));
+    return () => { ipcRenderer.removeAllListeners('tool:event'); };
+  },
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

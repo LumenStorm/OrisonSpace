@@ -96,32 +96,40 @@ Agent Panel 独立于 Bottom Panel，全高显示（从顶部到窗口底部）�
 
 ### 左侧导航
 
-图标导航栏根据项目类型展示模块入口：
+Icon Rail 分为 top section 和 bottom section：
 
-#### novel 项目
+#### Top section（从上到下）
 
-- outline
-- novel
-- storyboard
-- image_gen
-- video
+| 图标 | 功能 | 行为 |
+|------|------|------|
+| `folder_open` | 资源管理器 | 切换左侧面板为 ProjectTree |
+| `search` | 搜索 | 切换左侧面板为 SearchPanel |
+| `auto_stories` | 大纲 | 切换 activeModule 为 outline |
+| `menu_book` / `description` | 小说/剧本 | 切换 activeModule 为 novel/script |
+| `view_quilt` | 分镜 | 在编辑区打开模块 tab |
+| `image` | 图片生成 | 在编辑区打开模块 tab |
+| `movie_filter` | 视频 | 在编辑区打开模块 tab |
+| `smart_toy` | Agent | toggle 右侧 Agent Panel |
 
-#### script 项目
+#### Bottom section
 
-- outline
-- script
-- storyboard
-- image_gen
-- video
+| 图标 | 功能 |
+|------|------|
+| `settings` | 打开设置对话框 |
+| `account_circle` | 打开账户对话框 |
 
-底部固定入口：
-
-- settings
-- account
+左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换。
 
 ### EditorArea 标签栏 (FileTabBar)
 
-编辑区顶部的文件标签栏，支持：
+编辑区采用统一 tab 系统，文件 tab 和模块 tab（分镜/图片生成/视频）并存：
+
+- 模块 tab 的 path 使用 `__module__/{id}` 前缀标识
+- 模块 tab 永远 clean（无 dirty indicator）
+- 模块 tab 显示对应图标（view_quilt/image/movie_filter）
+- 点击 Icon Rail 的分镜/图片生成/视频图标会打开对应模块 tab
+
+标签栏支持：
 
 | 功能 | 触发方式 | 说明 |
 |---|---|---|

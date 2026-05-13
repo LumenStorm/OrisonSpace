@@ -6,7 +6,15 @@ import { ContextMenu, type ContextMenuItem } from '../../shared/components/Conte
 import { ConfirmCloseDialog } from './ConfirmCloseDialog';
 import type { FileTab } from '../../shared/store/fileTabsSlice';
 
-function getTabIcon(name: string): string {
+function getTabIcon(tab: FileTab): string {
+  if (tab.kind === 'module') {
+    const id = tab.path.replace('__module__/', '');
+    if (id === 'image_gen') return 'image';
+    if (id === 'storyboard') return 'view_quilt';
+    if (id === 'video') return 'movie_filter';
+    return 'widgets';
+  }
+  const name = tab.name;
   if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'data_object';
   if (name.endsWith('.md')) return 'article';
   if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.webp')) return 'image';
@@ -106,7 +114,7 @@ export function FileTabBar() {
         <nav className="file-tab-bar" aria-label="Open files">
           {openFiles.map((file) => {
             const isActive = file.path === activeFilePath;
-            const isDirty = file.kind !== 'image' && file.content !== file.savedContent;
+            const isDirty = file.kind === 'text' && file.content !== file.savedContent;
             return (
               <div
                 key={file.path}
@@ -118,7 +126,7 @@ export function FileTabBar() {
                 }}
               >
                 <span className="material-symbols-outlined file-tab-icon" aria-hidden="true">
-                  {getTabIcon(file.name)}
+                  {getTabIcon(file)}
                 </span>
                 <span className="file-tab-name">{file.name}</span>
                 {isDirty && <span className="file-tab-dirty" aria-label="unsaved">●</span>}

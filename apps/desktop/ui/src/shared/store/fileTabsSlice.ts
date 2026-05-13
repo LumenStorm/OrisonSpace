@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 
-export type FileTabKind = 'text' | 'image';
+export type FileTabKind = 'text' | 'image' | 'module';
 
 export type FileTab = {
   path: string;
@@ -27,6 +27,7 @@ export type FileTabsSlice = {
   /** Path of a file waiting on a "save before close?" confirmation. */
   pendingCloseConfirm: string | null;
   openFile: (path: string, name: string, content: string, options?: { kind?: FileTabKind; dataUrl?: string }) => void;
+  openModuleTab: (moduleId: string, label: string) => void;
   closeFile: (path: string) => void;
   /** Close `path` if clean, otherwise set `pendingCloseConfirm` for UI to handle. */
   requestCloseFile: (path: string) => void;
@@ -42,7 +43,7 @@ export type FileTabsSlice = {
 };
 
 function rememberClosedTab(prev: RecentlyClosedTab[], tab: FileTab): RecentlyClosedTab[] {
-  if (tab.kind === 'image') return prev;
+  if (tab.kind === 'image' || tab.kind === 'module') return prev;
   const filtered = prev.filter((t) => t.path !== tab.path);
   const next: RecentlyClosedTab[] = [{ path: tab.path, name: tab.name, kind: tab.kind ?? 'text' }, ...filtered];
   return next.slice(0, RECENTLY_CLOSED_LIMIT);
@@ -80,6 +81,18 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     });
   },
 
+  openModuleTab: (moduleId, label) => {
+    const path = `__module__/${moduleId}`;
+    const state = get();
+    const existing = state.openFiles.find((f) => f.path === path);
+    if (existing) {
+      set({ activeFilePath: path });
+      return;
+    }
+    const tab: FileTab = { path, name: label, content: '', savedContent: '', kind: 'module' };
+    set({ openFiles: [...state.openFiles, tab], activeFilePath: path });
+  },
+
   closeFile: (path) => {
     const state = get();
     const idx = state.openFiles.findIndex((f) => f.path === path);
@@ -108,7 +121,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const state = get();
     const tab = state.openFiles.find((f) => f.path === path);
     if (!tab) return;
-    const isDirty = tab.kind !== 'image' && tab.content !== tab.savedContent;
+    const isDirty = tab.kind === 'text' && tab.content !== tab.savedContent;
     if (isDirty) {
       set({ pendingCloseConfirm: path });
     } else {
@@ -202,7 +215,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const state = get();
     const file = state.openFiles.find((f) => f.path === path);
     if (!file) return false;
-    if (file.kind === 'image') return true;
+    if (file.kind === 'image' || file.kind === 'module') return true;
     try {
       const ok = await window.orisonDesktop?.writeFile(file.path, file.content);
       if (!ok) return false;
@@ -219,7 +232,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
 
   saveAllOpenFiles: async () => {
     const dirty = get().openFiles.filter(
-      (f) => f.kind !== 'image' && f.content !== f.savedContent,
+      (f) => f.kind === 'text' && f.content !== f.savedContent,
     );
     await Promise.all(dirty.map((f) => get().saveFile(f.path)));
   },

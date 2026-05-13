@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { EditorArea } from '../../features/editor/EditorArea';
 import { SideNav } from '../../features/side-nav/SideNav';
 import { ProjectTree } from '../../features/project-tree/ProjectTree';
+import { SearchPanel } from '../../features/search-panel/SearchPanel';
 import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
@@ -12,12 +13,14 @@ import { ICON_RAIL_WIDTH } from '../../shared/constants';
 export function WorkspaceLayout() {
   const {
     projectTreeOpen, projectTreeWidth,
+    activeSidebarPanel,
     bottomPanelOpen, bottomPanelHeight,
     toggleBottomPanel,
     agentPanelOpen, agentPanelWidth,
   } = useAppStore(useShallow((s) => ({
     projectTreeOpen: s.projectTreeOpen,
     projectTreeWidth: s.projectTreeWidth,
+    activeSidebarPanel: s.activeSidebarPanel,
     bottomPanelOpen: s.bottomPanelOpen,
     bottomPanelHeight: s.bottomPanelHeight,
     toggleBottomPanel: s.toggleBottomPanel,
@@ -41,7 +44,7 @@ export function WorkspaceLayout() {
         <SideNav />
         {projectTreeOpen && (
           <>
-            <ProjectTree />
+            {activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
             <ResizeHandle onResize={handleTreeResize} />
           </>
         )}

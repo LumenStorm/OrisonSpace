@@ -189,6 +189,7 @@ export type OrisonDesktopApi = {
   gitLog(dir: string, depth?: number): Promise<GitCommitEntry[]>;
   gitCommitDiff(dir: string, oid: string): Promise<GitFileDiff[]>;
   gitFileAtCommit(dir: string, oid: string, filepath: string): Promise<string | null>;
+  onToolEvent(callback: (data: { type: string; [key: string]: unknown }) => void): () => void;
 };
 
 export type FileTreeEntry = {

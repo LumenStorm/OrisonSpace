@@ -1,29 +1,41 @@
-import { useAppStore, type WorkspaceModule } from '../../shared/store/appStore';
+import { useAppStore } from '../../shared/store/appStore';
 import { FileEditor } from './FileEditor';
 import { FileTabBar } from './FileTabBar';
 import { ModuleEditor } from './ModuleEditor';
+import { ImageGenEditor } from './ImageGenEditor';
+import { StoryboardCanvas } from './StoryboardCanvas';
+import { VideoEditor } from './VideoEditor';
 
-const moduleAlwaysOwnsEditor = new Set<WorkspaceModule>(['image_gen', 'video', 'storyboard']);
+const moduleEditorMap: Record<string, React.ComponentType> = {
+  image_gen: ImageGenEditor,
+  storyboard: StoryboardCanvas,
+  video: VideoEditor,
+};
 
 export function EditorArea() {
-  const activeModule = useAppStore((state) => state.activeModule);
   const activeFilePath = useAppStore((state) => state.activeFilePath);
   const hasOpenFiles = useAppStore((state) => state.openFiles.length > 0);
-
-  if (moduleAlwaysOwnsEditor.has(activeModule)) {
-    return <ModuleEditor />;
-  }
 
   if (hasOpenFiles) {
     return (
       <div className="editor-area-file">
         <FileTabBar />
         <div className="editor-area-file-content">
-          {activeFilePath ? <FileEditor /> : null}
+          {activeFilePath?.startsWith('__module__/') ? (
+            <ModuleTabContent moduleId={activeFilePath.replace('__module__/', '')} />
+          ) : activeFilePath ? (
+            <FileEditor />
+          ) : null}
         </div>
       </div>
     );
   }
 
   return <ModuleEditor />;
+}
+
+function ModuleTabContent({ moduleId }: { moduleId: string }) {
+  const Editor = moduleEditorMap[moduleId];
+  if (!Editor) return null;
+  return <Editor />;
 }

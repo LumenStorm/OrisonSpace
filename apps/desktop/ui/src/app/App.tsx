@@ -6,6 +6,7 @@ import { ProjectsPage } from '../pages/projects/ProjectsPage';
 import { WorkspacePage } from '../pages/workspace/WorkspacePage';
 import { CommandPalette } from '../features/command-palette/CommandPalette';
 import { AUTH_EXPIRED_EVENT } from '../shared/api/session';
+import { useToolEvents } from '../shared/hooks/useToolEvents';
 
 export function App() {
   const token = useAppStore((s) => s.token);
@@ -16,6 +17,8 @@ export function App() {
   const loadUserPreferences = useAppStore((s) => s.loadUserPreferences);
   const loadModelConfig = useAppStore((s) => s.loadModelConfig);
   const loadAppVersion = useAppStore((s) => s.loadAppVersion);
+
+  useToolEvents();
 
   useEffect(() => {
     void loadUserPreferences();

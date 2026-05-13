@@ -139,6 +139,7 @@ OneLine2Video/
 │  │  │     │  ├─ bottom-panel/       properties / tasks / output
 │  │  │     │  ├─ inspector/
 │  │  │     │  ├─ project-tree/
+│  │  │     │  ├─ search-panel/       搜索面板（与 ProjectTree 互斥）
 │  │  │     │  ├─ side-nav/
 │  │  │     │  ├─ top-bar/
 │  │  │     │  ├─ novel-workbench/

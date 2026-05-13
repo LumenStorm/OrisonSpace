@@ -17,7 +17,7 @@ import { createUpdateSlice, type UpdateSlice } from './updateSlice';
 import { createCommandPaletteSlice, type CommandPaletteSlice } from './commandPaletteSlice';
 import { createAgentSlice, type AgentSlice } from './agentSlice';
 
-export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter, AgentMode } from './types';
+export type { WorkspaceModule, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter, AgentMode } from './types';
 
 type AppState = AuthSlice &
   ProjectSlice &

@@ -7,6 +7,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { handleGenerateText, handleGenerateImage, handleGenerateVideo } from './modelGatewayIpc';
 import { handleDesktopApiRoute } from './desktopApiHttp';
+import { handleToolExecute, listRegisteredTools } from './toolExecution';
 import { getLogger } from '../logger';
 
 const PORT = Number(process.env.ORISON_GATEWAY_PORT) || 18421;
@@ -53,6 +54,16 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     // Try desktop API routes first (project/git endpoints)
     const handled = await handleDesktopApiRoute(req.method!, url, body, res);
     if (handled) return;
+
+    // Unified tool execution endpoint
+    if (url === '/tool/execute') {
+      const result = await handleToolExecute(body as any);
+      return json(res, 200, result);
+    }
+
+    if (url === '/tool/list') {
+      return json(res, 200, { tools: listRegisteredTools() });
+    }
 
     if (url === '/model/generate-text' || url === '/chat/completions') {
       const result = await handleGenerateText(body);

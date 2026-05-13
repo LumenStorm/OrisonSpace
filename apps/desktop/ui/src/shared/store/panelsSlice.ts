@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { BottomPanelTab } from './types';
+import type { BottomPanelTab, SidebarPanel } from './types';
 import {
   PROJECT_TREE_WIDTH_DEFAULT,
   PROJECT_TREE_WIDTH_MIN,
@@ -17,6 +17,8 @@ export type PanelsSlice = {
   toggleProjectTree: () => void;
   projectTreeWidth: number;
   setProjectTreeWidth: (w: number) => void;
+  activeSidebarPanel: SidebarPanel;
+  setActiveSidebarPanel: (panel: SidebarPanel) => void;
   bottomPanelOpen: boolean;
   toggleBottomPanel: () => void;
   bottomPanelHeight: number;
@@ -34,6 +36,8 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   toggleProjectTree: () => set((s) => ({ projectTreeOpen: !s.projectTreeOpen })),
   projectTreeWidth: PROJECT_TREE_WIDTH_DEFAULT,
   setProjectTreeWidth: (w) => set({ projectTreeWidth: Math.max(PROJECT_TREE_WIDTH_MIN, Math.min(PROJECT_TREE_WIDTH_MAX, w)) }),
+  activeSidebarPanel: 'explorer',
+  setActiveSidebarPanel: (panel) => set({ activeSidebarPanel: panel, projectTreeOpen: true }),
   bottomPanelOpen: true,
   toggleBottomPanel: () => set((s) => ({ bottomPanelOpen: !s.bottomPanelOpen })),
   bottomPanelHeight: BOTTOM_PANEL_HEIGHT_DEFAULT,
