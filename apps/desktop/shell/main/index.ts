@@ -12,6 +12,7 @@ import { registerTaskIpc } from './ipc/taskIpc';
 import { registerLogIpc } from './ipc/logIpc';
 import { registerUpdateIpc } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
+import { startModelGatewayHttp } from './ipc/modelGatewayHttp';
 
 /* ── CSP ── */
 
@@ -90,6 +91,7 @@ function createWindow() {
 app.whenReady().then(() => {
   installGlobalErrorHandlers();
   getLogger().info({ platform: process.platform, version: app.getVersion() }, 'desktop main starting');
+  startModelGatewayHttp();
   createWindow();
 
   app.on('activate', () => {

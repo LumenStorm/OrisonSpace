@@ -75,6 +75,9 @@
 - 左侧 Project Tree
 - 中间 EditorArea
 - 底部 BottomPanel
+- 右侧 Agent Panel（可选，通过 Icon Rail 按钮 toggle）
+
+Agent Panel 独立于 Bottom Panel，全高显示（从顶部到窗口底部），不受 Bottom Panel 高度影响。
 
 ### TopBar
 

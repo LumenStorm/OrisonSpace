@@ -29,6 +29,7 @@
 @import "./layout/pages.css";
 @import "./creative.css";
 @import "./base/components.css";
+@import "../../features/agent-panel/agent-panel.css";
 
 /* ── Reset ── */
 #root {

@@ -11,11 +11,14 @@ export function SideNav() {
   const {
     activeModule, setActiveModule,
     currentProject, resolvedLocale,
+    toggleAgentPanel, agentPanelOpen,
   } = useAppStore(useShallow((s) => ({
     activeModule: s.activeModule,
     setActiveModule: s.setActiveModule,
     currentProject: s.currentProject,
     resolvedLocale: s.resolvedLocale,
+    toggleAgentPanel: s.toggleAgentPanel,
+    agentPanelOpen: s.agentPanelOpen,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -48,6 +51,17 @@ export function SideNav() {
         </div>
 
         <div className="icon-rail-bottom">
+          <Tooltip label="Agent" placement="right">
+            <button
+              type="button"
+              className={`icon-rail-btn${agentPanelOpen ? ' icon-rail-btnActive' : ''}`}
+              onClick={toggleAgentPanel}
+              aria-label="Agent"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">smart_toy</span>
+            </button>
+          </Tooltip>
+
           <Tooltip label={t('nav.settings')} placement="right">
             <button
               type="button"

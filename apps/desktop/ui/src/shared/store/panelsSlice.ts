@@ -7,6 +7,9 @@ import {
   BOTTOM_PANEL_HEIGHT_DEFAULT,
   BOTTOM_PANEL_HEIGHT_MIN,
   BOTTOM_PANEL_HEIGHT_MAX,
+  AGENT_PANEL_WIDTH_DEFAULT,
+  AGENT_PANEL_WIDTH_MIN,
+  AGENT_PANEL_WIDTH_MAX,
 } from '../constants';
 
 export type PanelsSlice = {
@@ -20,6 +23,10 @@ export type PanelsSlice = {
   setBottomPanelHeight: (h: number) => void;
   activeBottomTab: BottomPanelTab;
   setActiveBottomTab: (tab: BottomPanelTab) => void;
+  agentPanelOpen: boolean;
+  toggleAgentPanel: () => void;
+  agentPanelWidth: number;
+  setAgentPanelWidth: (w: number) => void;
 };
 
 export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set) => ({
@@ -33,4 +40,8 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   setBottomPanelHeight: (h) => set({ bottomPanelHeight: Math.max(BOTTOM_PANEL_HEIGHT_MIN, Math.min(BOTTOM_PANEL_HEIGHT_MAX, h)) }),
   activeBottomTab: 'properties',
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
+  agentPanelOpen: false,
+  toggleAgentPanel: () => set((s) => ({ agentPanelOpen: !s.agentPanelOpen })),
+  agentPanelWidth: AGENT_PANEL_WIDTH_DEFAULT,
+  setAgentPanelWidth: (w) => set({ agentPanelWidth: Math.max(AGENT_PANEL_WIDTH_MIN, Math.min(AGENT_PANEL_WIDTH_MAX, w)) }),
 });

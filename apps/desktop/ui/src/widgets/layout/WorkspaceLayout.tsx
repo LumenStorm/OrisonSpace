@@ -3,9 +3,10 @@ import { EditorArea } from '../../features/editor/EditorArea';
 import { SideNav } from '../../features/side-nav/SideNav';
 import { ProjectTree } from '../../features/project-tree/ProjectTree';
 import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
+import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { useAppStore } from '../../shared/store/appStore';
-import { useBottomPanelResize, useProjectTreeResize } from '../../shared/hooks/usePanelResize';
+import { useBottomPanelResize, useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
 import { ICON_RAIL_WIDTH } from '../../shared/constants';
 
 export function WorkspaceLayout() {
@@ -13,16 +14,20 @@ export function WorkspaceLayout() {
     projectTreeOpen, projectTreeWidth,
     bottomPanelOpen, bottomPanelHeight,
     toggleBottomPanel,
+    agentPanelOpen, agentPanelWidth,
   } = useAppStore(useShallow((s) => ({
     projectTreeOpen: s.projectTreeOpen,
     projectTreeWidth: s.projectTreeWidth,
     bottomPanelOpen: s.bottomPanelOpen,
     bottomPanelHeight: s.bottomPanelHeight,
     toggleBottomPanel: s.toggleBottomPanel,
+    agentPanelOpen: s.agentPanelOpen,
+    agentPanelWidth: s.agentPanelWidth,
   })));
 
   const handleTreeResize = useProjectTreeResize();
   const handleBottomResize = useBottomPanelResize();
+  const handleAgentResize = useAgentPanelResize();
 
   const treeCols = projectTreeOpen
     ? `${projectTreeWidth}px 4px `
@@ -40,17 +45,27 @@ export function WorkspaceLayout() {
             <ResizeHandle onResize={handleTreeResize} />
           </>
         )}
-        <div className="workspace-main">
-          <div className="workspace-content">
-            <EditorArea />
+        <div style={{ display: 'flex', minWidth: 0, minHeight: 0 }}>
+          <div className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+            <div className="workspace-content" style={{ flex: 1, minWidth: 0 }}>
+              <EditorArea />
+            </div>
+            <ResizeHandle direction="vertical" onResize={handleBottomResize} style={{ display: bottomPanelOpen ? undefined : 'none' }} />
+            <div
+              className={`workspace-bottom-wrapper${bottomPanelOpen ? ' is-open' : ''}`}
+              style={{ height: bottomPanelOpen ? bottomPanelHeight : 0 }}
+            >
+              <BottomPanel />
+            </div>
           </div>
-          <ResizeHandle direction="vertical" onResize={handleBottomResize} style={{ display: bottomPanelOpen ? undefined : 'none' }} />
-          <div
-            className={`workspace-bottom-wrapper${bottomPanelOpen ? ' is-open' : ''}`}
-            style={{ height: bottomPanelOpen ? bottomPanelHeight : 0 }}
-          >
-            <BottomPanel />
-          </div>
+          {agentPanelOpen && (
+            <>
+              <ResizeHandle onResize={handleAgentResize} />
+              <div style={{ width: agentPanelWidth, flexShrink: 0 }}>
+                <AgentPanel />
+              </div>
+            </>
+          )}
         </div>
       </div>
       {!bottomPanelOpen && (

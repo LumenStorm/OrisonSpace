@@ -19,7 +19,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.63",
     "@orison/shared-contracts": "workspace:*",
+    "ai": "^6.0.180",
     "zod": "^3.24.3"
   }
 }

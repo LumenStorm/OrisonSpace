@@ -1,9 +1,23 @@
 import { z } from 'zod';
 
-export const generationMessageSchema = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
-  content: z.string(),
-});
+export const generationMessageSchema = z.discriminatedUnion('role', [
+  z.object({ role: z.literal('system'), content: z.string() }),
+  z.object({ role: z.literal('user'), content: z.string() }),
+  z.object({
+    role: z.literal('assistant'),
+    content: z.string(),
+    toolCalls: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+    })).optional(),
+  }),
+  z.object({
+    role: z.literal('tool'),
+    toolCallId: z.string(),
+    content: z.string(),
+  }),
+]);
 
 /**
  * Normalized usage counters across providers.
@@ -23,11 +37,27 @@ export const imageInputSchema = z.object({
   mimeType: z.string().min(1),
 });
 
+export const toolFunctionSchema = z.object({
+  type: z.literal('function'),
+  function: z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    parameters: z.unknown(),
+  }),
+});
+
+export const toolCallResultSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  arguments: z.string(),
+});
+
 export const textGenerationRequestSchema = z.object({
   model: z.string().min(1),
   messages: z.array(generationMessageSchema).min(1),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().positive().optional(),
+  tools: z.array(toolFunctionSchema).optional(),
 });
 
 export const textGenerationResponseSchema = z.object({
@@ -35,6 +65,7 @@ export const textGenerationResponseSchema = z.object({
   text: z.string(),
   finishReason: generationFinishReasonSchema.optional(),
   usage: generationUsageSchema.optional(),
+  toolCalls: z.array(toolCallResultSchema).optional(),
 });
 
 export const imageGenerationRequestSchema = z.object({
@@ -88,3 +119,5 @@ export type ImageGenerationResponse = z.infer<typeof imageGenerationResponseSche
 export type VideoGenerationRequest = z.infer<typeof videoGenerationRequestSchema>;
 export type VideoGenerationResponse = z.infer<typeof videoGenerationResponseSchema>;
 export type GeneratedVideo = z.infer<typeof generatedVideoSchema>;
+export type ToolFunction = z.infer<typeof toolFunctionSchema>;
+export type ToolCallResult = z.infer<typeof toolCallResultSchema>;

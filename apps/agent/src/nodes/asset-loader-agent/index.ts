@@ -1,1 +1,0 @@
-export { createAssetLoaderNode } from '../base';

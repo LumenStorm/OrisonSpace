@@ -17,3 +17,8 @@ export const BOTTOM_PANEL_HEIGHT_MAX = 500;
 
 // Responsive breakpoints
 export const BREAKPOINT_COLLAPSE_ALL = 720;
+
+// Agent panel size constraints
+export const AGENT_PANEL_WIDTH_DEFAULT = 360;
+export const AGENT_PANEL_WIDTH_MIN = 280;
+export const AGENT_PANEL_WIDTH_MAX = 600;

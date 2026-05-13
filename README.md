@@ -133,6 +133,9 @@ OneLine2Video/
 │  │  │     │  ├─ editor/             TiptapEditor / OutlineEditor / ScriptEditor
 │  │  │     │  │                      / VideoEditor / ImageGenEditor / ImageEditDialog
 │  │  │     │  │                      / FileEditor / StoryboardCanvas
+│  │  │     │  ├─ agent-panel/        AgentPanel / AgentInput / AgentMessages
+│  │  │     │  │                      / AgentMessageItem / AgentToolCard / DiffCard
+│  │  │     │  │                      / AgentConfirmCard / AgentHistory
 │  │  │     │  ├─ bottom-panel/       properties / tasks / output
 │  │  │     │  ├─ inspector/
 │  │  │     │  ├─ project-tree/
@@ -365,6 +368,8 @@ pnpm lint
 - [模块边界规则](docs/architecture/module-boundaries.md)
 - [数据字典](docs/data-dictionary.md)
 - [UI 设计说明](docs/ui-design.md)
+- [UI 层级结构](docs/ui-hierarchy.md)
+- [Agent Panel UI](docs/agent-panel-ui.md)
 - [开发记录](docs/plan.md)
 
 ---

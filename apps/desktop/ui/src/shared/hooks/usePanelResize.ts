@@ -22,3 +22,14 @@ export function useBottomPanelResize() {
     [setBottomPanelHeight],
   );
 }
+
+export function useAgentPanelResize() {
+  const setAgentPanelWidth = useAppStore((s) => s.setAgentPanelWidth);
+  return useCallback(
+    (delta: number) => {
+      const w = useAppStore.getState().agentPanelWidth;
+      setAgentPanelWidth(w - delta);
+    },
+    [setAgentPanelWidth],
+  );
+}

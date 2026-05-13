@@ -1,6 +1,5 @@
 import type {
   GenerationFinishReason,
-  GenerationUsage,
   ImageGenerationRequest,
   ImageGenerationResponse,
   ResolvedModel,
@@ -9,32 +8,34 @@ import type {
   VideoGenerationRequest,
   VideoGenerationResponse,
 } from '@orison/shared-contracts';
+import { generateText as aiGenerateText, jsonSchema, tool } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { base64ToBlob, normalizeBaseUrl, postJson, postMultipart } from './http';
 import { normalizeImageResponse } from './imageNormalize';
 import { ProtocolHttpError, ProtocolNotImplementedError } from './errors';
 import type { ProtocolCallContext } from './types';
 
-// ── Text generation (POST /chat/completions) ──
+// ── Provider factory ──
 
-type OpenAiChatResponse = {
-  choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-};
+export function createProvider(model: ResolvedModel) {
+  const openai = createOpenAI({
+    baseURL: normalizeBaseUrl(model.baseUrl),
+    apiKey: model.apiKey,
+  });
+  return openai(model.modelId);
+}
+
+// ── Text generation (via Vercel AI SDK) ──
 
 function mapFinishReason(raw: string | undefined): GenerationFinishReason | undefined {
   switch (raw) {
     case 'stop': return 'stop';
     case 'length': return 'length';
-    case 'content_filter': return 'content_filter';
-    case 'tool_calls': return 'tool_use';
+    case 'content-filter': return 'content_filter';
+    case 'tool-calls': return 'tool_use';
     case undefined: return undefined;
     default: return 'other';
   }
-}
-
-function mapUsage(raw: OpenAiChatResponse['usage']): GenerationUsage | undefined {
-  if (!raw) return undefined;
-  return { promptTokens: raw.prompt_tokens, completionTokens: raw.completion_tokens, totalTokens: raw.total_tokens };
 }
 
 export async function generateText(
@@ -42,27 +43,81 @@ export async function generateText(
   request: TextGenerationRequest,
   ctx?: ProtocolCallContext,
 ): Promise<TextGenerationResponse> {
-  const baseUrl = normalizeBaseUrl(model.baseUrl);
-  const raw = await postJson<OpenAiChatResponse>({
-    url: `${baseUrl}/chat/completions`,
-    headers: { authorization: `Bearer ${model.apiKey}` },
-    body: {
-      model: model.modelId,
-      messages: request.messages,
-      temperature: request.temperature,
-      max_tokens: request.maxTokens,
-    },
-    signal: ctx?.signal,
+  const provider = createProvider(model);
+
+  // Convert OpenAI-style tool definitions to Vercel AI SDK v6 tool format
+  const tools: Record<string, ReturnType<typeof tool>> | undefined =
+    request.tools?.length
+      ? Object.fromEntries(
+          request.tools.map((t) => [
+            t.function.name,
+            tool({
+              description: t.function.description,
+              inputSchema: jsonSchema(t.function.parameters as any),
+            }),
+          ]),
+        )
+      : undefined;
+
+  // Convert messages to Vercel AI SDK format
+  const messages = request.messages.map((m: any) => {
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      return {
+        role: 'assistant' as const,
+        content: [
+          ...(m.content ? [{ type: 'text' as const, text: m.content }] : []),
+          ...m.toolCalls.map((tc: any) => ({
+            type: 'tool-call' as const,
+            toolCallId: tc.id,
+            toolName: tc.name,
+            args: JSON.parse(tc.arguments),
+          })),
+        ],
+      };
+    }
+    if (m.role === 'tool') {
+      return {
+        role: 'tool' as const,
+        content: [{
+          type: 'tool-result' as const,
+          toolCallId: m.toolCallId,
+          result: m.content,
+        }],
+      };
+    }
+    return { role: m.role, content: m.content };
   });
+
+  const result = await aiGenerateText({
+    model: provider,
+    messages,
+    temperature: request.temperature,
+    maxOutputTokens: request.maxTokens,
+    tools,
+    abortSignal: ctx?.signal,
+  });
+
+  const toolCalls = result.toolCalls?.length
+    ? result.toolCalls.map((tc: any) => ({
+        id: tc.toolCallId as string,
+        name: tc.toolName as string,
+        arguments: JSON.stringify(tc.input),
+      }))
+    : undefined;
+
   return {
     model: model.modelId,
-    text: raw.choices?.[0]?.message?.content ?? '',
-    usage: mapUsage(raw.usage),
-    finishReason: mapFinishReason(raw.choices?.[0]?.finish_reason),
+    text: result.text ?? '',
+    finishReason: mapFinishReason(result.finishReason),
+    usage: result.usage
+      ? { promptTokens: result.usage.inputTokens ?? undefined, completionTokens: result.usage.outputTokens ?? undefined }
+      : undefined,
+    toolCalls,
   };
 }
 
 // ── Image generation (POST /images/generations or /images/edits) ──
+// Kept as direct HTTP — Vercel AI SDK does not cover image generation.
 
 type OpenAiImageResponse = {
   data?: Array<{ url?: string; b64_json?: string; b64Json?: string; base64?: string }>;
@@ -143,7 +198,7 @@ async function buildImageResponse(model: ResolvedModel, raw: OpenAiImageResponse
   return normalizeImageResponse(response);
 }
 
-// ── Video generation (placeholder — no standard OpenAI video endpoint yet) ──
+// ── Video generation (placeholder) ──
 
 export async function generateVideo(
   _model: ResolvedModel,

@@ -15,8 +15,9 @@ import { createOrchestrationSlice, type OrchestrationSlice } from './orchestrati
 import { createBackgroundTasksSlice, type BackgroundTasksSlice } from './backgroundTasksSlice';
 import { createUpdateSlice, type UpdateSlice } from './updateSlice';
 import { createCommandPaletteSlice, type CommandPaletteSlice } from './commandPaletteSlice';
+import { createAgentSlice, type AgentSlice } from './agentSlice';
 
-export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter } from './types';
+export type { WorkspaceModule, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter, AgentMode } from './types';
 
 type AppState = AuthSlice &
   ProjectSlice &
@@ -33,7 +34,8 @@ type AppState = AuthSlice &
   OrchestrationSlice &
   BackgroundTasksSlice &
   UpdateSlice &
-  CommandPaletteSlice;
+  CommandPaletteSlice &
+  AgentSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
   ...createAuthSlice(...a),
@@ -52,4 +54,5 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createBackgroundTasksSlice(...a),
   ...createUpdateSlice(...a),
   ...createCommandPaletteSlice(...a),
+  ...createAgentSlice(...a),
 }));

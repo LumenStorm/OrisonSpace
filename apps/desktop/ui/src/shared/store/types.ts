@@ -32,3 +32,5 @@ export type TaskEntry = {
   request: TaskRequest;
   result: TaskResult | null;
 };
+
+export type AgentMode = 'auto' | 'suggest' | 'readonly';

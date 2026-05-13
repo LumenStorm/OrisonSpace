@@ -1,21 +1,20 @@
 import cors from '@fastify/cors';
 import Fastify from 'fastify';
-import { env } from './common/env';
-import { logger } from './common/logger';
-import { registerOrchestrationRoutes } from './routes';
+import { env } from './env';
+import { logger } from './logger';
+import { registerRoutes } from './routes';
+import { registerBuiltinTools } from './tool/builtin';
 
 export function buildAgent() {
   const app = Fastify({
     loggerInstance: logger,
-    bodyLimit: 1_048_576
+    bodyLimit: 2_097_152,
   });
 
-  app.register(cors, {
-    origin: true,
-    credentials: true,
-  });
+  app.register(cors, { origin: true, credentials: true });
+  app.register(registerRoutes);
 
-  app.register(registerOrchestrationRoutes);
+  registerBuiltinTools();
 
   return app;
 }

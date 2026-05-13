@@ -12,6 +12,133 @@
 
 ---
 
+## 任务 5：用 Vercel AI SDK 替换 `@orison/model-protocols` 兼容层
+
+### 背景
+
+当前 `@orison/model-protocols` 是手写的 OpenAI 兼容 HTTP 调用层，存在以下问题：
+
+1. **不支持 tool calling** — `generateText` 只传 messages/temperature/maxTokens，忽略 tools 参数
+2. **不支持 streaming** — 全部是同步 POST → JSON 响应
+3. **不支持多 provider 差异** — Anthropic/Google/本地模型各有不同的 API 格式，当前只做了 OpenAI 兼容
+4. **agent loop 手动拼装** — `ipc-provider.ts` 自己构造 tool definitions JSON，与 model-protocols 脱节
+
+### 安全约束
+
+**apiKey 不暴露给 agent 进程**。agent 继续通过 `http://localhost:18421`（desktop shell gateway）代理调用模型。密钥始终留在 shell 主进程内。
+
+### 架构
+
+```
+Agent ──HTTP──▶ Gateway (shell 主进程, port 18421)
+                  │
+                  ├─ resolveModel(ref) → { baseUrl, apiKey, modelId }
+                  │
+                  └─ Vercel AI SDK (generateText / streamText)
+                       │
+                       └──▶ LLM Provider API
+```
+
+Agent 只传 `{ ref: { keyId, modelId }, request: { messages, tools, ... } }`，gateway 负责 resolve + 调用。
+
+### 改动范围
+
+#### 1. 安装依赖
+
+| 包 | 新增依赖 |
+|---|---|
+| `packages/model-protocols` | `ai@^4`, `@ai-sdk/openai@^1` |
+
+> agent 不需要安装 AI SDK — 它只是 HTTP 客户端。
+
+#### 2. 重写 `packages/model-protocols/src/generate.ts`
+
+```ts
+import { generateText as aiGenerateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+
+export function createProvider(model: ResolvedModel) {
+  const openai = createOpenAI({ baseURL: normalizeBaseUrl(model.baseUrl), apiKey: model.apiKey });
+  return openai(model.modelId);
+}
+
+export async function generateText(model, request, ctx?) {
+  const provider = createProvider(model);
+  const result = await aiGenerateText({
+    model: provider,
+    messages: request.messages,
+    temperature: request.temperature,
+    maxTokens: request.maxTokens,
+    tools: request.tools,       // ← 新增：tool calling 支持
+    abortSignal: ctx?.signal,
+  });
+  return {
+    model: model.modelId,
+    text: result.text,
+    toolCalls: result.toolCalls?.map(tc => ({ id: tc.toolCallId, name: tc.toolName, arguments: JSON.stringify(tc.args) })),
+    finishReason: mapFinishReason(result.finishReason),
+    usage: { promptTokens: result.usage?.promptTokens, completionTokens: result.usage?.completionTokens },
+  };
+}
+```
+
+- `generateImage` / `generateVideo` 保持现有 fetch 逻辑不变
+
+#### 3. 扩展 shared-contracts 类型
+
+`TextGenerationRequest` 新增 optional `tools` 字段：
+```ts
+tools?: Array<{ type: 'function'; function: { name: string; description: string; parameters: unknown } }>;
+```
+
+`TextGenerationResponse` 新增 optional `toolCalls` 字段：
+```ts
+toolCalls?: Array<{ id: string; name: string; arguments: string }>;
+```
+
+#### 4. Gateway 无需改动
+
+`handleGenerateText` 已经是 `generateText(resolved, payload.request)` — model-protocols 内部签名不变，tools 字段自动透传。
+
+#### 5. Agent `ipc-provider.ts` 微调
+
+当前已经在 payload 中构造了 tools，只需确保 gateway 返回的 `toolCalls` 被正确解析（当前代码已处理 `data.toolCalls`）。主要改动：
+
+- 确保 `request.tools` 字段格式与 Vercel AI SDK 期望的 OpenAI function calling 格式一致
+- 确保响应中 `toolCalls` 字段映射正确
+
+#### 6. 可选：streaming 端点
+
+新增 `POST /model/stream-text` 端点，用 `streamText` + SSE 返回逐 token 结果。agent 的 SSE 端点可对接此接口实现端到端 streaming。本次先确保非流式路径正确。
+
+### 不改动的部分
+
+- `apps/desktop/ui` — 前端不变
+- `apps/agent/src/tool/*` — tool 定义不变
+- `apps/agent/src/agent/loop.ts` — loop 逻辑不变
+- `modelGatewayHttp.ts` — 路由不变（`/model/generate-text` 已存在）
+- `modelGatewayIpc.ts` — 签名不变
+- Image/Video generation — 保持现有实现
+
+### 文件变更清单
+
+| 文件 | 操作 |
+|---|---|
+| `packages/model-protocols/package.json` | 加 `ai`, `@ai-sdk/openai` |
+| `packages/model-protocols/src/generate.ts` | 重写 `generateText` 用 Vercel AI SDK |
+| `packages/model-protocols/src/http.ts` | 保留（image/video 仍用） |
+| `packages/model-protocols/src/index.ts` | 新增导出 `createProvider` |
+| `packages/shared-contracts/src/contracts/generation.ts` | request 加 tools，response 加 toolCalls |
+| `apps/agent/src/provider/ipc-provider.ts` | 微调 tools 格式 + 响应解析 |
+
+### 风险
+
+1. **`@ai-sdk/openai` 兼容性** — 对非标准端点（某些国产模型 API）可能有问题。如遇到，可在 `createProvider` 中加 `compatibility: 'compatible'` 选项。
+2. **breaking change** — `TextGenerationResponse` 新增 `toolCalls` 字段，但是 optional，不会 break 现有消费方。
+3. **model-protocols 包体积** — `ai` 包约 200KB，可接受。
+
+---
+
 ## 任务 4：通用后台任务系统 + 生图页面状态持久化
 
 ### 目标
