@@ -237,65 +237,69 @@ output: replacement
 
 ```typescript
 // provider/ipc-provider.ts
-import { createCustomProvider } from 'ai';
+// Agent 通过 HTTP 调用桌面端暴露的 model gateway
+// 将 messages + tools 格式化为 gateway 期望的 payload
 
-// 将桌面 IPC 包装为 Vercel AI SDK 的 custom provider
-// agent 通过 HTTP 调用桌面端暴露的 model gateway
-export function createIpcProvider(gatewayUrl: string) {
-  return createCustomProvider({
-    languageModel(modelId) {
-      return createIpcLanguageModel(gatewayUrl, modelId);
-    },
+function messagesToPayload(messages, system, tools) {
+  // system prompt 作为 { role: 'system' } 消息放入 messages 数组
+  // assistant 消息带 toolCalls 字段
+  // tool 消息带 toolCallId + content
+
+  // tool definitions 使用 zodToJsonSchema(schema, { target: 'jsonSchema7' })
+  // 确保 exclusiveMinimum 等字段输出为数字（兼容 OpenAI schema 校验）
+  // 剥离 $schema 字段
+  const toolDefs = tools.map(t => {
+    const { $schema, ...schema } = zodToJsonSchema(t.parameters, { target: 'jsonSchema7' });
+    return { type: 'function', function: { name: t.id, description: t.description, parameters: schema } };
   });
 }
 
-// IPC language model 实现：
-// - 将 AI SDK 的 messages + tools 格式转为 IPC 请求
-// - 通过 HTTP 发送到桌面主进程的 model gateway
-// - 桌面主进程解密 apiKey，调用实际 LLM API
-// - 返回结果（支持 streaming）
+export async function generate(messages, system, tools, opts) {
+  // POST http://localhost:18421/model/generate-text
+  // body: { ref: { keyId, modelId }, request: { messages, tools, temperature, maxTokens } }
+}
 ```
+
+Gateway 侧（`model-protocols`）使用 `openai.chat(modelId)` 强制 Chat Completions API（而非 Responses API），
+并将 system 消息从 messages 数组中提取出来通过 AI SDK 的 `system` 参数传递。
 
 ### 3.7 Agentic Loop（对标 opencode session/generation）
 
 ```typescript
 // agent/loop.ts
-async function runAgenticLoop(session: Session): AsyncGenerator<StreamEvent> {
-  while (session.steps < session.maxSteps) {
-    // 1. 构建 messages（system + history + pending）
-    const messages = buildMessages(session);
+export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
+  const { messages, systemPrompt, tools, maxSteps, generate, onMessage, abort } = opts;
+  const result: SessionMessage[] = [];
+  let steps = 0;
 
-    // 2. 调用 LLM（带 tools 定义）
-    const result = await generateText({
-      model: session.model,
-      messages,
-      tools: session.availableTools,
-      maxSteps: 1, // 单步，自己控制循环
-    });
+  while (steps < maxSteps) {
+    if (abort.aborted) break;
+    steps++;
 
-    // 3. 处理结果
-    if (result.toolCalls.length === 0) {
-      // 无 tool call = 任务完成
-      yield { type: 'text', content: result.text };
-      break;
+    // 调用 LLM（通过注入的 generate 函数，实际走 HTTP → gateway → AI SDK）
+    const response = await generate([...messages, ...result], systemPrompt, tools);
+
+    // 追加 assistant 消息
+    const assistantMsg = { role: 'assistant', content: response.content, toolCalls: response.toolCalls };
+    result.push(assistantMsg);
+    onMessage?.(assistantMsg);
+
+    // 无 tool call 或 finishReason=stop → 结束
+    if (!response.toolCalls?.length || response.finishReason === 'stop') break;
+
+    // 执行 tool calls，追加 tool result 消息
+    for (const call of response.toolCalls) {
+      if (abort.aborted) break;
+      const tool = tools.find(t => t.id === call.name);
+      const toolResult = await tool.execute(JSON.parse(call.arguments), ctx);
+      result.push({ role: 'tool', toolResults: [{ toolCallId: call.id, output: toolResult.output }] });
     }
-
-    // 4. 执行 tool calls
-    for (const call of result.toolCalls) {
-      const toolResult = await executeToolCall(call, session.context);
-      session.addMessage({ role: 'tool', content: toolResult });
-      yield { type: 'tool_result', name: call.name, result: toolResult };
-    }
-
-    // 5. 检查是否需要 compaction
-    if (shouldCompact(session)) {
-      await compact(session);
-    }
-
-    session.steps++;
   }
+  return result;
 }
 ```
+
+注意：abort signal 基于 `request.raw.socket.on('close')`（TCP 连接关闭），而非 `request.raw.on('close')`（请求 body 读取完成），避免 SSE 端点过早中断。
 
 ### 3.8 上下文压缩（对标 opencode compaction）
 
@@ -443,7 +447,7 @@ Agent 的 `read_file` / `write_file` 工具直接操作项目文件系统（agen
 
 ### 新增
 - `ai` (Vercel AI SDK v6) — LLM 交互、tool use、streaming
-- `@ai-sdk/provider` — custom provider 接口
+- `@ai-sdk/openai` v3 — OpenAI 兼容 provider（使用 `.chat()` 强制 Chat Completions API）
 - `@modelcontextprotocol/sdk` — MCP client
 - `gray-matter` — SKILL.md frontmatter 解析
 

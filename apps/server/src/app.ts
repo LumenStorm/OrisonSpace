@@ -6,7 +6,7 @@ import { registerHealthRoutes } from './common/health';
 import { logger } from './common/logger';
 import { authPlugin } from './modules/auth/plugin';
 import { registerAuthRoutes } from './modules/auth/routes';
-import { registerOrchestrationProxy } from './modules/orchestration/proxy';
+import { registerAgentProxy } from './modules/agent/proxy';
 
 export function buildServer() {
   const app = Fastify({
@@ -17,6 +17,7 @@ export function buildServer() {
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:43117',
+    'http://127.0.0.1:43117',
     'app://.',
   ];
 
@@ -31,10 +32,18 @@ export function buildServer() {
     credentials: true,
   });
 
+  // Chromium Private Network Access: required for Electron renderer → localhost fetch
+  app.addHook('onSend', (request, reply, _payload, done) => {
+    if (request.headers['access-control-request-private-network']) {
+      reply.header('Access-Control-Allow-Private-Network', 'true');
+    }
+    done();
+  });
+
   app.register(authPlugin);
   app.register(registerHealthRoutes);
   app.register(registerAuthRoutes);
-  app.register(registerOrchestrationProxy);
+  app.register(registerAgentProxy);
 
   return app;
 }

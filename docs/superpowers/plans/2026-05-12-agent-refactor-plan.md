@@ -68,12 +68,14 @@
 **目标**：实现 LLM 调用和 agent 核心循环。
 
 - `provider/ipc-provider.ts`：
-  - 实现 Vercel AI SDK 的 custom provider 接口
-  - 将 `generateText` / `streamText` 请求转为桌面 IPC `model:generate-text` 调用
+  - 将 messages + tools 格式化为 gateway HTTP 请求
+  - Tool schema 使用 `zodToJsonSchema(schema, { target: 'jsonSchema7' })`（确保 exclusiveMinimum 为数字）
+  - 通过 HTTP POST 发送到桌面主进程的 model gateway（`/model/generate-text`）
   - 处理 tool_use 格式转换
 - `agent/loop.ts`：
-  - Agentic loop：调用 LLM → 检查 tool_call → 执行 tool → 将 result 追加到 messages → 重复
+  - Agentic loop：调用 generate → 检查 tool_call → 执行 tool → 将 result 追加到 messages → 重复
   - 最大步数限制
+  - AbortSignal 基于 `request.raw.socket.on('close')`（TCP 连接关闭）
   - 流式输出支持（SSE）
 - `agent/session.ts`：
   - Session 创建：构建 system prompt（orison.md + project.md + skills summary）
@@ -154,7 +156,8 @@ Phase 7 (清理)
 
 ```json
 {
-  "ai": "^4.x",                          // Vercel AI SDK
+  "ai": "^6.x",                          // Vercel AI SDK
+  "@ai-sdk/openai": "^3.x",             // OpenAI 兼容 provider（.chat() 强制 Chat Completions）
   "gray-matter": "^4.x",                 // SKILL.md frontmatter 解析
   "@modelcontextprotocol/sdk": "^1.x",   // MCP client SDK
   "glob": "^11.x"                        // 文件发现
@@ -165,7 +168,7 @@ Phase 7 (清理)
 
 | 决策 | 选择 | 对标 opencode |
 |------|------|---------------|
-| LLM 交互 | Vercel AI SDK custom provider → IPC | opencode 用 AI SDK + provider 抽象 |
+| LLM 交互 | Vercel AI SDK `.chat()` provider → HTTP gateway | opencode 用 AI SDK + provider 抽象 |
 | Tool 定义 | `defineTool()` + Zod schema | opencode 的 `Tool.define()` |
 | Skill 格式 | SKILL.md (frontmatter + prompt) | opencode 的 SKILL.md 完全一致 |
 | Skill 发现 | `.orison/skills/` 两层 | opencode 的 `.opencode/skills/` |
@@ -178,7 +181,7 @@ Phase 7 (清理)
 
 | 风险 | 缓解 |
 |------|------|
-| IPC provider 适配复杂 | AI SDK 的 custom provider 接口文档完善，且只需实现 doGenerate/doStream |
+| IPC provider 适配复杂 | 实际采用 HTTP 直调 gateway + zodToJsonSchema 转换，无需实现 AI SDK custom provider |
 | Agent 自主决策质量 | 内置 skill 包含详细 prompt 模板，相当于"软 pipeline" |
 | 桌面端 API 变更 | Phase 6 提供兼容层，桌面端可渐进迁移 |
 | MCP server 不稳定 | graceful degradation，MCP 工具不可用时仍可用内置工具 |

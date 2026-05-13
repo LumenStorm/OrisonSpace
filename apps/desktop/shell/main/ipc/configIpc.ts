@@ -47,12 +47,16 @@ function encrypt(value: string): string {
 
 function decrypt(value: string): string {
   if (!value) return '';
+  // Only attempt safeStorage decryption if value looks like base64-encoded encrypted data
+  // (safeStorage output is typically 80+ chars of pure base64 with padding)
+  const isLikelyEncrypted = value.length > 60 && /^[A-Za-z0-9+/]+=*$/.test(value);
+  if (!isLikelyEncrypted) return value;
   try {
     if (safeStorage.isEncryptionAvailable()) {
       const buf = Buffer.from(value, 'base64');
       return safeStorage.decryptString(buf);
     }
-  } catch { /* fall through */ }
+  } catch { /* decryption failed */ }
   return value;
 }
 

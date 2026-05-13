@@ -22,7 +22,7 @@ export function createProvider(model: ResolvedModel) {
     baseURL: normalizeBaseUrl(model.baseUrl),
     apiKey: model.apiKey,
   });
-  return openai(model.modelId);
+  return openai.chat(model.modelId);
 }
 
 // ── Text generation (via Vercel AI SDK) ──
@@ -59,8 +59,14 @@ export async function generateText(
         )
       : undefined;
 
-  // Convert messages to Vercel AI SDK format
-  const messages = request.messages.map((m: any) => {
+  // Extract system messages and convert the rest to Vercel AI SDK format
+  const systemParts: string[] = [];
+  const nonSystemMessages = request.messages.filter((m: any) => {
+    if (m.role === 'system') { systemParts.push(m.content); return false; }
+    return true;
+  });
+
+  const messages = nonSystemMessages.map((m: any) => {
     if (m.role === 'assistant' && m.toolCalls?.length) {
       return {
         role: 'assistant' as const,
@@ -90,6 +96,7 @@ export async function generateText(
 
   const result = await aiGenerateText({
     model: provider,
+    system: systemParts.length ? systemParts.join('\n') : undefined,
     messages,
     temperature: request.temperature,
     maxOutputTokens: request.maxTokens,

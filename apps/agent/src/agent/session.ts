@@ -4,13 +4,14 @@ import { persistSession, appendMessageToFile, loadMessagesFromFile, deletePersis
 
 const sessions = new Map<string, SessionState>();
 
-export function createSession(agentName: string, projectPath: string): SessionState {
+export function createSession(agentName: string, projectPath: string, modelRef?: { keyId: string; modelId: string }): SessionState {
   const session: SessionState = {
     id: randomUUID(),
     agentName,
     projectPath,
     status: 'idle',
     messages: [],
+    modelRef,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

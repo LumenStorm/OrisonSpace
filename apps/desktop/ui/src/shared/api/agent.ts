@@ -1,7 +1,9 @@
 import type { AgentMode } from '../store/types';
 import type { ModelRef } from '@orison/shared-contracts';
+import { API_BASE } from '../constants';
+import { authJsonHeaders, authHeaders, throwIfSessionExpired } from './session';
 
-const AGENT_BASE = 'http://localhost:18422';
+const AGENT_BASE = API_BASE;
 
 export type AgentMessage = {
   id: string;
@@ -35,7 +37,7 @@ export async function createAgentSession(
 ): Promise<{ id: string }> {
   const res = await fetch(`${AGENT_BASE}/v1/agent/sessions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({ projectPath, mode, modelRef }),
   });
   if (!res.ok) throw new Error(`createAgentSession:${res.status}`);
@@ -43,17 +45,21 @@ export async function createAgentSession(
 }
 
 export async function fetchAgentSession(id: string): Promise<{ id: string; messages: AgentMessage[] }> {
-  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`);
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error(`fetchAgentSession:${res.status}`);
   return res.json() as Promise<{ id: string; messages: AgentMessage[] }>;
 }
 
 export async function deleteAgentSession(id: string): Promise<void> {
-  await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`, { method: 'DELETE' });
+  await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`, { method: 'DELETE', headers: authHeaders() });
 }
 
 export async function listAgentSessions(projectPath: string): Promise<AgentSessionMeta[]> {
-  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions?projectPath=${encodeURIComponent(projectPath)}`);
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions?projectPath=${encodeURIComponent(projectPath)}`, {
+    headers: authHeaders(),
+  });
   if (!res.ok) return [];
   const data = await res.json() as { sessions: AgentSessionMeta[] };
   return data.sessions;
@@ -62,7 +68,7 @@ export async function listAgentSessions(projectPath: string): Promise<AgentSessi
 export async function confirmAgentTool(sessionId: string, callId: string, approved: boolean): Promise<void> {
   await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/confirm`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({ callId, approved }),
   });
 }
@@ -80,7 +86,7 @@ export function streamAgentMessage(
 
   fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authJsonHeaders(),
     body: JSON.stringify({ content }),
     signal: ac.signal,
   }).then(async (res) => {

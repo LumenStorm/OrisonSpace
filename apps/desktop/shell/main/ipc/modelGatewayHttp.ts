@@ -88,7 +88,9 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     json(res, 404, { error: `Unknown endpoint: ${url}` });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.error({ err: message, url }, 'gateway request failed');
+    const stack = err instanceof Error ? err.stack : undefined;
+    const cause = err instanceof Error && (err as any).cause ? String((err as any).cause) : undefined;
+    logger.error({ err: message, stack, cause, url }, 'gateway request failed');
     json(res, 500, { error: message });
   }
 }

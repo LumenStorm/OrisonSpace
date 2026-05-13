@@ -191,7 +191,7 @@ User Message
 ```
 
 - 最大 50 步循环（防止无限 loop）
-- 支持 AbortSignal 中断
+- 支持 AbortSignal 中断（基于 TCP socket close 事件，而非 request body close）
 - Tool 执行结果自动追加到消息历史
 - 上下文超长时自动压缩（compaction）
 

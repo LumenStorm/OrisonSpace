@@ -14,16 +14,33 @@ import { readModelConfigFromDisk } from './configIpc';
 
 /**
  * Resolve a `{keyId, modelId}` ref to a `ResolvedModel` with decrypted apiKey.
+ * When keyId is 'default', uses the first available key with an enabled model.
  */
 export function resolveModel(ref: ModelRef): ResolvedModel {
   const config = readModelConfigFromDisk();
-  const key = config.keys.find((k) => k.id === ref.keyId);
+
+  let key = config.keys.find((k) => k.id === ref.keyId);
+  let modelId = ref.modelId;
+
+  // Fallback: if keyId is 'default' or not found, use first key with an enabled model
+  if (!key && (ref.keyId === 'default' || !ref.keyId)) {
+    for (const k of config.keys) {
+      const enabled = k.models.find((m) => m.enabled !== false);
+      if (enabled) {
+        key = k;
+        if (modelId === 'default' || !modelId) modelId = enabled.id;
+        break;
+      }
+    }
+  }
+
   if (!key) {
     throw new Error(`Model ref points to unknown key '${ref.keyId}'`);
   }
-  const model = key.models.find((m) => m.id === ref.modelId);
+
+  const model = key.models.find((m) => m.id === modelId) ?? key.models.find((m) => m.enabled !== false);
   if (!model) {
-    throw new Error(`Model '${ref.modelId}' not found in key '${key.name}'`);
+    throw new Error(`Model '${modelId}' not found in key '${key.name}'`);
   }
   return {
     keyId: key.id,

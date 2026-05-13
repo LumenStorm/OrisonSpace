@@ -1,5 +1,9 @@
 import { z } from 'zod';
+import { config } from 'dotenv';
 import { DEFAULT_AGENT_URL } from '@orison/shared-contracts';
+
+// Load .env with override so local .env always wins over stale system env vars
+config({ override: true });
 
 const isProd = process.env.NODE_ENV === 'production';
 

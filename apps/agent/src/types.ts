@@ -78,6 +78,7 @@ export interface SessionState {
   projectPath: string;
   status: SessionStatus;
   messages: SessionMessage[];
+  modelRef?: { keyId: string; modelId: string };
   createdAt: number;
   updatedAt: number;
   error?: string;

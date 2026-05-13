@@ -45,14 +45,17 @@ function messagesToPayload(messages: SessionMessage[], system: string, tools: To
     }
   }
 
-  const toolDefs = tools.map(t => ({
-    type: 'function' as const,
-    function: {
-      name: t.id,
-      description: t.description,
-      parameters: zodToJsonSchema(t.parameters, { target: 'openApi3' }),
-    },
-  }));
+  const toolDefs = tools.map(t => {
+    const { $schema, ...schema } = zodToJsonSchema(t.parameters, { target: 'jsonSchema7' }) as Record<string, unknown>;
+    return {
+      type: 'function' as const,
+      function: {
+        name: t.id,
+        description: t.description,
+        parameters: schema,
+      },
+    };
+  });
 
   return { messages: formatted, tools: toolDefs.length > 0 ? toolDefs : undefined };
 }

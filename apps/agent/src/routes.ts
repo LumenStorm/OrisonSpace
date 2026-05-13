@@ -14,6 +14,7 @@ import { logger } from './logger';
 const createSessionSchema = z.object({
   agentName: z.string().default('writer'),
   projectPath: z.string(),
+  mode: z.string().optional(),
   modelRef: z.object({ keyId: z.string(), modelId: z.string() }).optional(),
 });
 
@@ -28,7 +29,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.post('/v1/agent/sessions', async (request, reply) => {
     const body = createSessionSchema.parse(request.body);
-    const session = createSession(body.agentName, body.projectPath);
+    const session = createSession(body.agentName, body.projectPath, body.modelRef);
     return reply.code(201).send(session);
   });
 
@@ -69,7 +70,7 @@ export async function registerRoutes(app: FastifyInstance) {
     updateStatus(id, 'running');
 
     const abortController = new AbortController();
-    request.raw.on('close', () => abortController.abort());
+    request.raw.socket.on('close', () => abortController.abort());
 
     try {
       const skillsDir = path.join(session.projectPath, '.orison', 'skills');
@@ -93,7 +94,7 @@ export async function registerRoutes(app: FastifyInstance) {
         systemPrompt,
         tools,
         maxSteps: 50,
-        generate: (msgs, sys, tls) => generate(msgs, sys, tls),
+        generate: (msgs, sys, tls) => generate(msgs, sys, tls, { modelRef: session.modelRef }),
         onMessage: (msg) => addMessage(id, msg),
         abort: abortController.signal,
       });
@@ -127,7 +128,7 @@ export async function registerRoutes(app: FastifyInstance) {
     updateStatus(id, 'running');
 
     const abortController = new AbortController();
-    request.raw.on('close', () => abortController.abort());
+    request.raw.socket.on('close', () => abortController.abort());
 
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -161,7 +162,7 @@ export async function registerRoutes(app: FastifyInstance) {
         systemPrompt,
         tools,
         maxSteps: 50,
-        generate: (msgs, sys, tls) => generate(msgs, sys, tls),
+        generate: (msgs, sys, tls) => generate(msgs, sys, tls, { modelRef: session.modelRef }),
         onMessage: (msg) => {
           addMessage(id, msg);
           if (msg.role === 'assistant') {

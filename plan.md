@@ -47,7 +47,7 @@ Agent 只传 `{ ref: { keyId, modelId }, request: { messages, tools, ... } }`，
 
 | 包 | 新增依赖 |
 |---|---|
-| `packages/model-protocols` | `ai@^4`, `@ai-sdk/openai@^1` |
+| `packages/model-protocols` | `ai@^6`, `@ai-sdk/openai@^3` |
 
 > agent 不需要安装 AI SDK — 它只是 HTTP 客户端。
 
@@ -59,17 +59,26 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 export function createProvider(model: ResolvedModel) {
   const openai = createOpenAI({ baseURL: normalizeBaseUrl(model.baseUrl), apiKey: model.apiKey });
-  return openai(model.modelId);
+  return openai.chat(model.modelId);  // 使用 .chat() 强制 Chat Completions API，兼容第三方 OpenAI 兼容端点
 }
 
 export async function generateText(model, request, ctx?) {
   const provider = createProvider(model);
+
+  // 从 messages 中提取 system 消息，通过 AI SDK 的 system 参数传递
+  const systemParts = [];
+  const nonSystemMessages = request.messages.filter(m => {
+    if (m.role === 'system') { systemParts.push(m.content); return false; }
+    return true;
+  });
+
   const result = await aiGenerateText({
     model: provider,
-    messages: request.messages,
+    system: systemParts.length ? systemParts.join('\n') : undefined,
+    messages: nonSystemMessages,  // 转换为 AI SDK 格式
     temperature: request.temperature,
     maxTokens: request.maxTokens,
-    tools: request.tools,       // ← 新增：tool calling 支持
+    tools: request.tools,       // ← tool calling 支持
     abortSignal: ctx?.signal,
   });
   return {
@@ -104,8 +113,13 @@ toolCalls?: Array<{ id: string; name: string; arguments: string }>;
 
 当前已经在 payload 中构造了 tools，只需确保 gateway 返回的 `toolCalls` 被正确解析（当前代码已处理 `data.toolCalls`）。主要改动：
 
-- 确保 `request.tools` 字段格式与 Vercel AI SDK 期望的 OpenAI function calling 格式一致
+- `zodToJsonSchema` 使用 `target: 'jsonSchema7'`（而非 `'openApi3'`），确保 `exclusiveMinimum` 输出为数字而非布尔值，兼容 OpenAI API schema 校验
+- 剥离生成的 `$schema` 字段，避免模型 API 拒绝
 - 确保响应中 `toolCalls` 字段映射正确
+
+#### 5.5 Agent `routes.ts` abort signal 修复
+
+SSE 端点的 abort 信号改用 `request.raw.socket.on('close')` 而非 `request.raw.on('close')`。后者在 Fastify 中会在请求 body 读取完成后立即触发，导致 agentic loop 还未开始就被中断。
 
 #### 6. 可选：streaming 端点
 
@@ -267,3 +281,69 @@ markImageGenResultAsset: (id: string) => void;
 - 现有 `tasksSlice.submitRewrite` 改为内部调用 `submitBgTask`
 - `acceptedPatches` 等 rewrite 特有逻辑保留在 `tasksSlice`
 - 不破坏现有 rewrite 功能
+
+---
+
+## 任务 7：Agent 请求经 Server 中转（2026-05-13）
+
+### 目标
+
+Desktop UI 不再直连 Agent，所有 `/v1/agent/*` 请求统一经 Server 中转，Server 做 JWT 认证校验后透传到 Agent。同时删除已废弃的 orchestration proxy（Agent 端无对应实现）。
+
+### 当前状态
+
+```
+Desktop UI ──直连──→ Agent (localhost:18422)  /v1/agent/*
+Desktop UI ──→ Server (localhost:43117) ──→ Agent  /v1/orchestration/* (空转，Agent 未实现)
+```
+
+### 目标状态
+
+```
+Desktop UI ──→ Server (localhost:43117) ──→ Agent (localhost:18422)
+                  ↑ JWT 校验
+统一走 /v1/agent/*，删除 /v1/orchestration/* 代理
+```
+
+### 改动范围
+
+#### 1. Server 端：新增 Agent 代理模块
+
+**新文件**: `apps/server/src/modules/agent/proxy.ts`
+
+代理以下 6 个端点：
+
+| 方法 | Server 路由 | 转发到 Agent |
+|------|------------|-------------|
+| POST | `/v1/agent/sessions` | `/v1/agent/sessions` |
+| GET | `/v1/agent/sessions/:id` | `/v1/agent/sessions/:id` |
+| DELETE | `/v1/agent/sessions/:id` | `/v1/agent/sessions/:id` |
+| GET | `/v1/agent/sessions` | `/v1/agent/sessions?projectPath=...` |
+| POST | `/v1/agent/sessions/:id/confirm` | `/v1/agent/sessions/:id/confirm` |
+| POST | `/v1/agent/sessions/:id/stream` | `/v1/agent/sessions/:id/stream` (SSE 透传) |
+
+**认证**：所有路由自动受现有 `authPlugin` 的 `onRequest` hook 保护（JWT 校验），无需额外代码。
+
+**SSE 透传**：stream 端点使用 Fastify `reply.raw` 直接 pipe Agent 的 response body，不解析 SSE 内容，保持最低延迟。
+
+#### 2. Server 端：删除 orchestration proxy
+
+**删除文件**: `apps/server/src/modules/orchestration/proxy.ts`
+**修改文件**: `apps/server/src/app.ts` — 移除 `registerOrchestrationProxy` 注册，替换为 `registerAgentProxy`。
+
+#### 3. Desktop UI 端：改 base URL + 注入 auth token
+
+**修改文件**: `apps/desktop/ui/src/shared/api/agent.ts`
+
+- `AGENT_BASE` 从 `http://localhost:18422` 改为 `http://localhost:43117`
+- 所有 fetch 请求添加 `Authorization: Bearer <token>` header（从现有 auth store 获取）
+
+#### 4. Desktop UI 端：移除 orchestration API 调用
+
+**删除/清理**: Desktop 中对 `/v1/orchestration/*` 的调用代码（`orchestration.ts`、`novelChapter.ts` 中相关函数），因为 Agent 端从未实现这些路由。
+
+### 不改动
+
+- Agent 端代码不变
+- SSE 事件格式不变
+- Desktop UI 的 SSE 解析逻辑不变

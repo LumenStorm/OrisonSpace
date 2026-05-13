@@ -180,6 +180,8 @@
   - 返回 `RemoteModel[]`（id + capability + alias），能力由 `model-registry` 推断
 - `generateText / generateImage / generateVideo`
   - 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）
+  - text 生成使用 `@ai-sdk/openai` 的 `.chat()` 方法强制 Chat Completions API（兼容第三方 OpenAI 兼容端点，避免 Responses API）
+  - system 消息从 messages 数组中提取，通过 AI SDK 的 `system` 参数传递
   - `baseUrl` 同样兼容带或不带 `/v1`
   - 接收 `ResolvedModel`（含 baseUrl、apiKey、modelId、capability）
 - image adapter 支持 `image`、`mask` 字段用于图像编辑
