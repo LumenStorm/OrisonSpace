@@ -1,5 +1,6 @@
 import type { SessionMessage } from '../types';
 import { logger } from '../logger';
+import { compactConversation } from '../context/compaction';
 
 const COMPACTION_THRESHOLD = 100_000; // chars as rough proxy for tokens
 
@@ -17,16 +18,16 @@ export async function compact(
   messages: SessionMessage[],
   summarize: (text: string) => Promise<string>,
 ): Promise<CompactionResult> {
-  const tailCount = 4;
-  const preserved = messages.slice(-tailCount);
-  const toSummarize = messages.slice(0, -tailCount);
+  const compacted = compactConversation({
+    sessionId: 'legacy-compaction',
+    messages,
+    preserveLast: 4,
+  });
+  const summary = compacted.summary
+    ? await summarize(compacted.summary)
+    : '';
 
-  const text = toSummarize
-    .map(m => `[${m.role}]: ${m.content}`)
-    .join('\n\n');
+  logger.info({ originalCount: messages.length, preservedCount: compacted.tail.length }, 'compacted session');
 
-  const summary = await summarize(text);
-  logger.info({ originalCount: messages.length, preservedCount: preserved.length }, 'compacted session');
-
-  return { summary, preservedMessages: preserved };
+  return { summary, preservedMessages: compacted.tail };
 }

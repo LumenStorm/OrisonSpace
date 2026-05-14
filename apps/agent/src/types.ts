@@ -72,6 +72,30 @@ export interface ToolCallResult {
 
 export type SessionStatus = 'idle' | 'running' | 'completed' | 'error' | 'aborted';
 
+export type WorkflowRunStatus = SessionStatus;
+
+export interface PendingConfirmationState {
+  sessionId: string;
+  callId: string;
+  name: string;
+  input: unknown;
+  createdAt: number;
+}
+
+export interface ConfirmationResolution {
+  callId: string;
+  approved: boolean;
+}
+
+export type RuntimeEventPayload =
+  | { type: 'assistant'; data: { id: string; content: string; toolCalls?: ToolCall[] } }
+  | { type: 'tool'; data: { id: string; results: ToolCallResult[] } }
+  | { type: 'confirm_required'; data: PendingConfirmationState }
+  | { type: 'done'; data: { status: WorkflowRunStatus } }
+  | { type: 'error'; data: { message: string } };
+
+export type RuntimeStreamEvent = RuntimeEventPayload;
+
 export interface SessionState {
   id: string;
   agentName: string;
@@ -79,6 +103,10 @@ export interface SessionState {
   status: SessionStatus;
   messages: SessionMessage[];
   modelRef?: { keyId: string; modelId: string };
+  parentId?: string;
+  children: string[];
+  branchFromMessageId?: string;
+  sessionRole?: 'primary' | 'child' | 'fork';
   createdAt: number;
   updatedAt: number;
   error?: string;

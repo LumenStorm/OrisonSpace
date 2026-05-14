@@ -68,7 +68,26 @@ export async function registerAgentProxy(app: FastifyInstance) {
     return relayJson(res, reply);
   });
 
+  app.post('/v1/agent/sessions/:id/skills/:skillName/execute', async (request, reply) => {
+    const { id, skillName } = request.params as { id: string; skillName: string };
+    const res = await fetch(`${base}/v1/agent/sessions/${encodeURIComponent(id)}/skills/${encodeURIComponent(skillName)}/execute`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(request.body ?? {}),
+    });
+    return relayJson(res, reply);
+  });
+
   // ── Orchestration proxy (legacy routes still used by desktop UI) ──
+
+  app.get('/v1/agent/skills', async (request, reply) => {
+    const query = (request.query as Record<string, string>).projectPath;
+    const url = query
+      ? `${base}/v1/agent/skills?projectPath=${encodeURIComponent(query)}`
+      : `${base}/v1/agent/skills`;
+    const res = await fetch(url, { headers: forwardHeaders(request) });
+    return relayJson(res, reply);
+  });
 
   app.post('/v1/orchestration/runs', async (request, reply) => {
     const res = await fetch(`${base}/v1/orchestration/runs`, {

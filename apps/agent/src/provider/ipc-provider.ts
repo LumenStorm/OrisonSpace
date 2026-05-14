@@ -64,6 +64,7 @@ export async function generate(
   messages: SessionMessage[],
   system: string,
   tools: ToolDefinition[],
+  abortSignal: AbortSignal,
   opts: GenerateOptions = {},
 ): Promise<GenerateResult> {
   const payload = messagesToPayload(messages, system, tools);
@@ -83,7 +84,7 @@ export async function generate(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300_000),
+    signal: AbortSignal.any([abortSignal, AbortSignal.timeout(300_000)]),
   });
 
   if (!res.ok) {

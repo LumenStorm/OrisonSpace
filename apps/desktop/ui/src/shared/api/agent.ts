@@ -26,9 +26,29 @@ export type AgentSessionMeta = {
 export type AgentStreamEvent =
   | { type: 'assistant'; data: { id: string; content: string; toolCalls?: unknown[] } }
   | { type: 'tool'; data: { id: string; results: unknown[] } }
-  | { type: 'confirm_required'; data: { callId: string; name: string; input: unknown } }
+  | { type: 'confirm_required'; data: { sessionId?: string; callId: string; name: string; input: unknown; createdAt?: number } }
   | { type: 'done'; data: { status: string } }
   | { type: 'error'; data: { message: string } };
+
+export type AgentSkillInfo = {
+  name: string;
+  description?: string;
+  location: string;
+  format: string;
+};
+
+export type AgentContinuation = {
+  sessionId: string;
+  compacted: {
+    sessionId: string;
+    summary: string;
+    tail: Array<{ id: string; role: string; content: string; createdAt: number }>;
+  };
+  workflowState: {
+    activeSkill?: string;
+    checkpoints: string[];
+  };
+};
 
 export async function createAgentSession(
   projectPath: string,
@@ -65,12 +85,40 @@ export async function listAgentSessions(projectPath: string): Promise<AgentSessi
   return data.sessions;
 }
 
-export async function confirmAgentTool(sessionId: string, callId: string, approved: boolean): Promise<void> {
-  await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/confirm`, {
+export async function listAgentSkills(projectPath: string): Promise<AgentSkillInfo[]> {
+  const res = await fetch(`${AGENT_BASE}/v1/agent/skills?projectPath=${encodeURIComponent(projectPath)}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`listAgentSkills:${res.status}`);
+  const data = await res.json() as { skills: AgentSkillInfo[] };
+  return data.skills;
+}
+
+export async function resolveAgentConfirmation(
+  sessionId: string,
+  callId: string,
+  approved: boolean,
+): Promise<{ callId: string; approved: boolean }> {
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/confirm`, {
     method: 'POST',
     headers: authJsonHeaders(),
     body: JSON.stringify({ callId, approved }),
   });
+  if (!res.ok) throw new Error(`resolveAgentConfirmation:${res.status}`);
+  return res.json() as Promise<{ callId: string; approved: boolean }>;
+}
+
+export async function executeAgentSkill(
+  sessionId: string,
+  skillName: string,
+): Promise<{ skill: string; status: string; outputs: string[]; continuation?: AgentContinuation }> {
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/skills/${encodeURIComponent(skillName)}/execute`, {
+    method: 'POST',
+    headers: authJsonHeaders(),
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) throw new Error(`executeAgentSkill:${res.status}`);
+  return res.json() as Promise<{ skill: string; status: string; outputs: string[]; continuation?: AgentContinuation }>;
 }
 
 /**

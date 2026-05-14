@@ -1,15 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession } from './agent/session';
-import { listSessions } from './agent/persistence';
-import { runLoop } from './agent/loop';
-import { generate } from './provider/ipc-provider';
 import { registry } from './tool/registry';
-import { buildSystemPrompt } from './prompt/render';
-import { discoverSkills } from './skill/discovery';
-import { randomUUID } from 'node:crypto';
-import path from 'node:path';
-import { logger } from './logger';
+import { createWorkflowRuntime, isSessionNotFoundError, type WorkflowRuntimeOptions } from './runtime/workflow';
+import { loadRuntimeConfig } from './runtime/config';
 
 const createSessionSchema = z.object({
   agentName: z.string().default('writer'),
@@ -22,110 +15,112 @@ const sendMessageSchema = z.object({
   content: z.string(),
 });
 
-export async function registerRoutes(app: FastifyInstance) {
-  app.get('/health', async () => ({ status: 'ok' }));
+const executeSkillSchema = z.object({
+  input: z.string().optional(),
+  artifactIds: z.array(z.string()).optional(),
+  referenceIds: z.array(z.string()).optional(),
+});
 
-  // ── Session API ──
+const confirmSchema = z.object({
+  callId: z.string(),
+  approved: z.boolean(),
+});
+
+export async function registerRoutes(app: FastifyInstance, options: { runtime?: WorkflowRuntimeOptions } = {}) {
+  const runtime = createWorkflowRuntime(options.runtime);
+
+  app.get('/health', async () => ({ status: 'ok' }));
 
   app.post('/v1/agent/sessions', async (request, reply) => {
     const body = createSessionSchema.parse(request.body);
-    const session = createSession(body.agentName, body.projectPath, body.modelRef);
+    const runtimeConfig = await loadRuntimeConfig(body.projectPath);
+    const sessionRuntime = createWorkflowRuntime({
+      ...options.runtime,
+      externalSkillRoots: [
+        ...(options.runtime?.externalSkillRoots ?? []),
+        ...runtimeConfig.externalSkillRoots,
+      ],
+    });
+    const session = sessionRuntime.createSession(body);
     return reply.code(201).send(session);
   });
 
   app.get('/v1/agent/sessions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const { projectPath } = request.query as { projectPath?: string };
-    const session = getSession(id) ?? (projectPath ? loadSession(id, projectPath) : undefined);
+    const session = runtime.getSession(id, projectPath);
     if (!session) return reply.code(404).send({ error: 'session not found' });
     return session;
   });
 
   app.get('/v1/agent/sessions', async (request) => {
     const { projectPath } = request.query as { projectPath?: string };
-    if (!projectPath) return { sessions: [] };
-    return { sessions: listSessions(projectPath) };
+    return runtime.listSessions(projectPath);
   });
 
   app.delete('/v1/agent/sessions/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    deleteSession(id);
+    runtime.deleteSession(id);
     return reply.code(204).send();
   });
 
   app.post('/v1/agent/sessions/:id/messages', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const session = getSession(id);
-    if (!session) return reply.code(404).send({ error: 'session not found' });
-
     const { content } = sendMessageSchema.parse(request.body);
-
-    const userMsg = {
-      id: randomUUID(),
-      role: 'user' as const,
-      content,
-      createdAt: Date.now(),
-    };
-    addMessage(id, userMsg);
-    updateStatus(id, 'running');
 
     const abortController = new AbortController();
     request.raw.socket.on('close', () => abortController.abort());
 
     try {
-      const skillsDir = path.join(session.projectPath, '.orison', 'skills');
-      const skills = await discoverSkills(skillsDir);
-      const skillsSummary = skills.length > 0
-        ? '## Available Skills\n' + skills.map(s => `- **${s.name}**: ${s.description ?? 'no description'}`).join('\n')
-        : undefined;
-
-      const systemPrompt = buildSystemPrompt({
-        orisonPrompt: 'You are Orison, an AI writing assistant for creative fiction.',
-        projectMeta: `Project path: ${session.projectPath}`,
-        skillsSummary,
-        toolDescriptions: registry.all().map(t => `- ${t.id}: ${t.description}`).join('\n'),
-      });
-
-      const tools = registry.all();
-      const newMessages = await runLoop({
+      const payload = await runtime.sendMessage({
         sessionId: id,
-        projectPath: session.projectPath,
-        messages: session.messages,
-        systemPrompt,
-        tools,
-        maxSteps: 50,
-        generate: (msgs, sys, tls) => generate(msgs, sys, tls, { modelRef: session.modelRef }),
-        onMessage: (msg) => addMessage(id, msg),
-        abort: abortController.signal,
+        content,
+        abortSignal: abortController.signal,
       });
-
-      updateStatus(id, 'completed');
-      return reply.send({ messages: newMessages });
+      return reply.send(payload);
     } catch (err) {
+      if (isSessionNotFoundError(err)) {
+        return reply.code(404).send({ error: 'session not found' });
+      }
       const errMsg = err instanceof Error ? err.message : String(err);
-      logger.error({ sessionId: id, err: errMsg }, 'session run failed');
-      updateStatus(id, 'error', errMsg);
       return reply.code(500).send({ error: errMsg });
     }
   });
 
-  // ── SSE Streaming endpoint ──
+  app.post('/v1/agent/sessions/:id/confirm', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { callId, approved } = confirmSchema.parse(request.body);
+
+    try {
+      const result = runtime.resolveConfirmation(id, callId, approved);
+      return reply.send(result);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return reply.code(404).send({ error: errMsg });
+    }
+  });
+
+  app.post('/v1/agent/sessions/:id/skills/:skillName/execute', async (request, reply) => {
+    const { id, skillName } = request.params as { id: string; skillName: string };
+    const payload = executeSkillSchema.parse(request.body ?? {});
+
+    try {
+      const result = await runtime.executeSkillByName(id, skillName, payload);
+      return reply.send(result);
+    } catch (err) {
+      if (isSessionNotFoundError(err)) {
+        return reply.code(404).send({ error: 'session not found' });
+      }
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return reply.code(500).send({ error: errMsg });
+    }
+  });
 
   app.post('/v1/agent/sessions/:id/stream', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const session = getSession(id);
-    if (!session) return reply.code(404).send({ error: 'session not found' });
-
     const { content } = sendMessageSchema.parse(request.body);
-
-    const userMsg = {
-      id: randomUUID(),
-      role: 'user' as const,
-      content,
-      createdAt: Date.now(),
-    };
-    addMessage(id, userMsg);
-    updateStatus(id, 'running');
+    const session = runtime.getSession(id);
+    if (!session) return reply.code(404).send({ error: 'session not found' });
 
     const abortController = new AbortController();
     request.raw.socket.on('close', () => abortController.abort());
@@ -141,69 +136,35 @@ export async function registerRoutes(app: FastifyInstance) {
     }
 
     try {
-      const skillsDir = path.join(session.projectPath, '.orison', 'skills');
-      const skills = await discoverSkills(skillsDir);
-      const skillsSummary = skills.length > 0
-        ? '## Available Skills\n' + skills.map(s => `- **${s.name}**: ${s.description ?? 'no description'}`).join('\n')
-        : undefined;
-
-      const systemPrompt = buildSystemPrompt({
-        orisonPrompt: 'You are Orison, an AI writing assistant for creative fiction.',
-        projectMeta: `Project path: ${session.projectPath}`,
-        skillsSummary,
-        toolDescriptions: registry.all().map(t => `- ${t.id}: ${t.description}`).join('\n'),
-      });
-
-      const tools = registry.all();
-      await runLoop({
-        sessionId: id,
-        projectPath: session.projectPath,
-        messages: session.messages,
-        systemPrompt,
-        tools,
-        maxSteps: 50,
-        generate: (msgs, sys, tls) => generate(msgs, sys, tls, { modelRef: session.modelRef }),
-        onMessage: (msg) => {
-          addMessage(id, msg);
-          if (msg.role === 'assistant') {
-            sendEvent('assistant', { id: msg.id, content: msg.content, toolCalls: msg.toolCalls });
-          } else if (msg.role === 'tool') {
-            sendEvent('tool', { id: msg.id, results: msg.toolResults });
-          }
+      await runtime.streamMessage({
+        sessionId: session.id,
+        content,
+        abortSignal: abortController.signal,
+        sendEvent: (event) => {
+          sendEvent(event.type, event.data);
         },
-        abort: abortController.signal,
       });
-
-      updateStatus(id, 'completed');
-      sendEvent('done', { status: 'completed' });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      logger.error({ sessionId: id, err: errMsg }, 'stream run failed');
-      updateStatus(id, 'error', errMsg);
       sendEvent('error', { message: errMsg });
     }
 
     reply.raw.end();
   });
 
-  // ── Tools listing ──
-
   app.get('/v1/agent/tools', async () => {
     return {
-      tools: registry.all().map(t => ({
-        id: t.id,
-        description: t.description,
+      tools: registry.all().map((tool) => ({
+        id: tool.id,
+        description: tool.description,
       })),
     };
   });
 
-  // ── Skills API ──
-
   app.get('/v1/agent/skills', async (request) => {
     const { projectPath } = request.query as { projectPath?: string };
     if (!projectPath) return { skills: [] };
-    const skillsDir = path.join(projectPath, '.orison', 'skills');
-    const skills = await discoverSkills(skillsDir);
+    const skills = await runtime.listSkills(projectPath);
     return { skills };
   });
 }

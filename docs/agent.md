@@ -284,3 +284,30 @@ Agent Panel 作为工作区右侧独立面板（全高，不受 Bottom Panel 截
 - 所有文本已 i18n 化（`agent.*` 命名空间）
 
 详见 [Agent Panel UI 文档](agent-panel-ui.md) 和 [UI 层级结构](ui-hierarchy.md)。
+## 当前实现状态（2026-05-14）
+
+本文描述的 runtime 底座已经在 `apps/agent` 中实现，并已经接入当前 desktop-first 宿主链路。
+
+已实现的 runtime 能力：
+
+- 以 `apps/agent/src/runtime/workflow.ts` 为核心的分层 runtime 编排
+- 带 parent / branch 元数据与兼容性 SQLite 自动迁移的 session tree 持久化
+- run-state 持有、并发重入保护、中断处理与面向恢复的 continuation snapshot
+- runtime 级 permission / confirmation 流与受控 subagent 分发
+- 目录 skill 与 manifest skill 的双格式发现与归一化
+- 通过 runtime 配置加载外部 skill root，适用于 `I:\echo\oh-story-claudecode-main` 这类 skill 包
+- 通过 `executeSkillByName(...)` 执行 artifact-aware、reference-aware skill
+- 面向长流程 creative 工作流的 context builder、compaction 与 continuation 原语
+
+已落地的宿主 / API 能力：
+
+- `GET /v1/agent/skills` 已支持按配置合并项目内 skill root 与外部 skill root
+- `POST /v1/agent/sessions/:id/skills/:skillName/execute` 已支持 `input`、`artifactIds`、`referenceIds`
+- skill 执行返回里现在会显式带上 `continuation` payload，调用方可以拿到明确恢复入口
+- 现有 desktop / server 兼容路由已切到 runtime-backed 实现
+
+当前产品层仍有缺口：
+
+- continuation restore 目前只是数据出口，桌面端还没有完整 resume UX
+- Agent Panel 目前提供的是轻量 skill launcher，不是完整多步骤 workflow workbench
+- 现有中文文档和 i18n 文件在全面规范化前，仍需要先做编码清理

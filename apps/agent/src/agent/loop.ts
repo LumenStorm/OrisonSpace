@@ -10,7 +10,7 @@ export interface LoopOptions {
   systemPrompt: string;
   tools: ToolDefinition[];
   maxSteps: number;
-  generate: (messages: SessionMessage[], system: string, tools: ToolDefinition[]) => Promise<{
+  generate: (messages: SessionMessage[], system: string, tools: ToolDefinition[], abort: AbortSignal) => Promise<{
     content: string;
     toolCalls?: ToolCall[];
     finishReason: string;
@@ -25,13 +25,14 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
   let steps = 0;
 
   while (steps < maxSteps) {
-    if (abort.aborted) break;
+    throwIfAborted(abort);
     steps++;
 
     const response = await generate(
       [...messages, ...result],
       systemPrompt,
       tools,
+      abort,
     );
 
     const assistantMsg: SessionMessage = {
@@ -56,7 +57,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
     };
 
     for (const call of response.toolCalls) {
-      if (abort.aborted) break;
+      throwIfAborted(abort);
 
       const tool = tools.find(t => t.id === call.name);
       if (!tool) {
@@ -101,4 +102,12 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
   }
 
   return result;
+}
+
+function throwIfAborted(abort: AbortSignal): void {
+  if (abort.aborted) {
+    throw abort.reason instanceof DOMException
+      ? abort.reason
+      : new DOMException('Aborted', 'AbortError');
+  }
 }

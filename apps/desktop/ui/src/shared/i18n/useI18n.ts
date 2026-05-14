@@ -62,9 +62,13 @@ export function useI18n(locale: string) {
   useEffect(() => {
     let cancelled = false;
     // 同时加载目标语言和 fallback
-    Promise.all([loadMessages(locale), loadMessages('en-US')]).then(([msgs]) => {
-      if (!cancelled) setMessages(msgs);
-    });
+    Promise.all([loadMessages(locale), loadMessages('en-US')])
+      .then(([msgs]) => {
+        if (!cancelled && typeof window !== 'undefined') setMessages(msgs);
+      })
+      .catch(() => {
+        // Keep the previous messages when the async load completes after teardown.
+      });
     return () => { cancelled = true; };
   }, [locale]);
 

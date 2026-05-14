@@ -1,5 +1,98 @@
 /* ── Agent Panel ── */
 
+.agent-skills-panel {
+  flex-shrink: 0;
+  padding: 0.6rem 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+}
+
+.agent-skills-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+
+.agent-skills-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.agent-skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.agent-skill-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.45rem;
+  background: var(--surface);
+}
+
+.agent-skill-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.agent-skill-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.agent-skill-description {
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-skill-run-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.agent-skill-run-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.agent-continuation-card {
+  margin-top: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.45rem;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.agent-continuation-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.agent-continuation-meta {
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+}
+
 .agent-panel {
   display: flex;
   flex-direction: column;

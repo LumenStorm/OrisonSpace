@@ -1,22 +1,52 @@
 import { randomUUID } from 'node:crypto';
 import type { SessionState, SessionMessage } from '../types';
-import { persistSession, appendMessageToFile, loadMessagesFromFile, deletePersistedSession } from './persistence';
+import { persistSession, appendMessageToFile, loadMessagesFromFile, deletePersistedSession, loadSessionMeta, overwriteMessagesFile } from './persistence';
 
 const sessions = new Map<string, SessionState>();
 
-export function createSession(agentName: string, projectPath: string, modelRef?: { keyId: string; modelId: string }): SessionState {
+export interface CreateSessionOptions {
+  id?: string;
+  agentName: string;
+  projectPath: string;
+  modelRef?: { keyId: string; modelId: string };
+  messages?: SessionMessage[];
+  parentId?: string;
+  children?: string[];
+  branchFromMessageId?: string;
+  sessionRole?: 'primary' | 'child' | 'fork';
+}
+
+export function createSession(
+  agentNameOrOptions: string | CreateSessionOptions,
+  projectPathArg?: string,
+  modelRefArg?: { keyId: string; modelId: string },
+): SessionState {
+  const options = typeof agentNameOrOptions === 'string'
+    ? {
+        agentName: agentNameOrOptions,
+        projectPath: projectPathArg as string,
+        modelRef: modelRefArg,
+      }
+    : agentNameOrOptions;
   const session: SessionState = {
-    id: randomUUID(),
-    agentName,
-    projectPath,
+    id: options.id ?? randomUUID(),
+    agentName: options.agentName,
+    projectPath: options.projectPath,
     status: 'idle',
-    messages: [],
-    modelRef,
+    messages: options.messages ?? [],
+    modelRef: options.modelRef,
+    parentId: options.parentId,
+    children: options.children ?? [],
+    branchFromMessageId: options.branchFromMessageId,
+    sessionRole: options.sessionRole,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
   sessions.set(session.id, session);
   persistSession(session);
+  if (session.messages.length > 0) {
+    overwriteMessagesFile(session.projectPath, session.id, session.messages);
+  }
   return session;
 }
 
@@ -26,16 +56,23 @@ export function getSession(id: string): SessionState | undefined {
 
 export function loadSession(id: string, projectPath: string): SessionState | undefined {
   if (sessions.has(id)) return sessions.get(id);
+  const meta = loadSessionMeta(projectPath, id);
   const messages = loadMessagesFromFile(projectPath, id);
-  if (messages.length === 0) return undefined;
+  if (messages.length === 0 && !meta) return undefined;
   const session: SessionState = {
     id,
-    agentName: 'writer',
+    agentName: meta?.agentName ?? 'writer',
     projectPath,
-    status: 'idle',
+    status: meta?.status ?? 'idle',
     messages,
-    createdAt: messages[0]?.createdAt ?? Date.now(),
-    updatedAt: messages[messages.length - 1]?.createdAt ?? Date.now(),
+    modelRef: meta?.modelRef,
+    parentId: meta?.parentId,
+    children: meta?.children ?? [],
+    branchFromMessageId: meta?.branchFromMessageId,
+    sessionRole: meta?.sessionRole,
+    createdAt: meta?.createdAt ?? messages[0]?.createdAt ?? Date.now(),
+    updatedAt: meta?.updatedAt ?? messages[messages.length - 1]?.createdAt ?? Date.now(),
+    error: meta?.error,
   };
   sessions.set(id, session);
   return session;

@@ -265,3 +265,27 @@ POST /v1/agent/sessions/:id/confirm
 - Tool 卡片：`border-left: 3px solid var(--accent)`，可折叠
 - 输入区工具栏：小型 pill 按钮，紧凑排列
 - 跟随全局 theme（system/light/dark）
+## 当前实现状态（2026-05-14）
+
+桌面端 Agent Panel 已经以尽量小的产品层改动接入新的 creative runtime。
+
+已实现的面板能力：
+
+- 从 `GET /v1/agent/skills` 加载 skill 列表，且会感知项目配置与外部 skill root
+- 在面板中手动刷新可用 skill 列表
+- 针对当前 agent session 直接执行 skill
+- 展示 runtime-backed 执行结果中的 continuation 信息，为后续恢复流程预留入口
+- 现有 session / message 流程继续兼容 runtime-backed server 路由
+
+当前面板范围：
+
+- skill 能力面目前刻意保持轻量，只提供 list、refresh、run
+- continuation 已在 API 返回中可用，但 UI 里还没有专门的 restore / continue 控件
+- 只要在 agent runtime 中完成配置，外部 skill 包现在就能在产品层可见
+
+相关实现文件：
+
+- `apps/desktop/ui/src/features/agent-panel/AgentPanel.tsx`
+- `apps/desktop/ui/src/shared/api/agent.ts`
+- `apps/desktop/ui/src/shared/store/agentSlice.ts`
+- `apps/server/src/modules/agent/proxy.ts`

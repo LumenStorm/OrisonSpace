@@ -3,13 +3,17 @@ import type { ModelRef } from '@orison/shared-contracts';
 import type { AgentMode } from './types';
 import {
   createAgentSession,
+  executeAgentSkill,
   fetchAgentSession,
   deleteAgentSession as deleteSession,
+  listAgentSkills,
   listAgentSessions,
-  confirmAgentTool,
+  resolveAgentConfirmation,
   streamAgentMessage,
+  type AgentContinuation,
   type AgentMessage,
   type AgentSessionMeta,
+  type AgentSkillInfo,
   type AgentStreamEvent,
 } from '../api/agent';
 import { randomUUID } from '../util/id';
@@ -29,6 +33,12 @@ export type AgentSlice = {
   sendAgentMessage: (content: string) => Promise<void>;
   cancelAgent: () => void;
   newAgentSession: () => Promise<void>;
+
+  agentSkills: AgentSkillInfo[];
+  agentSkillError: string | null;
+  latestSkillContinuation: AgentContinuation | null;
+  loadAgentSkills: () => Promise<void>;
+  runAgentSkill: (skillName: string) => Promise<void>;
 
   agentSessions: AgentSessionMeta[];
   loadAgentSessions: () => Promise<void>;
@@ -73,6 +83,9 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
   agentMessages: [],
   agentLoading: false,
   agentError: null,
+  agentSkills: [],
+  agentSkillError: null,
+  latestSkillContinuation: null,
 
   pendingDiffs: [],
   acceptDiff(id) {
@@ -203,7 +216,62 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
   async newAgentSession() {
     activeAbort?.abort();
     activeAbort = null;
-    set({ agentSessionId: null, agentMessages: [], agentLoading: false, agentError: null, pendingToolConfirm: null, pendingDiffs: [] });
+    set({
+      agentSessionId: null,
+      agentMessages: [],
+      agentLoading: false,
+      agentError: null,
+      pendingToolConfirm: null,
+      pendingDiffs: [],
+      latestSkillContinuation: null,
+    });
+  },
+
+  async loadAgentSkills() {
+    const projectPath = get().currentProject?.path;
+    if (!projectPath) {
+      set({ agentSkills: [], agentSkillError: null });
+      return;
+    }
+    try {
+      const skills = await listAgentSkills(projectPath);
+      set({ agentSkills: skills, agentSkillError: null });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      set({ agentSkillError: message, agentSkills: [] });
+    }
+  },
+
+  async runAgentSkill(skillName) {
+    const state = get();
+    const projectPath = state.currentProject?.path;
+    if (!projectPath) return;
+
+    let sessionId = state.agentSessionId;
+    if (!sessionId) {
+      const session = await createAgentSession(projectPath, state.agentMode, state.agentModelRef);
+      sessionId = session.id;
+      set({ agentSessionId: sessionId });
+    }
+
+    set({ agentLoading: true, agentError: null });
+    try {
+      const result = await executeAgentSkill(sessionId, skillName);
+      const assistantMsg: AgentMessage = {
+        id: randomUUID(),
+        role: 'assistant',
+        content: result.outputs.join('\n\n') || `Skill "${skillName}" completed.`,
+        createdAt: Date.now(),
+      };
+      set((s) => ({
+        agentMessages: [...s.agentMessages, assistantMsg],
+        latestSkillContinuation: result.continuation ?? null,
+        agentLoading: false,
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      set({ agentError: message, agentLoading: false });
+    }
   },
 
   agentSessions: [],
@@ -237,13 +305,13 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
     const sessionId = get().agentSessionId;
     if (!pending || !sessionId) return;
     set({ pendingToolConfirm: null, agentLoading: true });
-    confirmAgentTool(sessionId, pending.callId, true);
+    void resolveAgentConfirmation(sessionId, pending.callId, true);
   },
   rejectPendingTool() {
     const pending = get().pendingToolConfirm;
     const sessionId = get().agentSessionId;
     if (!pending || !sessionId) return;
     set({ pendingToolConfirm: null, agentLoading: true });
-    confirmAgentTool(sessionId, pending.callId, false);
+    void resolveAgentConfirmation(sessionId, pending.callId, false);
   },
 });

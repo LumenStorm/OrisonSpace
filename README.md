@@ -378,3 +378,63 @@ pnpm lint
 ## License
 
 Private
+
+---
+
+## 当前 Agent Runtime 状态（2026-05-14）
+
+当前 agent 栈已经从偏代码路径的编排服务，演进为更通用的 creative agent runtime 底座。
+
+已实现的 runtime 能力：
+
+- 以 `apps/agent/src/runtime/workflow.ts` 为核心的分层 runtime 编排
+- 带兼容性 SQLite 自动迁移的 session tree 持久化
+- runtime 级确认 / 权限流与受控 subagent 分发
+- 同时支持目录型 skill 与 manifest skill 的双格式发现
+- 带显式 continuation snapshot 的 artifact-aware、reference-aware skill 执行
+- 面向长流程 creative 工作流的 context builder 与 compaction 原语
+
+已落地的宿主 / API 接口：
+
+- `POST /v1/agent/sessions`
+- `GET /v1/agent/sessions`
+- `POST /v1/agent/sessions/:id/stream`
+- `POST /v1/agent/sessions/:id/confirm`
+- `GET /v1/agent/skills?projectPath=...`
+- `POST /v1/agent/sessions/:id/skills/:skillName/execute`
+
+外部 skill root 已内建支持。skill 现在可以来自：
+
+- 项目内本地 skill root
+- 环境变量 `ORISON_AGENT_EXTERNAL_SKILL_ROOTS`
+- 项目级配置 `.orison/agent.runtime.json`
+
+项目配置示例：
+
+```json
+{
+  "externalSkillRoots": [
+    "I:\\echo\\oh-story-claudecode-main\\skills"
+  ]
+}
+```
+
+当前桌面端 Agent Panel 已支持：
+
+- 感知配置的 skill 列表加载
+- 手动刷新 skill 列表
+- 直接执行 skill
+- continuation 就绪状态展示
+
+当前产品层仍有缺口：
+
+- runtime 已返回 continuation restore 数据，但 UI 侧还没有完整恢复 / 续跑入口
+- Agent Panel 目前还是轻量 skill launcher，不是完整 workflow workbench
+- 现有中文文档与 i18n 文件仍需进一步做编码清理
+
+更多细节见：
+
+- [docs/agent.md](docs/agent.md)
+- [docs/agent-panel-ui.md](docs/agent-panel-ui.md)
+- [docs/superpowers/specs/2026-05-14-creative-agent-runtime-design.md](docs/superpowers/specs/2026-05-14-creative-agent-runtime-design.md)
+- [docs/superpowers/plans/2026-05-14-creative-agent-runtime-plan.md](docs/superpowers/plans/2026-05-14-creative-agent-runtime-plan.md)

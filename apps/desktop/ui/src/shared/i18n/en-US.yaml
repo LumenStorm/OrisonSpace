@@ -591,3 +591,7 @@ agent:
   applied: "Applied"
   resolved: "Resolved"
   noHistory: "No previous conversations."
+  skills: "Skills"
+  refreshSkills: "Refresh skills"
+  runSkill: "Run"
+  continuationReady: "Continuation ready"
