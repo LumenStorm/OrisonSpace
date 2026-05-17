@@ -42,6 +42,8 @@ export const exposedDesktopApi = {
   // 字段同步
   syncField: (projectPath: string, field: string, data: unknown) =>
     ipcRenderer.invoke('field:sync', projectPath, field, data) as Promise<void>,
+  loadProjectDocument: (projectDir: string) =>
+    ipcRenderer.invoke('project:load-document', projectDir) as Promise<Record<string, unknown> | null>,
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,

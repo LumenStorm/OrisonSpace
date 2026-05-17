@@ -27,8 +27,9 @@ describe('novel project repository', () => {
             id: 'ch_001',
             title: '第1章 暗夜降临',
             sort_order: 0,
-            content_file: 'chapters/ch_001.md',
+            sections: [{ id: 'ch_001_s1', sort_order: 0, content_file: 'chapters/ch_001.md', word_count: 2500 }],
             summary: '主角来到暗城。',
+            summary_source: 'ai',
             status: 'draft',
             word_count: 2500,
           },
@@ -36,10 +37,9 @@ describe('novel project repository', () => {
             id: 'ch_002',
             title: '第2章 迷局',
             sort_order: 1,
-            content_file: 'chapters/ch_002.md',
+            sections: [{ id: 'ch_002_s1', sort_order: 0, content_file: 'chapters/ch_002.md' }],
             status: 'generating',
             last_run_id: 'run_abc123',
-            bridge_notes: '承接第一章结尾...',
           },
         ],
       },
@@ -51,7 +51,7 @@ describe('novel project repository', () => {
     expect(chapter).not.toBeNull();
     expect(chapter!.id).toBe('ch_001');
     expect(chapter!.title).toBe('第1章 暗夜降临');
-    expect(chapter!.content_file).toBe('chapters/ch_001.md');
+    expect(chapter!.sections[0].content_file).toBe('chapters/ch_001.md');
     expect(chapter!.status).toBe('draft');
   });
 
@@ -70,7 +70,7 @@ describe('novel project repository', () => {
       ...project,
       novel: {
         chapters: [
-          { id: 'ch_001', title: '第1章', sort_order: 0, content_file: 'chapters/ch_001.md' },
+          { id: 'ch_001', title: '第1章', sort_order: 0, sections: [{ id: 'ch_001_s1', sort_order: 0, content_file: 'chapters/ch_001.md' }] },
         ],
       },
     };
@@ -103,7 +103,7 @@ describe('novel project repository', () => {
             id: 'ch_001',
             title: '旧标题',
             sort_order: 0,
-            content_file: 'chapters/ch_001.md',
+            sections: [{ id: 'ch_001_s1', sort_order: 0, content_file: 'chapters/ch_001.md' }],
             status: 'generating',
             last_run_id: 'run_test456',
           },
@@ -142,7 +142,7 @@ describe('novel project repository', () => {
       ...project,
       novel: {
         chapters: [
-          { id: 'ch_001', title: '最小章', sort_order: 0, content_file: 'chapters/ch_001.md', status: 'generating' },
+          { id: 'ch_001', title: '最小章', sort_order: 0, sections: [{ id: 'ch_001_s1', sort_order: 0, content_file: 'chapters/ch_001.md' }], status: 'generating' },
         ],
       },
     };

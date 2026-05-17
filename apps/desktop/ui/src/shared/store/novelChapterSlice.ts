@@ -15,13 +15,22 @@ import { storage } from './storage';
 
 export type ChapterStatus = 'draft' | 'generating' | 'revised' | 'final';
 
+export type SectionMeta = {
+  id: string;
+  title?: string;
+  sortOrder: number;
+  contentFile: string;
+  wordCount?: number;
+};
+
 export type NovelChapterMeta = {
   id: string;
   title: string;
   sortOrder: number;
   status: ChapterStatus;
   summary?: string;
-  contentFile?: string;
+  summarySource?: 'ai' | 'user';
+  sections: SectionMeta[];
 };
 
 export type ChapterCandidate = {

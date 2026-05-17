@@ -28,31 +28,50 @@ export function OutlineV2View() {
           <p>{data.logline}</p>
         </div>
       )}
+      {data.genre && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.outline.genre')}</span>
+          <p>{data.genre}</p>
+        </div>
+      )}
+      {data.theme && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.outline.theme')}</span>
+          <p>{data.theme}</p>
+        </div>
+      )}
       {data.central_conflict && (
         <div className="creative-field-row">
           <span className="creative-field-label">{t('creative.outline.centralConflict')}</span>
           <p>{data.central_conflict}</p>
         </div>
       )}
-      {data.acts.length > 0 && (
+      {data.synopsis && (
         <div className="creative-field-row">
-          <span className="creative-field-label">{t('creative.outline.acts')}</span>
-          <div className="outline-acts-list">
-            {data.acts.map((act) => (
-              <div key={act.id} className="outline-act-item">
-                <strong>{act.title}</strong>
-                {act.goal && <p>{act.goal}</p>}
-                {act.conflict && <p className="creative-field-secondary">{act.conflict}</p>}
-                {act.turning_point && <p className="creative-field-secondary">{act.turning_point}</p>}
-              </div>
-            ))}
-          </div>
+          <span className="creative-field-label">{t('creative.outline.synopsis')}</span>
+          <p className="creative-field-value-lg">{data.synopsis}</p>
         </div>
       )}
       {data.ending_direction && (
         <div className="creative-field-row">
           <span className="creative-field-label">{t('creative.outline.endingDirection')}</span>
           <p>{data.ending_direction}</p>
+        </div>
+      )}
+      {data.major_turning_points.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.outline.turningPoints')}</span>
+          <ul className="creative-list">
+            {data.major_turning_points.map((tp, i) => <li key={i}>{tp}</li>)}
+          </ul>
+        </div>
+      )}
+      {data.constraints.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.outline.constraints')}</span>
+          <div className="creative-tag-list-inline">
+            {data.constraints.map((c, i) => <span key={i} className="asset-card-tag">{c}</span>)}
+          </div>
         </div>
       )}
     </div>

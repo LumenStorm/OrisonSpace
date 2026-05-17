@@ -53,7 +53,7 @@ describe('fieldSyncBridge', () => {
     const { staleFields } = onFieldEdited(
       TEST_PROJECT_DIR,
       'outline',
-      { title: '新大纲', logline: '测试', central_conflict: '冲突', acts: [], major_turning_points: [], ending_direction: '结局' }
+      { title: '新大纲', logline: '测试', central_conflict: '冲突', synopsis: '故事梗概', major_turning_points: [], ending_direction: '结局' }
     );
 
     expect(staleFields).toContain('growth_curve');

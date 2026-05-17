@@ -17,12 +17,11 @@
 │                          TopBar                                      │
 ├──────┬──────────┬──────────────────────────┬────────────────────────┤
 │ Icon │ Project  │                          │                        │
-│ Rail │ Tree /   │      EditorArea          │     Agent Panel        │
-│      │ Search   │      (FileTabBar)        │     (全高独立)          │
-│      │ Panel    │      (FindReplaceBar)    │                        │
-│      │ (互斥)   ├──────────────────────────┤                        │
-│      │          │      BottomPanel         │                        │
-│      │          │  (props/tasks/out/time)  │                        │
+│ Rail │ Tree /   │  Standalone Page          │     Agent Panel        │
+│      │ Search   │  (overview/outline)       │     (全高独立)          │
+│      │ Panel    │  ─── 或 ───              │                        │
+│      │ (互斥)   │  EditorArea + BottomPanel │                        │
+│      │          │  (其他模块)               │                        │
 └──────┴──────────┴──────────────────────────┴────────────────────────┘
 ```
 
@@ -43,7 +42,7 @@ App
         ├── SideNav (Icon Rail)
         │   ├── ExplorerBtn (资源管理器，切换左侧面板)
         │   ├── SearchBtn (搜索，切换左侧面板)
-        │   ├── NavItem[] (outline/novel|script — 模块切换)
+        │   ├── NavItem[] (overview/outline/novel|script — 模块切换)
         │   ├── ModuleTabItem[] (storyboard/imageGen/video — 打开编辑区 tab)
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
         │   ├── SettingsBtn
@@ -52,24 +51,27 @@ App
         │   ├── ProjectTree (activeSidebarPanel='explorer')
         │   └── SearchPanel (activeSidebarPanel='search')
         ├── workspace-main (flex column)
-        │   ├── EditorArea
-        │   │   ├── FileTabBar
-        │   │   │   └── FileTab[] (文件 tab + 模块 tab 并存)
-        │   │   ├── FindReplaceBar (Ctrl+F/H)
-        │   │   ├── CommandPalette (Ctrl+Shift+P / Ctrl+P)
-        │   │   └── Editor (按 tab 类型切换)
-        │   │       ├── TiptapEditor (markdown)
-        │   │       ├── OutlineEditor
-        │   │       ├── ScriptEditor
-        │   │       ├── VideoEditor (模块 tab)
-        │   │       ├── ImageGenEditor (模块 tab)
-        │   │       ├── StoryboardCanvas (模块 tab)
-        │   │       └── FileEditor (通用文本)
-        │   └── BottomPanel (可折叠)
-        │       ├── Tab: Properties
-        │       ├── Tab: Tasks
-        │       ├── Tab: Output
-        │       └── Tab: Timeline
+        │   ├── [Standalone 模式: overview/outline]
+        │   │   ├── OverviewPage (activeModule='overview')
+        │   │   └── OutlineEditor (activeModule='outline', Notion block 风格)
+        │   ├── [Editor 模式: 其他模块]
+        │   │   ├── EditorArea
+        │   │   │   ├── FileTabBar
+        │   │   │   │   └── FileTab[] (文件 tab + 模块 tab 并存)
+        │   │   │   ├── FindReplaceBar (Ctrl+F/H)
+        │   │   │   ├── CommandPalette (Ctrl+Shift+P / Ctrl+P)
+        │   │   │   └── Editor (按 tab 类型切换)
+        │   │   │       ├── TiptapEditor (markdown)
+        │   │   │       ├── ScriptEditor
+        │   │   │       ├── VideoEditor (模块 tab)
+        │   │   │       ├── ImageGenEditor (模块 tab)
+        │   │   │       ├── StoryboardCanvas (模块 tab)
+        │   │   │       └── FileEditor (通用文本)
+        │   │   └── BottomPanel (可折叠)
+        │   │       ├── Tab: Properties
+        │   │       ├── Tab: Tasks
+        │   │       ├── Tab: Output
+        │   │       └── Tab: Timeline
         └── AgentPanel (可折叠，全高)
             ├── AgentPanel header
             │   ├── Title ("Agent")
@@ -105,6 +107,8 @@ App
 | `ProjectTree` | `features/project-tree/ProjectTree.tsx` | 项目文件树 |
 | `SearchPanel` | `features/search-panel/SearchPanel.tsx` | 搜索面板（与 ProjectTree 互斥） |
 | `EditorArea` | `features/editor/EditorArea.tsx` | 编辑器容器 + 标签栏 |
+| `OverviewPage` | `features/overview/OverviewPage.tsx` | 项目总览仪表盘（standalone 页面） |
+| `OutlineEditor` | `features/editor/OutlineEditor.tsx` | 大纲编辑器（Notion block 风格，standalone 页面） |
 | `FileTabBar` | `features/editor/FileTabBar.tsx` | 文件标签栏 |
 | `FindReplaceBar` | `features/editor/FindReplaceBar.tsx` | 查找替换栏 |
 | `CommandPalette` | `features/command-palette/CommandPalette.tsx` | 命令面板 |
@@ -128,10 +132,15 @@ App
 workspace-body (CSS Grid: icon-rail | sidebar-panel | resize | main-area)
   └── main-area (Flex row)
       ├── workspace-main (Flex column, flex:1)
-      │   ├── workspace-content (flex:1) → EditorArea
-      │   └── workspace-bottom-wrapper → BottomPanel
+      │   ├── [standalone 分支: activeModule ∈ {overview, outline}]
+      │   │   └── workspace-content → OverviewPage | OutlineEditor
+      │   └── [editor 分支: 其他模块]
+      │       ├── workspace-content (flex:1) → EditorArea
+      │       └── workspace-bottom-wrapper → BottomPanel
       └── AgentPanel (固定宽度, 全高)
 ```
+
+当 `activeModule` 为 `overview` 或 `outline` 时，不渲染 EditorArea + BottomPanel，而是直接渲染对应的 standalone 页面组件。底部展开按钮在 standalone 模式下隐藏。
 
 左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换，类似 VSCode 的 Explorer / Search 面板。
 

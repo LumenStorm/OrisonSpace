@@ -100,10 +100,6 @@ describe('shared contracts', () => {
         created_at: now,
         updated_at: now
       },
-      outline: {
-        title: 'Orison',
-        acts: []
-      },
       storyboard: {
         shots: []
       }

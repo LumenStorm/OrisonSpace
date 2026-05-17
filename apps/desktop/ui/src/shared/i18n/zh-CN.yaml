@@ -37,6 +37,7 @@ projects:
 
 nav:
   project: "项目"
+  overview: "总览"
   outline: "大纲"
   creative: "创作"
   novel: "小说"
@@ -47,6 +48,13 @@ nav:
   settings: "设置"
   account: "个人中心"
   logout: "退出登录"
+
+overview:
+  untitled: "未命名项目"
+  chapters: "章节"
+  words: "字数"
+  drafts: "草稿"
+  final: "定稿"
 
 projectTree:
   title: "项目文件"
@@ -60,15 +68,18 @@ projectTree:
 outline:
   projectTitle: "项目标题"
   loglinePlaceholder: "Logline — 一句话概括故事"
-  visualStyle: "视觉风格"
-  narrativeStyle: "叙事风格"
-  pacing: "节奏"
-  reference: "参考"
-  acts: "幕"
-  addAct: "添加幕"
-  noActs: "暂无幕。添加一个来开始构建故事结构。"
-  actTitle: "幕标题"
-  actSummary: "撰写幕概要..."
+  synopsis: "故事梗概"
+  synopsisPlaceholder: "撰写故事梗概..."
+  genre: "类型"
+  theme: "主题"
+  centralConflict: "核心冲突"
+  centralConflictPlaceholder: "描述故事的核心冲突..."
+  endingDirection: "结局方向"
+  endingDirectionPlaceholder: "描述故事的结局走向..."
+  turningPoints: "重大转折点"
+  turningPointPlaceholder: "描述一个转折点..."
+  constraints: "约束条件"
+  constraintPlaceholder: "添加一条约束..."
 
 script:
   chapters: "章节"
@@ -303,19 +314,29 @@ creative:
     locations: "地点"
     rules: "规则"
     toneRules: "基调规则"
+    powerStructures: "权力结构"
+    taboos: "禁忌"
+    visualLanguage: "视觉语言"
+    openQuestions: "待定问题"
   outline:
     title: "标题"
     logline: "Logline"
+    synopsis: "梗概"
+    genre: "类型"
+    theme: "主题"
     centralConflict: "核心冲突"
-    acts: "幕"
     endingDirection: "结局方向"
+    turningPoints: "转折点"
+    constraints: "约束条件"
   brief:
     requirement: "原始需求"
     genre: "类型"
     theme: "主题"
     tone: "基调"
     audience: "受众"
+    length: "篇幅"
     taboos: "禁忌"
+    userConstraints: "用户约束"
   curves:
     character: "角色"
     arc: "弧线"

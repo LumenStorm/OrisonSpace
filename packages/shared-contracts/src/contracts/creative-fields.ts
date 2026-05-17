@@ -70,24 +70,13 @@ export const worldSettingSchema = z.object({
 
 // ── Outline V2 总大纲 ──
 
-export const outlineActV2Schema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  goal: z.string().optional(),
-  conflict: z.string().optional(),
-  turning_point: z.string().optional(),
-  cost: z.string().optional(),
-  end_state: z.string().optional(),
-  summary: z.string().optional()
-});
-
 export const outlineV2Schema = z.object({
   title: z.string().default(''),
   logline: z.string().optional(),
+  synopsis: z.string().optional(),
   theme: z.string().optional(),
   genre: z.string().optional(),
   central_conflict: z.string().optional(),
-  acts: z.array(outlineActV2Schema).default([]),
   major_turning_points: z.array(z.string()).default([]),
   ending_direction: z.string().optional(),
   constraints: z.array(z.string()).default([])

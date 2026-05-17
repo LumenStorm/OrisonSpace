@@ -17,20 +17,21 @@ import {
 describe('novel migration contracts', () => {
   // ── chapterSchema 扩展 ──
 
-  it('chapterSchema 接受 summary/status/run IDs/content_file', () => {
+  it('chapterSchema 接受 summary/status/run IDs/sections', () => {
     const ch = chapterSchema.parse({
       id: 'ch_001',
       title: '第1章 暗夜降临',
       sort_order: 0,
-      content_file: 'chapters/ch_001.md',
+      sections: [{ id: 'ch_001_s1', sort_order: 0, content_file: 'chapters/ch_001.md' }],
       summary: '主角来到暗城，发现了一封神秘信件。',
+      summary_source: 'ai',
       status: 'draft',
       word_count: 2500,
     });
     expect(ch.id).toBe('ch_001');
     expect(ch.summary).toBe('主角来到暗城，发现了一封神秘信件。');
     expect(ch.status).toBe('draft');
-    expect(ch.content_file).toBe('chapters/ch_001.md');
+    expect(ch.sections[0].content_file).toBe('chapters/ch_001.md');
   });
 
   it('chapterSchema 接受 generation lifecycle 扩展字段', () => {
@@ -38,15 +39,13 @@ describe('novel migration contracts', () => {
       id: 'ch_002',
       title: '第2章',
       sort_order: 1,
-      content_file: 'chapters/ch_002.md',
+      sections: [{ id: 'ch_002_s1', sort_order: 0, content_file: 'chapters/ch_002.md' }],
       status: 'generating',
       last_run_id: 'run_abc123',
       generated_at: '2026-05-03T10:00:00Z',
-      bridge_notes: '承接上一章结尾，主角推开大门...',
     });
     expect(ch.status).toBe('generating');
     expect(ch.last_run_id).toBe('run_abc123');
-    expect(ch.bridge_notes).toBe('承接上一章结尾，主角推开大门...');
   });
 
   // ── creativeFieldKeys ──

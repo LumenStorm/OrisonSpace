@@ -22,82 +22,37 @@ export const projectMetaSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   type: projectType,
+  logline: z.string().optional(),
+  genre: z.string().optional(),
+  writing_style: z.string().optional(),
   version: z.number().int().nonnegative(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime()
-});
-
-// ── Outline ──
-// @deprecated — Use outlineV2Schema from creative-fields.ts instead.
-// Kept for backward compatibility with existing project files.
-
-export const beatSchema = z.object({
-  id: z.string().min(1),
-  description: z.string().min(1),
-  type: z.enum(['setup', 'confrontation', 'resolution', 'twist', 'climax']).optional()
-});
-
-export const actSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  summary: z.string().optional(),
-  conflict_level: z.number().int().min(1).max(10).optional(),
-  pacing: z.number().int().min(1).max(10).optional(),
-  beats: z.array(beatSchema).optional()
-});
-
-export const outlineStyleSchema = z.object({
-  visual_style: z.string().optional(),
-  narrative_style: z.string().optional(),
-  pacing: z.string().optional(),
-  reference: z.string().optional()
-});
-
-export const outlineSchema = z.object({
-  title: z.string().default(''),
-  logline: z.string().optional(),
-  genre: z.string().optional(),
-  theme: z.string().optional(),
-  style: outlineStyleSchema.optional(),
-  acts: z.array(actSchema)
-});
-
-// ── Detailed Outline ──
-
-export const sceneBriefSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  summary: z.string().min(1),
-  characters: z.array(z.string()).optional(),
-  location_id: z.string().optional(),
-  notes: z.string().optional()
-});
-
-export const actDetailSchema = z.object({
-  act_id: z.string().min(1),
-  scene_briefs: z.array(sceneBriefSchema)
-});
-
-export const detailedOutlineSchema = z.object({
-  act_details: z.array(actDetailSchema)
 });
 
 // ── Novel ──
 
 export const chapterStatusSchema = z.enum(['draft', 'generating', 'revised', 'final']);
 
+export const sectionSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().optional(),
+  sort_order: z.number().int(),
+  content_file: z.string().min(1),
+  word_count: z.number().int().nonnegative().optional(),
+});
+
 export const chapterSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   sort_order: z.number().int(),
-  act_id: z.string().optional(),
   summary: z.string().optional(),
-  content_file: z.string().min(1),
-  word_count: z.number().int().nonnegative().optional(),
+  summary_source: z.enum(['ai', 'user']).optional(),
   status: chapterStatusSchema.optional(),
+  word_count: z.number().int().nonnegative().optional(),
   last_run_id: z.string().optional(),
   generated_at: z.string().datetime().optional(),
-  bridge_notes: z.string().optional(),
+  sections: z.array(sectionSchema).default([]),
 });
 
 export const novelSchema = z.object({
@@ -120,7 +75,6 @@ export const sceneSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   sort_order: z.number().int(),
-  act_id: z.string().optional(),
   summary: z.string().optional(),
   content_file: z.string().min(1),
   location_id: z.string().optional(),
@@ -181,34 +135,46 @@ export const videoSchema = z.object({
 export const characterSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  aliases: z.array(z.string()).default([]),
   appearance: z.string().optional(),
-  personality: z.string().optional()
+  personality: z.string().optional(),
+  backstory: z.string().optional(),
+  relationships: z.array(z.object({
+    character_id: z.string().min(1),
+    relation: z.string().min(1),
+  })).default([]),
 });
 
 export const locationSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  type: z.string().optional(),
+  description: z.string().optional()
+});
+
+export const propSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  type: z.string().optional(),
   description: z.string().optional()
 });
 
 export const assetsSchema = z.object({
-  characters: z.array(characterSchema),
-  locations: z.array(locationSchema)
+  characters: z.array(characterSchema).default([]),
+  locations: z.array(locationSchema).default([]),
+  props: z.array(propSchema).default([]),
 });
 
 // ── ProjectDocument ──
 
 export const projectDocumentSchema = z.object({
   meta: projectMetaSchema,
-  /** @deprecated Use outline_v2 instead. Kept for migration compatibility. */
-  outline: outlineSchema,
-  detailed_outline: detailedOutlineSchema.optional(),
   novel: novelSchema.optional(),
   script: scriptSchema.optional(),
   storyboard: storyboardSchema,
   video: videoSchema.optional(),
   assets: assetsSchema.optional(),
-  // Phase 2: 新创作字段（全部可选，保持旧文档兼容）
+  // 创作字段
   creative_brief: creativeBriefSchema.optional(),
   world_setting: worldSettingSchema.optional(),
   outline_v2: outlineV2Schema.optional(),

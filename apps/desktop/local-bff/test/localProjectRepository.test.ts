@@ -19,26 +19,18 @@ describe('local project repository helpers', () => {
     }
   });
 
-  it('creates an empty local project document with outline and storyboard roots', () => {
+  it('creates an empty local project document with storyboard root', () => {
     const project = createEmptyProjectDocument('Orison Demo');
 
     expect(project.meta.name).toBe('Orison Demo');
     expect(project.meta.type).toBe('novel');
-    expect(project.outline.acts).toEqual([]);
     expect(project.storyboard.shots).toEqual([]);
   });
 
-  it('applies a replace patch to the first outline act summary', () => {
+  it('applies a replace patch (no-op for removed outline paths)', () => {
     const project = createEmptyProjectDocument('Demo');
-    const withAct = {
-      ...project,
-      outline: {
-        ...project.outline,
-        acts: [{ id: 'act_1', title: 'Arrival', summary: 'Old value' }]
-      }
-    };
 
-    const updated = applyPatchOperations(withAct, [
+    const updated = applyPatchOperations(project, [
       {
         op: 'replace',
         path: 'outline.acts[0].summary',
@@ -46,7 +38,7 @@ describe('local project repository helpers', () => {
       }
     ]);
 
-    expect(updated.outline.acts[0].summary).toBe('New value');
+    expect(updated.meta.version).toBe(2);
   });
 
   it('saveProject / loadProject 往返一致', () => {
@@ -57,7 +49,6 @@ describe('local project repository helpers', () => {
     expect(loaded).not.toBeNull();
     expect(loaded!.meta.name).toBe('Round Trip Test');
     expect(loaded!.meta.type).toBe('novel');
-    expect(loaded!.outline.acts).toEqual([]);
   });
 
   it('loadProject 对不存在的路径返回 null', () => {
@@ -135,7 +126,7 @@ describe('local project repository helpers', () => {
 
   it('applyFieldPatches 支持 chapter_candidate 类型的补丁', () => {
     const project = createEmptyProjectDocument('Chapter Candidate Patch');
-    // 预置一个章节
+    // 预置一个章节（新结构：sections）
     const withNovel = {
       ...project,
       novel: {
@@ -144,7 +135,7 @@ describe('local project repository helpers', () => {
             id: 'ch_001',
             title: '旧标题',
             sort_order: 0,
-            content_file: 'chapters/ch_001.md',
+            sections: [{ id: 'ch_001_s1', sort_order: 0, content_file: 'chapters/ch_001.md' }],
             status: 'generating',
             last_run_id: 'run_pre',
           },

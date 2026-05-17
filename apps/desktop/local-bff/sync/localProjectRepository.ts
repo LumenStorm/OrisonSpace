@@ -21,10 +21,6 @@ export function createEmptyProjectDocument(name: string, type: 'novel' | 'script
       created_at: now,
       updated_at: now
     },
-    outline: {
-      title: name,
-      acts: []
-    },
     storyboard: {
       shots: []
     }
@@ -38,10 +34,7 @@ export function applyPatchOperations(project: ProjectDocument, operations: Patch
     if (operation.op !== 'replace') {
       continue;
     }
-
-    if (operation.path === 'outline.acts[0].summary' && next.outline.acts[0]) {
-      next.outline.acts[0].summary = operation.value;
-    }
+    // Legacy patch paths are no longer supported (outline.acts removed)
   }
 
   next.meta.version += 1;
@@ -76,7 +69,35 @@ export function loadProject(projectPath: string): ProjectDocument | null {
   const raw = readFileSync(filePath, 'utf8');
   const parsed = YAML.parse(raw);
 
-  // 旧字段派生兼容：assets.characters → asset_cards
+  // Migration: remove deprecated outline/detailed_outline fields
+  delete parsed.outline;
+  delete parsed.detailed_outline;
+
+  // Migration: old chapters without sections → wrap content_file into a single section
+  if (parsed.novel?.chapters && Array.isArray(parsed.novel.chapters)) {
+    for (const ch of parsed.novel.chapters) {
+      if (!ch.sections && ch.content_file) {
+        ch.sections = [{
+          id: `${ch.id}_s1`,
+          sort_order: 0,
+          content_file: ch.content_file,
+          word_count: ch.word_count,
+        }];
+        delete ch.content_file;
+        delete ch.bridge_notes;
+      }
+      delete ch.act_id;
+    }
+  }
+
+  // Migration: remove act_id from script scenes
+  if (parsed.script?.scenes && Array.isArray(parsed.script.scenes)) {
+    for (const sc of parsed.script.scenes) {
+      delete sc.act_id;
+    }
+  }
+
+  // Migration: assets.characters → asset_cards
   if (parsed.assets?.characters && !parsed.asset_cards) {
     parsed.asset_cards = parsed.assets.characters.map((c: any, i: number) => ({
       id: c.id ?? `imported_char_${i}`,
@@ -89,6 +110,16 @@ export function loadProject(projectPath: string): ProjectDocument | null {
       status: 'active',
       locked: false
     }));
+  }
+
+  // Migration: move logline from outline_v2 to meta if missing
+  if (!parsed.meta.logline && parsed.outline_v2?.logline) {
+    parsed.meta.logline = parsed.outline_v2.logline;
+  }
+
+  // Migration: remove acts from outline_v2
+  if (parsed.outline_v2?.acts) {
+    delete parsed.outline_v2.acts;
   }
 
   return projectDocumentSchema.parse(parsed);
@@ -130,19 +161,23 @@ export function applyFieldPatches(
         const chapters = next.novel?.chapters;
         if (chapters && Array.isArray(chapters)) {
           const chapter = chapters.find((ch: any) => ch.id === data.chapterId);
-          if (chapter) {
+          if (chapter && chapter.sections?.length > 0) {
+            const section = chapter.sections[0];
             // 写入 markdown 文件
-            const mdDir = path.dirname(path.join(projectPath, chapter.content_file));
+            const mdDir = path.dirname(path.join(projectPath, section.content_file));
             if (!existsSync(mdDir)) {
               mkdirSync(mdDir, { recursive: true });
             }
-            writeFileSync(path.join(projectPath, chapter.content_file), data.candidate.content, 'utf8');
+            writeFileSync(path.join(projectPath, section.content_file), data.candidate.content, 'utf8');
 
             // 更新章节元数据
             const c = data.candidate;
             if (c.title !== undefined) chapter.title = c.title;
             if (c.summary !== undefined) chapter.summary = c.summary;
-            if (c.wordCount !== undefined) chapter.word_count = c.wordCount;
+            if (c.wordCount !== undefined) {
+              chapter.word_count = c.wordCount;
+              section.word_count = c.wordCount;
+            }
             chapter.status = 'draft';
             chapter.last_run_id = data.runId ?? fieldPatch.runId;
             chapter.generated_at = new Date().toISOString();

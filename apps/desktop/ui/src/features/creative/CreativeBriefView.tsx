@@ -44,12 +44,26 @@ export function CreativeBriefView() {
           <p>{data.audience}</p>
         </div>
       )}
+      {data.length && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.brief.length')}</span>
+          <p>{data.length}</p>
+        </div>
+      )}
       {data.taboos.length > 0 && (
         <div className="creative-field-row">
           <span className="creative-field-label">{t('creative.brief.taboos')}</span>
           <div className="creative-tag-list-inline">
             {data.taboos.map((t, i) => <span key={i} className="asset-card-tag">{t}</span>)}
           </div>
+        </div>
+      )}
+      {data.userConstraints.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.brief.userConstraints')}</span>
+          <ul className="creative-tag-list">
+            {data.userConstraints.map((c, i) => <li key={i}>{c}</li>)}
+          </ul>
         </div>
       )}
     </div>

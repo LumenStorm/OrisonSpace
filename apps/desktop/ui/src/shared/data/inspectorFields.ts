@@ -15,6 +15,7 @@ const scriptFields: FieldDef[] = [
 ];
 
 export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
+  overview: [],
   outline: [
     { labelKey: 'inspector.outline.visualStyle', optionsKey: 'inspector.outline.options.visualStyle', defaultIndex: 0 },
     { labelKey: 'inspector.outline.narrativeStyle', optionsKey: 'inspector.outline.options.narrativeStyle', defaultIndex: 0 },
@@ -38,6 +39,7 @@ export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
 };
 
 export const aspectRatios: Record<WorkspaceModule, string[]> = {
+  overview: [],
   outline: [],
   novel: [],
   script: [],
@@ -47,6 +49,7 @@ export const aspectRatios: Record<WorkspaceModule, string[]> = {
 };
 
 export const promptKeys: Record<WorkspaceModule, string> = {
+  overview: '',
   outline: 'inspector.outline.prompt',
   novel: 'inspector.script.prompt',
   script: 'inspector.script.prompt',
@@ -56,6 +59,7 @@ export const promptKeys: Record<WorkspaceModule, string> = {
 };
 
 export const actionKeys: Record<WorkspaceModule, string> = {
+  overview: '',
   outline: 'inspector.outline.rewrite',
   novel: 'inspector.script.rewrite',
   script: 'inspector.script.rewrite',

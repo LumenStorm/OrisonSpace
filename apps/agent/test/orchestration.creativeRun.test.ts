@@ -50,9 +50,7 @@ const MOCK_BY_NODE = JSON.stringify({
       theme: '救赎',
       genre: '悬疑',
       central_conflict: '真相与遗忘的对抗',
-      acts: [
-        { id: 'act_1', title: '入局', goal: '引入主角', conflict: '失踪案', turning_point: '发现线索' }
-      ],
+      synopsis: '侦探在永夜都市中追查一起失踪案，逐渐发现城市背后的秘密。',
       major_turning_points: ['发现线索'],
       ending_direction: '真相大白',
       constraints: []
@@ -157,7 +155,7 @@ describe('creative run 最小产出验证', () => {
     const outline = a['planning.storyPlan'] as Record<string, unknown>;
     expect(outline).toBeDefined();
     expect(outline.title).toBe('暗城');
-    expect(outline.acts).toBeDefined();
+    expect(outline.synopsis).toBeDefined();
 
     // episode_outlines 来自 episode-planner
     const episodes = a['episode_outlines'] as Array<Record<string, unknown>>;

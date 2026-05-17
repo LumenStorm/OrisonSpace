@@ -156,10 +156,29 @@
   margin-bottom: 0.25rem;
 }
 
+.creative-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style: decimal;
+}
+
+.creative-list li {
+  margin-bottom: 0.25rem;
+}
+
 .creative-tag-list-inline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.asset-card-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: 0.78rem;
 }
 
 /* ── Asset Cards ── */

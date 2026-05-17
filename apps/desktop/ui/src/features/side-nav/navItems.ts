@@ -4,11 +4,13 @@ export type NavItem = { key: WorkspaceModule; icon: string; i18nKey: string };
 
 /** Items that switch the active module (editor view) */
 export const novelNavItems: NavItem[] = [
+  { key: 'overview', icon: 'dashboard', i18nKey: 'nav.overview' },
   { key: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' },
   { key: 'novel', icon: 'menu_book', i18nKey: 'nav.novel' },
 ];
 
 export const scriptNavItems: NavItem[] = [
+  { key: 'overview', icon: 'dashboard', i18nKey: 'nav.overview' },
   { key: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' },
   { key: 'script', icon: 'description', i18nKey: 'nav.script' },
 ];

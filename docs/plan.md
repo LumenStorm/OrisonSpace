@@ -170,3 +170,12 @@
 - 快捷键补全：`Ctrl+B`（项目树）、`Ctrl+J`（底部面板）注册到 `useGlobalShortcuts`
 - Electron `before-input-event`：阻止 Chromium 拦截 `Ctrl+Tab/N/W/T`
 - 帮助 → 快捷键：新增 `ShortcutsDialog` 弹窗，按分类展示所有快捷键
+
+### 8. Overview 页面与 Outline 独立化（2026-05-14）
+
+- `WorkspaceModule` 新增 `'overview'`，默认 activeModule 改为 `'overview'`
+- `WorkspaceLayout` 引入 standalone 分支：`overview` / `outline` 渲染独立全宽页面，不走 EditorArea + BottomPanel
+- 新增 `features/overview/OverviewPage.tsx`：仪表盘风格，展示项目名称、类型、章节数/字数/草稿数/定稿数
+- `OutlineEditor` 改为 Notion block 风格：无边框输入、底部细线 focus 变色、居中 720px 最大宽度
+- 创作字段展示组件（`OutlineV2View` / `WorldSettingView` / `CreativeBriefView`）补齐缺失样式（`.creative-list`、`.asset-card-tag`）
+- SideNav navItems 在 outline 前新增 overview 入口（`dashboard` 图标）

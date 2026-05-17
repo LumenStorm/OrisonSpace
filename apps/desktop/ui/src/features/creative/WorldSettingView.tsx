@@ -54,6 +54,38 @@ export function WorldSettingView() {
           </ul>
         </div>
       )}
+      {data.power_structures.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.worldSetting.powerStructures')}</span>
+          <ul className="creative-tag-list">
+            {data.power_structures.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      )}
+      {data.taboos.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.worldSetting.taboos')}</span>
+          <ul className="creative-tag-list">
+            {data.taboos.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      )}
+      {data.visual_language.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.worldSetting.visualLanguage')}</span>
+          <ul className="creative-tag-list">
+            {data.visual_language.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      )}
+      {data.open_questions.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('creative.worldSetting.openQuestions')}</span>
+          <ul className="creative-tag-list">
+            {data.open_questions.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

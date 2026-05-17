@@ -85,7 +85,7 @@ describe('审核字段版本一致性', () => {
       requirement: 'test',
       projectDocument: {
         meta: { id: 'p1' },
-        outline: { title: 'Test', acts: [] },
+        outline_v2: { title: 'Test', synopsis: '测试' },
         asset_cards: [{ id: 'c1', type: 'character', name: 'A' }]
       }
     });
@@ -118,7 +118,7 @@ describe('审核字段版本一致性', () => {
     const artifacts = {
       creative_brief: { genre: '悬疑' },
       world_setting: { premise: '暗城' },
-      outline: { title: '暗城' },
+      outline: { title: '暗城', synopsis: '故事梗概' },
       asset_cards: [{ id: 'c1' }],
       relationship_graph: { nodes: [], edges: [] }
     };

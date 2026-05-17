@@ -25,6 +25,7 @@
   - `widgets/projects/*`
 - `src/features/<domain>/*` 拥有具体产品域，例如：
   - editor
+  - overview
   - project-tree
   - orchestration
   - novel workbench

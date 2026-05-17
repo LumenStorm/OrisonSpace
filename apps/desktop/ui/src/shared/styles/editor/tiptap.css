@@ -119,35 +119,32 @@
   padding: 0;
 }
 
-/* ── Outline Editor ── */
+/* ── Outline Editor (Notion block style) ── */
 .outline-editor {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .outline-header {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
 }
 
 .outline-title-input {
   width: 100%;
   border: 0;
-  border-bottom: 2px solid var(--outline-variant);
   background: transparent;
   font-family: var(--font-display);
-  font-size: 1.8rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--on-surface);
-  padding: 0.25rem 0;
+  padding: 0;
   outline: none;
-  transition: border-color 0.15s;
-}
-
-.outline-title-input:focus {
-  border-color: var(--accent);
 }
 
 .outline-title-input::placeholder {
@@ -156,32 +153,73 @@
 
 .outline-logline-input {
   width: 100%;
-  border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
-  background: var(--surface);
+  border: 0;
+  background: transparent;
   font: inherit;
-  font-size: 0.95rem;
-  color: var(--on-surface);
-  padding: 0.65rem 0.75rem;
+  font-size: 1rem;
+  color: var(--on-surface-variant);
+  padding: 0;
   outline: none;
   resize: none;
-  min-height: 2.5rem;
+  min-height: 1.5rem;
 }
 
-.outline-logline-input:focus {
-  border-color: var(--accent);
+.outline-logline-input::placeholder {
+  color: var(--outline);
+}
+
+.outline-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.outline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.outline-field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.outline-textarea {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--outline-variant);
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--on-surface);
+  padding: 0.4rem 0;
+  outline: none;
+  resize: none;
+  transition: border-color 0.15s;
+}
+
+.outline-textarea:focus {
+  border-bottom-color: var(--accent);
+}
+
+.outline-textarea::placeholder {
+  color: var(--outline);
 }
 
 .outline-style-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: 1.5rem;
 }
 
 .outline-style-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .outline-style-label {
@@ -193,18 +231,80 @@
 }
 
 .outline-style-input {
-  border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
-  background: var(--surface);
+  border: 0;
+  border-bottom: 1px solid var(--outline-variant);
+  background: transparent;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   color: var(--on-surface);
-  padding: 0.5rem 0.65rem;
+  padding: 0.4rem 0;
   outline: none;
+  transition: border-color 0.15s;
 }
 
 .outline-style-input:focus {
-  border-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.outline-style-input::placeholder {
+  color: var(--outline);
+}
+
+.outline-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.outline-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.outline-list-input {
+  flex: 1;
+  border: 0;
+  border-bottom: 1px solid var(--outline-variant);
+  background: transparent;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--on-surface);
+  padding: 0.35rem 0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.outline-list-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+.outline-list-input::placeholder {
+  color: var(--outline);
+}
+
+.outline-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.outline-remove-btn:hover {
+  opacity: 1;
+  background: var(--hover-overlay);
+}
+
+.outline-remove-btn .material-symbols-outlined {
+  font-size: 16px;
 }
 
 /* ── Acts ── */
@@ -231,26 +331,24 @@
 .outline-add-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.8rem;
-  border: 1px dashed var(--outline-variant);
-  border-radius: 0.35rem;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
-  font: inherit;
-  font-size: 0.82rem;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s;
 }
 
 .outline-add-btn:hover {
   background: var(--hover-overlay);
-  border-color: var(--accent);
   color: var(--on-surface);
 }
 
 .outline-add-btn .material-symbols-outlined {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .outline-act-card {

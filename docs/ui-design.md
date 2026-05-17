@@ -104,7 +104,8 @@ Icon Rail 分为 top section 和 bottom section：
 |------|------|------|
 | `folder_open` | 资源管理器 | 切换左侧面板为 ProjectTree |
 | `search` | 搜索 | 切换左侧面板为 SearchPanel |
-| `auto_stories` | 大纲 | 切换 activeModule 为 outline |
+| `dashboard` | 总览 | 切换 activeModule 为 overview（standalone 页面） |
+| `auto_stories` | 大纲 | 切换 activeModule 为 outline（standalone 页面） |
 | `menu_book` / `description` | 小说/剧本 | 切换 activeModule 为 novel/script |
 | `view_quilt` | 分镜 | 在编辑区打开模块 tab |
 | `image` | 图片生成 | 在编辑区打开模块 tab |
@@ -119,6 +120,17 @@ Icon Rail 分为 top section 和 bottom section：
 | `account_circle` | 打开账户对话框 |
 
 左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换。
+
+### Standalone 页面（overview / outline）
+
+当 `activeModule` 为 `overview` 或 `outline` 时，工作区主内容区不渲染 EditorArea + BottomPanel，而是直接渲染独立的全宽页面组件：
+
+| 模块 | 组件 | 说明 |
+|------|------|------|
+| `overview` | `OverviewPage` | 项目总览仪表盘：项目名称、类型 badge、章节数/字数/草稿数/定稿数卡片 |
+| `outline` | `OutlineEditor` | Notion block 风格大纲编辑器：无边框输入、label 在上编辑区在下、居中 720px 最大宽度 |
+
+默认进入工作区时 `activeModule` 为 `overview`。
 
 ### EditorArea 标签栏 (FileTabBar)
 

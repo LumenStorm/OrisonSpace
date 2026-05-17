@@ -78,236 +78,38 @@ export async function generateText(model, request, ctx?) {
     messages: nonSystemMessages,  // 转换为 AI SDK 格式
     temperature: request.temperature,
     maxTokens: request.maxTokens,
-    tools: request.tools,       // ← tool calling 支持
+    tools: request.tools,
     abortSignal: ctx?.signal,
   });
-  return {
-    model: model.modelId,
-    text: result.text,
-    toolCalls: result.toolCalls?.map(tc => ({ id: tc.toolCallId, name: tc.toolName, arguments: JSON.stringify(tc.args) })),
-    finishReason: mapFinishReason(result.finishReason),
-    usage: { promptTokens: result.usage?.promptTokens, completionTokens: result.usage?.completionTokens },
-  };
+  return { text: result.text, toolCalls: result.toolCalls };
 }
 ```
 
-- `generateImage` / `generateVideo` 保持现有 fetch 逻辑不变
+#### 3. Gateway 适配
 
-#### 3. 扩展 shared-contracts 类型
+`apps/desktop/shell/main/ipc/modelGatewayHttp.ts` 改为调用新的 `generateText`。
 
-`TextGenerationRequest` 新增 optional `tools` 字段：
-```ts
-tools?: Array<{ type: 'function'; function: { name: string; description: string; parameters: unknown } }>;
-```
+#### 4. Agent IPC provider 简化
 
-`TextGenerationResponse` 新增 optional `toolCalls` 字段：
-```ts
-toolCalls?: Array<{ id: string; name: string; arguments: string }>;
-```
+`apps/agent/src/ipc-provider.ts` 不再手动拼 tool JSON schema — 直接传 tools 数组给 gateway，由 AI SDK 处理格式。
 
-#### 4. Gateway 无需改动
+### 不改动
 
-`handleGenerateText` 已经是 `generateText(resolved, payload.request)` — model-protocols 内部签名不变，tools 字段自动透传。
-
-#### 5. Agent `ipc-provider.ts` 微调
-
-当前已经在 payload 中构造了 tools，只需确保 gateway 返回的 `toolCalls` 被正确解析（当前代码已处理 `data.toolCalls`）。主要改动：
-
-- `zodToJsonSchema` 使用 `target: 'jsonSchema7'`（而非 `'openApi3'`），确保 `exclusiveMinimum` 输出为数字而非布尔值，兼容 OpenAI API schema 校验
-- 剥离生成的 `$schema` 字段，避免模型 API 拒绝
-- 确保响应中 `toolCalls` 字段映射正确
-
-#### 5.5 Agent `routes.ts` abort signal 修复
-
-SSE 端点的 abort 信号改用 `request.raw.socket.on('close')` 而非 `request.raw.on('close')`。后者在 Fastify 中会在请求 body 读取完成后立即触发，导致 agentic loop 还未开始就被中断。
-
-#### 6. 可选：streaming 端点
-
-新增 `POST /model/stream-text` 端点，用 `streamText` + SSE 返回逐 token 结果。agent 的 SSE 端点可对接此接口实现端到端 streaming。本次先确保非流式路径正确。
-
-### 不改动的部分
-
-- `apps/desktop/ui` — 前端不变
-- `apps/agent/src/tool/*` — tool 定义不变
-- `apps/agent/src/agent/loop.ts` — loop 逻辑不变
-- `modelGatewayHttp.ts` — 路由不变（`/model/generate-text` 已存在）
-- `modelGatewayIpc.ts` — 签名不变
-- Image/Video generation — 保持现有实现
-
-### 文件变更清单
-
-| 文件 | 操作 |
-|---|---|
-| `packages/model-protocols/package.json` | 加 `ai`, `@ai-sdk/openai` |
-| `packages/model-protocols/src/generate.ts` | 重写 `generateText` 用 Vercel AI SDK |
-| `packages/model-protocols/src/http.ts` | 保留（image/video 仍用） |
-| `packages/model-protocols/src/index.ts` | 新增导出 `createProvider` |
-| `packages/shared-contracts/src/contracts/generation.ts` | request 加 tools，response 加 toolCalls |
-| `apps/agent/src/provider/ipc-provider.ts` | 微调 tools 格式 + 响应解析 |
-
-### 风险
-
-1. **`@ai-sdk/openai` 兼容性** — 对非标准端点（某些国产模型 API）可能有问题。如遇到，可在 `createProvider` 中加 `compatibility: 'compatible'` 选项。
-2. **breaking change** — `TextGenerationResponse` 新增 `toolCalls` 字段，但是 optional，不会 break 现有消费方。
-3. **model-protocols 包体积** — `ai` 包约 200KB，可接受。
+- `ModelRef` / `ModelConfig` 类型不变
+- UI 层模型选择逻辑不变
+- key 管理 / 加解密不变
 
 ---
 
-## 任务 4：通用后台任务系统 + 生图页面状态持久化
+## 任务 6：Agent Gateway 集成
 
 ### 目标
 
-1. 抽象出通用的后台任务队列（BackgroundTask），所有生成类操作（生图、生视频、文本生成）统一走这套机制
-2. 切换页面时正在执行的任务不中断，回来能看到结果
-3. 生图页面的 prompt、结果列表持久化到 store，切换页面不丢失
-
----
-
-### 一、通用后台任务 Slice (`backgroundTasksSlice.ts`)
-
-新建 `apps/desktop/ui/src/shared/store/backgroundTasksSlice.ts`
-
-#### 核心类型
-
-```ts
-type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-type TaskType = 'image_gen' | 'video_gen' | 'text_gen' | 'rewrite';
-
-interface BackgroundTask<TResult = unknown> {
-  id: string;
-  type: TaskType;
-  status: TaskStatus;
-  label: string;                 // 用户可见描述，如 "生成图片: a cat..."
-  createdAt: string;
-  updatedAt: string;
-  progress?: number;             // 0-100
-  error?: string;
-  result?: TResult;
-  meta?: Record<string, unknown>; // prompt, params 等任务特定数据
-}
-```
-
-#### Slice 接口
-
-```ts
-type BackgroundTasksSlice = {
-  bgTasks: BackgroundTask[];
-  
-  // 提交任务：传入执行函数，slice 管理生命周期
-  submitBgTask: <T>(opts: {
-    type: TaskType;
-    label: string;
-    meta?: Record<string, unknown>;
-    execute: (signal: AbortSignal) => Promise<T>;
-  }) => string; // 返回 taskId
-  
-  cancelBgTask: (taskId: string) => void;
-  dismissBgTask: (taskId: string) => void;
-  clearFinishedBgTasks: () => void;
-};
-```
-
-#### 关键设计
-
-- **execute 函数由调用方传入**：slice 不关心 API 细节，只管状态 + AbortController
-- **并发**：同类型可并发，`Map<taskId, AbortController>` 管理取消
-- **持久化**：已完成任务持久化到 localStorage（`orison_bgTasks`），running 的在重启后标记 failed
-- **上限**：保留最近 50 条已完成任务
-
----
-
-### 二、生图页面状态提升到 Store
-
-在 `imageGenSlice.ts` 中增加：
-
-```ts
-imageGenPrompt: string;
-imageGenResults: ImageGenResultMeta[];  // 轻量版，不含 b64Json
-setImageGenPrompt: (prompt: string) => void;
-prependImageGenResults: (items: ImageGenResultMeta[]) => void;
-markImageGenResultAsset: (id: string) => void;
-```
-
-`ImageGenResultMeta` 只存：
-```ts
-{ id, prompt, tempRelativePath, assetAdded, source, mimeType }
-```
-
-持久化：prompt debounce 写 localStorage，results 存 metadata 列表（不含二进制）。
-
----
-
-### 三、ImageGenEditor 改造
-
-1. `prompt` / `results` 从 store 读取，不再用 `useState`
-2. 生成操作改为：
-   ```ts
-   submitBgTask({
-     type: 'image_gen',
-     label: `生成: ${prompt.slice(0, 30)}...`,
-     meta: { prompt, params },
-     execute: async (signal) => {
-       const response = await generateImage({ ref, prompt, params, image });
-       const saved = await saveToProject(response, projectPath, prompt);
-       return saved; // ImageGenResultMeta[]
-     },
-   });
-   ```
-3. 任务完成后通过 effect 监听 `bgTasks` 变化，自动 merge 到 `imageGenResults`
-
----
-
-### 四、任务面板
-
-底部面板 "tasks" tab 展示所有后台任务状态（spinner/✓/✗），支持取消和清除。
-
----
-
-### 文件变更清单
-
-| 文件 | 操作 |
-|------|------|
-| `store/backgroundTasksSlice.ts` | 新建 |
-| `store/appStore.ts` | 注册新 slice |
-| `store/imageGenSlice.ts` | 增加 prompt/results 持久化 |
-| `store/types.ts` | 增加 BackgroundTask 类型 |
-| `features/editor/ImageGenEditor.tsx` | 从 store 读状态，生成走 submitBgTask |
-| `store/tasksSlice.ts` | 迁移 submitRewrite 使用 backgroundTasksSlice |
-
----
-
-### 迁移策略
-
-- 现有 `tasksSlice.submitRewrite` 改为内部调用 `submitBgTask`
-- `acceptedPatches` 等 rewrite 特有逻辑保留在 `tasksSlice`
-- 不破坏现有 rewrite 功能
-
----
-
-## 任务 7：Agent 请求经 Server 中转（2026-05-13）
-
-### 目标
-
-Desktop UI 不再直连 Agent，所有 `/v1/agent/*` 请求统一经 Server 中转，Server 做 JWT 认证校验后透传到 Agent。同时删除已废弃的 orchestration proxy（Agent 端无对应实现）。
-
-### 当前状态
-
-```
-Desktop UI ──直连──→ Agent (localhost:18422)  /v1/agent/*
-Desktop UI ──→ Server (localhost:43117) ──→ Agent  /v1/orchestration/* (空转，Agent 未实现)
-```
-
-### 目标状态
-
-```
-Desktop UI ──→ Server (localhost:43117) ──→ Agent (localhost:18422)
-                  ↑ JWT 校验
-统一走 /v1/agent/*，删除 /v1/orchestration/* 代理
-```
+将 Agent 端的 HTTP API 通过 Server 代理暴露给 Desktop UI，替代当前 Desktop 直连 Agent 的方式。
 
 ### 改动范围
 
-#### 1. Server 端：新增 Agent 代理模块
+#### 1. Server 端：新增 Agent proxy 路由
 
 **新文件**: `apps/server/src/modules/agent/proxy.ts`
 
@@ -347,3 +149,104 @@ Desktop UI ──→ Server (localhost:43117) ──→ Agent (localhost:18422)
 - Agent 端代码不变
 - SSE 事件格式不变
 - Desktop UI 的 SSE 解析逻辑不变
+
+---
+
+## 任务 7：小说/剧本数据结构重构
+
+### 目标
+
+去掉 act（幕）概念，改为：项目总览 → 世界观设定（独立）→ 大纲简介 → 章 > 节 → 资产
+
+### 变更范围
+
+#### 1. shared-contracts: project.ts — Schema 重构
+
+**删除：**
+- `actSchema`, `beatSchema`, `outlineSchema`, `detailedOutlineSchema`, `actDetailSchema`, `sceneBriefSchema`
+- `chapterSchema` 中的 `act_id` 字段
+- `sceneSchema` 中的 `act_id` 字段
+
+**新增/修改：**
+
+```typescript
+// 项目总览 — projectMetaSchema 扩展
+projectMetaSchema → 新增 logline, genre, writing_style 字段
+
+// 章节新增 section 层级
+sectionSchema = { id, title?, sort_order, content_file, word_count }
+chapterSchema = { id, title, sort_order, summary?, summary_source('ai'|'user'), status, word_count, generated_at?, sections[] }
+novelSchema = { chapters: chapterSchema[] }
+
+// 资产扩展
+characterSchema → 新增 aliases, backstory, relationships 字段
+locationSchema → 新增 type 字段
+propSchema = { id, name, type, description }
+assetsSchema = { characters[], locations[], props[] }
+```
+
+**projectDocumentSchema 调整：**
+- 删除 `outline` (旧版)、`detailed_outline`
+- 保留 `outline_v2`（大纲简介，内含 synopsis）
+- 保留 `episode_outlines`, curves
+- `world_setting` 保持独立
+- `assets` 使用新的扩展 schema
+
+#### 2. shared-contracts: creative-fields.ts
+
+- `outlineV2Schema` 中删除 `acts` 数组，改为 `synopsis`（单一文本块）
+
+#### 3. SQLite schema — apps/desktop/shell/main/db/index.ts
+
+`projects` 表新增列：
+```sql
+ALTER TABLE projects ADD COLUMN logline TEXT;
+ALTER TABLE projects ADD COLUMN genre TEXT;
+ALTER TABLE projects ADD COLUMN writing_style TEXT;
+```
+
+#### 4. local-bff: localProjectRepository.ts
+
+- `createEmptyProjectDocument` 适配新结构（不再创建空 outline.acts）
+- `applyFieldPatches` 中 chapter_candidate 逻辑适配 section
+- 加载兼容：旧 chapter 无 sections 时自动包装为单 section
+
+#### 5. local-bff: novelProjectRepository.ts
+
+- 适配新的 chapter → section 结构
+- `acceptChapterCandidate` 改为写入 section 级别的 content_file
+
+#### 6. shell: chapterHandlers.ts
+
+- 适配新的目录结构（section 文件命名）
+
+#### 7. UI store: novelChapterSlice.ts
+
+- `NovelChapterMeta` 类型新增 `sections` 字段、`summarySource` 字段
+
+#### 8. UI store: types.ts
+
+- `ProjectMeta` 新增 `logline`, `genre`, `writingStyle`
+
+#### 9. docs/data-dictionary.md
+
+- 更新本地项目文件结构描述
+- 更新字段关系
+
+### 兼容性策略
+
+- 旧 `outline` 字段标记 `@deprecated`，保留但设为 optional
+- `project.yaml` 加载时做兼容转换：旧 chapter 无 sections 时自动包装为单 section
+- SQLite 用 `ALTER TABLE ADD COLUMN` 做非破坏性迁移
+
+### 执行顺序
+
+1. `packages/shared-contracts/src/contracts/project.ts`
+2. `packages/shared-contracts/src/contracts/creative-fields.ts`
+3. `apps/desktop/shell/main/db/index.ts`
+4. `apps/desktop/local-bff/sync/localProjectRepository.ts`
+5. `apps/desktop/local-bff/sync/novelProjectRepository.ts`
+6. `apps/desktop/shell/main/ipc/toolHandlers/chapterHandlers.ts`
+7. `apps/desktop/ui/src/shared/store/novelChapterSlice.ts`
+8. `apps/desktop/ui/src/shared/store/types.ts`
+9. `docs/data-dictionary.md`

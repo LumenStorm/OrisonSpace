@@ -45,7 +45,7 @@ describe('contextBuilder', () => {
       requirement: 'test',
       projectDocument: {
         meta: { id: 'p1' },
-        outline: { title: 'Test', acts: [] }
+        outline_v2: { title: 'Test', synopsis: '测试故事' }
       }
     });
 
@@ -59,7 +59,7 @@ describe('contextBuilder', () => {
     const ctx = buildCreativeRunContext({
       projectPath: '/p',
       requirement: 'test',
-      projectDocument: { outline: { title: 'Test' } }
+      projectDocument: { outline_v2: { title: 'Test' } }
     });
 
     expect(ctx.projectDocumentStatus).toBe('partial');

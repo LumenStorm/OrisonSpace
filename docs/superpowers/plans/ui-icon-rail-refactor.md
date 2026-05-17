@@ -88,6 +88,8 @@ Icon Rail (bottom): settings | account
 
 或者更保守的方案: 保留 WorkspaceModule 不变，但 `storyboard/image_gen/video` 的行为从"切换模块"变为"打开 tab"。
 
+> **更新**：当前 `WorkspaceModule` 为 `'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'image_gen'`，其中 `overview` 和 `outline` 在 WorkspaceLayout 中渲染为 standalone 全宽页面。
+
 ## 关键决策
 
 | 决策 | 选择 |

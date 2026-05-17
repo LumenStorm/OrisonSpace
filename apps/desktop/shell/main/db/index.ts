@@ -27,6 +27,9 @@ function initSchema(db: Database.Database): void {
       project_name      TEXT NOT NULL,
       project_type      TEXT NOT NULL CHECK(project_type IN ('novel','script')),
       local_fingerprint TEXT NOT NULL UNIQUE,
+      logline           TEXT,
+      genre             TEXT,
+      writing_style     TEXT,
       created_at        TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -81,4 +84,11 @@ function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_project_assets_type
       ON project_assets (project_id, asset_type, updated_at DESC);
   `);
+
+  // Migration: add columns if missing (non-destructive)
+  const cols = db.pragma('table_info(projects)') as { name: string }[];
+  const colNames = new Set(cols.map(c => c.name));
+  if (!colNames.has('logline')) db.exec('ALTER TABLE projects ADD COLUMN logline TEXT');
+  if (!colNames.has('genre')) db.exec('ALTER TABLE projects ADD COLUMN genre TEXT');
+  if (!colNames.has('writing_style')) db.exec('ALTER TABLE projects ADD COLUMN writing_style TEXT');
 }

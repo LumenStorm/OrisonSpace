@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
-export type WorkspaceModule = 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'image_gen';
+export type WorkspaceModule = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'image_gen';
 export type SidebarPanel = 'explorer' | 'search';
 export type BottomPanelTab = 'properties' | 'tasks' | 'output' | 'timeline';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
@@ -21,6 +21,9 @@ export type ProjectMeta = {
   name: string;
   path: string;
   type: 'novel' | 'script';
+  logline?: string;
+  genre?: string;
+  writingStyle?: string;
   coverImage?: string;
 };
 

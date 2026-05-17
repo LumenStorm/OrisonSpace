@@ -22,7 +22,7 @@ export function loadChapterMetadata(projectPath: string, chapterId: string): Rec
 // ── 章节正文 (Markdown) ──
 
 /**
- * 读取单个章节的 markdown 正文。
+ * 读取单个章节第一节的 markdown 正文。
  * 文件不存在返回 null。
  */
 export function loadChapterMarkdown(projectPath: string, contentFile: string): string | null {
@@ -41,7 +41,7 @@ export interface ChapterCandidate {
 }
 
 /**
- * 接受章节候选结果：写入 markdown 并更新 project.yaml 中的章节元数据。
+ * 接受章节候选结果：写入 markdown 到第一节并更新 project.yaml 中的章节元数据。
  */
 export function acceptChapterCandidate(
   projectPath: string,
@@ -67,13 +67,17 @@ export function acceptChapterCandidate(
   }
 
   const chapter = chapters[chapterIndex];
+  const section = chapter.sections?.[0];
+  if (!section) {
+    throw new Error(`Chapter ${chapterId} has no sections`);
+  }
 
   // 写入 markdown 文件
-  const mdDir = path.dirname(path.join(projectPath, chapter.content_file));
+  const mdDir = path.dirname(path.join(projectPath, section.content_file));
   if (!existsSync(mdDir)) {
     mkdirSync(mdDir, { recursive: true });
   }
-  const mdPath = path.join(projectPath, chapter.content_file);
+  const mdPath = path.join(projectPath, section.content_file);
   writeFileSync(mdPath, candidate.content, 'utf8');
 
   // 更新章节元数据
@@ -82,9 +86,11 @@ export function acceptChapterCandidate(
   }
   if (candidate.summary !== undefined) {
     chapter.summary = candidate.summary;
+    chapter.summary_source = 'ai';
   }
   if (candidate.wordCount !== undefined) {
     chapter.word_count = candidate.wordCount;
+    section.word_count = candidate.wordCount;
   }
   chapter.status = 'draft';
   chapter.last_run_id = runId;

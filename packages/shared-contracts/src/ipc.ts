@@ -23,6 +23,7 @@ export const desktopIpcSchema = z.object({
     'model:generate-video',
     'storySync:run',
     'field:sync',
+    'project:load-document',
     'git:is-repo',
     'git:log',
     'git:commit-diff',
@@ -150,6 +151,7 @@ export type OrisonDesktopApi = {
   isMaximized(): Promise<boolean>;
   platform: string;
   syncField(projectPath: string, field: string, data: unknown): Promise<void>;
+  loadProjectDocument(projectDir: string): Promise<Record<string, unknown> | null>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
   listRemoteModels(request: ListRemoteModelsRequest): Promise<RemoteModel[]>;

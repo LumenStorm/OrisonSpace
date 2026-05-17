@@ -1,6 +1,5 @@
 import { useAppStore } from '../../shared/store/appStore';
 import { ImageGenEditor } from './ImageGenEditor';
-import { OutlineEditor } from './OutlineEditor';
 import { ScriptEditor } from './ScriptEditor';
 import { StoryboardCanvas } from './StoryboardCanvas';
 import { VideoEditor } from './VideoEditor';
@@ -8,7 +7,6 @@ import { AcceptedPatchesView } from './AcceptedPatchesView';
 import { NovelScriptWithCreative } from './NovelScriptWithCreative';
 
 const simpleEditors = {
-  outline: OutlineEditor,
   storyboard: StoryboardCanvas,
   video: VideoEditor,
   image_gen: ImageGenEditor,
@@ -26,7 +24,8 @@ export function ModuleEditor() {
     );
   }
 
-  const Editor = simpleEditors[activeModule];
+  const Editor = simpleEditors[activeModule as keyof typeof simpleEditors];
+  if (!Editor) return null;
 
   return (
     <>

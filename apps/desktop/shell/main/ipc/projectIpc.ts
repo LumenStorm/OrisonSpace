@@ -85,6 +85,16 @@ export function registerProjectIpc() {
     }
   });
 
+  ipcMain.handle('project:load-document', async (_, projectDir: string) => {
+    assertSafePath(projectDir);
+    try {
+      const { loadProject } = await import('../../../local-bff/index');
+      return loadProject(projectDir) ?? null;
+    } catch {
+      return null;
+    }
+  });
+
   ipcMain.handle('project:read-directory', async (_, projectDir: string, maxDepth = 5) => {
     assertSafePath(projectDir);
     if (!existsSync(projectDir)) return [];
