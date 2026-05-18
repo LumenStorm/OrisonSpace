@@ -9,6 +9,8 @@ import { existsSync, mkdirSync, appendFileSync, readFileSync, unlinkSync, readdi
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { SessionState, SessionMessage } from '../types';
+import type { ContinuationSnapshot } from '../context/continuation';
+import type { SerializedSkillRunState } from '../runtime/skillRunState';
 
 let Database: any = null;
 try {
@@ -199,6 +201,14 @@ export interface SessionMetaState {
   createdAt: number;
   updatedAt: number;
   error?: string;
+  skillRunState?: SerializedSkillRunState;
+}
+
+export interface PersistedContinuationRecord {
+  continuationId: string;
+  sessionId: string;
+  createdAt: number;
+  snapshot: ContinuationSnapshot;
 }
 
 export function persistSessionMeta(session: SessionState): void {
@@ -216,6 +226,7 @@ export function persistSessionMeta(session: SessionState): void {
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
     error: session.error,
+    skillRunState: session.skillRunState,
   };
   writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
 }
@@ -224,6 +235,28 @@ export function loadSessionMeta(projectPath: string, sessionId: string): Session
   const metaPath = path.join(sessionsDir(projectPath), `${sessionId}.meta.json`);
   if (!existsSync(metaPath)) return undefined;
   return JSON.parse(readFileSync(metaPath, 'utf-8')) as SessionMetaState;
+}
+
+export function persistContinuation(projectPath: string, record: PersistedContinuationRecord): void {
+  const filePath = path.join(sessionsDir(projectPath), `${record.sessionId}.continuations.json`);
+  const existing = loadContinuations(projectPath, record.sessionId);
+  const next = [record, ...existing.filter((item) => item.continuationId !== record.continuationId)].slice(0, 20);
+  writeFileSync(filePath, JSON.stringify(next, null, 2), 'utf-8');
+}
+
+export function loadContinuations(projectPath: string, sessionId: string): PersistedContinuationRecord[] {
+  const filePath = path.join(sessionsDir(projectPath), `${sessionId}.continuations.json`);
+  if (!existsSync(filePath)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(filePath, 'utf-8')) as unknown;
+    return Array.isArray(parsed) ? parsed as PersistedContinuationRecord[] : [];
+  } catch {
+    return [];
+  }
+}
+
+export function loadContinuationById(projectPath: string, sessionId: string, continuationId: string): PersistedContinuationRecord | undefined {
+  return loadContinuations(projectPath, sessionId).find((item) => item.continuationId === continuationId);
 }
 
 function deriveTitle(session: SessionState): string {

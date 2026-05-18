@@ -1,4 +1,5 @@
 import type { CompactedConversation } from './compaction';
+import type { SerializedSkillRunState } from '../runtime/skillRunState';
 
 export interface ContinuationSnapshot {
   sessionId: string;
@@ -6,6 +7,8 @@ export interface ContinuationSnapshot {
   workflowState: {
     activeSkill?: string;
     checkpoints: string[];
+    currentNodeId?: string;
+    skillRunState?: SerializedSkillRunState;
   };
 }
 

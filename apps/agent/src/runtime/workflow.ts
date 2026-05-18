@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession } from '../agent/session';
-import { listSessions } from '../agent/persistence';
+import { listSessions, persistContinuation, loadContinuations, loadContinuationById, overwriteMessagesFile, persistSession } from '../agent/persistence';
 import { runLoop } from '../agent/loop';
 import { generate } from '../provider/ipc-provider';
 import { registry } from '../tool/registry';
@@ -12,6 +12,7 @@ import { SkillRegistry } from '../skill/runtime/registry';
 import { createWorkflowExecutor, type WorkflowExecutionContext, type WorkflowExecutionResult } from '../skill/runtime/workflowExecutor';
 import { loadDirectorySkill } from '../skill/runtime/directoryAdapter';
 import { loadManifestSkill } from '../skill/runtime/manifestAdapter';
+import { loadOhStoryCompatibleSkill } from '../skill/runtime/ohStoryAdapter';
 import { loadRuntimeConfig } from './config';
 import { InMemoryArtifactStore, type ArtifactStore } from '../artifact/store';
 import { buildSkillContext, type SkillRuntimeContext } from '../context/builder';
@@ -21,6 +22,9 @@ import { logger } from '../logger';
 import { getDefaultRunStateStore, RunStateStore, SessionRunAlreadyActiveError, type RunCheckpoint, type RunStateSnapshot } from './runState';
 import { createPermissionService, type PermissionService } from './permission';
 import { createSubagentRuntime, type SubagentRuntime, type SubagentDispatchInput, type SubagentDispatchOutput } from './subagent';
+import { forkSession } from './sessionTree';
+import { createSkillContinuation, mergeConversationSummaryWithRunState, restoreSkillContinuation } from './skillContinuation';
+import { serializeSkillRunState, type SkillRunState } from './skillRunState';
 import type {
   ConfirmationResolution,
   PendingConfirmationState,
@@ -52,7 +56,34 @@ export interface ExecuteSkillRequest {
 }
 
 export interface ExecuteSkillResponse extends WorkflowExecutionResult {
-  continuation: ContinuationSnapshot;
+  continuation: ContinuationSnapshot & { continuationId: string };
+}
+
+export interface ContinuationSummary {
+  continuationId: string;
+  sessionId: string;
+  createdAt: number;
+  summary: string;
+  workflowState: {
+    activeSkill?: string;
+    checkpoints: string[];
+    currentNodeId?: string;
+    skillRunState?: ContinuationSnapshot['workflowState']['skillRunState'];
+  };
+}
+
+export interface RestoredContinuationResponse {
+  sourceSessionId: string;
+  continuationId: string;
+  session: SessionState;
+  summary: string;
+  tail: SessionMessage[];
+  workflowState: {
+    activeSkill?: string;
+    checkpoints: string[];
+    currentNodeId?: string;
+    skillRunState?: ContinuationSnapshot['workflowState']['skillRunState'];
+  };
 }
 
 export interface WorkflowRuntime {
@@ -68,12 +99,14 @@ export interface WorkflowRuntime {
   resolveConfirmation(sessionId: string, callId: string, approved: boolean): ConfirmationResolution;
   dispatchSubagent(input: SubagentDispatchInput): Promise<SubagentDispatchOutput>;
   loadSkillsForSession(sessionId: string): Promise<string[]>;
-  listSkills(projectPath: string): Promise<Array<{ name: string; description?: string; location: string; format: string }>>;
+  listSkills(projectPath: string): Promise<Array<{ name: string; description?: string; location: string; format: string; source?: 'project' | 'external'; capabilities: string[] }>>;
+  listContinuations(sessionId: string): ContinuationSummary[];
+  restoreContinuation(sessionId: string, continuationId: string): RestoredContinuationResponse;
   executeSkill(skillName: string, context: WorkflowExecutionContext): Promise<WorkflowExecutionResult>;
   executeSkillByName(sessionId: string, skillName: string, request?: string | ExecuteSkillRequest): Promise<ExecuteSkillResponse>;
-  buildSkillContext(sessionId: string, artifactIds?: string[], referenceIds?: string[]): SkillRuntimeContext;
-  compactSession(sessionId: string, preserveLast?: number): CompactedConversation;
-  createContinuationSnapshot(sessionId: string, workflowState: { activeSkill?: string; checkpoints: string[] }): ContinuationSnapshot;
+  buildSkillContext(sessionId: string, skillName: string, artifactIds?: string[], referenceIds?: string[]): SkillRuntimeContext;
+  compactSession(sessionId: string, preserveLast?: number, skillRunState?: SkillRunState): CompactedConversation;
+  createContinuationSnapshot(sessionId: string, workflowState: { activeSkill?: string; checkpoints: string[]; currentNodeId?: string; skillRunState?: SkillRunState }): ContinuationSnapshot;
   restoreContinuationSnapshot(snapshot: ContinuationSnapshot): ReturnType<typeof restoreContinuationSnapshot>;
   sendMessage(input: SendMessageInput): Promise<{ messages: SessionMessage[] }>;
   streamMessage(input: StreamMessageInput): Promise<void>;
@@ -101,7 +134,26 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
   const artifactStore = options.artifactStore ?? new InMemoryArtifactStore();
   const skillExecutor = createWorkflowExecutor({
     registry: skillRegistry,
-    executePrompt: async (prompt, _skill, context) => context.input ? `${prompt}\n\n${context.input}` : prompt,
+    executePrompt: async (prompt, skill, context) => {
+      const session = getSession(context.sessionId);
+      if (!session) {
+        throw new Error('session not found');
+      }
+      const content = context.input ? `${prompt}\n\nUser request:\n${context.input}` : prompt;
+      const result = await generateImpl(
+        [{
+          id: randomUUID(),
+          role: 'user',
+          content,
+          createdAt: Date.now(),
+        }],
+        DEFAULT_ORISON_PROMPT,
+        [],
+        new AbortController().signal,
+        { modelRef: session.modelRef },
+      );
+      return result.content;
+    },
     executeTool: async (toolName, input) => {
       const tool = registry.get(toolName);
       if (!tool) {
@@ -118,6 +170,20 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       approved: true,
       pending: runtime.registerPendingConfirmation(context.sessionId, toolName, input),
     }),
+    dispatchAgent: async (agentType, prompt, context) => {
+      const dispatched = await runtime.dispatchSubagent({
+        parentSessionId: context.sessionId,
+        role: agentType,
+        prompt,
+        complete: async ({ role, prompt: taskPrompt }) => ({
+          content: `subagent:${role}:${taskPrompt}`,
+        }),
+      });
+      return {
+        content: dispatched.result.content,
+        status: dispatched.result.status,
+      };
+    },
   });
 
   const runtime: WorkflowRuntime = {
@@ -201,6 +267,8 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         description: skill.description,
         location: skill.location,
         format: skill.format,
+        source: skill.source,
+        capabilities: skill.capabilities ?? [],
       }));
     },
 
@@ -215,6 +283,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         : (request ?? {});
       const skillContext = runtime.buildSkillContext(
         sessionId,
+        skillName,
         normalized.artifactIds,
         normalized.referenceIds,
       );
@@ -231,18 +300,106 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         input: normalized.input,
         skillContext,
       });
+      const session = getSession(sessionId);
+      if (session) {
+        session.skillRunState = serializeSkillRunState(result.skillRunState);
+        persistSession(session);
+      }
       const continuation = runtime.createContinuationSnapshot(sessionId, {
         activeSkill: skillName,
         checkpoints: result.checkpoints,
+        currentNodeId: result.skillRunState?.currentNodeId,
+        skillRunState: result.skillRunState,
       });
+      const continuationId = randomUUID();
+      if (session) {
+        persistContinuation(session.projectPath, {
+          continuationId,
+          sessionId,
+          createdAt: Date.now(),
+          snapshot: continuation,
+        });
+      }
       return {
         ...result,
-        continuation,
+        continuation: {
+          ...continuation,
+          continuationId,
+        },
       };
     },
 
-    buildSkillContext(sessionId, artifactIds, referenceIds) {
+    listContinuations(sessionId) {
+      const session = getSession(sessionId);
+      if (!session) {
+        throw new Error('session not found');
+      }
+      return loadContinuations(session.projectPath, sessionId).map((item) => ({
+        continuationId: item.continuationId,
+        sessionId: item.sessionId,
+        createdAt: item.createdAt,
+        summary: item.snapshot.compacted.summary,
+        workflowState: item.snapshot.workflowState,
+      }));
+    },
+
+    restoreContinuation(sessionId, continuationId) {
+      const session = getSession(sessionId);
+      if (!session) {
+        throw new Error('session not found');
+      }
+      const record = loadContinuationById(session.projectPath, sessionId, continuationId);
+      if (!record) {
+        throw new Error('continuation not found');
+      }
+      const restored = runtime.restoreContinuationSnapshot(record.snapshot);
+      const branchFromMessageId = session.messages[session.messages.length - 1]?.id;
+      const fork = branchFromMessageId
+        ? forkSession({
+          sourceSessionId: sessionId,
+          branchFromMessageId,
+        })
+        : createSession({
+          agentName: session.agentName,
+          projectPath: session.projectPath,
+          modelRef: session.modelRef,
+          parentId: session.id,
+          sessionRole: 'fork',
+          children: [],
+        });
+
+      const restoredMessages = restored.tail.map((message) => ({
+        id: message.id,
+        role: (message.role === 'user' || message.role === 'assistant' || message.role === 'tool'
+          ? message.role
+          : 'assistant') as SessionMessage['role'],
+        content: message.content,
+        createdAt: message.createdAt,
+      }));
+
+      fork.messages = restoredMessages;
+      fork.skillRunState = restored.workflowState.skillRunState;
+      fork.updatedAt = Date.now();
+      overwriteMessagesFile(fork.projectPath, fork.id, restoredMessages);
+      persistSession(fork);
+      updateStatus(fork.id, 'idle');
+
+      return {
+        sourceSessionId: sessionId,
+        continuationId,
+        session: fork,
+        summary: restored.summary,
+        tail: restoredMessages,
+        workflowState: restored.workflowState,
+      };
+    },
+
+    buildSkillContext(sessionId, skillName, artifactIds, referenceIds) {
       const state = runtime.getRunState(sessionId);
+      const session = getSession(sessionId);
+      const restoredSkillRunState = session?.skillRunState?.skill === skillName
+        ? restoreSkillContinuation({ skillRunState: session.skillRunState })
+        : undefined;
       return buildSkillContext({
         sessionId,
         runStatus: state?.status ?? 'idle',
@@ -250,26 +407,41 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         requestedArtifactIds: artifactIds,
         referenceArtifactIds: referenceIds,
         artifactStore,
+        resolvedReferences: restoredSkillRunState?.resolvedReferences,
+        referenceCache: restoredSkillRunState?.referenceCache,
+        skillRunState: restoredSkillRunState,
       });
     },
 
-    compactSession(sessionId, preserveLast = 2) {
+    compactSession(sessionId, preserveLast = 2, skillRunState) {
       const session = getSession(sessionId);
       if (!session) {
         throw new Error('session not found');
       }
-      return compactConversation({
+      const compacted = compactConversation({
         sessionId,
         messages: session.messages,
         preserveLast,
       });
+      if (!skillRunState) return compacted;
+      return {
+        ...compacted,
+        summary: mergeConversationSummaryWithRunState(compacted, skillRunState),
+      };
     },
 
     createContinuationSnapshot(sessionId, workflowState) {
+      const continuationPayload = createSkillContinuation(workflowState.skillRunState);
       return createContinuationSnapshot({
         sessionId,
-        compacted: runtime.compactSession(sessionId),
+        compacted: runtime.compactSession(sessionId, 2, workflowState.skillRunState),
         workflowState,
+        ...(continuationPayload ? {
+          workflowState: {
+            ...workflowState,
+            skillRunState: continuationPayload.skillRunState,
+          },
+        } : {}),
       });
     },
 
@@ -521,20 +693,36 @@ function renderSkillExecutionResult(result: WorkflowExecutionResult): string {
 }
 
 async function loadProjectSkills(skillRegistry: SkillRegistry, projectPath: string, externalRoots: string[]) {
-  const roots = [path.join(projectPath, '.orison', 'skills'), ...externalRoots];
+  const roots = [
+    { path: path.join(projectPath, '.orison', 'skills'), source: 'project' as const },
+    ...externalRoots.map((root) => ({ path: root, source: 'external' as const })),
+  ];
   const loaded = [];
 
   for (const skillsRoot of roots) {
     try {
-      const entries = await readdir(skillsRoot, { withFileTypes: true });
+      const entries = await readdir(skillsRoot.path, { withFileTypes: true });
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
-        const entryDir = path.join(skillsRoot, entry.name);
+        const entryDir = path.join(skillsRoot.path, entry.name);
+        try {
+          const adapted = await loadOhStoryCompatibleSkill(entryDir);
+          if (adapted && !skillRegistry.has(adapted.name)) {
+            const normalized = { ...adapted, source: skillsRoot.source };
+            skillRegistry.register(normalized);
+            loaded.push(normalized);
+            continue;
+          }
+        } catch {
+          // Fall through to standard loading.
+        }
+
         try {
           const skill = await loadDirectorySkill(entryDir);
           if (!skillRegistry.has(skill.name)) {
-            skillRegistry.register(skill);
-            loaded.push(skill);
+            const normalized = { ...skill, source: skillsRoot.source };
+            skillRegistry.register(normalized);
+            loaded.push(normalized);
           }
           continue;
         } catch {
@@ -544,8 +732,9 @@ async function loadProjectSkills(skillRegistry: SkillRegistry, projectPath: stri
         try {
           const skill = await loadManifestSkill(path.join(entryDir, 'skill.json'));
           if (!skillRegistry.has(skill.name)) {
-            skillRegistry.register(skill);
-            loaded.push(skill);
+            const normalized = { ...skill, source: skillsRoot.source };
+            skillRegistry.register(normalized);
+            loaded.push(normalized);
           }
         } catch {
           // skip invalid skill entries

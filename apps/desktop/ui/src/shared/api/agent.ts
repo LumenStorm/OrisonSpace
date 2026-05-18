@@ -35,9 +35,11 @@ export type AgentSkillInfo = {
   description?: string;
   location: string;
   format: string;
+  source?: 'project' | 'external';
 };
 
 export type AgentContinuation = {
+  continuationId?: string;
   sessionId: string;
   compacted: {
     sessionId: string;
@@ -47,6 +49,33 @@ export type AgentContinuation = {
   workflowState: {
     activeSkill?: string;
     checkpoints: string[];
+  };
+};
+
+export type AgentContinuationRestoreState = {
+  sourceSessionId: string;
+  sessionId: string;
+  summary: string;
+  tail: Array<{ id: string; role: string; content: string; createdAt: number }>;
+  workflowState: AgentContinuation['workflowState'];
+};
+
+export type AgentContinuationListItem = {
+  continuationId: string;
+  sessionId: string;
+  createdAt: number;
+  summary: string;
+  workflowState: AgentContinuation['workflowState'];
+};
+
+export type AgentContinuationRestoreResponse = {
+  restored: {
+    sourceSessionId: string;
+    continuationId: string;
+    session: { id: string; parentId?: string; sessionRole?: 'primary' | 'child' | 'fork'; messages?: AgentMessage[] };
+    summary: string;
+    tail: Array<{ id: string; role: string; content: string; createdAt: number }>;
+    workflowState: AgentContinuation['workflowState'];
   };
 };
 
@@ -94,6 +123,28 @@ export async function listAgentSkills(projectPath: string): Promise<AgentSkillIn
   return data.skills;
 }
 
+export async function listAgentContinuations(sessionId: string): Promise<AgentContinuationListItem[]> {
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/continuations`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`listAgentContinuations:${res.status}`);
+  const data = await res.json() as { continuations: AgentContinuationListItem[] };
+  return data.continuations;
+}
+
+export async function restoreAgentContinuation(
+  sessionId: string,
+  continuationId: string,
+): Promise<AgentContinuationRestoreResponse> {
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/continuations/restore`, {
+    method: 'POST',
+    headers: authJsonHeaders(),
+    body: JSON.stringify({ continuationId }),
+  });
+  if (!res.ok) throw new Error(`restoreAgentContinuation:${res.status}`);
+  return res.json() as Promise<AgentContinuationRestoreResponse>;
+}
+
 export async function resolveAgentConfirmation(
   sessionId: string,
   callId: string,
@@ -111,11 +162,12 @@ export async function resolveAgentConfirmation(
 export async function executeAgentSkill(
   sessionId: string,
   skillName: string,
+  options?: { input?: string; artifactIds?: string[]; referenceIds?: string[] },
 ): Promise<{ skill: string; status: string; outputs: string[]; continuation?: AgentContinuation }> {
   const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/skills/${encodeURIComponent(skillName)}/execute`, {
     method: 'POST',
     headers: authJsonHeaders(),
-    body: JSON.stringify({}),
+    body: JSON.stringify(options ?? {}),
   });
   if (!res.ok) throw new Error(`executeAgentSkill:${res.status}`);
   return res.json() as Promise<{ skill: string; status: string; outputs: string[]; continuation?: AgentContinuation }>;

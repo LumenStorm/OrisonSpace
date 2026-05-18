@@ -41,6 +41,7 @@ export function createSession(
     sessionRole: options.sessionRole,
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    skillRunState: undefined,
   };
   sessions.set(session.id, session);
   persistSession(session);
@@ -73,6 +74,7 @@ export function loadSession(id: string, projectPath: string): SessionState | und
     createdAt: meta?.createdAt ?? messages[0]?.createdAt ?? Date.now(),
     updatedAt: meta?.updatedAt ?? messages[messages.length - 1]?.createdAt ?? Date.now(),
     error: meta?.error,
+    skillRunState: meta?.skillRunState,
   };
   sessions.set(id, session);
   return session;

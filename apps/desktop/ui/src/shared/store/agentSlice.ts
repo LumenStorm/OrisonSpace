@@ -6,11 +6,16 @@ import {
   executeAgentSkill,
   fetchAgentSession,
   deleteAgentSession as deleteSession,
+  listAgentContinuations,
   listAgentSkills,
   listAgentSessions,
+  restoreAgentContinuation as restoreAgentContinuationApi,
   resolveAgentConfirmation,
   streamAgentMessage,
   type AgentContinuation,
+  type AgentContinuationListItem,
+  type AgentContinuationRestoreResponse,
+  type AgentContinuationRestoreState,
   type AgentMessage,
   type AgentSessionMeta,
   type AgentSkillInfo,
@@ -37,8 +42,15 @@ export type AgentSlice = {
   agentSkills: AgentSkillInfo[];
   agentSkillError: string | null;
   latestSkillContinuation: AgentContinuation | null;
+  agentContinuations: AgentContinuationListItem[];
+  restoredSkillContinuation: AgentContinuationRestoreState | null;
+  continuationSourceSessionId: string | null;
   loadAgentSkills: () => Promise<void>;
+  loadAgentContinuations: (sessionIdOverride?: string | null) => Promise<void>;
   runAgentSkill: (skillName: string) => Promise<void>;
+  restoreLatestSkillContinuation: () => Promise<void>;
+  rerunLatestSkillContinuation: () => Promise<void>;
+  restoreAgentContinuation: (continuationId: string) => Promise<void>;
 
   agentSessions: AgentSessionMeta[];
   loadAgentSessions: () => Promise<void>;
@@ -86,6 +98,9 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
   agentSkills: [],
   agentSkillError: null,
   latestSkillContinuation: null,
+  agentContinuations: [],
+  restoredSkillContinuation: null,
+  continuationSourceSessionId: null,
 
   pendingDiffs: [],
   acceptDiff(id) {
@@ -224,6 +239,9 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
       pendingToolConfirm: null,
       pendingDiffs: [],
       latestSkillContinuation: null,
+      agentContinuations: [],
+      restoredSkillContinuation: null,
+      continuationSourceSessionId: null,
     });
   },
 
@@ -239,6 +257,20 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       set({ agentSkillError: message, agentSkills: [] });
+    }
+  },
+
+  async loadAgentContinuations(sessionIdOverride) {
+    const sessionId = sessionIdOverride ?? get().continuationSourceSessionId ?? get().agentSessionId;
+    if (!sessionId) {
+      set({ agentContinuations: [] });
+      return;
+    }
+    try {
+      const continuations = await listAgentContinuations(sessionId);
+      set({ agentContinuations: continuations, continuationSourceSessionId: sessionId });
+    } catch {
+      set({ agentContinuations: [] });
     }
   },
 
@@ -266,8 +298,11 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
       set((s) => ({
         agentMessages: [...s.agentMessages, assistantMsg],
         latestSkillContinuation: result.continuation ?? null,
+        restoredSkillContinuation: null,
+        continuationSourceSessionId: sessionId,
         agentLoading: false,
       }));
+      await get().loadAgentContinuations(sessionId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       set({ agentError: message, agentLoading: false });
@@ -287,7 +322,14 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
     activeAbort = null;
     try {
       const data = await fetchAgentSession(sessionId);
-      set({ agentSessionId: sessionId, agentMessages: data.messages, agentLoading: false, agentError: null });
+      set({
+        agentSessionId: sessionId,
+        agentMessages: data.messages,
+        agentLoading: false,
+        agentError: null,
+        continuationSourceSessionId: sessionId,
+      });
+      await get().loadAgentContinuations(sessionId);
     } catch { /* ignore */ }
   },
 
@@ -306,6 +348,91 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
     if (!pending || !sessionId) return;
     set({ pendingToolConfirm: null, agentLoading: true });
     void resolveAgentConfirmation(sessionId, pending.callId, true);
+  },
+
+  async restoreLatestSkillContinuation() {
+    const continuation = get().latestSkillContinuation;
+    if (!continuation?.continuationId) return;
+    await get().restoreAgentContinuation(continuation.continuationId);
+  },
+
+  async rerunLatestSkillContinuation() {
+    const state = get();
+    const continuation = state.latestSkillContinuation;
+    if (!continuation?.workflowState.activeSkill) return;
+
+    let sessionId = state.agentSessionId;
+    if (!sessionId) {
+      const projectPath = state.currentProject?.path;
+      if (!projectPath) return;
+      const session = await createAgentSession(projectPath, state.agentMode, state.agentModelRef);
+      sessionId = session.id;
+      set({ agentSessionId: sessionId });
+    }
+
+    set({ agentLoading: true, agentError: null });
+    try {
+      const result = await executeAgentSkill(sessionId, continuation.workflowState.activeSkill, {
+        input: continuation.compacted.summary || undefined,
+      });
+      const assistantMsg: AgentMessage = {
+        id: randomUUID(),
+        role: 'assistant',
+        content: result.outputs.join('\n\n') || `Skill "${continuation.workflowState.activeSkill}" completed.`,
+        createdAt: Date.now(),
+      };
+      set((s) => ({
+        agentMessages: [...s.agentMessages, assistantMsg],
+        latestSkillContinuation: result.continuation ?? continuation,
+        restoredSkillContinuation: {
+          sourceSessionId: continuation.sessionId,
+          sessionId: continuation.sessionId,
+          summary: continuation.compacted.summary,
+          tail: continuation.compacted.tail,
+          workflowState: continuation.workflowState,
+        },
+        continuationSourceSessionId: sessionId,
+        agentLoading: false,
+      }));
+      await get().loadAgentContinuations(sessionId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      set({ agentError: message, agentLoading: false });
+    }
+  },
+
+  async restoreAgentContinuation(continuationId) {
+    const sessionId = get().agentSessionId;
+    if (!sessionId) return;
+    set({ agentLoading: true, agentError: null });
+    try {
+      const result: AgentContinuationRestoreResponse = await restoreAgentContinuationApi(sessionId, continuationId);
+      const restored = result.restored;
+      const sourceSessionId = restored.sourceSessionId;
+      set({
+        agentSessionId: restored.session.id,
+        agentMessages: restored.tail.map((item) => ({
+          id: item.id,
+          role: item.role as AgentMessage['role'],
+          content: item.content,
+          createdAt: item.createdAt,
+        })),
+        restoredSkillContinuation: {
+          sourceSessionId,
+          sessionId: restored.session.id,
+          summary: restored.summary,
+          tail: restored.tail,
+          workflowState: restored.workflowState,
+        },
+        continuationSourceSessionId: sourceSessionId,
+        agentLoading: false,
+        agentError: null,
+      });
+      await get().loadAgentContinuations(sourceSessionId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      set({ agentError: message, agentLoading: false });
+    }
   },
   rejectPendingTool() {
     const pending = get().pendingToolConfirm;

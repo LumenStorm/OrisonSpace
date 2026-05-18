@@ -26,6 +26,10 @@ const confirmSchema = z.object({
   approved: z.boolean(),
 });
 
+const restoreContinuationSchema = z.object({
+  continuationId: z.string(),
+});
+
 export async function registerRoutes(app: FastifyInstance, options: { runtime?: WorkflowRuntimeOptions } = {}) {
   const runtime = createWorkflowRuntime(options.runtime);
 
@@ -112,6 +116,38 @@ export async function registerRoutes(app: FastifyInstance, options: { runtime?: 
         return reply.code(404).send({ error: 'session not found' });
       }
       const errMsg = err instanceof Error ? err.message : String(err);
+      return reply.code(500).send({ error: errMsg });
+    }
+  });
+
+  app.get('/v1/agent/sessions/:id/continuations', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const continuations = runtime.listContinuations(id);
+      return reply.send({ continuations });
+    } catch (err) {
+      if (isSessionNotFoundError(err)) {
+        return reply.code(404).send({ error: 'session not found' });
+      }
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return reply.code(500).send({ error: errMsg });
+    }
+  });
+
+  app.post('/v1/agent/sessions/:id/continuations/restore', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { continuationId } = restoreContinuationSchema.parse(request.body ?? {});
+    try {
+      const restored = runtime.restoreContinuation(id, continuationId);
+      return reply.send({ restored });
+    } catch (err) {
+      if (isSessionNotFoundError(err)) {
+        return reply.code(404).send({ error: 'session not found' });
+      }
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (errMsg === 'continuation not found') {
+        return reply.code(404).send({ error: errMsg });
+      }
       return reply.code(500).send({ error: errMsg });
     }
   });

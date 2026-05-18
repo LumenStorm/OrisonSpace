@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   applyPatchOperations,
@@ -9,6 +9,7 @@ import {
   applyFieldPatches
 } from '../sync/localProjectRepository';
 import type { ProjectFieldPatch } from '@orison/shared-contracts';
+import YAML from 'yaml';
 
 const TEST_PROJECT_DIR = path.join(process.cwd(), 'test-tmp-local-project');
 
@@ -202,5 +203,35 @@ describe('local project repository helpers', () => {
     expect(loaded!.asset_cards!.length).toBe(1);
     expect(loaded!.asset_cards![0].name).toBe('张三');
     expect(loaded!.asset_cards![0].type).toBe('character');
+  });
+
+  it('旧格式 outline 会迁移到 outline_v2，而不是被直接丢弃', () => {
+    const project = createEmptyProjectDocument('Legacy Outline Test');
+    const withLegacyOutline = {
+      ...project,
+      outline: {
+        title: '旧提纲标题',
+        logline: '旧 logline',
+        genre: '悬疑',
+        theme: '真相与背叛',
+        acts: [
+          { id: 'act_1', title: '开端', summary: '主角进入案件' },
+          { id: 'act_2', title: '反转', summary: '真凶浮现' },
+        ],
+      },
+    };
+
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    writeFileSync(path.join(TEST_PROJECT_DIR, 'project.yaml'), YAML.stringify(withLegacyOutline), 'utf8');
+    const loaded = loadProject(TEST_PROJECT_DIR);
+
+    expect(loaded!.outline_v2).toBeDefined();
+    expect(loaded!.outline_v2!.title).toBe('旧提纲标题');
+    expect(loaded!.outline_v2!.logline).toBe('旧 logline');
+    expect(loaded!.outline_v2!.genre).toBe('悬疑');
+    expect(loaded!.outline_v2!.theme).toBe('真相与背叛');
+    expect(loaded!.outline_v2!.synopsis).toContain('开端');
+    expect(loaded!.outline_v2!.synopsis).toContain('主角进入案件');
+    expect(loaded!.outline_v2!.major_turning_points).toContain('反转');
   });
 });

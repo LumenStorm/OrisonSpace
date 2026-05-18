@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -54,11 +54,41 @@ describe('agent skills listing route', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const payload = response.json() as { skills: Array<{ name: string }> };
-    expect(payload.skills.map((skill) => skill.name).sort()).toEqual([
-      'scene-expander',
-      'story-setup',
-    ]);
+    const payload = response.json() as { skills: Array<{ name: string; source?: string; capabilities?: string[] }> };
+    const skillNames = payload.skills.map((skill) => skill.name);
+    expect(skillNames).toContain('scene-expander');
+    expect(skillNames).toContain('story-setup');
+    expect(payload.skills.find((skill) => skill.name === 'story-setup')?.source).toBe('project');
+    expect(payload.skills.find((skill) => skill.name === 'scene-expander')?.source).toBe('external');
+    expect(payload.skills.find((skill) => skill.name === 'story-setup')?.capabilities).toEqual([]);
+
+    await app.close();
+  });
+
+  it('shows the built-in oh-story external skills as external sources', async () => {
+    const ohStoryRoot = 'I:\\echo\\oh-story-claudecode-main';
+    if (!existsSync(path.join(ohStoryRoot, 'skills', 'story', 'SKILL.md'))) {
+      return;
+    }
+
+    const app = buildAgent();
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/agent/skills?projectPath=${encodeURIComponent(projectPath)}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const payload = response.json() as { skills: Array<{ name: string; source?: string; capabilities?: string[] }> };
+    expect(payload.skills.find((skill) => skill.name === 'story')?.source).toBe('external');
+    expect(payload.skills.find((skill) => skill.name === 'story-long-write')).toMatchObject({
+      source: 'external',
+      capabilities: expect.arrayContaining(['load_reference', 'spawn_agent']),
+    });
+    expect(payload.skills.find((skill) => skill.name === 'story-review')).toMatchObject({
+      source: 'external',
+      capabilities: expect.arrayContaining(['load_reference', 'spawn_agent']),
+    });
 
     await app.close();
   });

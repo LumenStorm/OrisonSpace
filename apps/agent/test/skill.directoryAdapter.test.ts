@@ -22,12 +22,18 @@ describe('skill directory adapter', () => {
 
     writeFileSync(path.join(skillDir, 'SKILL.md'), `---
 name: story-setup
-description: Prepare long-form story context
+description: |
+  Prepare long-form story context
+  with structured workflow phases
 ---
 
 # Story Setup
 
+## Phase 1
+
 Load references and collect planning inputs.
+
+Call Skill("story-long-write") when the project is ready.
 `, 'utf-8');
     writeFileSync(path.join(skillDir, 'references', 'world.md'), '# World', 'utf-8');
     writeFileSync(path.join(skillDir, 'scripts', 'bootstrap.ts'), 'export {};', 'utf-8');
@@ -38,11 +44,18 @@ Load references and collect planning inputs.
     expect(skill).toMatchObject({
       format: 'directory',
       name: 'story-setup',
-      description: 'Prepare long-form story context',
+      description: 'Prepare long-form story context\nwith structured workflow phases',
       entryPath: path.join(skillDir, 'SKILL.md'),
-      workflowMode: 'prompt',
+      workflowMode: 'workflow',
+      rawSource: expect.stringContaining('## Phase 1'),
+      capabilities: expect.arrayContaining(['delegate_skill']),
     });
     expect(skill.assets.references).toEqual([path.join(skillDir, 'references', 'world.md')]);
     expect(skill.assets.scripts).toEqual([path.join(skillDir, 'scripts', 'bootstrap.ts')]);
+    expect(skill.compiledPlan?.nodes.map((node) => node.type)).toEqual(expect.arrayContaining([
+      'instruction',
+      'delegate_skill',
+      'finish',
+    ]));
   });
 });

@@ -78,6 +78,24 @@ export async function registerAgentProxy(app: FastifyInstance) {
     return relayJson(res, reply);
   });
 
+  app.get('/v1/agent/sessions/:id/continuations', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const res = await fetch(`${base}/v1/agent/sessions/${encodeURIComponent(id)}/continuations`, {
+      headers: forwardHeaders(request),
+    });
+    return relayJson(res, reply);
+  });
+
+  app.post('/v1/agent/sessions/:id/continuations/restore', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const res = await fetch(`${base}/v1/agent/sessions/${encodeURIComponent(id)}/continuations/restore`, {
+      method: 'POST',
+      headers: forwardHeaders(request),
+      body: JSON.stringify(request.body ?? {}),
+    });
+    return relayJson(res, reply);
+  });
+
   // ── Orchestration proxy (legacy routes still used by desktop UI) ──
 
   app.get('/v1/agent/skills', async (request, reply) => {

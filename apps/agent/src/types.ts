@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SerializedSkillRunState } from './runtime/skillRunState';
 
 // ── Agent Config ──
 
@@ -110,4 +111,5 @@ export interface SessionState {
   createdAt: number;
   updatedAt: number;
   error?: string;
+  skillRunState?: SerializedSkillRunState;
 }

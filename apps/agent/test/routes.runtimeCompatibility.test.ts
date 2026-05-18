@@ -64,6 +64,10 @@ describe('agent runtime route compatibility', () => {
       .mockResolvedValueOnce({
         content: 'Streaming response complete.',
         finishReason: 'stop',
+      })
+      .mockResolvedValueOnce({
+        content: 'Generated story setup for compatibility route.',
+        finishReason: 'stop',
       });
 
     const projectSkillsDir = path.join(projectPath, '.orison', 'skills', 'story-setup');
@@ -155,10 +159,16 @@ describe('agent runtime route compatibility', () => {
     });
 
     expect(skillsResponse.statusCode).toBe(200);
-    expect((skillsResponse.json() as { skills: Array<{ name: string }> }).skills.map((skill) => skill.name).sort()).toEqual([
-      'scene-expander',
-      'story-setup',
-    ]);
+    const skillPayload = skillsResponse.json() as {
+      skills: Array<{ name: string; capabilities?: string[]; source?: string }>;
+    };
+    const skillNames = skillPayload.skills.map((skill) => skill.name);
+    expect(skillNames).toContain('scene-expander');
+    expect(skillNames).toContain('story-setup');
+    expect(skillPayload.skills.find((skill) => skill.name === 'story-setup')).toMatchObject({
+      source: 'project',
+      capabilities: [],
+    });
 
     const executeResponse = await app.inject({
       method: 'POST',
@@ -170,10 +180,12 @@ describe('agent runtime route compatibility', () => {
     expect(executeResponse.json()).toMatchObject({
       skill: 'story-setup',
       status: 'completed',
+      outputs: ['Generated story setup for compatibility route.'],
       continuation: {
         sessionId,
         workflowState: {
           activeSkill: 'story-setup',
+          checkpoints: [],
         },
       },
     });

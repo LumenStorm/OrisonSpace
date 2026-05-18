@@ -13,6 +13,7 @@ export function OutlineEditor() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
   const storeOutline = useAppStore((s) => s.creativeFields.outline) as OutlineV2 | undefined;
+  const projectDocumentHydrated = useAppStore((s) => s.projectDocumentHydrated);
   const updateField = useAppStore((s) => s.updateField);
 
   const [title, setTitle] = useState('');
@@ -27,10 +28,12 @@ export function OutlineEditor() {
 
   // Track whether we're syncing from store to avoid feedback loops
   const syncingRef = useRef(false);
+  const userEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Hydrate from store on mount and when store changes externally
   useEffect(() => {
+    userEditedRef.current = false;
     if (!storeOutline) return;
     syncingRef.current = true;
     setTitle(storeOutline.title ?? '');
@@ -49,6 +52,8 @@ export function OutlineEditor() {
   // Persist to store with debounce
   const persist = useCallback(() => {
     if (syncingRef.current) return;
+    if (!projectDocumentHydrated) return;
+    if (!userEditedRef.current && !storeOutline) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const data: OutlineV2 = {
@@ -64,12 +69,16 @@ export function OutlineEditor() {
       };
       updateField('outline', data);
     }, DEBOUNCE_MS);
-  }, [title, logline, synopsis, theme, genre, centralConflict, endingDirection, turningPoints, constraints, updateField]);
+  }, [title, logline, synopsis, theme, genre, centralConflict, endingDirection, turningPoints, constraints, updateField, projectDocumentHydrated, storeOutline]);
 
   useEffect(() => {
     persist();
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [persist]);
+
+  const markEdited = () => {
+    userEditedRef.current = true;
+  };
 
   const addTurningPoint = () => setTurningPoints([...turningPoints, '']);
   const updateTurningPoint = (i: number, v: string) =>
@@ -90,13 +99,19 @@ export function OutlineEditor() {
           className="outline-title-input"
           placeholder={t('outline.projectTitle')}
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            markEdited();
+            setTitle(e.target.value);
+          }}
         />
         <textarea
           className="outline-logline-input"
           placeholder={t('outline.loglinePlaceholder')}
           value={logline}
-          onChange={(e) => setLogline(e.target.value)}
+          onChange={(e) => {
+            markEdited();
+            setLogline(e.target.value);
+          }}
           rows={2}
         />
       </div>
@@ -107,7 +122,10 @@ export function OutlineEditor() {
           <TiptapEditor
             content={synopsis}
             placeholder={t('outline.synopsisPlaceholder')}
-            onChange={(html) => setSynopsis(html)}
+            onChange={(html) => {
+              markEdited();
+              setSynopsis(html);
+            }}
           />
         </div>
 
@@ -118,7 +136,10 @@ export function OutlineEditor() {
               className="outline-style-input"
               placeholder={t('outline.genre')}
               value={genre}
-              onChange={(e) => setGenre(e.target.value)}
+              onChange={(e) => {
+                markEdited();
+                setGenre(e.target.value);
+              }}
             />
           </div>
           <div className="outline-style-field">
@@ -127,7 +148,10 @@ export function OutlineEditor() {
               className="outline-style-input"
               placeholder={t('outline.theme')}
               value={theme}
-              onChange={(e) => setTheme(e.target.value)}
+              onChange={(e) => {
+                markEdited();
+                setTheme(e.target.value);
+              }}
             />
           </div>
         </div>
@@ -138,7 +162,10 @@ export function OutlineEditor() {
             className="outline-textarea"
             placeholder={t('outline.centralConflictPlaceholder')}
             value={centralConflict}
-            onChange={(e) => setCentralConflict(e.target.value)}
+            onChange={(e) => {
+              markEdited();
+              setCentralConflict(e.target.value);
+            }}
             rows={3}
           />
         </div>
@@ -149,7 +176,10 @@ export function OutlineEditor() {
             className="outline-textarea"
             placeholder={t('outline.endingDirectionPlaceholder')}
             value={endingDirection}
-            onChange={(e) => setEndingDirection(e.target.value)}
+            onChange={(e) => {
+              markEdited();
+              setEndingDirection(e.target.value);
+            }}
             rows={2}
           />
         </div>
@@ -157,7 +187,10 @@ export function OutlineEditor() {
         <div className="outline-field">
           <div className="outline-list-header">
             <label className="outline-field-label">{t('outline.turningPoints')}</label>
-            <button type="button" className="outline-add-btn" onClick={addTurningPoint}>
+            <button type="button" className="outline-add-btn" onClick={() => {
+              markEdited();
+              addTurningPoint();
+            }}>
               <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
@@ -167,9 +200,15 @@ export function OutlineEditor() {
                 className="outline-list-input"
                 placeholder={t('outline.turningPointPlaceholder')}
                 value={tp}
-                onChange={(e) => updateTurningPoint(i, e.target.value)}
+                onChange={(e) => {
+                  markEdited();
+                  updateTurningPoint(i, e.target.value);
+                }}
               />
-              <button type="button" className="outline-remove-btn" onClick={() => removeTurningPoint(i)}>
+              <button type="button" className="outline-remove-btn" onClick={() => {
+                markEdited();
+                removeTurningPoint(i);
+              }}>
                 <span className="material-symbols-outlined" aria-hidden="true">close</span>
               </button>
             </div>
@@ -179,7 +218,10 @@ export function OutlineEditor() {
         <div className="outline-field">
           <div className="outline-list-header">
             <label className="outline-field-label">{t('outline.constraints')}</label>
-            <button type="button" className="outline-add-btn" onClick={addConstraint}>
+            <button type="button" className="outline-add-btn" onClick={() => {
+              markEdited();
+              addConstraint();
+            }}>
               <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
@@ -189,9 +231,15 @@ export function OutlineEditor() {
                 className="outline-list-input"
                 placeholder={t('outline.constraintPlaceholder')}
                 value={c}
-                onChange={(e) => updateConstraint(i, e.target.value)}
+                onChange={(e) => {
+                  markEdited();
+                  updateConstraint(i, e.target.value);
+                }}
               />
-              <button type="button" className="outline-remove-btn" onClick={() => removeConstraint(i)}>
+              <button type="button" className="outline-remove-btn" onClick={() => {
+                markEdited();
+                removeConstraint(i);
+              }}>
                 <span className="material-symbols-outlined" aria-hidden="true">close</span>
               </button>
             </div>

@@ -409,12 +409,15 @@ Private
 - 环境变量 `ORISON_AGENT_EXTERNAL_SKILL_ROOTS`
 - 项目级配置 `.orison/agent.runtime.json`
 
+默认情况下，agent 会自动把 `I:\echo\oh-story-claudecode-main` 作为外部 skill 仓库接入。
+如果传入的是仓库根目录而不是 `skills/` 子目录，runtime 会自动解析到 `skills/` 目录。
+
 项目配置示例：
 
 ```json
 {
   "externalSkillRoots": [
-    "I:\\echo\\oh-story-claudecode-main\\skills"
+    "I:\\echo\\oh-story-claudecode-main"
   ]
 }
 ```

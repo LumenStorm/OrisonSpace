@@ -108,4 +108,68 @@ describe('agent proxy', () => {
       artifactIds: ['outline-1'],
     }));
   });
+
+  it('forwards continuation list and restore routes', async () => {
+    globalThis.fetch = buildMock(captured, {
+      continuations: [
+        {
+          continuationId: 'cont-1',
+          sessionId: 'session-1',
+          workflowState: { activeSkill: 'story-setup', checkpoints: ['outline-ready'] },
+        },
+      ],
+    }) as any;
+
+    const restoreMock = buildMock(captured, {
+      restored: {
+        sourceSessionId: 'session-1',
+        session: { id: 'session-fork-1', parentId: 'session-1', sessionRole: 'fork' },
+        workflowState: { activeSkill: 'story-setup', checkpoints: ['outline-ready'] },
+      },
+    }) as any;
+
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/continuations/restore')) {
+        return restoreMock(input, init);
+      }
+      return (buildMock(captured, {
+        continuations: [
+          {
+            continuationId: 'cont-1',
+            sessionId: 'session-1',
+            workflowState: { activeSkill: 'story-setup', checkpoints: ['outline-ready'] },
+          },
+        ],
+      })(input, init));
+    }) as any;
+
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: '/v1/agent/sessions/session-1/continuations',
+      headers: { authorization: 'Bearer token-abc' },
+    });
+
+    expect(listResponse.statusCode).toBe(200);
+    expect(listResponse.json()).toMatchObject({
+      continuations: [{ continuationId: 'cont-1' }],
+    });
+
+    const restoreResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/agent/sessions/session-1/continuations/restore',
+      headers: { authorization: 'Bearer token-abc', 'content-type': 'application/json' },
+      payload: { continuationId: 'cont-1' },
+    });
+
+    expect(restoreResponse.statusCode).toBe(200);
+    expect(restoreResponse.json()).toMatchObject({
+      restored: {
+        session: { id: 'session-fork-1' },
+      },
+    });
+    expect(captured[0]?.url).toContain('/v1/agent/sessions/session-1/continuations');
+    expect(captured[1]?.url).toContain('/v1/agent/sessions/session-1/continuations/restore');
+    expect(captured[1]?.init?.body).toBe(JSON.stringify({ continuationId: 'cont-1' }));
+  });
 });

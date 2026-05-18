@@ -58,6 +58,24 @@
   text-overflow: ellipsis;
 }
 
+.agent-skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.agent-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
 .agent-skill-run-btn {
   flex-shrink: 0;
   padding: 0.35rem 0.6rem;
@@ -91,6 +109,137 @@
 .agent-continuation-meta {
   margin-top: 0.15rem;
   font-size: 0.68rem;
+}
+
+.agent-continuation-summary {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--accent-strong);
+}
+
+.agent-continuation-checkpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.agent-continuation-checkpoint {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.agent-continuation-actions {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+}
+
+.agent-workbench-card {
+  margin-top: 0.55rem;
+  padding: 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.55rem;
+  background: var(--surface);
+}
+
+.agent-workbench-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.agent-workbench-section {
+  margin-top: 0.55rem;
+}
+
+.agent-workbench-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+}
+
+.agent-workbench-summary {
+  margin-top: 0.18rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--on-surface);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-workbench-tail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+}
+
+.agent-workbench-tail-item {
+  padding: 0.4rem 0.45rem;
+  border-radius: 0.45rem;
+  background: var(--surface-container);
+}
+
+.agent-workbench-tail-role {
+  display: inline-block;
+  margin-right: 0.4rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.agent-workbench-tail-content {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--on-surface);
+}
+
+.agent-resume-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+}
+
+.agent-resume-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.45rem;
+  background: var(--surface-container);
+}
+
+.agent-resume-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.agent-resume-skill {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.agent-resume-summary {
+  margin-top: 0.16rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .agent-panel {

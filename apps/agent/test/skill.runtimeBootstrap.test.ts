@@ -33,7 +33,12 @@ describe('skill runtime bootstrap', () => {
     }, null, 2), 'utf-8');
 
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
-    const runtime = createWorkflowRuntime();
+    const runtime = createWorkflowRuntime({
+      generate: vi.fn(async () => ({
+        content: 'generated: project story context',
+        finishReason: 'stop',
+      })),
+    });
 
     const session = runtime.createSession({
       agentName: 'writer',
@@ -47,7 +52,7 @@ describe('skill runtime bootstrap', () => {
     expect(result).toMatchObject({
       skill: 'story-setup',
       status: 'completed',
-      outputs: ['Prepare the story context.'],
+      outputs: ['generated: project story context'],
     });
   });
 
@@ -67,6 +72,10 @@ describe('skill runtime bootstrap', () => {
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
     const runtime = createWorkflowRuntime({
       externalSkillRoots: [externalSkillsRoot],
+      generate: vi.fn(async () => ({
+        content: 'generated: external scene expansion',
+        finishReason: 'stop',
+      })),
     });
 
     const session = runtime.createSession({
@@ -81,7 +90,175 @@ describe('skill runtime bootstrap', () => {
     expect(result).toMatchObject({
       skill: 'scene-expander',
       status: 'completed',
-      outputs: ['Expand the external scene.'],
+      outputs: ['generated: external scene expansion'],
     });
+  });
+
+  it('executes prompt skills through generate instead of echoing raw prompt text', async () => {
+    const skillsDir = path.join(projectPath, '.orison', 'skills');
+    const skillDir = path.join(skillsDir, 'story-setup');
+    mkdirSync(skillDir, { recursive: true });
+
+    writeFileSync(path.join(skillDir, 'skill.json'), JSON.stringify({
+      name: 'story-setup',
+      description: 'Prepare story context',
+      prompt: 'Prepare the story context.',
+      workflowMode: 'workflow',
+      references: [],
+      scripts: [],
+    }, null, 2), 'utf-8');
+
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const runtime = createWorkflowRuntime({
+      generate: vi.fn(async () => ({
+        content: 'generated: story setup result',
+        finishReason: 'stop',
+      })),
+    });
+
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+    });
+
+    const result = await runtime.executeSkillByName(session.id, 'story-setup');
+    expect(result).toMatchObject({
+      skill: 'story-setup',
+      status: 'completed',
+      outputs: ['generated: story setup result'],
+    });
+  });
+
+  it('adapts the oh-story compatible subset from an external root and routes the story wrapper', async () => {
+    const storyDir = path.join(externalSkillsRoot, 'story');
+    mkdirSync(storyDir, { recursive: true });
+    writeFileSync(path.join(storyDir, 'SKILL.md'), `---
+name: story
+description: 网文工具箱主入口
+---
+
+# story
+
+根据用户需求自动路由到对应 skill。
+`, 'utf-8');
+
+    const longWriteDir = path.join(externalSkillsRoot, 'story-long-write');
+    mkdirSync(longWriteDir, { recursive: true });
+    writeFileSync(path.join(longWriteDir, 'SKILL.md'), `---
+name: story-long-write
+description: 长篇网文写作
+---
+
+# story-long-write
+
+用于长篇小说写作。
+`, 'utf-8');
+
+    const shortAnalyzeDir = path.join(externalSkillsRoot, 'story-short-analyze');
+    mkdirSync(shortAnalyzeDir, { recursive: true });
+    writeFileSync(path.join(shortAnalyzeDir, 'SKILL.md'), `---
+name: story-short-analyze
+description: 短篇拆文
+---
+
+# story-short-analyze
+
+用于短篇故事分析。
+`, 'utf-8');
+
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const generate = vi.fn(async (messages: Array<{ content: string }>) => {
+      const content = messages[0]?.content ?? '';
+      if (content.includes('story-short-analyze')) {
+        return {
+          content: 'generated: short-form analysis result',
+          finishReason: 'stop',
+        };
+      }
+      return {
+        content: 'generated: long-form writing result',
+        finishReason: 'stop',
+      };
+    });
+    const runtime = createWorkflowRuntime({
+      externalSkillRoots: [externalSkillsRoot],
+      generate,
+    });
+
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+    });
+
+    const loaded = await runtime.loadSkillsForSession(session.id);
+    expect(loaded).toContain('story');
+    expect(loaded).toContain('story-long-write');
+    expect(loaded).toContain('story-short-analyze');
+
+    const result = await runtime.executeSkillByName(session.id, 'story', {
+      input: '我想写长篇小说',
+    });
+    expect(result).toMatchObject({
+      skill: 'story',
+      status: 'completed',
+      outputs: ['generated: long-form writing result'],
+    });
+
+    const analysisResult = await runtime.executeSkillByName(session.id, 'story', {
+      input: '帮我拆短篇，分析这个故事',
+    });
+    expect(analysisResult).toMatchObject({
+      skill: 'story',
+      status: 'completed',
+      outputs: ['generated: short-form analysis result'],
+    });
+  });
+
+  it('does not restore prior skill run state into a different skill context', async () => {
+    const skillsDir = path.join(projectPath, '.orison', 'skills');
+    const setupDir = path.join(skillsDir, 'story-setup');
+    const reviewDir = path.join(skillsDir, 'story-review');
+    mkdirSync(setupDir, { recursive: true });
+    mkdirSync(reviewDir, { recursive: true });
+
+    writeFileSync(path.join(setupDir, 'skill.json'), JSON.stringify({
+      name: 'story-setup',
+      description: 'Prepare story context',
+      prompt: 'Prepare the story context.',
+      workflowMode: 'workflow',
+      references: [],
+      scripts: [],
+    }, null, 2), 'utf-8');
+    writeFileSync(path.join(reviewDir, 'skill.json'), JSON.stringify({
+      name: 'story-review',
+      description: 'Review story context',
+      prompt: 'Review the story context.',
+      workflowMode: 'workflow',
+      references: [],
+      scripts: [],
+    }, null, 2), 'utf-8');
+
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const runtime = createWorkflowRuntime({
+      generate: vi.fn(async () => ({
+        content: 'generated',
+        finishReason: 'stop',
+      })),
+    });
+
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+    });
+
+    await runtime.executeSkillByName(session.id, 'story-setup');
+
+    const setupContext = runtime.buildSkillContext(session.id, 'story-setup');
+    expect(setupContext.skillRunState?.skill).toBe('story-setup');
+
+    const reviewContext = runtime.buildSkillContext(session.id, 'story-review');
+    expect(reviewContext.skillRunState).toBeUndefined();
+    expect(reviewContext.resolvedReferences).toEqual([]);
+    expect([...reviewContext.referenceCache.values()]).toEqual([]);
   });
 });

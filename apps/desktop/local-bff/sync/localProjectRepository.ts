@@ -69,6 +69,30 @@ export function loadProject(projectPath: string): ProjectDocument | null {
   const raw = readFileSync(filePath, 'utf8');
   const parsed = YAML.parse(raw);
 
+  // Migration: legacy outline -> outline_v2
+  if (!parsed.outline_v2 && parsed.outline) {
+    const legacyOutline = parsed.outline;
+    const acts = Array.isArray(legacyOutline.acts) ? legacyOutline.acts : [];
+    const actSummaries = acts
+      .map((act: any) => [act.title, act.summary].filter(Boolean).join('：'))
+      .filter(Boolean);
+    const turningPoints = acts
+      .map((act: any) => act.turning_point ?? act.title)
+      .filter(Boolean);
+
+    parsed.outline_v2 = {
+      title: legacyOutline.title ?? '',
+      logline: legacyOutline.logline,
+      theme: legacyOutline.theme,
+      genre: legacyOutline.genre,
+      synopsis: legacyOutline.synopsis ?? (actSummaries.length > 0 ? actSummaries.join('\n') : undefined),
+      central_conflict: legacyOutline.central_conflict,
+      major_turning_points: turningPoints,
+      ending_direction: legacyOutline.ending_direction,
+      constraints: [],
+    };
+  }
+
   // Migration: remove deprecated outline/detailed_outline fields
   delete parsed.outline;
   delete parsed.detailed_outline;

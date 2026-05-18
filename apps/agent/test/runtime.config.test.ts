@@ -5,20 +5,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('runtime config loader', () => {
   let projectPath = '';
+  let externalRoot = '';
 
   beforeEach(() => {
     projectPath = mkdtempSync(path.join(os.tmpdir(), 'orison-runtime-config-'));
     mkdirSync(path.join(projectPath, '.orison'), { recursive: true });
+    externalRoot = mkdtempSync(path.join(os.tmpdir(), 'orison-runtime-config-external-'));
   });
 
   afterEach(() => {
     rmSync(projectPath, { recursive: true, force: true });
+    rmSync(externalRoot, { recursive: true, force: true });
     delete process.env.ORISON_AGENT_EXTERNAL_SKILL_ROOTS;
     vi.resetModules();
   });
 
   it('loads external skill roots from env and project config', async () => {
-    process.env.ORISON_AGENT_EXTERNAL_SKILL_ROOTS = 'I:\\echo\\oh-story-claudecode-main\\skills;I:\\echo\\shared-skills';
+    mkdirSync(path.join(externalRoot, 'skills'), { recursive: true });
+    process.env.ORISON_AGENT_EXTERNAL_SKILL_ROOTS = `${externalRoot};I:\\echo\\shared-skills`;
     writeFileSync(path.join(projectPath, '.orison', 'agent.runtime.json'), JSON.stringify({
       externalSkillRoots: ['I:\\echo\\team-skills'],
     }, null, 2), 'utf-8');
@@ -27,9 +31,16 @@ describe('runtime config loader', () => {
     const config = await loadRuntimeConfig(projectPath);
 
     expect(config.externalSkillRoots).toEqual([
-      'I:\\echo\\oh-story-claudecode-main\\skills',
+      path.join(externalRoot, 'skills'),
       'I:\\echo\\shared-skills',
       'I:\\echo\\team-skills',
     ]);
+  });
+
+  it('uses the built-in oh-story external root by default', async () => {
+    const { loadRuntimeConfig } = await import('../src/runtime/config');
+    const config = await loadRuntimeConfig(projectPath);
+
+    expect(config.externalSkillRoots).toContain('I:\\echo\\oh-story-claudecode-main\\skills');
   });
 });

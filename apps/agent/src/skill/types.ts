@@ -5,6 +5,8 @@ export interface SkillInfo {
   content: string;
 }
 
+import type { ExecutionPlan } from './runtime/executionPlan';
+
 export type SkillFormat = 'directory' | 'manifest';
 export type SkillWorkflowMode = 'prompt' | 'inline' | 'workflow';
 
@@ -29,9 +31,13 @@ export interface NormalizedSkill {
   name: string;
   description?: string;
   location: string;
+  source?: 'project' | 'external';
   entryPath: string;
   prompt: string;
   workflowMode: SkillWorkflowMode;
   assets: NormalizedSkillAssets;
   workflow?: WorkflowDefinition;
+  compiledPlan?: ExecutionPlan;
+  capabilities?: string[];
+  rawSource?: string;
 }
