@@ -19,6 +19,8 @@ This file tracks cleanup items found during the apps-focused drift, dependency, 
 
 - Revisit old `apps/agent/src/engine` and `apps/agent/src/nodes` test coverage. Either migrate those scenarios to the current runtime/skill architecture or archive them explicitly outside the default test entry.
 - Audit `plan.md` before using it for implementation work. It is historical and contains stale migration notes, so current guidance should come from `README.md`, `docs/`, and live `apps/` source first.
+- Fix the agent test entry so it is cross-platform. The current `routes.*` / `runtime.*` / `skill.*` arguments are not expanded by PowerShell, so the default Windows run only executes exact file paths.
+- Investigate the newly exposed agent runtime/skill tests after the remote `test` branch updates. Explicitly running the active routes/runtime/skill set currently surfaces failures in skill invocation, runtime workflow artifact/reference expectations, runtime config defaults, and workflow executor reference handling.
 - Decide whether desktop dependencies should stay in the default full install. Electron is the largest fixed dependency cost; meaningful install-size reduction requires a filtered install profile or a clearer desktop/non-desktop install split.
 - Keep dependency ownership local to the package that imports it. Do not add app-level dependencies only for transient scripts or tests.
 - Periodically run dependency drift checks after large feature merges, especially when `apps/desktop/*` or `apps/agent` add new build tooling.
