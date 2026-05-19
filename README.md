@@ -238,6 +238,24 @@ pnpm install
 
 ---
 
+## 依赖与框架规范
+
+本仓库使用 pnpm workspace 管理依赖，根目录 `packageManager` 以 `pnpm@10.8.1` 为准。日常安装只使用 `pnpm install`，不要混用 npm、yarn 或在 apps 子目录里单独生成锁文件。
+
+依赖锁文件以根目录 `pnpm-lock.yaml` 为唯一来源，需要随代码提交。`package-lock.json` 和各 app 下的 `package-lock.json` 已视为漂移文件，不再保留；如果本地误生成，删除后重新执行 `pnpm install`。
+
+本地 `node_modules` 已从混装状态清理为 pnpm 单一安装。一次干净安装后，根目录 `node_modules` 约 560 MB，其中 Electron 约 318 MB，是桌面壳运行和打包的主要体积来源。除非拆分桌面端安装边界，否则这是当前框架下的主要固定成本。
+
+原先 `apps/desktop/shell` 中直接声明但未直接使用的 `@swc/core` 已移除；它仍可能作为 electron-vite / tsup 的可选平台依赖出现在 pnpm virtual store 中。不要为了“看起来缺失”重新加回直接依赖，除非代码里确实直接 import 或调用它。
+
+允许执行 install/build 脚本的 native 依赖集中维护在根目录 `package.json` 的 `pnpm.onlyBuiltDependencies` 中，目前包括 `@swc/core`、`bcrypt`、`better-sqlite3`、`electron`、`esbuild`。新增 native 依赖时，需要先确认用途、体积和安全性，再同步更新该白名单。
+
+依赖归属遵循“谁 import 谁声明”的原则。比如 `@orison/model-protocols` 不再放在未直接使用它的 desktop-ui 中；跨包能力优先沉到 workspace 包或明确的 app 边界，避免为了测试或临时脚本把依赖散落到多个 apps。
+
+`apps/agent` 的默认测试脚本只覆盖当前仍然有效的 context、env、persistence、routes、runtime 和 skill 测试。旧 `src/engine`、`src/nodes` 相关测试属于历史架构漂移，已记录在 `TODO.md`，在迁移完成前不要重新加入默认测试入口。
+
+---
+
 ## 本地开发
 
 ```powershell

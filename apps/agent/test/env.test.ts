@@ -12,7 +12,7 @@ describe('agent port configuration', () => {
     vi.resetModules();
 
     try {
-      const { env } = await import('../src/common/env');
+      const { env } = await import('../src/env');
       expect(env.PORT).toBe(18422);
     } finally {
       if (originalPort === undefined) {

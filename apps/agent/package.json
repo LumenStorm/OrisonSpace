@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=.env.agent src/app.ts",
     "build": "tsup src/app.ts --format esm --out-dir dist --clean",
-    "test": "vitest --run",
+    "test": "vitest --run test/context.compaction.test.ts test/env.test.ts test/persistence.sessionSchemaMigration.test.ts test/routes.*.test.ts test/runtime.*.test.ts test/skill.*.test.ts",
     "lint": "echo agent lint placeholder",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

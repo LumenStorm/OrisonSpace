@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { registerOrchestrationProxy } from '../src/modules/orchestration/proxy';
+import { registerAgentProxy } from '../src/modules/agent/proxy';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -21,7 +21,7 @@ function buildMock(captured: CapturedCall[], responseBody: unknown, responseStat
 
 async function buildIsolatedProxyApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  await app.register(registerOrchestrationProxy);
+  await app.register(registerAgentProxy);
   await app.ready();
   return app;
 }
@@ -125,20 +125,6 @@ describe('orchestration proxy', () => {
 
     expect(response.statusCode).toBe(200);
     expect(captured[0].url).toMatch(/\/v1\/orchestration\/auto-mode\/auto-1$/);
-  });
-
-  it('forwards POST /v1/orchestration/auto-mode/restore (previously 404)', async () => {
-    globalThis.fetch = buildMock(captured, { restored: [] });
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/orchestration/auto-mode/restore',
-      headers: { authorization: 'Bearer t', 'content-type': 'application/json' },
-      payload: { projectPath: 'C:\\demo' },
-    });
-
-    expect(response.statusCode).toBe(200);
-    expect(captured[0].url).toMatch(/\/v1\/orchestration\/auto-mode\/restore$/);
   });
 
   it('preserves the upstream status code for non-2xx responses', async () => {

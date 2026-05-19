@@ -7,7 +7,8 @@ playwright-report/
 test-results/
 .turbo/
 temp/
-pnpm-lock.yaml
+package-lock.json
+apps/**/package-lock.json
 .DS_Store
 .worktrees/
 __pycache__/
@@ -20,3 +21,5 @@ __pycache__/
 .claude/
 apps/agent/logs/
 apps/server/logs/
+apps/agent/test-tmp-*/
+apps/agent/.test-tmp-*/

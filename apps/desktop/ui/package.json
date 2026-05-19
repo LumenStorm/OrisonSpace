@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@orison/shared-contracts": "file:../../../packages/shared-contracts",
-    "@orison/model-protocols": "workspace:*",
     "@tiptap/extension-placeholder": "^3.22.4",
     "@tiptap/pm": "^3.22.4",
     "@tiptap/react": "^3.22.4",

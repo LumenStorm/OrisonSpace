@@ -250,3 +250,9 @@ ALTER TABLE projects ADD COLUMN writing_style TEXT;
 7. `apps/desktop/ui/src/shared/store/novelChapterSlice.ts`
 8. `apps/desktop/ui/src/shared/store/types.ts`
 9. `docs/data-dictionary.md`
+
+# Archive Notice
+
+This document is historical and contains stale paths from earlier migration work.
+Do not use it as current implementation guidance without checking `README.md`,
+`TODO.md`, and the live `apps/` source tree first.

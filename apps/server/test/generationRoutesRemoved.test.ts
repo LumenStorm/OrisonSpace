@@ -18,13 +18,13 @@ describe('generation routes removed (regression)', () => {
 
   beforeAll(async () => {
     const { registerHealthRoutes } = await import('../src/common/health');
-    const { registerOrchestrationProxy } = await import('../src/modules/orchestration/proxy');
+    const { registerAgentProxy } = await import('../src/modules/agent/proxy');
     const { registerAuthRoutes } = await import('../src/modules/auth/routes');
 
     app = Fastify({ logger: false });
     await app.register(registerHealthRoutes);
     await app.register(registerAuthRoutes);
-    await app.register(registerOrchestrationProxy);
+    await app.register(registerAgentProxy);
     await app.ready();
   });
 
