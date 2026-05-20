@@ -98,19 +98,24 @@ Agent Panel 独立于 Bottom Panel，全高显示（从顶部到窗口底部）�
 
 Icon Rail 分为 top section 和 bottom section：
 
-#### Top section（从上到下）
+#### Top section（从上到下，按功能分组，组间有分隔线）
 
 | 图标 | 功能 | 行为 |
 |------|------|------|
 | `folder_open` | 资源管理器 | 切换左侧面板为 ProjectTree |
 | `search` | 搜索 | 切换左侧面板为 SearchPanel |
-| `dashboard` | 总览 | 切换 activeModule 为 overview（standalone 页面） |
-| `auto_stories` | 大纲 | 切换 activeModule 为 outline（standalone 页面） |
-| `menu_book` / `description` | 小说/剧本 | 切换 activeModule 为 novel/script |
-| `view_quilt` | 分镜 | 在编辑区打开模块 tab |
-| `image` | 图片生成 | 在编辑区打开模块 tab |
-| `movie_filter` | 视频 | 在编辑区打开模块 tab |
+| ─── 分隔线 ─── | | |
+| `dashboard` | 总览 | `setActivePage('overview')` |
+| `auto_stories` | 大纲 | `setActivePage('outline')` |
+| `perm_media` | 资产库 | `setActivePage('assets')` |
+| `menu_book` / `description` | 小说/剧本 | `setActivePage('novel'/'script')` |
+| ─── 分隔线 ─── | | |
+| `view_quilt` | 分镜 | `setActivePage('storyboard')` |
+| `image` | 图片生成 | `setActivePage('image_gen')` |
+| `movie_filter` | 视频 | `setActivePage('video')` |
+| ─── 分隔线 ─── | | |
 | `smart_toy` | Agent | toggle 右侧 Agent Panel |
+| `history` | 时间线 | `setActivePage('timeline')` |
 
 #### Bottom section
 
@@ -121,25 +126,36 @@ Icon Rail 分为 top section 和 bottom section：
 
 左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换。
 
-### Standalone 页面（overview / outline）
+### 页面模型
 
-当 `activeModule` 为 `overview` 或 `outline` 时，工作区主内容区不渲染 EditorArea + BottomPanel，而是直接渲染独立的全宽页面组件：
+工作区使用统一的 `ActivePage` 类型控制中间内容区：
 
-| 模块 | 组件 | 说明 |
+```ts
+type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets' | 'timeline';
+```
+
+渲染逻辑（`WorkspaceLayout`）：
+1. 如果有打开的文件 Tab → 显示 FileTabBar + FileEditor（文件编辑模式）
+2. 否则 → 按 `activePage` 渲染对应页面组件
+
+默认进入工作区时 `activePage` 为 `overview`。
+
+各页面对应组件：
+
+| activePage | 组件 | 说明 |
 |------|------|------|
-| `overview` | `OverviewPage` | 项目总览仪表盘：项目名称、类型 badge、章节数/字数/草稿数/定稿数卡片 |
-| `outline` | `OutlineEditor` | Notion block 风格大纲编辑器：无边框输入、label 在上编辑区在下、居中 720px 最大宽度 |
+| `overview` | `OverviewPage` | 项目总览仪表盘 |
+| `outline` | `OutlineEditor` | Notion block 风格大纲编辑器 |
+| `novel` / `script` | `ScriptEditorPage` | 小说/剧本编辑器 + creative fields |
+| `storyboard` | `StoryboardCanvas` | 分镜面板 |
+| `image_gen` | `ImageGenEditor` | 图片生成面板 |
+| `video` | `VideoEditor` | 视频面板 |
+| `assets` | `AssetsPanel` | 资产库面板 |
+| `timeline` | `TimelinePanel` | 时间线面板 |
 
-默认进入工作区时 `activeModule` 为 `overview`。
+### FileTabBar（文件标签栏）
 
-### EditorArea 标签栏 (FileTabBar)
-
-编辑区采用统一 tab 系统，文件 tab 和模块 tab（分镜/图片生成/视频）并存：
-
-- 模块 tab 的 path 使用 `__module__/{id}` 前缀标识
-- 模块 tab 永远 clean（无 dirty indicator）
-- 模块 tab 显示对应图标（view_quilt/image/movie_filter）
-- 点击 Icon Rail 的分镜/图片生成/视频图标会打开对应模块 tab
+FileTabBar 只管理文件 tab（纯文件编辑），不再有模块 tab。打开文件 tab 时文件编辑器覆盖当前 activePage 视图，关闭所有 tab 后自动回到当前 activePage。
 
 标签栏支持：
 
@@ -269,17 +285,15 @@ Icon Rail 分为 top section 和 bottom section：
 
 BottomPanel 当前包含：
 
-- properties
-- tasks
 - output
-- timeline
+- tasks
 
 其中：
 
-- properties：根据当前模块显示参数或设置字段
+- output：真实输出控制台
 - tasks：任务流与状态
-- output：真实输出控制台，不再是纯占位
-- timeline：Git 提交历史时间线，展示提交列表与选中提交的变更文件
+
+底部面板在所有页面下方都可展开，不再限制只在特定模式显示。`timeline` 已移为独立页面（侧边栏按钮），`properties` 已移除（Inspector 集成到各页面内部）。
 
 ## 9. 当前 UI 设计与代码的一致性说明
 
@@ -289,6 +303,10 @@ BottomPanel 当前包含：
 - 模型设置页交互状态已收口，不再混乱地依赖隐式条件
 - 模型生成走 desktop main，不走 server generation route
 - story-sync 已变为桌面本地执行 + agent 二次校验
+- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`
+- 底部面板只保留 output / tasks 两个 tab
+- timeline 已提升为独立页面
+- 资产库（assets）已作为独立页面加入侧边栏
 
 ## 10. 样式组织约定
 
@@ -310,6 +328,6 @@ BottomPanel 当前包含：
 - 模型设置页交互状态
 - 图片生成入口和保存路径
 - story-sync 在 UI 中的触发方式
-- 底部面板标签增减
+- 底部面板标签或侧边栏页面增减
 - 编辑器快捷键或命令面板命令变更
 - FileTabBar 右键菜单项变更

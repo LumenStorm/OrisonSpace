@@ -17,11 +17,11 @@
 │                          TopBar                                      │
 ├──────┬──────────┬──────────────────────────┬────────────────────────┤
 │ Icon │ Project  │                          │                        │
-│ Rail │ Tree /   │  Standalone Page          │     Agent Panel        │
-│      │ Search   │  (overview/outline)       │     (全高独立)          │
+│ Rail │ Tree /   │  文件编辑模式             │     Agent Panel        │
+│      │ Search   │  (有打开的文件 Tab 时)    │     (全高独立)          │
 │      │ Panel    │  ─── 或 ───              │                        │
-│      │ (互斥)   │  EditorArea + BottomPanel │                        │
-│      │          │  (其他模块)               │                        │
+│      │ (互斥)   │  ActivePage 页面视图      │                        │
+│      │          │  (无文件 Tab 时)          │                        │
 └──────┴──────────┴──────────────────────────┴────────────────────────┘
 ```
 
@@ -42,36 +42,35 @@ App
         ├── SideNav (Icon Rail)
         │   ├── ExplorerBtn (资源管理器，切换左侧面板)
         │   ├── SearchBtn (搜索，切换左侧面板)
-        │   ├── NavItem[] (overview/outline/novel|script — 模块切换)
-        │   ├── ModuleTabItem[] (storyboard/imageGen/video — 打开编辑区 tab)
+        │   ├── ─── 分隔线 ───
+        │   ├── NavButton[] (overview/outline/assets/novel|script — setActivePage)
+        │   ├── ─── 分隔线 ───
+        │   ├── NavButton[] (storyboard/image_gen/video — setActivePage)
+        │   ├── ─── 分隔线 ───
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
+        │   ├── NavButton (timeline — setActivePage)
         │   ├── SettingsBtn
         │   └── AccountBtn
         ├── 左侧面板 (互斥，由 activeSidebarPanel 控制)
         │   ├── ProjectTree (activeSidebarPanel='explorer')
         │   └── SearchPanel (activeSidebarPanel='search')
         ├── workspace-main (flex column)
-        │   ├── [Standalone 模式: overview/outline]
-        │   │   ├── OverviewPage (activeModule='overview')
-        │   │   └── OutlineEditor (activeModule='outline', Notion block 风格)
-        │   ├── [Editor 模式: 其他模块]
-        │   │   ├── EditorArea
-        │   │   │   ├── FileTabBar
-        │   │   │   │   └── FileTab[] (文件 tab + 模块 tab 并存)
-        │   │   │   ├── FindReplaceBar (Ctrl+F/H)
-        │   │   │   ├── CommandPalette (Ctrl+Shift+P / Ctrl+P)
-        │   │   │   └── Editor (按 tab 类型切换)
-        │   │   │       ├── TiptapEditor (markdown)
-        │   │   │       ├── ScriptEditor
-        │   │   │       ├── VideoEditor (模块 tab)
-        │   │   │       ├── ImageGenEditor (模块 tab)
-        │   │   │       ├── StoryboardCanvas (模块 tab)
-        │   │   │       └── FileEditor (通用文本)
-        │   │   └── BottomPanel (可折叠)
-        │   │       ├── Tab: Properties
-        │   │       ├── Tab: Tasks
-        │   │       ├── Tab: Output
-        │   │       └── Tab: Timeline
+        │   ├── [文件编辑模式: hasOpenFiles = true]
+        │   │   ├── FileTabBar
+        │   │   └── FileEditor
+        │   ├── [页面模式: hasOpenFiles = false, 按 activePage 切换]
+        │   │   ├── OverviewPage (activePage='overview')
+        │   │   ├── OutlineEditor (activePage='outline')
+        │   │   ├── ScriptEditorPage (activePage='novel'|'script')
+        │   │   ├── StoryboardCanvas (activePage='storyboard')
+        │   │   ├── ImageGenEditor (activePage='image_gen')
+        │   │   ├── VideoEditor (activePage='video')
+        │   │   ├── AssetsPanel (activePage='assets')
+        │   │   └── TimelinePanel (activePage='timeline')
+        │   ├── ResizeHandle (vertical, 底部面板)
+        │   └── BottomPanel (可折叠)
+        │       ├── Tab: Output
+        │       └── Tab: Tasks
         └── AgentPanel (可折叠，全高)
             ├── AgentPanel header
             │   ├── Title ("Agent")
@@ -106,13 +105,20 @@ App
 | `SideNav` | `features/side-nav/SideNav.tsx` | 左侧图标导航栏 |
 | `ProjectTree` | `features/project-tree/ProjectTree.tsx` | 项目文件树 |
 | `SearchPanel` | `features/search-panel/SearchPanel.tsx` | 搜索面板（与 ProjectTree 互斥） |
-| `EditorArea` | `features/editor/EditorArea.tsx` | 编辑器容器 + 标签栏 |
-| `OverviewPage` | `features/overview/OverviewPage.tsx` | 项目总览仪表盘（standalone 页面） |
-| `OutlineEditor` | `features/editor/OutlineEditor.tsx` | 大纲编辑器（Notion block 风格，standalone 页面） |
+| `OverviewPage` | `features/overview/OverviewPage.tsx` | 项目总览仪表盘 |
+| `OutlineEditor` | `features/editor/OutlineEditor.tsx` | 大纲编辑器（Notion block 风格） |
+| `ScriptEditorPage` | `features/editor/ScriptEditorPage.tsx` | 小说/剧本编辑器页面 |
+| `ImageGenEditor` | `features/editor/ImageGenEditor.tsx` | 图片生成面板 |
+| `StoryboardCanvas` | `features/editor/StoryboardCanvas.tsx` | 分镜面板 |
+| `VideoEditor` | `features/editor/VideoEditor.tsx` | 视频面板 |
+| `AssetsPanel` | `features/assets/AssetsPanel.tsx` | 资产库面板 |
+| `TimelinePanel` | `features/timeline/TimelinePanel.tsx` | 时间线面板 |
 | `FileTabBar` | `features/editor/FileTabBar.tsx` | 文件标签栏 |
+| `FileEditor` | `features/editor/FileEditor.tsx` | 文件编辑器 |
 | `FindReplaceBar` | `features/editor/FindReplaceBar.tsx` | 查找替换栏 |
 | `CommandPalette` | `features/command-palette/CommandPalette.tsx` | 命令面板 |
-| `BottomPanel` | `features/bottom-panel/BottomPanel.tsx` | 底部面板容器 |
+| `BottomPanel` | `features/bottom-panel/BottomPanel.tsx` | 底部面板容器（output / tasks） |
+| `InspectorPanel` | `features/inspector/InspectorPanel.tsx` | 属性检查面板（集成到各页面内） |
 | `AgentPanel` | `features/agent-panel/AgentPanel.tsx` | Agent 面板主容器 |
 | `AgentMessages` | `features/agent-panel/AgentMessages.tsx` | 消息流列表 |
 | `AgentMessageItem` | `features/agent-panel/AgentMessageItem.tsx` | 单条消息渲染 |
@@ -132,15 +138,21 @@ App
 workspace-body (CSS Grid: icon-rail | sidebar-panel | resize | main-area)
   └── main-area (Flex row)
       ├── workspace-main (Flex column, flex:1)
-      │   ├── [standalone 分支: activeModule ∈ {overview, outline}]
-      │   │   └── workspace-content → OverviewPage | OutlineEditor
-      │   └── [editor 分支: 其他模块]
-      │       ├── workspace-content (flex:1) → EditorArea
-      │       └── workspace-bottom-wrapper → BottomPanel
+      │   ├── [文件编辑模式: hasOpenFiles = true]
+      │   │   ├── FileTabBar
+      │   │   └── workspace-content → FileEditor
+      │   ├── [页面模式: hasOpenFiles = false]
+      │   │   └── workspace-panel-content → 按 activePage 渲染对应组件
+      │   ├── ResizeHandle (vertical)
+      │   └── workspace-bottom-wrapper → BottomPanel
       └── AgentPanel (固定宽度, 全高)
 ```
 
-当 `activeModule` 为 `overview` 或 `outline` 时，不渲染 EditorArea + BottomPanel，而是直接渲染对应的 standalone 页面组件。底部展开按钮在 standalone 模式下隐藏。
+渲染逻辑：
+1. 如果 `hasOpenFiles` 为 true → 显示 FileTabBar + FileEditor
+2. 否则按 `activePage` switch 渲染对应页面组件
+
+底部面板始终可用（所有模式下都可展开）。底部展开按钮在面板关闭时显示。
 
 左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换，类似 VSCode 的 Explorer / Search 面板。
 
