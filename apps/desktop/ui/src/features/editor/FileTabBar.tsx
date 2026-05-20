@@ -7,13 +7,6 @@ import { ConfirmCloseDialog } from './ConfirmCloseDialog';
 import type { FileTab } from '../../shared/store/fileTabsSlice';
 
 function getTabIcon(tab: FileTab): string {
-  if (tab.kind === 'module') {
-    const id = tab.path.replace('__module__/', '');
-    if (id === 'image_gen') return 'image';
-    if (id === 'storyboard') return 'view_quilt';
-    if (id === 'video') return 'movie_filter';
-    return 'widgets';
-  }
   const name = tab.name;
   if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'data_object';
   if (name.endsWith('.md')) return 'article';

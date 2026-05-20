@@ -1,16 +1,12 @@
 import { useAppStore, type BottomPanelTab } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
-import { InspectorPanel } from '../inspector/InspectorPanel';
 import { TaskFeedPanel } from '../tasks/TaskFeedPanel';
 import { OutputPanel } from './OutputPanel';
-import { TimelinePanel } from '../timeline/TimelinePanel';
 
 const tabs: { key: BottomPanelTab; icon: string; i18nKey: string }[] = [
-  { key: 'properties', icon: 'tune', i18nKey: 'bottomPanel.properties' },
-  { key: 'tasks', icon: 'task_alt', i18nKey: 'bottomPanel.tasks' },
   { key: 'output', icon: 'output', i18nKey: 'bottomPanel.output' },
-  { key: 'timeline', icon: 'history', i18nKey: 'bottomPanel.timeline' },
+  { key: 'tasks', icon: 'task_alt', i18nKey: 'bottomPanel.tasks' },
 ];
 
 export function BottomPanel() {
@@ -52,10 +48,7 @@ export function BottomPanel() {
         </button>
       </div>
       <div className="bottom-panel-content">
-        {activeBottomTab === 'properties' && <InspectorPanel />}
-        {activeBottomTab === 'tasks' && <TaskFeedPanel />}
-        {activeBottomTab === 'output' && <OutputPanel />}
-        {activeBottomTab === 'timeline' && <TimelinePanel />}
+        {activeBottomTab === 'tasks' ? <TaskFeedPanel /> : <OutputPanel />}
       </div>
     </div>
   );

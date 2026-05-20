@@ -1,9 +1,11 @@
 import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
-export type WorkspaceModule = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'video' | 'image_gen';
+export type WorkspaceModule = 'outline' | 'novel' | 'script';
+export type WorkspacePanel = 'overview' | 'storyboard' | 'image_gen' | 'video' | 'assets';
+export type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets' | 'timeline';
 export type SidebarPanel = 'explorer' | 'search';
-export type BottomPanelTab = 'properties' | 'tasks' | 'output' | 'timeline';
+export type BottomPanelTab = 'output' | 'tasks';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
 export type LocaleSetting = 'system' | (string & {});
 export type TaskRequest = z.infer<typeof taskRequestSchema>;

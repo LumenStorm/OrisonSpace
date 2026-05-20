@@ -32,14 +32,16 @@ function messagesToPayload(messages: SessionMessage[], system: string, tools: To
         }),
       });
     } else if (m.role === 'tool' && m.toolResults?.length) {
-      // Each tool result becomes a separate tool message
       for (const tr of m.toolResults) {
         formatted.push({
           role: 'tool',
           toolCallId: tr.toolCallId,
+          toolName: tr.toolName,
           content: tr.output,
         });
       }
+    } else if (m.role === 'tool') {
+      // Skip tool messages without results to avoid invalid schema
     } else {
       formatted.push({ role: m.role, content: m.content });
     }

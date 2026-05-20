@@ -1,4 +1,6 @@
-import type { WorkspaceModule } from '../store/types';
+import type { ActivePage } from '../store/types';
+
+type InspectorModule = ActivePage;
 
 export type FieldDef = {
   kind?: 'select';
@@ -14,7 +16,7 @@ const scriptFields: FieldDef[] = [
   { labelKey: 'inspector.script.format', optionsKey: 'inspector.script.options.format', defaultIndex: 0 },
 ];
 
-export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
+export const moduleFields: Partial<Record<InspectorModule, FieldDef[]>> = {
   overview: [],
   outline: [
     { labelKey: 'inspector.outline.visualStyle', optionsKey: 'inspector.outline.options.visualStyle', defaultIndex: 0 },
@@ -38,7 +40,7 @@ export const moduleFields: Record<WorkspaceModule, FieldDef[]> = {
   image_gen: [],
 };
 
-export const aspectRatios: Record<WorkspaceModule, string[]> = {
+export const aspectRatios: Partial<Record<InspectorModule, string[]>> = {
   overview: [],
   outline: [],
   novel: [],
@@ -48,7 +50,7 @@ export const aspectRatios: Record<WorkspaceModule, string[]> = {
   image_gen: [],
 };
 
-export const promptKeys: Record<WorkspaceModule, string> = {
+export const promptKeys: Partial<Record<InspectorModule, string>> = {
   overview: '',
   outline: 'inspector.outline.prompt',
   novel: 'inspector.script.prompt',
@@ -58,7 +60,7 @@ export const promptKeys: Record<WorkspaceModule, string> = {
   image_gen: 'inspector.imageGen.prompt',
 };
 
-export const actionKeys: Record<WorkspaceModule, string> = {
+export const actionKeys: Partial<Record<InspectorModule, string>> = {
   overview: '',
   outline: 'inspector.outline.rewrite',
   novel: 'inspector.script.rewrite',

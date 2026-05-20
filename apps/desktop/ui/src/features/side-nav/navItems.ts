@@ -1,25 +1,20 @@
-import type { WorkspaceModule } from '../../shared/store/appStore';
+import type { ActivePage } from '../../shared/store/appStore';
 
-export type NavItem = { key: WorkspaceModule; icon: string; i18nKey: string };
+export type PageNavItem = { id: ActivePage; icon: string; i18nKey: string };
 
-/** Items that switch the active module (editor view) */
-export const novelNavItems: NavItem[] = [
-  { key: 'overview', icon: 'dashboard', i18nKey: 'nav.overview' },
-  { key: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' },
-  { key: 'novel', icon: 'menu_book', i18nKey: 'nav.novel' },
+/** Group 1: Overview + Outline + Assets + Novel/Script */
+export const overviewItem: PageNavItem = { id: 'overview', icon: 'dashboard', i18nKey: 'nav.overview' };
+export const outlineItem: PageNavItem = { id: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' };
+export const assetsItem: PageNavItem = { id: 'assets', icon: 'perm_media', i18nKey: 'nav.assets' };
+export const novelItem: PageNavItem = { id: 'novel', icon: 'menu_book', i18nKey: 'nav.novel' };
+export const scriptItem: PageNavItem = { id: 'script', icon: 'description', i18nKey: 'nav.script' };
+
+/** Group 2: Production tools */
+export const productionItems: PageNavItem[] = [
+  { id: 'storyboard', icon: 'view_quilt', i18nKey: 'nav.storyboard' },
+  { id: 'image_gen', icon: 'image', i18nKey: 'nav.imageGen' },
+  { id: 'video', icon: 'movie_filter', i18nKey: 'nav.video' },
 ];
 
-export const scriptNavItems: NavItem[] = [
-  { key: 'overview', icon: 'dashboard', i18nKey: 'nav.overview' },
-  { key: 'outline', icon: 'auto_stories', i18nKey: 'nav.outline' },
-  { key: 'script', icon: 'description', i18nKey: 'nav.script' },
-];
-
-/** Items that open a module tab in the editor area */
-export type ModuleTabItem = { id: string; icon: string; i18nKey: string; label: string };
-
-export const moduleTabItems: ModuleTabItem[] = [
-  { id: 'storyboard', icon: 'view_quilt', i18nKey: 'nav.storyboard', label: '分镜' },
-  { id: 'image_gen', icon: 'image', i18nKey: 'nav.imageGen', label: '图片生成' },
-  { id: 'video', icon: 'movie_filter', i18nKey: 'nav.video', label: '视频' },
-];
+/** Timeline (below Agent) */
+export const timelineItem: PageNavItem = { id: 'timeline', icon: 'history', i18nKey: 'nav.timeline' };

@@ -23,6 +23,13 @@
   position: relative;
 }
 
+.side-nav-separator {
+  width: 60%;
+  height: 1px;
+  margin: 6px auto;
+  background: rgba(173, 179, 178, 0.15);
+}
+
 .icon-rail-btn {
   display: flex;
   align-items: center;

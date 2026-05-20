@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
-import type { BottomPanelTab, SidebarPanel } from './types';
+import type { ActivePage, BottomPanelTab, SidebarPanel } from './types';
+import { storage } from './storage';
 import {
   PROJECT_TREE_WIDTH_DEFAULT,
   PROJECT_TREE_WIDTH_MIN,
@@ -29,6 +30,8 @@ export type PanelsSlice = {
   toggleAgentPanel: () => void;
   agentPanelWidth: number;
   setAgentPanelWidth: (w: number) => void;
+  activePage: ActivePage;
+  setActivePage: (page: ActivePage) => void;
 };
 
 export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set) => ({
@@ -38,14 +41,16 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   setProjectTreeWidth: (w) => set({ projectTreeWidth: Math.max(PROJECT_TREE_WIDTH_MIN, Math.min(PROJECT_TREE_WIDTH_MAX, w)) }),
   activeSidebarPanel: 'explorer',
   setActiveSidebarPanel: (panel) => set({ activeSidebarPanel: panel, projectTreeOpen: true }),
-  bottomPanelOpen: true,
+  bottomPanelOpen: false,
   toggleBottomPanel: () => set((s) => ({ bottomPanelOpen: !s.bottomPanelOpen })),
   bottomPanelHeight: BOTTOM_PANEL_HEIGHT_DEFAULT,
   setBottomPanelHeight: (h) => set({ bottomPanelHeight: Math.max(BOTTOM_PANEL_HEIGHT_MIN, Math.min(BOTTOM_PANEL_HEIGHT_MAX, h)) }),
-  activeBottomTab: 'properties',
+  activeBottomTab: 'output',
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
   agentPanelOpen: false,
   toggleAgentPanel: () => set((s) => ({ agentPanelOpen: !s.agentPanelOpen })),
   agentPanelWidth: AGENT_PANEL_WIDTH_DEFAULT,
   setAgentPanelWidth: (w) => set({ agentPanelWidth: Math.max(AGENT_PANEL_WIDTH_MIN, Math.min(AGENT_PANEL_WIDTH_MAX, w)) }),
+  activePage: storage.get<ActivePage>('activePage', 'overview'),
+  setActivePage: (page) => { storage.set('activePage', page); set({ activePage: page }); },
 });

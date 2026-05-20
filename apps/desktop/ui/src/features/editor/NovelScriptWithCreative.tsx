@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { CreativeFieldsEditor } from '../creative/CreativeFieldsEditor';
-import { NovelWorkbench } from '../novel-workbench/NovelWorkbench';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useAppStore } from '../../shared/store/appStore';
 
-type SubTab = 'content' | 'creative' | 'workbench';
+type SubTab = 'content' | 'creative';
 
 export function NovelScriptWithCreative({ ContentEditor }: { ContentEditor: React.FC }) {
   const [subTab, setSubTab] = useState<SubTab>('content');
   const resolvedLocale = useAppStore((state) => state.resolvedLocale);
-  const activeModule = useAppStore((state) => state.activeModule);
+  const activePage = useAppStore((state) => state.activePage);
   const { t } = useI18n(resolvedLocale);
 
-  const contentLabel = activeModule === 'novel' ? t('nav.novel') : t('nav.script');
-  const isNovel = activeModule === 'novel';
+  const contentLabel = activePage === 'novel' ? t('nav.novel') : t('nav.script');
 
   return (
     <div className="editor-with-creative">
@@ -32,24 +30,9 @@ export function NovelScriptWithCreative({ ContentEditor }: { ContentEditor: Reac
         >
           {t('nav.creative')}
         </button>
-        {isNovel ? (
-          <button
-            type="button"
-            className={`editor-sub-tab${subTab === 'workbench' ? ' editor-sub-tabActive' : ''}`}
-            onClick={() => setSubTab('workbench')}
-          >
-            绔犺妭宸ヤ綔鍙?
-          </button>
-        ) : null}
       </nav>
       <div className="editor-sub-content">
-        {subTab === 'content' ? (
-          <ContentEditor />
-        ) : subTab === 'creative' ? (
-          <CreativeFieldsEditor />
-        ) : (
-          <NovelWorkbench />
-        )}
+        {subTab === 'content' ? <ContentEditor /> : <CreativeFieldsEditor />}
       </div>
     </div>
   );

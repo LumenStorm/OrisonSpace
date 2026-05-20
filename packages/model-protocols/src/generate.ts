@@ -21,9 +21,31 @@ export function createProvider(model: ResolvedModel) {
   const openai = createOpenAI({
     baseURL: normalizeBaseUrl(model.baseUrl),
     apiKey: model.apiKey,
+    fetch: patchNullContentFetch,
   });
   return openai.chat(model.modelId);
 }
+
+// Some OpenAI-compatible APIs (e.g. DashScope) reject `content: null` on assistant messages.
+const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
+  if (init?.body && typeof init.body === 'string') {
+    try {
+      const json = JSON.parse(init.body);
+      if (Array.isArray(json.messages)) {
+        for (const msg of json.messages) {
+          if (msg.role === 'assistant' && msg.content === null) {
+            msg.content = '';
+          }
+        }
+        init = { ...init, body: JSON.stringify(json) };
+      }
+      // Debug: log the actual request sent to upstream API
+      console.log('[model-protocols] upstream request URL:', typeof input === 'string' ? input : (input as Request).url);
+      console.log('[model-protocols] upstream request body:', JSON.stringify(json, null, 2));
+    } catch { /* not JSON, pass through */ }
+  }
+  return globalThis.fetch(input, init);
+};
 
 // ── Text generation (via Vercel AI SDK) ──
 
@@ -66,6 +88,14 @@ export async function generateText(
     return true;
   });
 
+  // Build a toolCallId → toolName lookup from assistant messages
+  const toolNameMap = new Map<string, string>();
+  for (const m of nonSystemMessages) {
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      for (const tc of m.toolCalls) toolNameMap.set(tc.id, tc.name);
+    }
+  }
+
   const messages = nonSystemMessages.map((m: any) => {
     if (m.role === 'assistant' && m.toolCalls?.length) {
       return {
@@ -76,7 +106,7 @@ export async function generateText(
             type: 'tool-call' as const,
             toolCallId: tc.id,
             toolName: tc.name,
-            args: JSON.parse(tc.arguments),
+            input: tc.arguments ? JSON.parse(tc.arguments) : {},
           })),
         ],
       };
@@ -87,7 +117,8 @@ export async function generateText(
         content: [{
           type: 'tool-result' as const,
           toolCallId: m.toolCallId,
-          result: m.content,
+          toolName: m.toolName || toolNameMap.get(m.toolCallId) || '',
+          output: { type: 'text' as const, value: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) },
         }],
       };
     }

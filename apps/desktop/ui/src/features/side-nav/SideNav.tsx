@@ -1,73 +1,79 @@
-import { useCallback, useState } from 'react';
-import { useAppStore, type WorkspaceModule, type SidebarPanel } from '../../shared/store/appStore';
+import { useState } from 'react';
+import { useAppStore, type ActivePage } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { AccountDialog } from '../../shared/components/AccountDialog';
 import { Tooltip } from '../../shared/components/Tooltip';
-import { novelNavItems, scriptNavItems, moduleTabItems } from './navItems';
+import {
+  overviewItem, outlineItem, assetsItem, novelItem, scriptItem,
+  productionItems, timelineItem, type PageNavItem,
+} from './navItems';
+
+function NavButton({ item, active, onClick, t }: { item: PageNavItem; active: boolean; onClick: () => void; t: (k: string) => string }) {
+  return (
+    <Tooltip label={t(item.i18nKey)} placement="right">
+      <button
+        type="button"
+        className={`icon-rail-btn${active ? ' icon-rail-btnActive' : ''}`}
+        onClick={onClick}
+        aria-label={t(item.i18nKey)}
+      >
+        <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
+      </button>
+    </Tooltip>
+  );
+}
 
 export function SideNav() {
   const {
-    activeModule, setActiveModule,
+    activePage, setActivePage,
     currentProject, resolvedLocale,
     toggleAgentPanel, agentPanelOpen,
     activeSidebarPanel, setActiveSidebarPanel,
-    openModuleTab, activeFilePath,
   } = useAppStore(useShallow((s) => ({
-    activeModule: s.activeModule,
-    setActiveModule: s.setActiveModule,
+    activePage: s.activePage,
+    setActivePage: s.setActivePage,
     currentProject: s.currentProject,
     resolvedLocale: s.resolvedLocale,
     toggleAgentPanel: s.toggleAgentPanel,
     agentPanelOpen: s.agentPanelOpen,
     activeSidebarPanel: s.activeSidebarPanel,
     setActiveSidebarPanel: s.setActiveSidebarPanel,
-    openModuleTab: s.openModuleTab,
-    activeFilePath: s.activeFilePath,
   })));
 
   const { t } = useI18n(resolvedLocale);
-  const navItems = currentProject?.type === 'novel' ? novelNavItems : scriptNavItems;
+  const contentItem = currentProject?.type === 'script' ? scriptItem : novelItem;
 
   const [showSettings, setShowSettings] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
 
-  const handleModuleClick = useCallback(
-    (key: WorkspaceModule) => setActiveModule(key),
-    [setActiveModule],
-  );
+  const handlePage = (page: ActivePage) => setActivePage(page);
 
-  const handleModuleTabClick = useCallback(
-    (id: string, label: string) => openModuleTab(id, label),
-    [openModuleTab],
-  );
-
-  const handleSearchClick = useCallback(() => {
+  const handleSearchClick = () => {
     setActiveSidebarPanel(activeSidebarPanel === 'search' ? 'explorer' : 'search');
-  }, [activeSidebarPanel, setActiveSidebarPanel]);
+  };
 
-  const handleExplorerClick = useCallback(() => {
-    setActiveSidebarPanel('explorer');
-  }, [setActiveSidebarPanel]);
+  // Check if there are open file tabs (file editing takes over the main area visually)
+  const openFiles = useAppStore((s) => s.openFiles);
+  const hasOpenFiles = openFiles.length > 0;
 
   return (
     <>
       <nav className="icon-rail" aria-label="Main Navigation">
         <div className="icon-rail-top">
-          {/* Explorer (file tree) */}
+          {/* --- Left panel switchers --- */}
           <Tooltip label={t('nav.explorer') || '资源管理器'} placement="right">
             <button
               type="button"
               className={`icon-rail-btn${activeSidebarPanel === 'explorer' ? ' icon-rail-btnActive' : ''}`}
-              onClick={handleExplorerClick}
+              onClick={() => setActiveSidebarPanel('explorer')}
               aria-label={t('nav.explorer') || '资源管理器'}
             >
               <span className="material-symbols-outlined" aria-hidden="true">folder_open</span>
             </button>
           </Tooltip>
 
-          {/* Search */}
           <Tooltip label={t('nav.search') || '搜索'} placement="right">
             <button
               type="button"
@@ -79,35 +85,24 @@ export function SideNav() {
             </button>
           </Tooltip>
 
-          {/* Module switchers (outline, novel/script) */}
-          {navItems.map((item) => (
-            <Tooltip key={item.key} label={t(item.i18nKey)} placement="right">
-              <button
-                type="button"
-                className={`icon-rail-btn${activeModule === item.key ? ' icon-rail-btnActive' : ''}`}
-                onClick={() => handleModuleClick(item.key)}
-                aria-label={t(item.i18nKey)}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
-              </button>
-            </Tooltip>
+          <div className="side-nav-separator" />
+
+          {/* --- Group 1: Overview / Outline / Assets / Novel|Script --- */}
+          <NavButton item={overviewItem} active={!hasOpenFiles && activePage === 'overview'} onClick={() => handlePage('overview')} t={t} />
+          <NavButton item={outlineItem} active={!hasOpenFiles && activePage === 'outline'} onClick={() => handlePage('outline')} t={t} />
+          <NavButton item={assetsItem} active={!hasOpenFiles && activePage === 'assets'} onClick={() => handlePage('assets')} t={t} />
+          <NavButton item={contentItem} active={!hasOpenFiles && activePage === contentItem.id} onClick={() => handlePage(contentItem.id)} t={t} />
+
+          <div className="side-nav-separator" />
+
+          {/* --- Group 2: Production tools --- */}
+          {productionItems.map((item) => (
+            <NavButton key={item.id} item={item} active={!hasOpenFiles && activePage === item.id} onClick={() => handlePage(item.id)} t={t} />
           ))}
 
-          {/* Module tab openers (storyboard, image_gen, video) */}
-          {moduleTabItems.map((item) => (
-            <Tooltip key={item.id} label={t(item.i18nKey)} placement="right">
-              <button
-                type="button"
-                className={`icon-rail-btn${activeFilePath === `__module__/${item.id}` ? ' icon-rail-btnActive' : ''}`}
-                onClick={() => handleModuleTabClick(item.id, item.label)}
-                aria-label={t(item.i18nKey)}
-              >
-                <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
-              </button>
-            </Tooltip>
-          ))}
+          <div className="side-nav-separator" />
 
-          {/* Agent */}
+          {/* --- Agent --- */}
           <Tooltip label="Agent" placement="right">
             <button
               type="button"
@@ -118,6 +113,9 @@ export function SideNav() {
               <span className="material-symbols-outlined" aria-hidden="true">smart_toy</span>
             </button>
           </Tooltip>
+
+          {/* --- Timeline (below Agent) --- */}
+          <NavButton item={timelineItem} active={!hasOpenFiles && activePage === 'timeline'} onClick={() => handlePage('timeline')} t={t} />
         </div>
 
         <div className="icon-rail-bottom">

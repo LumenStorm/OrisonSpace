@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 
-export type FileTabKind = 'text' | 'image' | 'module';
+export type FileTabKind = 'text' | 'image';
 
 export type FileTab = {
   path: string;
@@ -27,7 +27,6 @@ export type FileTabsSlice = {
   /** Path of a file waiting on a "save before close?" confirmation. */
   pendingCloseConfirm: string | null;
   openFile: (path: string, name: string, content: string, options?: { kind?: FileTabKind; dataUrl?: string }) => void;
-  openModuleTab: (moduleId: string, label: string) => void;
   closeFile: (path: string) => void;
   /** Close `path` if clean, otherwise set `pendingCloseConfirm` for UI to handle. */
   requestCloseFile: (path: string) => void;
@@ -43,7 +42,7 @@ export type FileTabsSlice = {
 };
 
 function rememberClosedTab(prev: RecentlyClosedTab[], tab: FileTab): RecentlyClosedTab[] {
-  if (tab.kind === 'image' || tab.kind === 'module') return prev;
+  if (tab.kind === 'image') return prev;
   const filtered = prev.filter((t) => t.path !== tab.path);
   const next: RecentlyClosedTab[] = [{ path: tab.path, name: tab.name, kind: tab.kind ?? 'text' }, ...filtered];
   return next.slice(0, RECENTLY_CLOSED_LIMIT);
@@ -79,18 +78,6 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       activeFilePath: path,
       recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path),
     });
-  },
-
-  openModuleTab: (moduleId, label) => {
-    const path = `__module__/${moduleId}`;
-    const state = get();
-    const existing = state.openFiles.find((f) => f.path === path);
-    if (existing) {
-      set({ activeFilePath: path });
-      return;
-    }
-    const tab: FileTab = { path, name: label, content: '', savedContent: '', kind: 'module' };
-    set({ openFiles: [...state.openFiles, tab], activeFilePath: path });
   },
 
   closeFile: (path) => {
@@ -215,7 +202,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const state = get();
     const file = state.openFiles.find((f) => f.path === path);
     if (!file) return false;
-    if (file.kind === 'image' || file.kind === 'module') return true;
+    if (file.kind === 'image') return true;
     try {
       const ok = await window.orisonDesktop?.writeFile(file.path, file.content);
       if (!ok) return false;

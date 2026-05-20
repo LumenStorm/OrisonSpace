@@ -65,7 +65,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
           id: randomUUID(),
           role: 'tool',
           content: `Error: tool "${call.name}" not found`,
-          toolResults: [{ toolCallId: call.id, output: `Error: tool "${call.name}" not found` }],
+          toolResults: [{ toolCallId: call.id, toolName: call.name, output: `Error: tool "${call.name}" not found` }],
           createdAt: Date.now(),
         };
         result.push(toolMsg);
@@ -80,7 +80,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
           id: randomUUID(),
           role: 'tool',
           content: toolResult.output,
-          toolResults: [{ toolCallId: call.id, output: toolResult.output }],
+          toolResults: [{ toolCallId: call.id, toolName: call.name, output: toolResult.output }],
           createdAt: Date.now(),
         };
         result.push(toolMsg);
@@ -92,7 +92,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
           id: randomUUID(),
           role: 'tool',
           content: `Error: ${errMsg}`,
-          toolResults: [{ toolCallId: call.id, output: `Error: ${errMsg}` }],
+          toolResults: [{ toolCallId: call.id, toolName: call.name, output: `Error: ${errMsg}` }],
           createdAt: Date.now(),
         };
         result.push(toolMsg);

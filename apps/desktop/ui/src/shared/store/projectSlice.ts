@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { ProjectMeta, WorkspaceModule } from './types';
+import type { ProjectMeta } from './types';
 import type { RecentProjectsSlice } from './recentProjectsSlice';
 import type { BackgroundTasksSlice } from './backgroundTasksSlice';
 import type { CreativeFieldsSlice } from './creativeFieldsSlice';
@@ -11,8 +11,6 @@ export type ProjectSlice = {
   openProject: (project: ProjectMeta) => void;
   closeProject: () => void;
   saveProject: () => Promise<void>;
-  activeModule: WorkspaceModule;
-  setActiveModule: (module: WorkspaceModule) => void;
 };
 
 export const createProjectSlice: StateCreator<
@@ -107,6 +105,4 @@ export const createProjectSlice: StateCreator<
       });
     }
   },
-  activeModule: 'overview',
-  setActiveModule: (activeModule) => set({ activeModule }),
 });

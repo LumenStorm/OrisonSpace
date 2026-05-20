@@ -4,25 +4,26 @@ import { moduleFields, aspectRatios } from '../../shared/data/inspectorFields';
 import { PatchReviewPanel } from '../creative/PatchReviewPanel';
 import { ImageGenInspector } from './ImageGenInspector';
 
+/** @deprecated No longer rendered in bottom panel */
 export function InspectorPanel() {
-  const activeModule = useAppStore((s) => s.activeModule);
+  const activePage = useAppStore((s) => s.activePage);
   const pendingPatch = useAppStore((s) => s.pendingPatch);
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t, tArray } = useI18n(resolvedLocale);
 
-  const showPatchReview = (activeModule === 'novel' || activeModule === 'script') && pendingPatch;
+  const showPatchReview = (activePage === 'novel' || activePage === 'script') && pendingPatch;
 
-  if (activeModule === 'image_gen' && !showPatchReview) {
+  if (activePage === 'image_gen' && !showPatchReview) {
     return <ImageGenInspector />;
   }
 
-  const fields = moduleFields[activeModule] ?? [];
-  const ratios = aspectRatios[activeModule] ?? [];
+  const fields = moduleFields[activePage] ?? [];
+  const ratios = aspectRatios[activePage] ?? [];
 
   return (
     <div className="inspector-content">
       <div className="inspector-module-label">
-        {t('inspector.parameters', { module: activeModule.charAt(0).toUpperCase() + activeModule.slice(1) })}
+        {t('inspector.parameters', { module: activePage.charAt(0).toUpperCase() + activePage.slice(1) })}
       </div>
       {showPatchReview ? (
         <PatchReviewPanel />

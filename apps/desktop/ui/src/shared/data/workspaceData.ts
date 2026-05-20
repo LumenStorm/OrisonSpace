@@ -1,6 +1,6 @@
-import type { WorkspaceModule } from '../store/appStore';
+import type { ActivePage } from '../store/appStore';
 
-export const moduleItems: Array<{ key: WorkspaceModule; label: string; icon: string }> = [
+export const moduleItems: Array<{ key: ActivePage; label: string; icon: string }> = [
   { key: 'outline', label: 'Outline', icon: 'auto_stories' },
   { key: 'script', label: 'Script', icon: 'description' },
   { key: 'storyboard', label: 'Storyboard', icon: 'view_quilt' },

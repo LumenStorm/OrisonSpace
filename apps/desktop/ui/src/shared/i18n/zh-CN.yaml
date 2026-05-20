@@ -45,9 +45,16 @@ nav:
   storyboard: "分镜"
   video: "视频"
   imageGen: "生图"
+  assets: "资产库"
+  timeline: "时间线"
+  explorer: "资源管理器"
+  search: "搜索"
   settings: "设置"
   account: "个人中心"
   logout: "退出登录"
+
+assets:
+  empty: "暂无资产"
 
 overview:
   untitled: "未命名项目"

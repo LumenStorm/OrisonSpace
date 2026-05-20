@@ -45,9 +45,16 @@ nav:
   storyboard: "Storyboard"
   video: "Video"
   imageGen: "Image Gen"
+  assets: "Assets"
+  timeline: "Timeline"
+  explorer: "Explorer"
+  search: "Search"
   settings: "Settings"
   account: "Account"
   logout: "Logout"
+
+assets:
+  empty: "No assets yet"
 
 overview:
   untitled: "Untitled Project"
