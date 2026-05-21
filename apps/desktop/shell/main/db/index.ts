@@ -67,7 +67,9 @@ function initSchema(db: Database.Database): void {
       project_id     TEXT NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
       asset_type     TEXT NOT NULL,
       asset_name     TEXT NOT NULL,
+      asset_group    TEXT NOT NULL DEFAULT '',
       asset_status   TEXT NOT NULL,
+      relative_path  TEXT NOT NULL DEFAULT '',
       source_task_id TEXT,
       summary        TEXT,
       version        INTEGER NOT NULL DEFAULT 1,
@@ -91,4 +93,10 @@ function initSchema(db: Database.Database): void {
   if (!colNames.has('logline')) db.exec('ALTER TABLE projects ADD COLUMN logline TEXT');
   if (!colNames.has('genre')) db.exec('ALTER TABLE projects ADD COLUMN genre TEXT');
   if (!colNames.has('writing_style')) db.exec('ALTER TABLE projects ADD COLUMN writing_style TEXT');
+
+  // Migration: project_assets new columns
+  const assetCols = db.pragma('table_info(project_assets)') as { name: string }[];
+  const assetColNames = new Set(assetCols.map(c => c.name));
+  if (!assetColNames.has('asset_group')) db.exec("ALTER TABLE project_assets ADD COLUMN asset_group TEXT NOT NULL DEFAULT ''");
+  if (!assetColNames.has('relative_path')) db.exec("ALTER TABLE project_assets ADD COLUMN relative_path TEXT NOT NULL DEFAULT ''");
 }

@@ -78,6 +78,15 @@
 | `task:update-status` | renderer -> main | invoke | 更新任务状态与错误信息 |
 | `task:delete` | renderer -> main | invoke | 删除任务记录 |
 
+### 资产管理通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `asset:list` | renderer -> main | invoke | 按 projectId 查询资产列表 |
+| `asset:upsert` | renderer -> main | invoke | 插入或更新资产记录（首次注册） |
+| `asset:update` | renderer -> main | invoke | 更新资产元数据（名称、分组、描述） |
+| `asset:delete` | renderer -> main | invoke | 删除资产记录 |
+
 ### 字段同步通道
 
 | 通道 | 方向 | 类型 | 说明 |

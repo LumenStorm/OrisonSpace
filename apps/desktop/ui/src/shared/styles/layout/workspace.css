@@ -357,6 +357,33 @@
   opacity: 0.4;
 }
 
+.assets-panel-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.assets-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+
+.assets-group-count {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-high);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
 .assets-panel-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -398,7 +425,7 @@
   max-width: 100%;
 }
 
-.assets-panel-preview-overlay {
+.assets-detail-overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -408,23 +435,24 @@
   background: rgba(45, 52, 51, 0.6);
 }
 
-.assets-panel-preview {
+.assets-detail-dialog {
   position: relative;
-  max-width: 80vw;
-  max-height: 80vh;
-}
-
-.assets-panel-preview img {
-  max-width: 100%;
-  max-height: 80vh;
-  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  width: 720px;
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 0.75rem;
+  background: var(--surface);
   box-shadow: 0 12px 40px rgba(45, 52, 51, 0.2);
+  overflow-y: auto;
 }
 
-.assets-panel-preview-close {
+.assets-detail-close {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -435,4 +463,146 @@
   background: rgba(255, 255, 255, 0.8);
   color: var(--on-surface);
   cursor: pointer;
+}
+
+.assets-detail-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: repeating-conic-gradient(var(--surface-container-high) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+}
+
+.assets-detail-image img {
+  max-width: 100%;
+  max-height: 36vh;
+  object-fit: contain;
+  border-radius: 0.35rem;
+}
+
+.assets-detail-info {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.assets-detail-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  word-break: break-all;
+}
+
+.assets-detail-path {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+  word-break: break-all;
+}
+
+.assets-detail-rename {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assets-detail-rename-input {
+  flex: 1;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  padding: 0.25rem 0;
+  outline: none;
+}
+
+.assets-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem 1.25rem;
+}
+
+.assets-detail-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.assets-detail-action:hover {
+  background: var(--hover-overlay);
+  border-color: var(--accent);
+}
+
+.assets-detail-action .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.assets-detail-action--danger:hover {
+  border-color: var(--error, #d32f2f);
+  color: var(--error, #d32f2f);
+}
+
+.assets-detail-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 1.5rem 1rem;
+}
+
+.assets-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assets-detail-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+
+.assets-detail-input,
+.assets-detail-textarea {
+  width: 100%;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
+  background: var(--surface-container-lowest);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--on-surface);
+  padding: 0.4rem 0.6rem;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.assets-detail-input:focus,
+.assets-detail-textarea:focus {
+  border-color: var(--accent);
+}
+
+.assets-detail-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.assets-detail-action--primary {
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+  border-color: var(--accent);
+}
+
+.assets-detail-action--primary:hover {
+  opacity: 0.9;
 }

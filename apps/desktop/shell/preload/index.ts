@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
+  AssetRecord,
+  AssetUpsertInput,
   GenerateImagePayload,
   GenerateTextPayload,
   GenerateVideoPayload,
@@ -99,6 +101,15 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('task:update-status', taskId, status, errorMessage) as Promise<void>,
   deleteTask: (taskId: string) =>
     ipcRenderer.invoke('task:delete', taskId) as Promise<void>,
+  // Asset persistence (SQLite)
+  listAssets: (projectId: string) =>
+    ipcRenderer.invoke('asset:list', projectId) as Promise<AssetRecord[]>,
+  upsertAsset: (input: AssetUpsertInput) =>
+    ipcRenderer.invoke('asset:upsert', input) as Promise<void>,
+  updateAsset: (projectId: string, assetId: string, fields: Partial<Pick<AssetRecord, 'assetName' | 'assetGroup' | 'summary' | 'assetStatus'>>) =>
+    ipcRenderer.invoke('asset:update', projectId, assetId, fields) as Promise<void>,
+  deleteAsset: (projectId: string, assetId: string) =>
+    ipcRenderer.invoke('asset:delete', projectId, assetId) as Promise<void>,
   // Logging
   openLogsDir: () => ipcRenderer.invoke('log:open-dir') as Promise<string>,
   writeLog: (payload: { level: 'debug' | 'info' | 'warn' | 'error' | 'fatal'; message: string; meta?: Record<string, unknown> }) =>

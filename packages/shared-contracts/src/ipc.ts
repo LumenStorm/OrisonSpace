@@ -180,6 +180,11 @@ export type OrisonDesktopApi = {
   upsertTask(input: TaskUpsertInput): Promise<void>;
   updateTaskStatus(taskId: string, status: string, errorMessage?: string): Promise<void>;
   deleteTask(taskId: string): Promise<void>;
+  // Asset persistence (SQLite)
+  listAssets(projectId: string): Promise<AssetRecord[]>;
+  upsertAsset(input: AssetUpsertInput): Promise<void>;
+  updateAsset(projectId: string, assetId: string, fields: Partial<Pick<AssetRecord, 'assetName' | 'assetGroup' | 'summary' | 'assetStatus'>>): Promise<void>;
+  deleteAsset(projectId: string, assetId: string): Promise<void>;
   // Logging
   openLogsDir(): Promise<string>;
   writeLog(payload: { level: 'debug' | 'info' | 'warn' | 'error' | 'fatal'; message: string; meta?: Record<string, unknown> }): Promise<void>;
@@ -242,4 +247,30 @@ export type TaskUpsertInput = {
   status: 'queued' | 'running' | 'completed' | 'failed';
   errorMessage?: string;
   outputPayload?: string;
+};
+
+export type AssetRecord = {
+  assetId: string;
+  projectId: string;
+  assetType: string;
+  assetName: string;
+  assetGroup: string;
+  assetStatus: string;
+  relativePath: string;
+  sourceTaskId?: string;
+  summary?: string;
+  version: number;
+  updatedAt: string;
+};
+
+export type AssetUpsertInput = {
+  assetId: string;
+  projectId: string;
+  assetType: string;
+  assetName: string;
+  assetGroup?: string;
+  assetStatus?: string;
+  relativePath: string;
+  sourceTaskId?: string;
+  summary?: string;
 };

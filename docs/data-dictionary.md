@@ -74,24 +74,69 @@
 - `temp/images/generation` 存放新生成图片与本地编辑结果（待确认）
 - `assets/images` 存放已确认保存的图片资产
 
-## 3.1 本地 SQLite（桌面主进程后台任务）
+## 3.1 本地 SQLite（桌面主进程）
 
-位置：`~/.orison/tasks.db`
+位置：`~/.orison/data/projects.db`
+
+### projects 表
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `project_id` | TEXT | PK | 项目唯一 ID |
+| `project_name` | TEXT | NOT NULL | 项目名称 |
+| `project_type` | TEXT | NOT NULL, CHECK(novel/script) | 项目类型 |
+| `local_fingerprint` | TEXT | UNIQUE NOT NULL | 本地目录指纹 |
+| `logline` | TEXT | 可空 | 一句话概要 |
+| `genre` | TEXT | 可空 | 类型标签 |
+| `writing_style` | TEXT | 可空 | 写作风格 |
+| `created_at` | TEXT | NOT NULL | ISO 时间戳 |
+| `updated_at` | TEXT | NOT NULL | ISO 时间戳 |
 
 ### tasks 表
 
 | 字段 | 类型 | 约束 | 说明 |
 |---|---|---|---|
 | `task_id` | TEXT | PK | 前端生成的唯一 ID |
-| `project_id` | TEXT | NOT NULL | 所属项目 |
+| `project_id` | TEXT | NOT NULL, FK -> projects | 所属项目 |
+| `target_id` | TEXT | 可空 | 目标实体 ID |
 | `task_type` | TEXT | NOT NULL | 任务类型（如 `image_gen`） |
 | `name` | TEXT | NOT NULL | 任务显示名 |
 | `description` | TEXT | NOT NULL DEFAULT '' | 描述 |
 | `input_text` | TEXT | NOT NULL DEFAULT '' | 输入文本 |
 | `status` | TEXT | NOT NULL | queued/running/completed/failed |
-| `error_message` | TEXT | 可空 | 错误信息 |
+| `output_type` | TEXT | 可空 | 输出类型 |
 | `output_payload` | TEXT | 可空 | JSON 序列化的输出 |
+| `result_summary` | TEXT | 可空 | 结果摘要 |
+| `rationale` | TEXT | NOT NULL DEFAULT '' | 决策理由 |
+| `review_hint` | TEXT | NOT NULL DEFAULT '' | 审阅提示 |
+| `retryable` | INTEGER | NOT NULL DEFAULT 1 | 是否可重试 |
+| `error_message` | TEXT | 可空 | 错误信息 |
 | `created_at` | TEXT | NOT NULL | ISO 时间戳 |
+| `started_at` | TEXT | 可空 | 开始时间 |
+| `finished_at` | TEXT | 可空 | 完成时间 |
+| `updated_at` | TEXT | NOT NULL | ISO 时间戳 |
+
+### task_asset_refs 表
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `task_id` | TEXT | PK, FK -> tasks ON DELETE CASCADE | 任务 ID |
+| `asset_id` | TEXT | PK | 资产 ID |
+
+### project_assets 表
+
+| 字段 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| `asset_id` | TEXT | PK (复合) | 资产唯一 ID |
+| `project_id` | TEXT | PK (复合), FK -> projects ON DELETE CASCADE | 所属项目 |
+| `asset_type` | TEXT | NOT NULL | 资产类型（如 `image`） |
+| `asset_name` | TEXT | NOT NULL | 资产显示名（可编辑） |
+| `asset_group` | TEXT | NOT NULL DEFAULT '' | 分组名（角色/场景/道具/自定义） |
+| `asset_status` | TEXT | NOT NULL | 状态（active 等） |
+| `relative_path` | TEXT | NOT NULL DEFAULT '' | 项目内相对路径 |
+| `source_task_id` | TEXT | 可空 | 来源任务 ID |
+| `summary` | TEXT | 可空 | 资产描述 |
+| `version` | INTEGER | NOT NULL DEFAULT 1 | 版本号 |
 | `updated_at` | TEXT | NOT NULL | ISO 时间戳 |
 
 说明：
@@ -100,6 +145,7 @@
 - 应用重启后通过 `task:list` IPC 恢复未完成任务
 - `cancelled` 状态在写入时映射为 `failed`（符合 CHECK 约束）
 - 离线模式（无 projectId）时任务仅存内存，不写 SQLite
+- `project_assets` 表为图片资产提供元数据管理（名称、分组、描述），AssetsPanel 以磁盘文件为主、DB 记录为辅
 
 ## 4. 模型配置存储（桌面主进程）
 

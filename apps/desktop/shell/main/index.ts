@@ -1,5 +1,6 @@
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, net, protocol, session } from 'electron';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { getLogger, installGlobalErrorHandlers } from './logger';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
@@ -9,6 +10,7 @@ import { registerModelProviderIpc } from './ipc/modelProviderIpc';
 import { registerModelGatewayIpc } from './ipc/modelGatewayIpc';
 import { registerStorySyncIpc } from './ipc/storySyncIpc';
 import { registerTaskIpc } from './ipc/taskIpc';
+import { registerAssetIpc } from './ipc/assetIpc';
 import { registerLogIpc } from './ipc/logIpc';
 import { registerUpdateIpc } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
@@ -24,7 +26,7 @@ const CSP = [
   isDev ? "script-src 'self' 'unsafe-eval'" : "script-src 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https:",
+  "img-src 'self' data: orison-file: https:",
   `connect-src 'self' ${isDev ? 'http://127.0.0.1:18422 http://localhost:18422 ws://localhost:* https:' : 'http://127.0.0.1:18422 https:'}`,
 ].join('; ');
 
@@ -69,6 +71,7 @@ function createWindow() {
   registerStorySyncIpc();
   registerFieldSyncIpc();
   registerTaskIpc();
+  registerAssetIpc();
   registerLogIpc();
   registerUpdateIpc();
   registerGitIpc();
@@ -88,7 +91,19 @@ function createWindow() {
   }
 }
 
+/* ── Custom protocol for serving local project files ── */
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'orison-file', privileges: { standard: false, secure: true, supportFetchAPI: true } },
+]);
+
 app.whenReady().then(() => {
+  // Register orison-file:// protocol to serve local files from sandbox
+  protocol.handle('orison-file', (request) => {
+    // URL format: orison-file:///C:/path/to/file.png (absolute path after triple slash)
+    const filePath = decodeURIComponent(new URL(request.url).pathname).replace(/^\/([A-Za-z]:)/, '$1');
+    return net.fetch(pathToFileURL(filePath).toString());
+  });
+
   installGlobalErrorHandlers();
   getLogger().info({ platform: process.platform, version: app.getVersion() }, 'desktop main starting');
   startModelGatewayHttp();
