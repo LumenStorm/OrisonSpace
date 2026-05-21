@@ -71,15 +71,13 @@ export const worldSettingSchema = z.object({
 // ── Outline V2 总大纲 ──
 
 export const outlineV2Schema = z.object({
-  title: z.string().default(''),
-  logline: z.string().optional(),
-  synopsis: z.string().optional(),
-  theme: z.string().optional(),
-  genre: z.string().optional(),
   central_conflict: z.string().optional(),
   major_turning_points: z.array(z.string()).default([]),
   ending_direction: z.string().optional(),
-  constraints: z.array(z.string()).default([])
+  constraints: z.array(z.string()).default([]),
+  characters: z.string().optional(),
+  growth_curve: z.string().optional(),
+  pacing_curve_text: z.string().optional(),
 });
 
 // ── Episode Outlines 集纲 ──

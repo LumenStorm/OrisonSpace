@@ -226,12 +226,11 @@ describe('local project repository helpers', () => {
     const loaded = loadProject(TEST_PROJECT_DIR);
 
     expect(loaded!.outline_v2).toBeDefined();
-    expect(loaded!.outline_v2!.title).toBe('旧提纲标题');
-    expect(loaded!.outline_v2!.logline).toBe('旧 logline');
-    expect(loaded!.outline_v2!.genre).toBe('悬疑');
-    expect(loaded!.outline_v2!.theme).toBe('真相与背叛');
-    expect(loaded!.outline_v2!.synopsis).toContain('开端');
-    expect(loaded!.outline_v2!.synopsis).toContain('主角进入案件');
+    expect(loaded!.meta.logline).toBe('旧 logline');
+    expect(loaded!.meta.genre).toBe('悬疑');
+    expect(loaded!.meta.theme).toBe('真相与背叛');
+    expect(loaded!.meta.synopsis).toContain('开端');
+    expect(loaded!.meta.synopsis).toContain('主角进入案件');
     expect(loaded!.outline_v2!.major_turning_points).toContain('反转');
   });
 });

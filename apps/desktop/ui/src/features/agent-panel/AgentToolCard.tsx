@@ -27,7 +27,7 @@ export function AgentToolCard({ result }: Props) {
       {expanded && (
         <div className="agent-tool-card-body">
           {imagePaths.map((p) => (
-            <img key={p} src={`file://${p}`} className="agent-tool-card-image" alt="" />
+            <img key={p} src={`orison-file:///${p}`} className="agent-tool-card-image" alt="" />
           ))}
           {result.output && <pre className="agent-tool-card-output">{result.output}</pre>}
         </div>

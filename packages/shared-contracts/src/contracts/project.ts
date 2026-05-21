@@ -23,8 +23,11 @@ export const projectMetaSchema = z.object({
   name: z.string().min(1),
   type: projectType,
   logline: z.string().optional(),
+  synopsis: z.string().optional(),
   genre: z.string().optional(),
+  theme: z.string().optional(),
   writing_style: z.string().optional(),
+  tone: z.string().optional(),
   version: z.number().int().nonnegative(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime()

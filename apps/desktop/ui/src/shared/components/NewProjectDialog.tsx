@@ -140,7 +140,7 @@ export function NewProjectDialog({ onClose }: Props) {
             </span>
             {coverSrc ? (
               <div className="new-project-cover-preview">
-                <img src={`file://${coverSrc}`} alt="Cover" className="new-project-cover-img" />
+                <img src={`orison-file:///${coverSrc}`} alt="Cover" className="new-project-cover-img" />
                 <button type="button" className="new-project-cover-remove" onClick={handleRemoveCover} aria-label="Remove">
                   <span className="material-symbols-outlined">close</span>
                 </button>

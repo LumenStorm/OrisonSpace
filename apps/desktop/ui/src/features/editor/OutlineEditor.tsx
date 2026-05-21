@@ -16,40 +16,32 @@ export function OutlineEditor() {
   const projectDocumentHydrated = useAppStore((s) => s.projectDocumentHydrated);
   const updateField = useAppStore((s) => s.updateField);
 
-  const [title, setTitle] = useState('');
-  const [logline, setLogline] = useState('');
-  const [synopsis, setSynopsis] = useState('');
-  const [theme, setTheme] = useState('');
-  const [genre, setGenre] = useState('');
   const [centralConflict, setCentralConflict] = useState('');
   const [endingDirection, setEndingDirection] = useState('');
   const [turningPoints, setTurningPoints] = useState<string[]>([]);
   const [constraints, setConstraints] = useState<string[]>([]);
+  const [characters, setCharacters] = useState('');
+  const [growthCurve, setGrowthCurve] = useState('');
+  const [pacingCurveText, setPacingCurveText] = useState('');
 
-  // Track whether we're syncing from store to avoid feedback loops
   const syncingRef = useRef(false);
   const userEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Hydrate from store on mount and when store changes externally
   useEffect(() => {
     userEditedRef.current = false;
     if (!storeOutline) return;
     syncingRef.current = true;
-    setTitle(storeOutline.title ?? '');
-    setLogline(storeOutline.logline ?? '');
-    setSynopsis(storeOutline.synopsis ?? '');
-    setTheme(storeOutline.theme ?? '');
-    setGenre(storeOutline.genre ?? '');
     setCentralConflict(storeOutline.central_conflict ?? '');
     setEndingDirection(storeOutline.ending_direction ?? '');
     setTurningPoints(storeOutline.major_turning_points ?? []);
     setConstraints(storeOutline.constraints ?? []);
-    // Allow next tick before re-enabling persist
+    setCharacters(storeOutline.characters ?? '');
+    setGrowthCurve(storeOutline.growth_curve ?? '');
+    setPacingCurveText(storeOutline.pacing_curve_text ?? '');
     requestAnimationFrame(() => { syncingRef.current = false; });
   }, [storeOutline]);
 
-  // Persist to store with debounce
   const persist = useCallback(() => {
     if (syncingRef.current) return;
     if (!projectDocumentHydrated) return;
@@ -57,19 +49,17 @@ export function OutlineEditor() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       const data: OutlineV2 = {
-        title,
-        logline: logline || undefined,
-        synopsis: synopsis || undefined,
-        theme: theme || undefined,
-        genre: genre || undefined,
         central_conflict: centralConflict || undefined,
         major_turning_points: turningPoints.filter(Boolean),
         ending_direction: endingDirection || undefined,
         constraints: constraints.filter(Boolean),
+        characters: characters || undefined,
+        growth_curve: growthCurve || undefined,
+        pacing_curve_text: pacingCurveText || undefined,
       };
       updateField('outline', data);
     }, DEBOUNCE_MS);
-  }, [title, logline, synopsis, theme, genre, centralConflict, endingDirection, turningPoints, constraints, updateField, projectDocumentHydrated, storeOutline]);
+  }, [centralConflict, endingDirection, turningPoints, constraints, characters, growthCurve, pacingCurveText, updateField, projectDocumentHydrated, storeOutline]);
 
   useEffect(() => {
     persist();
@@ -81,106 +71,66 @@ export function OutlineEditor() {
   };
 
   const addTurningPoint = () => setTurningPoints([...turningPoints, '']);
-  const updateTurningPoint = (i: number, v: string) =>
-    setTurningPoints(turningPoints.map((tp, idx) => (idx === i ? v : tp)));
-  const removeTurningPoint = (i: number) =>
-    setTurningPoints(turningPoints.filter((_, idx) => idx !== i));
+  const updateTurningPoint = (i: number, v: string) => {
+    const next = [...turningPoints];
+    next[i] = v;
+    setTurningPoints(next);
+  };
+  const removeTurningPoint = (i: number) => setTurningPoints(turningPoints.filter((_, idx) => idx !== i));
 
   const addConstraint = () => setConstraints([...constraints, '']);
-  const updateConstraint = (i: number, v: string) =>
-    setConstraints(constraints.map((c, idx) => (idx === i ? v : c)));
-  const removeConstraint = (i: number) =>
-    setConstraints(constraints.filter((_, idx) => idx !== i));
+  const updateConstraint = (i: number, v: string) => {
+    const next = [...constraints];
+    next[i] = v;
+    setConstraints(next);
+  };
+  const removeConstraint = (i: number) => setConstraints(constraints.filter((_, idx) => idx !== i));
 
   return (
     <div className="outline-editor">
-      <div className="outline-header">
-        <input
-          className="outline-title-input"
-          placeholder={t('outline.projectTitle')}
-          value={title}
-          onChange={(e) => {
-            markEdited();
-            setTitle(e.target.value);
-          }}
-        />
-        <textarea
-          className="outline-logline-input"
-          placeholder={t('outline.loglinePlaceholder')}
-          value={logline}
-          onChange={(e) => {
-            markEdited();
-            setLogline(e.target.value);
-          }}
-          rows={2}
-        />
-      </div>
-
       <div className="outline-fields">
         <div className="outline-field">
-          <label className="outline-field-label">{t('outline.synopsis')}</label>
+          <label className="outline-field-label">{t('outline.characters')}</label>
           <TiptapEditor
-            content={synopsis}
-            placeholder={t('outline.synopsisPlaceholder')}
-            onChange={(html) => {
-              markEdited();
-              setSynopsis(html);
-            }}
+            content={characters}
+            onChange={(v) => { markEdited(); setCharacters(v); }}
+            placeholder={t('outline.charactersPlaceholder')}
           />
         </div>
 
-        <div className="outline-style-grid">
-          <div className="outline-style-field">
-            <label className="outline-style-label">{t('outline.genre')}</label>
-            <input
-              className="outline-style-input"
-              placeholder={t('outline.genre')}
-              value={genre}
-              onChange={(e) => {
-                markEdited();
-                setGenre(e.target.value);
-              }}
-            />
-          </div>
-          <div className="outline-style-field">
-            <label className="outline-style-label">{t('outline.theme')}</label>
-            <input
-              className="outline-style-input"
-              placeholder={t('outline.theme')}
-              value={theme}
-              onChange={(e) => {
-                markEdited();
-                setTheme(e.target.value);
-              }}
-            />
-          </div>
+        <div className="outline-field">
+          <label className="outline-field-label">{t('outline.growthCurve')}</label>
+          <TiptapEditor
+            content={growthCurve}
+            onChange={(v) => { markEdited(); setGrowthCurve(v); }}
+            placeholder={t('outline.growthCurvePlaceholder')}
+          />
         </div>
 
         <div className="outline-field">
           <label className="outline-field-label">{t('outline.centralConflict')}</label>
-          <textarea
-            className="outline-textarea"
+          <TiptapEditor
+            content={centralConflict}
+            onChange={(v) => { markEdited(); setCentralConflict(v); }}
             placeholder={t('outline.centralConflictPlaceholder')}
-            value={centralConflict}
-            onChange={(e) => {
-              markEdited();
-              setCentralConflict(e.target.value);
-            }}
-            rows={3}
           />
         </div>
 
         <div className="outline-field">
           <label className="outline-field-label">{t('outline.endingDirection')}</label>
-          <textarea
-            className="outline-textarea"
+          <TiptapEditor
+            content={endingDirection}
+            onChange={(v) => { markEdited(); setEndingDirection(v); }}
             placeholder={t('outline.endingDirectionPlaceholder')}
-            value={endingDirection}
-            onChange={(e) => {
-              markEdited();
-              setEndingDirection(e.target.value);
-            }}
-            rows={2}
+          />
+        </div>
+
+        <div className="outline-field">
+          <label className="outline-field-label">{t('outline.pacingCurve')}</label>
+          <TiptapEditor
+            content={pacingCurveText}
+            onChange={(v) => { markEdited(); setPacingCurveText(v); }}
+            placeholder={t('outline.pacingCurvePlaceholder')}
           />
         </div>
 

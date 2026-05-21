@@ -80,12 +80,15 @@ export function loadProject(projectPath: string): ProjectDocument | null {
       .map((act: any) => act.turning_point ?? act.title)
       .filter(Boolean);
 
+    // Move identity fields to meta
+    if (!parsed.meta.logline && legacyOutline.logline) parsed.meta.logline = legacyOutline.logline;
+    if (!parsed.meta.synopsis && (legacyOutline.synopsis || actSummaries.length > 0)) {
+      parsed.meta.synopsis = legacyOutline.synopsis ?? actSummaries.join('\n');
+    }
+    if (!parsed.meta.theme && legacyOutline.theme) parsed.meta.theme = legacyOutline.theme;
+    if (!parsed.meta.genre && legacyOutline.genre) parsed.meta.genre = legacyOutline.genre;
+
     parsed.outline_v2 = {
-      title: legacyOutline.title ?? '',
-      logline: legacyOutline.logline,
-      theme: legacyOutline.theme,
-      genre: legacyOutline.genre,
-      synopsis: legacyOutline.synopsis ?? (actSummaries.length > 0 ? actSummaries.join('\n') : undefined),
       central_conflict: legacyOutline.central_conflict,
       major_turning_points: turningPoints,
       ending_direction: legacyOutline.ending_direction,
@@ -136,9 +139,17 @@ export function loadProject(projectPath: string): ProjectDocument | null {
     }));
   }
 
-  // Migration: move logline from outline_v2 to meta if missing
-  if (!parsed.meta.logline && parsed.outline_v2?.logline) {
-    parsed.meta.logline = parsed.outline_v2.logline;
+  // Migration: move identity fields from outline_v2 to meta
+  if (parsed.outline_v2) {
+    if (!parsed.meta.logline && parsed.outline_v2.logline) parsed.meta.logline = parsed.outline_v2.logline;
+    if (!parsed.meta.synopsis && parsed.outline_v2.synopsis) parsed.meta.synopsis = parsed.outline_v2.synopsis;
+    if (!parsed.meta.theme && parsed.outline_v2.theme) parsed.meta.theme = parsed.outline_v2.theme;
+    if (!parsed.meta.genre && parsed.outline_v2.genre) parsed.meta.genre = parsed.outline_v2.genre;
+    delete parsed.outline_v2.title;
+    delete parsed.outline_v2.logline;
+    delete parsed.outline_v2.synopsis;
+    delete parsed.outline_v2.theme;
+    delete parsed.outline_v2.genre;
   }
 
   // Migration: remove acts from outline_v2

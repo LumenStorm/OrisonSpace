@@ -15,6 +15,12 @@ export function useOpenProject(): () => Promise<void> {
       name: (meta.name as string) || dir.split(/[\\/]/).pop() || 'Project',
       path: dir,
       type: (meta.type as 'novel' | 'script') || 'script',
+      logline: (meta.logline as string) || undefined,
+      synopsis: (meta.synopsis as string) || undefined,
+      genre: (meta.genre as string) || undefined,
+      theme: (meta.theme as string) || undefined,
+      writingStyle: (meta.writing_style as string) || undefined,
+      tone: (meta.tone as string) || undefined,
       coverImage: (meta.coverImage as string) || undefined,
     } : {
       name: dir.split(/[\\/]/).pop() || 'Project',

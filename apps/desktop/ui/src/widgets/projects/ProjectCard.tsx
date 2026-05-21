@@ -14,7 +14,7 @@ export function ProjectCard({ project, typeLabel, onOpen }: ProjectCardProps) {
       onClick={() => onOpen(project)}
     >
       {project.coverImage ? (
-        <img src={`file://${project.coverImage}`} alt="" className="projects-grid-card-cover" />
+        <img src={`orison-file:///${project.coverImage}`} alt="" className="projects-grid-card-cover" />
       ) : (
         <span className="material-symbols-outlined projects-grid-card-icon" aria-hidden="true">movie_creation</span>
       )}

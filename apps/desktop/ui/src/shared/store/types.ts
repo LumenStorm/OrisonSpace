@@ -24,8 +24,11 @@ export type ProjectMeta = {
   path: string;
   type: 'novel' | 'script';
   logline?: string;
+  synopsis?: string;
   genre?: string;
+  theme?: string;
   writingStyle?: string;
+  tone?: string;
   coverImage?: string;
 };
 

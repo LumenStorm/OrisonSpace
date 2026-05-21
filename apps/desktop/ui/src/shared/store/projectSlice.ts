@@ -101,6 +101,12 @@ export const createProjectSlice: StateCreator<
       await window.orisonDesktop.saveProjectMeta(project.path, {
         name: project.name,
         type: project.type,
+        logline: project.logline ?? null,
+        synopsis: project.synopsis ?? null,
+        genre: project.genre ?? null,
+        theme: project.theme ?? null,
+        writing_style: project.writingStyle ?? null,
+        tone: project.tone ?? null,
         coverImage: project.coverImage ?? null,
       });
     }
