@@ -8,9 +8,6 @@ describe('ProjectsPage', () => {
   beforeEach(() => {
     localStorage.clear();
     useAppStore.setState({
-      token: 'token-1',
-      authStatus: 'authenticated',
-      user: { id: 'u1', email: 'user@example.com' },
       resolvedLocale: 'en-US',
       currentProject: null,
       recentProjects: [

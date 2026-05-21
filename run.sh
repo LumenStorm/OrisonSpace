@@ -9,15 +9,13 @@ show_menu() {
   echo "  Orison Space"
   echo "  ============"
   echo ""
-  echo "  1) dev           Agent + Server + Electron dev"
+  echo "  1) dev           Agent + Electron dev"
   echo "  2) dev:electron  Electron dev only"
-  echo "  3) dev:server    Server dev only"
-  echo "  4) dev:agent     Agent dev only"
-  echo "  5) build         Build all"
-  echo "  6) build:desktop Build desktop"
-  echo "  7) build:server  Build server"
-  echo "  8) test          Run tests"
-  echo "  9) typecheck     Type check"
+  echo "  3) dev:agent     Agent dev only"
+  echo "  4) build         Build all"
+  echo "  5) build:desktop Build desktop"
+  echo "  6) test          Run tests"
+  echo "  7) typecheck     Type check"
   echo "  0) exit"
   echo ""
 }
@@ -37,21 +35,17 @@ kill_port() {
 run_choice() {
   case "$1" in
     1)
-      kill_port 43117
       kill_port 18422
       (pnpm dev:agent) &
-      (pnpm dev:server) &
       sleep 4
       pnpm dev
       ;;
     2) pnpm dev ;;
-    3) kill_port 43117; pnpm dev:server ;;
-    4) kill_port 18422; pnpm dev:agent ;;
-    5) pnpm build ;;
-    6) pnpm build:desktop ;;
-    7) pnpm build:server ;;
-    8) pnpm test ;;
-    9) pnpm typecheck ;;
+    3) kill_port 18422; pnpm dev:agent ;;
+    4) pnpm build ;;
+    5) pnpm build:desktop ;;
+    6) pnpm test ;;
+    7) pnpm typecheck ;;
     0) exit 0 ;;
     *) echo "  Invalid: $1" ;;
   esac
@@ -64,7 +58,7 @@ fi
 
 while true; do
   show_menu
-  read -rp "  Select [0-9]: " choice
+  read -rp "  Select [0-7]: " choice
   run_choice "$choice"
   echo ""
 done

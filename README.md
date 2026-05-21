@@ -4,10 +4,9 @@
 
 > 当前定位：AI 驱动的影视 / 小说创作 IDE。用户从一句话、一个章节、一个分镜想法开始，逐步构建大纲、正文、创作字段、分镜与后续生成资产；AI 负责辅助生成、审阅建议与可控修改。
 
-产品形态：以本地项目为核心，`server` 提供认证与 Agent 编排代理，桌面端主进程直接连接第三方模型。
+产品形态：以本地项目为核心，桌面端主进程直接连接第三方模型，Agent 负责编排。
 
 - 本地项目文件仍然是创作内容的唯一事实来源
-- `apps/server` 负责公开 API、JWT 鉴权与 `/v1/orchestration/*` Agent 代理
 - `apps/agent` 负责编排流程、章节生成、规则回退、自动模式
 - `apps/desktop/shell` 负责 IPC、安全边界、模型调用、story-sync 本地执行
 - `apps/desktop/ui` 负责创作、审核、设置、项目管理与工作区交互
@@ -42,18 +41,8 @@
 
 ### 鉴权与会话
 
-- 服务端提供：
-  - `POST /v1/auth/register`
-  - `POST /v1/auth/login`
-  - `GET /v1/auth/me`
-- 密码传输安全：
-  - 客户端使用 Web Crypto API 对密码做 SHA-256(password + app_salt) 散列
-  - 散列值通过 HTTPS 传输到服务端
-  - 服务端对收到的散列值做 bcrypt 存储/校验
-- 桌面端启动时会执行 session bootstrap：
-  - 本地有 token 时，先调用 `/v1/auth/me`
-  - token 过期则自动退出到登录页
-  - 启动校验成功会同步最新用户信息到本地 store
+- 已移除服务端鉴权，桌面端为纯本地应用，无需登录
+- 启动后直接进入项目页
 
 ### 模型配置
 
@@ -69,10 +58,9 @@
 
 最近已验证：
 
-- `pnpm --filter @orison/desktop-ui test -- authSessionExpiry.test.tsx`
 - `pnpm --filter @orison/desktop-ui test -- modelSettingsPage.test.tsx`
 - `pnpm --filter @orison/desktop-ui typecheck`
-- `pnpm --filter @orison/server test -- auth.test.ts`
+- `pnpm --filter @orison/desktop-shell test -- securitySurface.test.ts`
 
 ---
 
@@ -122,14 +110,12 @@ OneLine2Video/
 │  │  │  └─ src/
 │  │  │     ├─ app/App.tsx            页面切换 / bootstrap
 │  │  │     ├─ pages/
-│  │  │     │  ├─ auth/               登录 / 注册
 │  │  │     │  ├─ projects/           项目页
 │  │  │     │  └─ workspace/          工作区
 │  │  │     ├─ widgets/
 │  │  │     │  ├─ layout/             WorkspaceLayout 等跨 feature 外壳
 │  │  │     │  └─ projects/           项目页复用块
 │  │  │     ├─ features/              产品域 feature
-│  │  │     │  ├─ auth/
 │  │  │     │  ├─ editor/             TiptapEditor / OutlineEditor / ScriptEditor
 │  │  │     │  │                      / VideoEditor / ImageGenEditor / ImageEditDialog
 │  │  │     │  │                      / FileEditor / StoryboardCanvas
@@ -183,14 +169,6 @@ OneLine2Video/
 │  │     ├─ api/                      project.yaml / chapters / memory 读写
 │  │     ├─ sync/                     字段同步桥
 │  │     └─ orchestration/            本地编排辅助
-│  └─ server/                         Fastify 服务端
-│     └─ src/
-│        ├─ app.ts
-│        ├─ common/                   db / error / util
-│        └─ modules/
-│           ├─ auth/                  register / login / me
-│           ├─ orchestration/         转发到 Agent
-│           └─ asset/ review/ user/ audit/ quota/ 预留占位目录
 ├─ packages/
 │  ├─ shared-contracts/               Zod schema、IPC 类型、跨进程契约
 │  ├─ model-protocols/                统一 OpenAI 兼容适配层（text/image/video 生成 + listModels）
@@ -199,7 +177,6 @@ OneLine2Video/
 │  ├─ ui-kit/
 │  └─ eslint-config/
 ├─ docs/
-│  ├─ api/server-api.md               服务端 API 参考
 │  ├─ ipc/desktop-ipc.md              桌面 IPC 参考
 │  ├─ architecture/module-boundaries.md 模块边界规则
 │  ├─ data-dictionary.md
@@ -218,7 +195,6 @@ OneLine2Video/
 
 - Node.js 22+
 - pnpm 10+
-- PostgreSQL 14+
 - Python 3.10+（Agent Python 节点需要）
 
 ---
@@ -260,7 +236,6 @@ pnpm install
 
 ```powershell
 pnpm dev           # 启动桌面端（desktop-shell）
-pnpm dev:server    # 启动服务端 http://localhost:43117
 pnpm dev:agent     # 启动 Agent http://localhost:18422
 ```
 
@@ -269,7 +244,6 @@ pnpm dev:agent     # 启动 Agent http://localhost:18422
 ```powershell
 pnpm build
 pnpm build:desktop
-pnpm build:server
 ```
 
 测试：
@@ -279,28 +253,6 @@ pnpm test
 pnpm typecheck
 pnpm lint
 ```
-
----
-
-## 服务端接口概览
-
-### 公开接口
-
-- `GET /health`
-- `POST /v1/auth/register`
-- `POST /v1/auth/login`
-
-### 受保护接口
-
-- `GET /v1/auth/me`
-- `/v1/orchestration/*` -> 代理到 Agent
-
-### 已移除
-
-- `/v1/generation/:provider/text`
-- `/v1/generation/:provider/image`
-
-现在第三方模型请求都由桌面主进程完成。
 
 ---
 
@@ -333,15 +285,7 @@ pnpm lint
 - `temp/images/generation/*`
 - `assets/images/*`
 
-### PostgreSQL
-
-服务端数据库当前负责：
-
-- `users`
-
 项目文件、创作字段与后台任务持久化由桌面端本地项目目录和本地 SQLite 承担。
-
-服务端不保存完整创作正文。
 
 ---
 
@@ -349,7 +293,6 @@ pnpm lint
 
 ### 1. 模型网关迁移到桌面主进程
 
-- `apps/server` 不再持有任何 provider generation route
 - `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` 成为统一模型出口
 - `packages/model-protocols` 负责统一 OpenAI 兼容协议调用
 
@@ -359,11 +302,11 @@ pnpm lint
 - 渲染层把补丁放入 run body 的 `artifacts['chapter.llmPatches']`
 - Agent 仅做二次校验与规则回退
 
-### 3. 启动鉴权改为先校验后放行
+### 3. 移除服务端与鉴权
 
-- 启动时调用 `/v1/auth/me`
-- 过期 token 不再先进入项目页
-- 非过期错误进入登录页并保留错误提示
+- `apps/server` 已完全移除
+- 桌面端为纯本地应用，启动后直接进入项目页
+- API 请求直连 Agent（`http://127.0.0.1:18422`）
 
 ### 4. 模型设置页交互状态收口
 
@@ -382,7 +325,6 @@ pnpm lint
 
 ## 相关文档
 
-- [服务端 API 参考](docs/api/server-api.md)
 - [桌面 IPC 参考](docs/ipc/desktop-ipc.md)
 - [模块边界规则](docs/architecture/module-boundaries.md)
 - [数据字典](docs/data-dictionary.md)

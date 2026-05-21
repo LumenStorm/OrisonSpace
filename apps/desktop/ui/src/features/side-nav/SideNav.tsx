@@ -3,7 +3,6 @@ import { useAppStore, type ActivePage } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
-import { AccountDialog } from '../../shared/components/AccountDialog';
 import { Tooltip } from '../../shared/components/Tooltip';
 import {
   overviewItem, outlineItem, assetsItem, novelItem, scriptItem,
@@ -46,7 +45,6 @@ export function SideNav() {
   const contentItem = currentProject?.type === 'script' ? scriptItem : novelItem;
 
   const [showSettings, setShowSettings] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
 
   const handlePage = (page: ActivePage) => setActivePage(page);
 
@@ -130,21 +128,10 @@ export function SideNav() {
             </button>
           </Tooltip>
 
-          <Tooltip label={t('nav.account')} placement="right">
-            <button
-              type="button"
-              className={`icon-rail-btn${showAccount ? ' icon-rail-btnActive' : ''}`}
-              onClick={() => setShowAccount(true)}
-              aria-label={t('nav.account')}
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
-            </button>
-          </Tooltip>
         </div>
       </nav>
 
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
-      {showAccount && <AccountDialog onClose={() => setShowAccount(false)} />}
     </>
   );
 }

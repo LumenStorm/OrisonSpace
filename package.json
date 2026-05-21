@@ -7,11 +7,9 @@
   },
   "scripts": {
     "dev": "pnpm --filter @orison/desktop-shell dev",
-    "dev:server": "pnpm --filter @orison/server dev",
     "dev:agent": "pnpm --filter @orison/agent dev",
     "build": "turbo run build",
     "build:desktop": "pnpm --filter @orison/desktop-shell build",
-    "build:server": "pnpm --filter @orison/server build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"

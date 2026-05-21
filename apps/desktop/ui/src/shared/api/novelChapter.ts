@@ -7,7 +7,7 @@ import type {
   NovelModelRuntime,
 } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
-import { authJsonHeaders, authHeaders, throwIfSessionExpired } from './session';
+import { jsonHeaders } from './session';
 
 export type NovelChapterRunMode = z.infer<typeof novelChapterRunRequestSchema>['mode'];
 export type AutoModeState = z.infer<typeof novelAutoModeStateSchema>;
@@ -19,10 +19,6 @@ type StartChapterRunInput = {
   chapterId: string;
   mode: NovelChapterRunMode;
   instruction?: string;
-  /**
-   * Model ref used to drive the story-sync LLM extraction locally before
-   * the orchestration request is posted to server.
-   */
   storySyncRef?: ModelRef | null;
   modelRuntime?: NovelModelRuntime | null;
   storySyncContext?: {
@@ -33,16 +29,6 @@ type StartChapterRunInput = {
   };
 };
 
-/**
- * Kick off a chapter orchestration run.
- *
- * When `storySyncRef` is provided: the renderer runs the story-sync LLM
- * extraction on desktop main first, packs the safe patches into
- * `artifacts['chapter.llmPatches']`, then POSTs the run to server.
- *
- * When `storySyncRef` is null/undefined (rules-only run): the request is
- * posted without `chapter.llmPatches`.
- */
 export async function startChapterRun(input: StartChapterRunInput): Promise<unknown> {
   const artifacts: Record<string, unknown> = {};
 
@@ -75,13 +61,10 @@ export async function startChapterRun(input: StartChapterRunInput): Promise<unkn
 
   const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify(body),
   });
-  throwIfSessionExpired(res);
-  if (!res.ok) {
-    throw new Error(`startChapterRun:${res.status}`);
-  }
+  if (!res.ok) throw new Error(`startChapterRun:${res.status}`);
   return res.json();
 }
 
@@ -93,7 +76,7 @@ export async function startAutoMode(
 ): Promise<AutoModeState> {
   const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify({
       projectPath,
       mode: 'generate',
@@ -102,32 +85,24 @@ export async function startAutoMode(
       ...(modelRuntime ? { modelRuntime } : {}),
     }),
   });
-  throwIfSessionExpired(res);
-  if (!res.ok) {
-    throw new Error(`startAutoMode:${res.status}`);
-  }
+  if (!res.ok) throw new Error(`startAutoMode:${res.status}`);
   return (await res.json()) as AutoModeState;
 }
 
 export async function performAutoModeAction(autoModeId: string, action: AutoModeAction): Promise<AutoModeState> {
   const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode/actions`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify({ autoModeId, action }),
   });
-  throwIfSessionExpired(res);
-  if (!res.ok) {
-    throw new Error(`autoModeAction:${action}:${res.status}`);
-  }
+  if (!res.ok) throw new Error(`autoModeAction:${action}:${res.status}`);
   return (await res.json()) as AutoModeState;
 }
 
 export async function refreshAutoMode(autoModeId: string): Promise<AutoModeState | null> {
   const res = await fetch(
     `${API_BASE}/v1/orchestration/auto-mode/${encodeURIComponent(autoModeId)}`,
-    { headers: authHeaders() },
   );
-  throwIfSessionExpired(res);
   if (!res.ok) return null;
   return (await res.json()) as AutoModeState;
 }

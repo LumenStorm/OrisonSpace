@@ -4,7 +4,6 @@ import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
 import { WindowControls, detectIsMac } from '../../shared/components/WindowControls';
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
-import { AccountDialog } from '../../shared/components/AccountDialog';
 import { AboutDialog } from '../../shared/components/AboutDialog';
 import { UpdateAvailableDialog } from '../../shared/components/UpdateAvailableDialog';
 import { ShortcutsDialog } from '../../shared/components/ShortcutsDialog';
@@ -12,7 +11,7 @@ import { useGlobalShortcuts } from '../../shared/hooks/useGlobalShortcuts';
 import { useOpenProject } from '../../shared/hooks/useOpenProject';
 import { MenuDropdown, type MenuItem } from './MenuDropdown';
 
-export function TopBar({ minimal = false }: { minimal?: boolean }) {
+export function TopBar() {
   const isMac = detectIsMac();
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const closeProject = useAppStore((s) => s.closeProject);
@@ -37,7 +36,6 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -98,7 +96,6 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
     { type: 'action', label: t('topbar.toggleBottomPanel'), shortcut: `${modKey}J`, handler: toggleBottomPanel },
     { type: 'separator' },
     { type: 'action', label: t('topbar.settings'), handler: () => setShowSettings(true) },
-    { type: 'action', label: t('topbar.account'), handler: () => setShowAccount(true) },
   ];
 
   const helpItems: MenuItem[] = [
@@ -134,8 +131,7 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
           {appVersion && <span className="workspace-brand-version">v{appVersion}</span>}
         </div>
 
-        {!minimal && (
-          <nav className="topbar-menu" aria-label="Main Menu" role="menubar">
+        <nav className="topbar-menu" aria-label="Main Menu" role="menubar">
             {menus.map((menu) => (
               <div key={menu.key} className="topbar-menu-group">
                 <button
@@ -160,14 +156,12 @@ export function TopBar({ minimal = false }: { minimal?: boolean }) {
               </div>
             ))}
           </nav>
-        )}
 
         <WindowControls />
       </header>
 
       {showNewDialog && <NewProjectDialog onClose={() => setShowNewDialog(false)} />}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
-      {showAccount && <AccountDialog onClose={() => setShowAccount(false)} />}
       {showAbout && <AboutDialog onClose={() => setShowAbout(false)} />}
       {showShortcuts && <ShortcutsDialog onClose={() => setShowShortcuts(false)} />}
       <UpdateAvailableDialog />

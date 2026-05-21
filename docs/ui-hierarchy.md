@@ -6,7 +6,6 @@
 
 | 页面 | 组件 | 路径 |
 |------|------|------|
-| 登录/注册 | `AuthPage` | `pages/auth/` |
 | 项目管理 | `ProjectsPage` | `pages/projects/` |
 | 工作区 | `WorkspacePage` | `pages/workspace/` |
 
@@ -29,7 +28,6 @@
 
 ```
 App
-├── AuthPage
 ├── ProjectsPage
 │   ├── ProjectHeader
 │   ├── ProjectGrid (RecentProjectCard[])
@@ -49,8 +47,7 @@ App
         │   ├── ─── 分隔线 ───
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
         │   ├── NavButton (timeline — setActivePage)
-        │   ├── SettingsBtn
-        │   └── AccountBtn
+        │   └── SettingsBtn
         ├── 左侧面板 (互斥，由 activeSidebarPanel 控制)
         │   ├── ProjectTree (activeSidebarPanel='explorer')
         │   └── SearchPanel (activeSidebarPanel='search')

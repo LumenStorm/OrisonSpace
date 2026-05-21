@@ -1,7 +1,7 @@
 import type { AgentMode } from '../store/types';
 import type { ModelRef } from '@orison/shared-contracts';
 import { API_BASE } from '../constants';
-import { authJsonHeaders, authHeaders, throwIfSessionExpired } from './session';
+import { jsonHeaders } from './session';
 
 const AGENT_BASE = API_BASE;
 
@@ -86,7 +86,7 @@ export async function createAgentSession(
 ): Promise<{ id: string }> {
   const res = await fetch(`${AGENT_BASE}/v1/agent/sessions`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify({ projectPath, mode, modelRef }),
   });
   if (!res.ok) throw new Error(`createAgentSession:${res.status}`);
@@ -94,39 +94,31 @@ export async function createAgentSession(
 }
 
 export async function fetchAgentSession(id: string): Promise<{ id: string; messages: AgentMessage[] }> {
-  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`, {
-    headers: authHeaders(),
-  });
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`);
   if (!res.ok) throw new Error(`fetchAgentSession:${res.status}`);
   return res.json() as Promise<{ id: string; messages: AgentMessage[] }>;
 }
 
 export async function deleteAgentSession(id: string): Promise<void> {
-  await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`, { method: 'DELETE', headers: authHeaders() });
+  await fetch(`${AGENT_BASE}/v1/agent/sessions/${id}`, { method: 'DELETE' });
 }
 
 export async function listAgentSessions(projectPath: string): Promise<AgentSessionMeta[]> {
-  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions?projectPath=${encodeURIComponent(projectPath)}`, {
-    headers: authHeaders(),
-  });
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions?projectPath=${encodeURIComponent(projectPath)}`);
   if (!res.ok) return [];
   const data = await res.json() as { sessions: AgentSessionMeta[] };
   return data.sessions;
 }
 
 export async function listAgentSkills(projectPath: string): Promise<AgentSkillInfo[]> {
-  const res = await fetch(`${AGENT_BASE}/v1/agent/skills?projectPath=${encodeURIComponent(projectPath)}`, {
-    headers: authHeaders(),
-  });
+  const res = await fetch(`${AGENT_BASE}/v1/agent/skills?projectPath=${encodeURIComponent(projectPath)}`);
   if (!res.ok) throw new Error(`listAgentSkills:${res.status}`);
   const data = await res.json() as { skills: AgentSkillInfo[] };
   return data.skills;
 }
 
 export async function listAgentContinuations(sessionId: string): Promise<AgentContinuationListItem[]> {
-  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/continuations`, {
-    headers: authHeaders(),
-  });
+  const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/continuations`);
   if (!res.ok) throw new Error(`listAgentContinuations:${res.status}`);
   const data = await res.json() as { continuations: AgentContinuationListItem[] };
   return data.continuations;
@@ -138,7 +130,7 @@ export async function restoreAgentContinuation(
 ): Promise<AgentContinuationRestoreResponse> {
   const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/continuations/restore`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify({ continuationId }),
   });
   if (!res.ok) throw new Error(`restoreAgentContinuation:${res.status}`);
@@ -152,7 +144,7 @@ export async function resolveAgentConfirmation(
 ): Promise<{ callId: string; approved: boolean }> {
   const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/confirm`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify({ callId, approved }),
   });
   if (!res.ok) throw new Error(`resolveAgentConfirmation:${res.status}`);
@@ -166,17 +158,13 @@ export async function executeAgentSkill(
 ): Promise<{ skill: string; status: string; outputs: string[]; continuation?: AgentContinuation }> {
   const res = await fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/skills/${encodeURIComponent(skillName)}/execute`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify(options ?? {}),
   });
   if (!res.ok) throw new Error(`executeAgentSkill:${res.status}`);
   return res.json() as Promise<{ skill: string; status: string; outputs: string[]; continuation?: AgentContinuation }>;
 }
 
-/**
- * Send a message and receive SSE stream events.
- * Returns an AbortController to cancel the stream.
- */
 export function streamAgentMessage(
   sessionId: string,
   content: string,
@@ -186,7 +174,7 @@ export function streamAgentMessage(
 
   fetch(`${AGENT_BASE}/v1/agent/sessions/${sessionId}/stream`, {
     method: 'POST',
-    headers: authJsonHeaders(),
+    headers: jsonHeaders(),
     body: JSON.stringify({ content }),
     signal: ac.signal,
   }).then(async (res) => {

@@ -25,7 +25,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  `connect-src 'self' ${isDev ? 'http://127.0.0.1:43117 http://localhost:43117 ws://localhost:* https:' : 'http://127.0.0.1:43117 https:'}`,
+  `connect-src 'self' ${isDev ? 'http://127.0.0.1:18422 http://localhost:18422 ws://localhost:* https:' : 'http://127.0.0.1:18422 https:'}`,
 ].join('; ');
 
 function createWindow() {

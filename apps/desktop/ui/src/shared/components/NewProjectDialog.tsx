@@ -9,7 +9,6 @@ type Props = {
 
 export function NewProjectDialog({ onClose }: Props) {
   const openProject = useAppStore((s) => s.openProject);
-  const token = useAppStore((s) => s.token);
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
 
@@ -45,15 +44,12 @@ export function NewProjectDialog({ onClose }: Props) {
       }
 
       let projectId: string | undefined;
-      if (token) {
-        try {
-          projectId = await ensureProjectRegistration({
-            token,
-            project: { name: name.trim(), type, path: projectDir }
-          });
-        } catch {
-          projectId = undefined;
-        }
+      try {
+        projectId = await ensureProjectRegistration({
+          project: { name: name.trim(), type, path: projectDir }
+        });
+      } catch {
+        projectId = undefined;
       }
 
       const meta = {

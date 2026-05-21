@@ -10,8 +10,6 @@ export function ProjectsPage() {
   const {
     openProject,
     resolvedLocale,
-    user,
-    logout,
     recentProjects,
     replaceRecentProjects,
   } = useAppStore();
@@ -65,14 +63,6 @@ export function ProjectsPage() {
     <div className="projects-page">
       <div className="projects-header">
         <span className="projects-header-brand">{t('projects.brand')}</span>
-        <div className="projects-header-user">
-          {user?.displayName && <span className="projects-header-name">{user.displayName}</span>}
-          {user?.email && <span className="projects-header-email">{user.email}</span>}
-          <button type="button" className="projects-header-logout" onClick={logout}>
-            <span className="material-symbols-outlined" aria-hidden="true">logout</span>
-            <span>{t('projects.logout')}</span>
-          </button>
-        </div>
       </div>
 
       <div className="projects-grid-container">

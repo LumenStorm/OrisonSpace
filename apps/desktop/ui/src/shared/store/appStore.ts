@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { createAuthSlice, type AuthSlice } from './authSlice';
 import { createProjectSlice, type ProjectSlice } from './projectSlice';
 import { createSettingsSlice, type SettingsSlice } from './settingsSlice';
 import { createPanelsSlice, type PanelsSlice } from './panelsSlice';
@@ -17,10 +16,9 @@ import { createUpdateSlice, type UpdateSlice } from './updateSlice';
 import { createCommandPaletteSlice, type CommandPaletteSlice } from './commandPaletteSlice';
 import { createAgentSlice, type AgentSlice } from './agentSlice';
 
-export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, UserInfo, TaskAdapter, AgentMode } from './types';
+export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, TaskAdapter, AgentMode } from './types';
 
-type AppState = AuthSlice &
-  ProjectSlice &
+type AppState = ProjectSlice &
   SettingsSlice &
   PanelsSlice &
   TasksSlice &
@@ -38,7 +36,6 @@ type AppState = AuthSlice &
   AgentSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
-  ...createAuthSlice(...a),
   ...createProjectSlice(...a),
   ...createSettingsSlice(...a),
   ...createPanelsSlice(...a),

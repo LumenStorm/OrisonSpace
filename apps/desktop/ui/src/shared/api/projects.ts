@@ -1,7 +1,6 @@
 import type { ProjectMeta } from '../store/types';
 
 type EnsureProjectRegistrationInput = {
-  token: string;
   project: Pick<ProjectMeta, 'name' | 'type' | 'path'>;
 };
 

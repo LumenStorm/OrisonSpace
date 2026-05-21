@@ -2,47 +2,14 @@
 
 ## 1. 页面总览
 
-当前桌面端有三个顶层页面：
+当前桌面端有两个顶层页面：
 
 | 页面 | 触发条件 | 说明 |
 |---|---|---|
-| 登录 / 注册页 `AuthPage` | `authStatus !== 'authenticated'` | 启动无会话、会话过期、bootstrap 失败时进入 |
-| 项目页 `ProjectsPage` | 已登录但没有打开项目 | 展示最近项目、新建项目、打开项目 |
-| 工作区 `WorkspacePage` | 已登录且已打开项目 | 进入创作主界面 |
+| 项目页 `ProjectsPage` | 没有打开项目 | 展示最近项目、新建项目、打开项目 |
+| 工作区 `WorkspacePage` | 已打开项目 | 进入创作主界面 |
 
-重要更新：
-
-- 启动时不再只看本地 token 是否存在
-- 会先做 session bootstrap
-- token 过期时不会先落到项目页
-
-## 2. 登录 / 注册页
-
-### 布局
-
-- 中央卡片式布局
-- 顶部保留品牌名与副标题
-- 顶层仍显示极简模式 TopBar
-
-### 交互元素
-
-| 元素 | 说明 |
-|---|---|
-| 登录 / 注册切换 Tab | 切换模式时清理当前错误 |
-| 邮箱输入框 | `autocomplete="email"` |
-| 密码输入框 | 支持显示 / 隐藏切换 |
-| 显示名输入框 | 仅注册模式展示 |
-| 错误提示 | `role="alert"` |
-| 提交按钮 | 登录时为 `Sign In`，注册时为 `Create Account` |
-
-### 会话启动行为
-
-- 若本地存在 token，`authSlice.bootstrapAuth()` 会先调用 `/v1/auth/me`
-- 成功后进入项目页或工作区
-- 401 则清空本地会话
-- 非 401 失败也停留在登录页，并显示错误信息
-
-## 3. 项目页
+## 2. 项目页
 
 ### 页面职责
 
@@ -56,8 +23,6 @@
 | 元素 | 说明 |
 |---|---|
 | Header 品牌名 | `Orison Space` |
-| 用户信息区 | 显示 `displayName` 与 `email` |
-| Logout 按钮 | 主动退出当前会话 |
 | 新建项目卡片 | 打开 `NewProjectDialog` |
 | 打开项目卡片 | 调用系统目录选择器 |
 | 最近项目卡片 | 打开已有项目 |
@@ -122,7 +87,6 @@ Icon Rail 分为 top section 和 bottom section：
 | 图标 | 功能 |
 |------|------|
 | `settings` | 打开设置对话框 |
-| `account_circle` | 打开账户对话框 |
 
 左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换。
 
