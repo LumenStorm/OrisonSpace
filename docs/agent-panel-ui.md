@@ -3,7 +3,7 @@
 ## 设计原则（对齐 design.md）
 
 - **用户主导创作，AI 辅助** — Agent 不是自动生成器，而是可控的创作伙伴
-- **模型调用发生在用户机器上** — Agent 通过桌面端 HTTP Gateway 调用模型，apiKey 不离开本地
+- **模型调用发生在用户机器上** — Agent 通过桌面主进程调用模型，apiKey 不离开本地
 - **本地项目文件是创作主存** — Agent 的所有写入操作最终落到本地项目目录
 - **IDE 风格布局** — Agent Panel 作为工作区右侧独立面板
 
@@ -83,7 +83,7 @@ Mode 控制逻辑完全在前端（`agentSlice`），Agent 后端不感知 mode�
 
 ### Tool 结果写入编辑器
 
-SSE 返回 tool 事件时，前端根据 mode 处理：
+IPC stream 返回 tool 事件时，前端根据 mode 处理：
 - **auto**：直接调用 `updateChapter` 写入编辑器
 - **suggest**：存入 `pendingDiffs`，渲染 `DiffCard` 组件，用户 Accept 后写入
 - **readonly**：忽略
@@ -108,41 +108,18 @@ Agent 面板所有显示文本通过 `useI18n(resolvedLocale)` + `t('agent.xxx')
 - JSONL 文件存完整消息：避免 SQLite 存大文本，方便 debug 和迁移
 - 按项目隔离：每个项目 `.orison/sessions/` 独立
 
-## 桌面端 HTTP 接口（Agent → Shell）
+## 桌面端 Agent 集成
 
-扩展现有的 `modelGatewayHttp.ts`（port 18421），新增以下端点供 Agent 调用：
+Agent 作为 `@orison/desktop-agent` 库内嵌于桌面主进程，通过 IPC 与渲染层通信。
 
-### 已有
-
-| 端点 | 功能 |
-|------|------|
-| `POST /images/generations` | 图像生成 |
-| `POST /images/edits` | 图像编辑 |
-| `POST /model/generate-text` | 文本生成 |
-
-### 新增
-
-| 端点 | 功能 | 对应 IPC |
-|------|------|----------|
-| `GET /project/current` | 获取当前打开的项目信息 | projectIpc |
-| `POST /project/read-file` | 读取项目内文件 | projectIpc (pathGuard) |
-| `POST /project/write-file` | 写入项目内文件 | projectIpc (pathGuard) |
-| `POST /project/list-dir` | 列出目录 | projectIpc |
-| `GET /editor/state` | 获取编辑器当前状态（打开的文件、光标位置） | — |
-| `POST /editor/open-file` | 在编辑器中打开文件 | — |
-| `GET /config/model` | 获取模型配置（不含 apiKey 明文） | configIpc |
-| `POST /git/status` | Git 状态 | gitIpc |
-| `POST /git/commit` | Git 提交 | gitIpc |
-
-这样 Agent 的 tools 不再需要自己做文件 I/O，而是通过桌面端 HTTP 接口操作，好处：
+Agent 的 tools 通过 shell 提供的注入函数操作文件系统，好处：
 1. **路径安全** — 复用 shell 的 pathGuard，防止路径穿越
 2. **统一权限** — 所有文件操作经过同一入口
 3. **状态同步** — 写入后桌面端可以自动刷新 UI（project tree、editor）
-4. **无需 agent 直接访问文件系统** — agent 可以跑在远程/容器中
 
 ## 文件变更清单
 
-### 新增文件
+### 主要文件
 
 ```
 ui/src/features/agent-panel/
@@ -158,23 +135,9 @@ ui/src/features/agent-panel/
 └── agent-panel.css             — 样式（使用 tokens.css 变量）
 
 ui/src/shared/store/agentSlice.ts   — Zustand slice
-ui/src/shared/api/agent.ts          — Agent REST + SSE 客户端
+ui/src/shared/api/agent.ts          — Agent IPC 客户端
 
-shell/main/ipc/desktopApiHttp.ts    — 扩展 HTTP 接口（project/editor/git）
-```
-
-### 修改文件
-
-```
-ui/src/shared/store/types.ts             — AgentMode type
-ui/src/shared/store/appStore.ts          — 注册 agentSlice
-ui/src/shared/store/panelsSlice.ts       — agentPanelOpen + agentPanelWidth
-ui/src/shared/constants.ts               — AGENT_PANEL_WIDTH_DEFAULT/MIN/MAX
-ui/src/widgets/layout/WorkspaceLayout.tsx — grid 追加 agent panel 列
-ui/src/features/side-nav/SideNav.tsx     — Icon Rail top section 新增 agent toggle
-
-shell/main/ipc/modelGatewayHttp.ts       — 路由分发到 desktopApiHttp
-shell/main/index.ts                      — 注册新 HTTP 路由
+shell/main/ipc/agentIpc.ts          — Agent IPC handlers
 ```
 
 ## Store 设计
@@ -222,6 +185,19 @@ type AgentSlice = {
   cancelAgent: () => void;
   newAgentSession: () => Promise<void>;
 
+  agentSkills: AgentSkillInfo[];
+  agentSkillError: string | null;
+  latestSkillContinuation: AgentContinuation | null;
+  agentContinuations: AgentContinuationListItem[];
+  restoredSkillContinuation: AgentContinuationRestoreState | null;
+  continuationSourceSessionId: string | null;
+  loadAgentSkills: () => Promise<void>;
+  loadAgentContinuations: (sessionIdOverride?: string | null) => Promise<void>;
+  runAgentSkill: (skillName: string) => Promise<void>;
+  restoreLatestSkillContinuation: () => Promise<void>;
+  rerunLatestSkillContinuation: () => Promise<void>;
+  restoreAgentContinuation: (continuationId: string) => Promise<void>;
+
   agentSessions: AgentSessionMeta[];
   loadAgentSessions: () => Promise<void>;
   switchAgentSession: (sessionId: string) => Promise<void>;
@@ -239,18 +215,18 @@ type AgentSlice = {
 
 ## 通信协议
 
-### SSE 流式
+### IPC 流式
 
 ```
-POST /v1/agent/sessions/:id/stream
-{ content, mode, modelRef }
+agent:stream-message  → 发送消息
+agent:stream-event    ← 推送事件
 
-← event: assistant    { id, content, toolCalls }
-← event: tool         { id, results }
-← event: child        { source, role, sessionId, depth, event }   ← 嵌套 skill / spawn_agent 的子事件
-← event: confirm_required   { callId, name, input }   ← 仅 edit 模式
-← event: done         { status }
-← event: error        { message }
+← type: assistant    { id, content, toolCalls }
+← type: tool         { id, results }
+← type: child        { source, role, sessionId, depth, event }   ← 嵌套 skill / spawn_agent 的子事件
+← type: confirm_required   { callId, name, input }   ← 仅 edit 模式
+← type: done         { status }
+← type: error        { message }
 ```
 
 #### child 事件
@@ -268,8 +244,8 @@ POST /v1/agent/sessions/:id/stream
 ### 确认 Tool
 
 ```
-POST /v1/agent/sessions/:id/confirm
-{ callId, approved: true|false }
+agent:resolve-confirmation
+{ sessionId, callId, approved: true|false }
 ```
 
 ## 样式设计
@@ -278,27 +254,27 @@ POST /v1/agent/sessions/:id/confirm
 - Tool 卡片：`border-left: 3px solid var(--accent)`，可折叠
 - 输入区工具栏：小型 pill 按钮，紧凑排列
 - 跟随全局 theme（system/light/dark）
-## 当前实现状态（2026-05-14）
+## 当前实现状态（2026-05-25）
 
-桌面端 Agent Panel 已经以尽量小的产品层改动接入新的 creative runtime。
+桌面端 Agent Panel 已接入 `@orison/desktop-agent` runtime（内嵌库）。
 
 已实现的面板能力：
 
-- 从 `GET /v1/agent/skills` 加载 skill 列表，且会感知项目配置与外部 skill root
+- 通过 `agent:list-skills` IPC 加载 skill 列表，感知项目配置与外部 skill root
 - 在面板中手动刷新可用 skill 列表
 - 针对当前 agent session 直接执行 skill
-- 展示 runtime-backed 执行结果中的 continuation 信息，为后续恢复流程预留入口
-- 现有 session / message 流程继续兼容 runtime-backed server 路由
+- 展示 runtime-backed 执行结果中的 continuation 信息
+- Continuation restore / rerun 控件（最新 continuation 卡片 + 历史列表）
+- 已恢复 continuation 的 workbench 面板（展示 summary、activeSkill、checkpoints、tail）
 
-当前面板范围：
+注意事项：
 
-- skill 能力面目前刻意保持轻量，只提供 list、refresh、run
-- continuation 已在 API 返回中可用，但 UI 里还没有专门的 restore / continue 控件
-- 只要在 agent runtime 中完成配置，外部 skill 包现在就能在产品层可见
+- `agent:list-skills` IPC 直接返回数组（非 `{ skills: [...] }` 包装），前端 API 层已兼容两种格式
+- store 中 `agentSkills`、`agentContinuations`、`agentSessions` 使用 `?? []` 防御 undefined
 
 相关实现文件：
 
-- `apps/desktop/ui/src/features/agent-panel/AgentPanel.tsx`
-- `apps/desktop/ui/src/shared/api/agent.ts`
-- `apps/desktop/ui/src/shared/store/agentSlice.ts`
-- `apps/server/src/modules/agent/proxy.ts`
+- `apps/desktop/client/ui/src/features/agent-panel/AgentPanel.tsx`
+- `apps/desktop/client/ui/src/shared/api/agent.ts`
+- `apps/desktop/client/ui/src/shared/store/agentSlice.ts`
+- `apps/desktop/client/shell/main/ipc/agentIpc.ts`
