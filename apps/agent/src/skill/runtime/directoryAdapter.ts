@@ -24,6 +24,7 @@ export async function loadDirectorySkill(skillDir: string): Promise<NormalizedSk
     workflowMode: 'workflow',
     references: await collectFiles(path.join(skillDir, 'references')),
     scripts: await collectFiles(path.join(skillDir, 'scripts')),
+    priority: parsed.priority,
   });
 
   const compiled = compileDirectorySkill({

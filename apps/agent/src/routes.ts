@@ -161,11 +161,18 @@ export async function registerRoutes(app: FastifyInstance, options: { runtime?: 
     const abortController = new AbortController();
     request.raw.socket.on('close', () => abortController.abort());
 
-    reply.raw.writeHead(200, {
+    const origin = request.headers.origin;
+    const sseHeaders: Record<string, string> = {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
-    });
+    };
+    if (origin) {
+      sseHeaders['Access-Control-Allow-Origin'] = origin;
+      sseHeaders['Access-Control-Allow-Credentials'] = 'true';
+      sseHeaders['Vary'] = 'Origin';
+    }
+    reply.raw.writeHead(200, sseHeaders);
 
     function sendEvent(type: string, data: unknown) {
       reply.raw.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);

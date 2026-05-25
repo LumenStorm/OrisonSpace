@@ -11,13 +11,20 @@ export function parseSkillFile(raw: string, location: string): SkillInfo | null 
 
   const name = extractField(frontmatter, 'name') ?? extractName(location);
   const description = extractDescription(frontmatter);
+  const priority = extractPriority(frontmatter);
 
-  return { name, description, content: body.trim(), location };
+  return { name, description, content: body.trim(), location, priority };
 }
 
 function extractField(fm: string, field: string): string | undefined {
   const match = fm.match(new RegExp(`^${field}:\\s*(.+)$`, 'm'));
   return match?.[1]?.trim().replace(/^["']|["']$/g, '');
+}
+
+function extractPriority(fm: string): 'required' | 'optional' | undefined {
+  const raw = extractField(fm, 'priority')?.toLowerCase();
+  if (raw === 'required' || raw === 'optional') return raw;
+  return undefined;
 }
 
 function extractDescription(fm: string): string | undefined {

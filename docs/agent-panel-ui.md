@@ -247,10 +247,23 @@ POST /v1/agent/sessions/:id/stream
 
 ← event: assistant    { id, content, toolCalls }
 ← event: tool         { id, results }
+← event: child        { source, role, sessionId, depth, event }   ← 嵌套 skill / spawn_agent 的子事件
 ← event: confirm_required   { callId, name, input }   ← 仅 edit 模式
 ← event: done         { status }
 ← event: error        { message }
 ```
+
+#### child 事件
+
+当 LLM 在父会话里调用了 `skill` 或 `spawn_agent`,嵌套 runLoop 内的 assistant / tool 消息会以 `child` 事件回流:
+
+- `source`:`'skill'` 或 `'subagent'`
+- `role`:子任务的标识(skill 名 / agent 角色名)
+- `sessionId`:子会话 id(spawn_agent 时为新建子会话)
+- `depth`:嵌套深度,从 1 开始,父级 runLoop 是 0
+- `event`:内嵌一条 `{type:'assistant', data}` 或 `{type:'tool', data}`
+
+前端 `agentSlice.case 'child'` 解析后追加到聊天流,渲染时带 `[subagent:role:dN]` 角标(N>1 时)以与父级消息区分。父会话最终仍然只会收到一条 `done`。
 
 ### 确认 Tool
 

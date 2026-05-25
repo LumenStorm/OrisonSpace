@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { SessionMessage, ToolCall, ToolContext, ToolDefinition } from '../types';
+import type { ChildStreamEvent, SessionMessage, SkillExecutorRef, ToolCall, ToolContext, ToolDefinition } from '../types';
 import { registry } from '../tool/registry';
 import { logger } from '../logger';
 
@@ -17,6 +17,9 @@ export interface LoopOptions {
   }>;
   onMessage?: (msg: SessionMessage) => void;
   abort: AbortSignal;
+  skillExecutor?: SkillExecutorRef;
+  spawnDepth?: number;
+  emitChildEvent?: (event: ChildStreamEvent) => void;
 }
 
 export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
@@ -54,6 +57,9 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       sessionId: opts.sessionId,
       projectPath: opts.projectPath,
       abort,
+      skillExecutor: opts.skillExecutor,
+      spawnDepth: opts.spawnDepth ?? 0,
+      emitChildEvent: opts.emitChildEvent,
     };
 
     for (const call of response.toolCalls) {

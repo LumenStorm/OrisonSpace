@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { registry } from './registry';
 import { remoteToolProxy } from './remote';
+import { skillTool } from './skill';
+import { spawnAgentTool } from './spawn_agent';
 
 export function registerBuiltinTools() {
   // File operations
@@ -59,14 +61,11 @@ export function registerBuiltinTools() {
     }),
   }));
 
-  // Skills
-  registry.register(remoteToolProxy({
-    id: 'skill',
-    description: 'Load a skill by name and inject its prompt into the conversation context.',
-    parameters: z.object({
-      name: z.string().describe('Name of the skill to load'),
-    }),
-  }));
+  // Skills — local tool that drives the workflow runtime directly
+  registry.register(skillTool);
+
+  // Subagents — spawn focused child sessions for specialized tasks
+  registry.register(spawnAgentTool);
 
   // Image generation
   registry.register(remoteToolProxy({

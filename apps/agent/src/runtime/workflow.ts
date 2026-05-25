@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession } from '../agent/session';
 import { listSessions, persistContinuation, loadContinuations, loadContinuationById, overwriteMessagesFile, persistSession } from '../agent/persistence';
 import { runLoop } from '../agent/loop';
+import { loadAgentDefinition } from '../agent/agentDefinitions';
 import { generate } from '../provider/ipc-provider';
 import { registry } from '../tool/registry';
 import { buildSystemPrompt } from '../prompt/render';
@@ -25,12 +26,17 @@ import { createSubagentRuntime, type SubagentRuntime, type SubagentDispatchInput
 import { forkSession } from './sessionTree';
 import { createSkillContinuation, mergeConversationSummaryWithRunState, restoreSkillContinuation } from './skillContinuation';
 import { serializeSkillRunState, type SkillRunState } from './skillRunState';
-import type {
-  ConfirmationResolution,
-  PendingConfirmationState,
-  RuntimeStreamEvent,
-  SessionMessage,
-  SessionState,
+import {
+  MAX_SPAWN_DEPTH,
+  SpawnDepthExceededError,
+  type ChildInnerEvent,
+  type ChildStreamEvent,
+  type ConfirmationResolution,
+  type PendingConfirmationState,
+  type RuntimeStreamEvent,
+  type SessionMessage,
+  type SessionState,
+  type SkillExecutorInvokeOptions,
 } from '../types';
 
 export interface CreateSessionInput {
@@ -98,12 +104,13 @@ export interface WorkflowRuntime {
   getPendingConfirmation(sessionId: string): PendingConfirmationState | undefined;
   resolveConfirmation(sessionId: string, callId: string, approved: boolean): ConfirmationResolution;
   dispatchSubagent(input: SubagentDispatchInput): Promise<SubagentDispatchOutput>;
+  runSubagent(parentSessionId: string, role: string, prompt: string, options?: SkillExecutorInvokeOptions): Promise<{ content: string }>;
   loadSkillsForSession(sessionId: string): Promise<string[]>;
   listSkills(projectPath: string): Promise<Array<{ name: string; description?: string; location: string; format: string; source?: 'project' | 'external'; capabilities: string[] }>>;
   listContinuations(sessionId: string): ContinuationSummary[];
   restoreContinuation(sessionId: string, continuationId: string): RestoredContinuationResponse;
   executeSkill(skillName: string, context: WorkflowExecutionContext): Promise<WorkflowExecutionResult>;
-  executeSkillByName(sessionId: string, skillName: string, request?: string | ExecuteSkillRequest): Promise<ExecuteSkillResponse>;
+  executeSkillByName(sessionId: string, skillName: string, request?: string | ExecuteSkillRequest, options?: SkillExecutorInvokeOptions): Promise<ExecuteSkillResponse>;
   buildSkillContext(sessionId: string, skillName: string, artifactIds?: string[], referenceIds?: string[]): SkillRuntimeContext;
   compactSession(sessionId: string, preserveLast?: number, skillRunState?: SkillRunState): CompactedConversation;
   createContinuationSnapshot(sessionId: string, workflowState: { activeSkill?: string; checkpoints: string[]; currentNodeId?: string; skillRunState?: SkillRunState }): ContinuationSnapshot;
@@ -132,6 +139,62 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
   const skillRegistry = options.skillRegistry ?? new SkillRegistry();
   const externalSkillRoots = options.externalSkillRoots ?? [];
   const artifactStore = options.artifactStore ?? new InMemoryArtifactStore();
+
+  const runChildAgent = async (
+    childSession: SessionState,
+    role: string,
+    taskPrompt: string,
+    options: {
+      abort: AbortSignal;
+      spawnDepth: number;
+      emitChildEvent?: (event: ChildStreamEvent) => void;
+      source: 'subagent' | 'skill';
+    },
+  ): Promise<{ content: string }> => {
+    if (options.spawnDepth > MAX_SPAWN_DEPTH) {
+      throw new SpawnDepthExceededError(options.spawnDepth);
+    }
+    const agentDefinition = await loadAgentDefinition({
+      projectPath: childSession.projectPath,
+      role,
+      extraRoots: externalSkillRoots,
+    });
+    const baseSystemPrompt = await buildRuntimeSystemPrompt(childSession, externalSkillRoots);
+    const systemPrompt = agentDefinition?.systemPrompt
+      ? `${agentDefinition.systemPrompt}\n\n---\n${baseSystemPrompt}`
+      : baseSystemPrompt;
+    const roleHeader = agentDefinition
+      ? `You are the **${role}** agent.${agentDefinition.description ? ` ${agentDefinition.description}` : ''}`
+      : `You are acting as the **${role}** subagent. Complete the task focused, then return your final answer.`;
+    const enrichedPrompt = `${roleHeader}\n\n${taskPrompt}`;
+    const childOnMessage = makeChildOnMessage(options.source, role, childSession.id, options.spawnDepth, options.emitChildEvent);
+    const messages = await runLoop({
+      sessionId: childSession.id,
+      projectPath: childSession.projectPath,
+      messages: [{
+        id: randomUUID(),
+        role: 'user',
+        content: enrichedPrompt,
+        createdAt: Date.now(),
+      }],
+      systemPrompt,
+      tools: registry.all(),
+      maxSteps: 30,
+      generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: childSession.modelRef }),
+      onMessage: childOnMessage,
+      abort: options.abort,
+      skillExecutor: runtime,
+      spawnDepth: options.spawnDepth,
+      emitChildEvent: options.emitChildEvent,
+    });
+    const content = messages
+      .filter((m) => m.role === 'assistant')
+      .map((m) => m.content)
+      .filter((c) => c && c.trim().length > 0)
+      .join('\n\n');
+    return { content };
+  };
+
   const skillExecutor = createWorkflowExecutor({
     registry: skillRegistry,
     executePrompt: async (prompt, skill, context) => {
@@ -139,20 +202,38 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       if (!session) {
         throw new Error('session not found');
       }
+      const depth = (context.spawnDepth ?? 0) + 1;
+      if (depth > MAX_SPAWN_DEPTH) {
+        throw new SpawnDepthExceededError(depth);
+      }
       const content = context.input ? `${prompt}\n\nUser request:\n${context.input}` : prompt;
-      const result = await generateImpl(
-        [{
+      const systemPrompt = await buildRuntimeSystemPrompt(session, externalSkillRoots);
+      const childOnMessage = makeChildOnMessage('skill', skill.name, session.id, depth, context.emitChildEvent);
+      const messages = await runLoop({
+        sessionId: context.sessionId,
+        projectPath: session.projectPath,
+        messages: [{
           id: randomUUID(),
           role: 'user',
           content,
           createdAt: Date.now(),
         }],
-        DEFAULT_ORISON_PROMPT,
-        [],
-        new AbortController().signal,
-        { modelRef: session.modelRef },
-      );
-      return result.content;
+        systemPrompt,
+        tools: registry.all(),
+        maxSteps: 30,
+        generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }),
+        onMessage: childOnMessage,
+        abort: context.abort ?? new AbortController().signal,
+        skillExecutor: runtime,
+        spawnDepth: depth,
+        emitChildEvent: context.emitChildEvent,
+      });
+      const assistantContent = messages
+        .filter((m) => m.role === 'assistant')
+        .map((m) => m.content)
+        .filter((c) => c && c.trim().length > 0)
+        .join('\n\n');
+      return assistantContent;
     },
     executeTool: async (toolName, input) => {
       const tool = registry.get(toolName);
@@ -171,13 +252,21 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       pending: runtime.registerPendingConfirmation(context.sessionId, toolName, input),
     }),
     dispatchAgent: async (agentType, prompt, context) => {
+      const depth = (context.spawnDepth ?? 0) + 1;
+      const abort = context.abort ?? new AbortController().signal;
+      const emitChildEvent = context.emitChildEvent;
       const dispatched = await runtime.dispatchSubagent({
         parentSessionId: context.sessionId,
         role: agentType,
         prompt,
-        complete: async ({ role, prompt: taskPrompt }) => ({
-          content: `subagent:${role}:${taskPrompt}`,
-        }),
+        complete: async ({ session: childSession, prompt: taskPrompt, role }) => {
+          return runChildAgent(childSession, role, taskPrompt, {
+            abort,
+            spawnDepth: depth,
+            emitChildEvent,
+            source: 'subagent',
+          });
+        },
       });
       return {
         content: dispatched.result.content,
@@ -242,6 +331,26 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       return subagents.dispatch(input);
     },
 
+    async runSubagent(parentSessionId, role, prompt, options) {
+      const abort = options?.abort ?? new AbortController().signal;
+      const spawnDepth = (options?.spawnDepth ?? 0) + 1;
+      const emitChildEvent = options?.emitChildEvent;
+      const dispatched = await runtime.dispatchSubagent({
+        parentSessionId,
+        role,
+        prompt,
+        complete: async ({ session: childSession, prompt: taskPrompt, role: childRole }) => {
+          return runChildAgent(childSession, childRole, taskPrompt, {
+            abort,
+            spawnDepth,
+            emitChildEvent,
+            source: 'subagent',
+          });
+        },
+      });
+      return { content: dispatched.result.content };
+    },
+
     async loadSkillsForSession(sessionId) {
       const session = getSession(sessionId);
       if (!session) {
@@ -276,7 +385,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       return skillExecutor.executeSkill(skillName, context);
     },
 
-    async executeSkillByName(sessionId, skillName, request) {
+    async executeSkillByName(sessionId, skillName, request, options) {
       await runtime.loadSkillsForSession(sessionId);
       const normalized = typeof request === 'string'
         ? { input: request }
@@ -299,6 +408,9 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         sessionId,
         input: normalized.input,
         skillContext,
+        abort: options?.abort,
+        spawnDepth: options?.spawnDepth ?? 0,
+        emitChildEvent: options?.emitChildEvent,
       });
       const session = getSession(sessionId);
       if (session) {
@@ -464,7 +576,12 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       try {
         const skillInvocation = parseSkillInvocation(input.content);
         if (skillInvocation) {
-          const result = await runtime.executeSkillByName(input.sessionId, skillInvocation.skillName, skillInvocation.input);
+          const result = await runtime.executeSkillByName(
+            input.sessionId,
+            skillInvocation.skillName,
+            skillInvocation.input,
+            { abort: runAbortSignal, spawnDepth: 0 },
+          );
           const assistantMsg = createAssistantMessage(renderSkillExecutionResult(result));
           addMessage(input.sessionId, assistantMsg);
           updateStatus(input.sessionId, 'completed');
@@ -472,7 +589,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           return { messages: [assistantMsg] };
         }
 
-        const systemPrompt = await buildRuntimeSystemPrompt(session);
+        const systemPrompt = await buildRuntimeSystemPrompt(session, externalSkillRoots);
         const newMessages = await runLoop({
           sessionId: input.sessionId,
           projectPath: session.projectPath,
@@ -483,6 +600,8 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }),
           onMessage: (msg) => addMessage(input.sessionId, msg),
           abort: runAbortSignal,
+          skillExecutor: runtime,
+          spawnDepth: 0,
         });
 
         updateStatus(input.sessionId, 'completed');
@@ -514,10 +633,19 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       addMessage(input.sessionId, userMsg);
       updateStatus(input.sessionId, 'running');
 
+      const emitChildEvent = (event: ChildStreamEvent) => {
+        input.sendEvent({ type: 'child', data: event });
+      };
+
       try {
         const skillInvocation = parseSkillInvocation(input.content);
         if (skillInvocation) {
-          const result = await runtime.executeSkillByName(input.sessionId, skillInvocation.skillName, skillInvocation.input);
+          const result = await runtime.executeSkillByName(
+            input.sessionId,
+            skillInvocation.skillName,
+            skillInvocation.input,
+            { abort: runAbortSignal, spawnDepth: 0, emitChildEvent },
+          );
           const assistantMsg = createAssistantMessage(renderSkillExecutionResult(result));
           addMessage(input.sessionId, assistantMsg);
           input.sendEvent({
@@ -542,7 +670,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           return;
         }
 
-        const systemPrompt = await buildRuntimeSystemPrompt(session);
+        const systemPrompt = await buildRuntimeSystemPrompt(session, externalSkillRoots);
         await runLoop({
           sessionId: input.sessionId,
           projectPath: session.projectPath,
@@ -573,6 +701,9 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
             }
           },
           abort: runAbortSignal,
+          skillExecutor: runtime,
+          spawnDepth: 0,
+          emitChildEvent,
         });
 
         updateStatus(input.sessionId, 'completed');
@@ -624,12 +755,66 @@ function createAssistantMessage(content: string): SessionMessage {
   };
 }
 
-async function buildRuntimeSystemPrompt(session: SessionState): Promise<string> {
-  const skillsDir = path.join(session.projectPath, '.orison', 'skills');
-  const skills = await discoverSkills(skillsDir);
-  const skillsSummary = skills.length > 0
-    ? '## Available Skills\n' + skills.map((skill) => `- **${skill.name}**: ${skill.description ?? 'no description'}`).join('\n')
-    : undefined;
+async function buildRuntimeSystemPrompt(session: SessionState, extraSkillRoots: string[] = []): Promise<string> {
+  const projectSkillsDir = path.join(session.projectPath, '.orison', 'skills');
+  const runtimeConfig = await loadRuntimeConfig(session.projectPath);
+  const roots = [
+    projectSkillsDir,
+    ...extraSkillRoots,
+    ...runtimeConfig.externalSkillRoots,
+  ];
+
+  type DiscoveredSkill = Awaited<ReturnType<typeof discoverSkills>>[number];
+  const skills: DiscoveredSkill[] = [];
+  const seen = new Set<string>();
+  for (const root of roots) {
+    let found: DiscoveredSkill[];
+    try {
+      found = await discoverSkills(root);
+    } catch {
+      continue;
+    }
+    for (const skill of found) {
+      if (seen.has(skill.name)) continue;
+      seen.add(skill.name);
+      skills.push(skill);
+    }
+  }
+
+  let skillsSummary: string | undefined;
+  if (skills.length > 0) {
+    const required = skills.filter((s) => s.priority === 'required');
+    const optional = skills.filter((s) => s.priority !== 'required');
+
+    const lines: string[] = [
+      '## Available Skills',
+      '',
+      'Skills are pre-defined creative workflows. When the user\'s message matches a skill\'s trigger keywords or describes a task it is designed for, **immediately call the `skill` tool** with the skill\'s `name`. The skill\'s instructions will then be loaded into your context — follow them step by step, and invoke other skills they reference. Do not paraphrase a skill; invoke it.',
+      '',
+    ];
+
+    if (required.length > 0) {
+      lines.push('### Required skills — call immediately when triggered');
+      lines.push('');
+      for (const skill of required) {
+        lines.push(`#### \`${skill.name}\``);
+        if (skill.description) lines.push(skill.description);
+        lines.push('');
+      }
+    }
+
+    if (optional.length > 0) {
+      lines.push('### Optional skills — call when relevant');
+      lines.push('');
+      for (const skill of optional) {
+        lines.push(`#### \`${skill.name}\``);
+        if (skill.description) lines.push(skill.description);
+        lines.push('');
+      }
+    }
+
+    skillsSummary = lines.join('\n').trimEnd();
+  }
 
   return buildSystemPrompt({
     orisonPrompt: DEFAULT_ORISON_PROMPT,
@@ -675,7 +860,33 @@ function parseSkillInvocation(content: string): { skillName: string; input?: str
   };
 }
 
-function renderSkillExecutionResult(result: WorkflowExecutionResult): string {
+function makeChildOnMessage(
+  source: 'subagent' | 'skill',
+  role: string,
+  sessionId: string,
+  depth: number,
+  emit?: (event: ChildStreamEvent) => void,
+): ((msg: SessionMessage) => void) | undefined {
+  if (!emit) return undefined;
+  return (msg) => {
+    let inner: ChildInnerEvent | undefined;
+    if (msg.role === 'assistant') {
+      inner = {
+        type: 'assistant',
+        data: { id: msg.id, content: msg.content, toolCalls: msg.toolCalls },
+      };
+    } else if (msg.role === 'tool') {
+      inner = {
+        type: 'tool',
+        data: { id: msg.id, results: msg.toolResults ?? [] },
+      };
+    }
+    if (!inner) return;
+    emit({ source, role, sessionId, depth, event: inner });
+  };
+}
+
+export function renderSkillExecutionResult(result: WorkflowExecutionResult): string {
   const sections: string[] = [];
   if (result.outputs.length > 0) {
     sections.push(result.outputs.join('\n\n'));

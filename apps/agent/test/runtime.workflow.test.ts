@@ -67,7 +67,13 @@ describe('runtime workflow run state', () => {
       abortSignal: new AbortController().signal,
     })).rejects.toThrow(/already active/i);
 
-    releaseFirstRun?.();
+    // Wait until the generate mock has been entered and releaseFirstRun is wired
+    // (sendMessage awaits system-prompt build before invoking generate; this can
+    // race with the synchronous overlap check above).
+    await vi.waitFor(() => {
+      if (!releaseFirstRun) throw new Error('generate not yet entered');
+    }, { timeout: 5000, interval: 10 });
+    releaseFirstRun!();
     await firstRun;
 
     await runtime.sendMessage({

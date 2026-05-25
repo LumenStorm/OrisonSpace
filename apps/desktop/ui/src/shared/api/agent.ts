@@ -23,12 +23,23 @@ export type AgentSessionMeta = {
   messageCount: number;
 };
 
+export type AgentChildStreamEvent = {
+  source: 'subagent' | 'skill';
+  role: string;
+  sessionId: string;
+  depth: number;
+  event:
+    | { type: 'assistant'; data: { id: string; content: string; toolCalls?: unknown[] } }
+    | { type: 'tool'; data: { id: string; results: unknown[] } };
+};
+
 export type AgentStreamEvent =
   | { type: 'assistant'; data: { id: string; content: string; toolCalls?: unknown[] } }
   | { type: 'tool'; data: { id: string; results: unknown[] } }
   | { type: 'confirm_required'; data: { sessionId?: string; callId: string; name: string; input: unknown; createdAt?: number } }
   | { type: 'done'; data: { status: string } }
-  | { type: 'error'; data: { message: string } };
+  | { type: 'error'; data: { message: string } }
+  | { type: 'child'; data: AgentChildStreamEvent };
 
 export type AgentSkillInfo = {
   name: string;

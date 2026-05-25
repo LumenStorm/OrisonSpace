@@ -18,10 +18,63 @@ export type AgentConfig = z.infer<typeof agentConfigSchema>;
 
 // ── Tool Types ──
 
+export interface SkillExecutionResult {
+  skill: string;
+  outputs: string[];
+  checkpoints: string[];
+  pendingConfirmations: Array<{ name: string }>;
+  nested: Array<{ skill: string }>;
+}
+
+export interface SkillExecutorInvokeOptions {
+  abort?: AbortSignal;
+  spawnDepth?: number;
+  emitChildEvent?: (event: ChildStreamEvent) => void;
+}
+
+export interface SkillExecutorRef {
+  executeSkillByName(
+    sessionId: string,
+    skillName: string,
+    request?: string | { input?: string },
+    options?: SkillExecutorInvokeOptions,
+  ): Promise<SkillExecutionResult>;
+  runSubagent(
+    parentSessionId: string,
+    role: string,
+    prompt: string,
+    options?: SkillExecutorInvokeOptions,
+  ): Promise<{ content: string }>;
+}
+
+export type ChildInnerEvent =
+  | { type: 'assistant'; data: { id: string; content: string; toolCalls?: ToolCall[] } }
+  | { type: 'tool'; data: { id: string; results: ToolCallResult[] } };
+
+export interface ChildStreamEvent {
+  source: 'subagent' | 'skill';
+  role: string;
+  sessionId: string;
+  depth: number;
+  event: ChildInnerEvent;
+}
+
 export interface ToolContext {
   sessionId: string;
   projectPath: string;
   abort: AbortSignal;
+  skillExecutor?: SkillExecutorRef;
+  spawnDepth?: number;
+  emitChildEvent?: (event: ChildStreamEvent) => void;
+}
+
+export const MAX_SPAWN_DEPTH = 5;
+
+export class SpawnDepthExceededError extends Error {
+  constructor(public readonly depth: number, public readonly limit: number = MAX_SPAWN_DEPTH) {
+    super(`Spawn depth ${depth} exceeds limit ${limit}; refusing further nesting.`);
+    this.name = 'SpawnDepthExceededError';
+  }
 }
 
 export interface ToolResult {
@@ -94,7 +147,8 @@ export type RuntimeEventPayload =
   | { type: 'tool'; data: { id: string; results: ToolCallResult[] } }
   | { type: 'confirm_required'; data: PendingConfirmationState }
   | { type: 'done'; data: { status: WorkflowRunStatus } }
-  | { type: 'error'; data: { message: string } };
+  | { type: 'error'; data: { message: string } }
+  | { type: 'child'; data: ChildStreamEvent };
 
 export type RuntimeStreamEvent = RuntimeEventPayload;
 

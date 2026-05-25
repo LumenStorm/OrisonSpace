@@ -3,6 +3,7 @@ export interface SkillInfo {
   description?: string;
   location: string;
   content: string;
+  priority?: 'required' | 'optional';
 }
 
 import type { ExecutionPlan } from './runtime/executionPlan';
@@ -40,4 +41,5 @@ export interface NormalizedSkill {
   compiledPlan?: ExecutionPlan;
   capabilities?: string[];
   rawSource?: string;
+  priority?: 'required' | 'optional';
 }

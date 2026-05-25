@@ -64,6 +64,22 @@
 
 ---
 
+## 最近更新（2026-05-23）
+
+Agent runtime 打通"自动召唤 skill / 子代理"的完整嵌套链路:
+
+- LLM 可在对话中直接命中 skill,系统提示按 `priority: required / optional` 自动列出可调用清单
+- skill 内部 prompt 改为完整 runLoop,可继续触发其它 skill / 工具 / 子代理
+- 新 `spawn_agent` 工具,子代理在独立子会话中聚焦完成任务,只回传最终答复
+- `.orison/agents/<role>.md` 定义子代理人设(frontmatter + 正文)
+- SSE 新增 `child` 事件,UI 用 `[subagent:role:dN]` 角标渲染嵌套消息
+- abort 信号 / 嵌套深度上限 (`MAX_SPAWN_DEPTH = 5`) 沿调用链下传,防止失控
+- 修复 `/sessions/:id/stream` 端点的 CORS 头丢失问题(SSE "Failed to fetch")
+
+详见下面的 [「嵌套执行链（2026-05-23）」](#嵌套执行链2026-05-23) 节与 [docs/agent.md](docs/agent.md)。
+
+---
+
 ## 仓库结构
 
 ```text
@@ -394,6 +410,27 @@ Private
 - runtime 已返回 continuation restore 数据，但 UI 侧还没有完整恢复 / 续跑入口
 - Agent Panel 目前还是轻量 skill launcher，不是完整 workflow workbench
 - 现有中文文档与 i18n 文件仍需进一步做编码清理
+
+## 嵌套执行链（2026-05-23）
+
+在 runtime 底座之上,把 agent / skill / 子代理 三者的嵌套调用链跑通,目标是让 LLM 可以像 Claude Code 那样自动召唤 skill 与子代理,而不需要用户手动点按。
+
+新增能力:
+
+- **`skill` 工具下沉为本地工具** — 直接驱动 `WorkflowRuntime`,可在 LLM 对话中按关键词自动触发对应 skill;skill 内部 prompt 节点也会跑完整 runLoop,可继续调用其它 skill 或工具。
+- **`spawn_agent` 工具新增** — 在子会话中以独立 runLoop 派出聚焦子代理,完成后只把最终答复回传父会话,避免污染父上下文。
+- **`.orison/agents/<role>.md` 子代理定义** — frontmatter (`description` / `model` / `tools`) + 正文作为该 role 的角色 prompt;命中 role 时自动覆盖默认 Orison 系统提示,找不到则回退默认。
+- **嵌套 SSE 透传** — 新增 `child` 事件类型,前端 `agentSlice` 加 `case 'child'`,带 `[subagent:role:dN]` 角标渲染子代理 / 子 skill 的中间消息。
+- **abort 信号串联** — 外层 streamMessage 取消会沿 `SkillExecutorInvokeOptions.abort` 一路下传至所有嵌套 runLoop,立即终止子任务。
+- **递归深度兜底** — `MAX_SPAWN_DEPTH = 5`,超过抛 `SpawnDepthExceededError`,防止 A→B→A 互相调用耗光预算。
+- **系统提示自动罗列外部 skill** — `buildRuntimeSystemPrompt` 现在同时扫项目内 skill、`externalSkillRoots` option、`.orison/agent.runtime.json`,并按 frontmatter 的 `priority: required / optional` 分组提示 LLM。
+- **CORS 修复** — `/sessions/:id/stream` 端点的 `reply.raw.writeHead` 手工补写 CORS 响应头,避免 fastify onSend hook 被绕过导致 SSE "Failed to fetch"。
+
+仍未处理:
+
+- 子代理 frontmatter 的 `model` / `tools` 字段当前只做解析,未真正接入 model gateway 路由或 tool registry 收紧。
+- `child` 事件目前只透传 assistant / tool 类,confirm_required 等其它类型按需扩展。
+- Agent Panel UI 对 `child` 事件是角标版渲染,未做嵌套树状折叠。
 
 更多细节见：
 

@@ -39,9 +39,6 @@ const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
         }
         init = { ...init, body: JSON.stringify(json) };
       }
-      // Debug: log the actual request sent to upstream API
-      console.log('[model-protocols] upstream request URL:', typeof input === 'string' ? input : (input as Request).url);
-      console.log('[model-protocols] upstream request body:', JSON.stringify(json, null, 2));
     } catch { /* not JSON, pass through */ }
   }
   return globalThis.fetch(input, init);

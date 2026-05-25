@@ -11,6 +11,7 @@ export interface NormalizeSkillInput {
   workflowMode?: SkillWorkflowMode;
   references?: string[];
   scripts?: string[];
+  priority?: 'required' | 'optional';
 }
 
 export function normalizeSkill(input: NormalizeSkillInput): NormalizedSkill {
@@ -26,6 +27,7 @@ export function normalizeSkill(input: NormalizeSkillInput): NormalizedSkill {
       references: normalizePaths(input.location, input.references ?? []),
       scripts: normalizePaths(input.location, input.scripts ?? []),
     },
+    priority: input.priority,
   };
 }
 

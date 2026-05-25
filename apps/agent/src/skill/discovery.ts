@@ -22,6 +22,7 @@ export async function discoverSkills(skillsDir: string): Promise<SkillInfo[]> {
           description: normalized.description,
           location: normalized.location,
           content: normalized.prompt,
+          priority: normalized.priority,
         });
         continue;
       } catch {
@@ -35,6 +36,7 @@ export async function discoverSkills(skillsDir: string): Promise<SkillInfo[]> {
           description: normalized.description,
           location: normalized.location,
           content: normalized.prompt,
+          priority: normalized.priority,
         });
         continue;
       } catch {

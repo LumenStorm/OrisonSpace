@@ -136,10 +136,16 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
     }
 
     let sessionId = state.agentSessionId;
-    if (!sessionId) {
-      const session = await createAgentSession(projectPath, state.agentMode, state.agentModelRef);
-      sessionId = session.id;
-      set({ agentSessionId: sessionId });
+    try {
+      if (!sessionId) {
+        const session = await createAgentSession(projectPath, state.agentMode, state.agentModelRef);
+        sessionId = session.id;
+        set({ agentSessionId: sessionId });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ agentError: `createAgentSession failed: ${message}`, agentLoading: false });
+      return;
     }
 
     const userMsg: AgentMessage = {
@@ -212,6 +218,32 @@ export const createAgentSlice: StateCreator<Deps, [], [], AgentSlice> = (set, ge
         case 'confirm_required':
           set({ pendingToolConfirm: event.data, agentLoading: false });
           break;
+        case 'child': {
+          const { source, role, depth, event: inner } = event.data;
+          const tag = `[${source}:${role}${depth > 1 ? `:d${depth}` : ''}]`;
+          if (inner.type === 'assistant') {
+            set((s) => ({
+              agentMessages: [...s.agentMessages, {
+                id: inner.data.id,
+                role: 'assistant',
+                content: `${tag} ${inner.data.content ?? ''}`.trimEnd(),
+                toolCalls: inner.data.toolCalls as AgentMessage['toolCalls'],
+                createdAt: Date.now(),
+              }],
+            }));
+          } else if (inner.type === 'tool') {
+            set((s) => ({
+              agentMessages: [...s.agentMessages, {
+                id: inner.data.id,
+                role: 'tool',
+                content: tag,
+                toolResults: inner.data.results as AgentMessage['toolResults'],
+                createdAt: Date.now(),
+              }],
+            }));
+          }
+          break;
+        }
         case 'done':
           set({ agentLoading: false });
           break;

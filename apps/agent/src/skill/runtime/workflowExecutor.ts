@@ -1,4 +1,4 @@
-import type { PendingConfirmationState } from '../../types';
+import type { ChildStreamEvent, PendingConfirmationState } from '../../types';
 import type { NormalizedSkill, WorkflowStep } from '../types';
 import type { SkillRuntimeContext } from '../../context/builder';
 import { SkillRegistry } from './registry';
@@ -18,6 +18,9 @@ export interface WorkflowExecutionContext {
   sessionId: string;
   input?: string;
   skillContext?: SkillRuntimeContext;
+  abort?: AbortSignal;
+  spawnDepth?: number;
+  emitChildEvent?: (event: ChildStreamEvent) => void;
 }
 
 export interface WorkflowExecutionResult {
