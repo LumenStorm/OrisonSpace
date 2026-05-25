@@ -7,7 +7,6 @@
   },
   "scripts": {
     "dev": "pnpm --filter @orison/desktop-shell dev",
-    "dev:agent": "pnpm --filter @orison/agent dev",
     "build": "turbo run build",
     "build:desktop": "pnpm --filter @orison/desktop-shell build",
     "test": "turbo run test",

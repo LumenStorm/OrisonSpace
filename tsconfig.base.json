@@ -37,6 +37,12 @@
       ],
       "@orison/story-sync/*": [
         "./packages/story-sync/src/*"
+      ],
+      "@orison/desktop-agent": [
+        "./apps/desktop/agent/src/index.ts"
+      ],
+      "@orison/desktop-agent/*": [
+        "./apps/desktop/agent/src/*"
       ]
     }
   }

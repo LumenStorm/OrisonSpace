@@ -4,12 +4,12 @@
 
 > 当前定位：AI 驱动的影视 / 小说创作 IDE。用户从一句话、一个章节、一个分镜想法开始，逐步构建大纲、正文、创作字段、分镜与后续生成资产；AI 负责辅助生成、审阅建议与可控修改。
 
-产品形态：以本地项目为核心，桌面端主进程直接连接第三方模型，Agent 负责编排。
+产品形态：以本地项目为核心，桌面端主进程直接连接第三方模型，Agent 作为库内嵌于 Shell 进程。
 
 - 本地项目文件仍然是创作内容的唯一事实来源
-- `apps/agent` 负责编排流程、章节生成、规则回退、自动模式
-- `apps/desktop/shell` 负责 IPC、安全边界、模型调用、story-sync 本地执行
-- `apps/desktop/ui` 负责创作、审核、设置、项目管理与工作区交互
+- `apps/desktop/agent` 是编排库（非独立进程），负责 workflow runtime、skill 执行、continuation
+- `apps/desktop/client/shell` 负责 IPC、安全边界、模型调用、story-sync 本地执行、agent 生命周期
+- `apps/desktop/client/ui` 负责创作、审核、设置、项目管理与工作区交互
 
 ---
 
@@ -32,9 +32,9 @@
   - 支持上传参考图进入编辑模式（走 `/images/edits`），自动强制 n=1
   - 预览弹窗支持左右键盘切换
   - 确认保存后移动到 `assets/images/`
-- 模型网关已从服务端迁移到桌面主进程
+- 模型网关在桌面主进程
   - 文本 / 图片 / 视频生成都走 IPC
-  - `apiKey` 不再经过 server，也不进入 agent
+  - `apiKey` 不进入 agent
   - 模型列表统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`），覆盖直连 OpenAI 和 NewAPI/OneAPI 中继
   - 协议层统一为单一 OpenAI 兼容适配器（`generateText` / `generateImage` / `generateVideo`），移除多 apiFormat 注册表
   - 模型能力识别改为 model-registry 模式匹配（glob pattern），不再依赖手动 apiFormat 标注
@@ -72,58 +72,46 @@ Agent runtime 打通"自动召唤 skill / 子代理"的完整嵌套链路:
 - skill 内部 prompt 改为完整 runLoop,可继续触发其它 skill / 工具 / 子代理
 - 新 `spawn_agent` 工具,子代理在独立子会话中聚焦完成任务,只回传最终答复
 - `.orison/agents/<role>.md` 定义子代理人设(frontmatter + 正文)
-- SSE 新增 `child` 事件,UI 用 `[subagent:role:dN]` 角标渲染嵌套消息
+- IPC stream 事件新增 `child` 类型,UI 用 `[subagent:role:dN]` 角标渲染嵌套消息
 - abort 信号 / 嵌套深度上限 (`MAX_SPAWN_DEPTH = 5`) 沿调用链下传,防止失控
-- 修复 `/sessions/:id/stream` 端点的 CORS 头丢失问题(SSE "Failed to fetch")
 
-详见下面的 [「嵌套执行链（2026-05-23）」](#嵌套执行链2026-05-23) 节与 [docs/agent.md](docs/agent.md)。
-
----
+详见下面的 [「嵌套执行链（2026-05-23）」](#嵌套执行链2026-05-23) 节与 [docs/agent.md](docs/agent.md)。---
 
 ## 仓库结构
 
 ```text
 OneLine2Video/
 ├─ apps/
-│  ├─ agent/                          Fastify Agent：编排、章节流水线、Auto Mode、规则回退
-│  │  ├─ src/
-│  │  │  ├─ app.ts                    Agent 入口
-│  │  │  ├─ routes.ts                 orchestration 路由
-│  │  │  ├─ engine/                   运行时引擎
-│  │  │  │  ├─ novelPipeline.ts       章节生成主流水线
-│  │  │  │  ├─ runService.ts          orchestration run 调度
-│  │  │  │  ├─ reviewRouter.ts        复审路由
-│  │  │  │  ├─ workflowSync.ts        与 desktop 的 sync 协议
-│  │  │  │  ├─ autoMode/              Auto Mode 状态机 / runner / store
-│  │  │  │  ├─ memory/                长期记忆抽取
-│  │  │  │  ├─ foreshadowLedger.ts    伏笔登记
-│  │  │  │  └─ promptContractValidator.ts
-│  │  │  ├─ nodes/                    有向工作流的节点（draft-writer / story-planner / story-sync / multi-review 等）
-│  │  │  ├─ store/                    Agent 侧状态持久化
-│  │  │  ├─ contracts/                Agent 对外契约
-│  │  │  └─ common/
-│  │  ├─ prompts/                     节点 prompt 模板
-│  │  └─ python/                      python node executor 辅助
 │  ├─ desktop/
-│  │  ├─ shell/                       Electron 主进程 + preload
-│  │  │  ├─ main/
-│  │  │  │  ├─ index.ts               主进程入口、窗口创建、CSP 注入
-│  │  │  │  ├─ ipc/
-│  │  │  │  │  ├─ projectIpc.ts       项目 / 文件通道
-│  │  │  │  │  ├─ projectIpcHelpers.ts
-│  │  │  │  │  ├─ windowIpc.ts        窗口与系统通道
-│  │  │  │  │  ├─ configIpc.ts        模型配置、用户偏好
-│  │  │  │  │  ├─ modelProviderIpc.ts provider 模型列表
-│  │  │  │  │  ├─ modelGatewayIpc.ts  文本 / 图片 / 视频生成入口
-│  │  │  │  │  ├─ storySyncIpc.ts     本地 story-sync 执行
-│  │  │  │  │  ├─ fieldSyncIpc.ts     创作字段同步
-│  │  │  │  │  └─ pathGuard.ts        路径白名单
-│  │  │  │  └─ storySync/runStorySync.ts
-│  │  │  ├─ preload/index.ts          `window.orisonDesktop` contextBridge
-│  │  │  ├─ renderer/main.tsx         Vite renderer 入口
-│  │  │  └─ resources/
-│  │  ├─ ui/                          React 渲染层
+│  │  ├─ agent/                        @orison/desktop-agent 库：workflow runtime、skill 执行、continuation
 │  │  │  └─ src/
+│  │  │     ├─ index.ts                公共 API 入口
+│  │  │     ├─ runtime/                workflow runtime 核心
+│  │  │     ├─ skill/                  skill 发现与执行
+│  │  │     ├─ session/                会话管理与持久化
+│  │  │     ├─ agent/                  子代理定义加载
+│  │  │     └─ remote.ts              LLM provider（依赖注入）
+│  │  ├─ client/
+│  │  │  ├─ shell/                     Electron 主进程 + preload
+│  │  │  │  ├─ main/
+│  │  │  │  │  ├─ index.ts               主进程入口、窗口创建、CSP 注入
+│  │  │  │  │  ├─ ipc/
+│  │  │  │  │  │  ├─ projectIpc.ts       项目 / 文件通道
+│  │  │  │  │  │  ├─ projectIpcHelpers.ts
+│  │  │  │  │  │  ├─ windowIpc.ts        窗口与系统通道
+│  │  │  │  │  │  ├─ configIpc.ts        模型配置、用户偏好
+│  │  │  │  │  │  ├─ modelProviderIpc.ts provider 模型列表
+│  │  │  │  │  │  ├─ modelGatewayIpc.ts  文本 / 图片 / 视频生成入口
+│  │  │  │  │  │  ├─ storySyncIpc.ts     本地 story-sync 执行
+│  │  │  │  │  │  ├─ agentIpc.ts         Agent IPC handlers
+│  │  │  │  │  │  ├─ fieldSyncIpc.ts     创作字段同步
+│  │  │  │  │  │  └─ pathGuard.ts        路径白名单
+│  │  │  │  │  └─ storySync/runStorySync.ts
+│  │  │  │  ├─ preload/index.ts          `window.orisonDesktop` contextBridge
+│  │  │  │  ├─ renderer/main.tsx         Vite renderer 入口
+│  │  │  │  └─ resources/
+│  │  │  └─ ui/                          React 渲染层
+│  │  │     └─ src/
 │  │  │     ├─ app/App.tsx            页面切换 / bootstrap
 │  │  │     ├─ pages/
 │  │  │     │  ├─ projects/           项目页
@@ -238,13 +226,13 @@ pnpm install
 
 本地 `node_modules` 已从混装状态清理为 pnpm 单一安装。一次干净安装后，根目录 `node_modules` 约 560 MB，其中 Electron 约 318 MB，是桌面壳运行和打包的主要体积来源。除非拆分桌面端安装边界，否则这是当前框架下的主要固定成本。
 
-原先 `apps/desktop/shell` 中直接声明但未直接使用的 `@swc/core` 已移除；它仍可能作为 electron-vite / tsup 的可选平台依赖出现在 pnpm virtual store 中。不要为了“看起来缺失”重新加回直接依赖，除非代码里确实直接 import 或调用它。
+原先 `apps/desktop/client/shell` 中直接声明但未直接使用的 `@swc/core` 已移除；它仍可能作为 electron-vite / tsup 的可选平台依赖出现在 pnpm virtual store 中。不要为了”看起来缺失”重新加回直接依赖，除非代码里确实直接 import 或调用它。
 
 允许执行 install/build 脚本的 native 依赖集中维护在根目录 `package.json` 的 `pnpm.onlyBuiltDependencies` 中，目前包括 `@swc/core`、`bcrypt`、`better-sqlite3`、`electron`、`esbuild`。新增 native 依赖时，需要先确认用途、体积和安全性，再同步更新该白名单。
 
 依赖归属遵循“谁 import 谁声明”的原则。比如 `@orison/model-protocols` 不再放在未直接使用它的 desktop-ui 中；跨包能力优先沉到 workspace 包或明确的 app 边界，避免为了测试或临时脚本把依赖散落到多个 apps。
 
-`apps/agent` 的默认测试脚本只覆盖当前仍然有效的 context、env、persistence、routes、runtime 和 skill 测试。旧 `src/engine`、`src/nodes` 相关测试属于历史架构漂移，已记录在 `TODO.md`，在迁移完成前不要重新加入默认测试入口。
+`apps/desktop/agent` 的默认测试脚本只覆盖当前仍然有效的 runtime 和 skill 测试。旧 `src/engine`、`src/nodes` 相关测试属于历史架构漂移，已记录在 `TODO.md`，在迁移完成前不要重新加入默认测试入口。
 
 ---
 
@@ -309,7 +297,7 @@ pnpm lint
 
 ### 1. 模型网关迁移到桌面主进程
 
-- `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` 成为统一模型出口
+- `apps/desktop/client/shell/main/ipc/modelGatewayIpc.ts` 成为统一模型出口
 - `packages/model-protocols` 负责统一 OpenAI 兼容协议调用
 
 ### 2. Story Sync 从 Agent 中抬出
@@ -322,7 +310,7 @@ pnpm lint
 
 - `apps/server` 已完全移除
 - 桌面端为纯本地应用，启动后直接进入项目页
-- API 请求直连 Agent（`http://127.0.0.1:18422`）
+- Agent 已从独立 HTTP 服务改为库内嵌于桌面主进程，通过 IPC 调用
 
 ### 4. 模型设置页交互状态收口
 
@@ -363,7 +351,7 @@ Private
 
 已实现的 runtime 能力：
 
-- 以 `apps/agent/src/runtime/workflow.ts` 为核心的分层 runtime 编排
+- 以 `apps/desktop/agent/src/runtime/workflow.ts` 为核心的分层 runtime 编排
 - 带兼容性 SQLite 自动迁移的 session tree 持久化
 - runtime 级确认 / 权限流与受控 subagent 分发
 - 同时支持目录型 skill 与 manifest skill 的双格式发现
@@ -420,11 +408,10 @@ Private
 - **`skill` 工具下沉为本地工具** — 直接驱动 `WorkflowRuntime`,可在 LLM 对话中按关键词自动触发对应 skill;skill 内部 prompt 节点也会跑完整 runLoop,可继续调用其它 skill 或工具。
 - **`spawn_agent` 工具新增** — 在子会话中以独立 runLoop 派出聚焦子代理,完成后只把最终答复回传父会话,避免污染父上下文。
 - **`.orison/agents/<role>.md` 子代理定义** — frontmatter (`description` / `model` / `tools`) + 正文作为该 role 的角色 prompt;命中 role 时自动覆盖默认 Orison 系统提示,找不到则回退默认。
-- **嵌套 SSE 透传** — 新增 `child` 事件类型,前端 `agentSlice` 加 `case 'child'`,带 `[subagent:role:dN]` 角标渲染子代理 / 子 skill 的中间消息。
+- **嵌套 IPC 事件透传** — 新增 `child` 事件类型,前端 `agentSlice` 加 `case 'child'`,带 `[subagent:role:dN]` 角标渲染子代理 / 子 skill 的中间消息。
 - **abort 信号串联** — 外层 streamMessage 取消会沿 `SkillExecutorInvokeOptions.abort` 一路下传至所有嵌套 runLoop,立即终止子任务。
 - **递归深度兜底** — `MAX_SPAWN_DEPTH = 5`,超过抛 `SpawnDepthExceededError`,防止 A→B→A 互相调用耗光预算。
 - **系统提示自动罗列外部 skill** — `buildRuntimeSystemPrompt` 现在同时扫项目内 skill、`externalSkillRoots` option、`.orison/agent.runtime.json`,并按 frontmatter 的 `priority: required / optional` 分组提示 LLM。
-- **CORS 修复** — `/sessions/:id/stream` 端点的 `reply.raw.writeHead` 手工补写 CORS 响应头,避免 fastify onSend hook 被绕过导致 SSE "Failed to fetch"。
 
 仍未处理:
 

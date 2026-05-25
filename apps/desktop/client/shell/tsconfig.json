@@ -1,0 +1,13 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "main/**/*.ts",
+    "preload/**/*.ts",
+    "test/**/*.ts"
+  ]
+}

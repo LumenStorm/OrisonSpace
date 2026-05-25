@@ -1,123 +1,114 @@
 # Orison Agent
 
-AI 写作助手的 Agent 后端服务。基于 agentic loop + tool calling 架构，为桌面端提供智能写作、图像生成、项目管理能力。
+AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构，作为 `@orison/desktop-agent` 包内嵌于桌面主进程，为创作工作区提供智能写作、workflow 编排、skill 执行能力。
 
 ## 架构概览
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Desktop Shell (Electron)                               │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  Model Gateway HTTP (port 18421)                │    │
-│  │  /model/generate-text                           │    │
-│  │  /images/generations                            │    │
-│  │  /images/edits                                  │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-         ▲
-         │ HTTP
-         ▼
-┌─────────────────────────────────────────────────────────┐
-│  Agent Service (port 18422)                             │
+│  Desktop Shell (Electron main process)                  │
 │                                                         │
-│  ┌──────────┐   ┌──────────┐   ┌──────────────────┐    │
-│  │  Routes  │──▶│  Loop    │──▶│  LLM Provider    │    │
-│  │  (REST)  │   │  (Agent) │   │  (IPC/HTTP)      │    │
-│  └──────────┘   └──────────┘   └──────────────────┘    │
-│       │              │                                  │
-│       │              ▼                                  │
-│       │         ┌──────────┐                            │
-│       │         │  Tools   │                            │
-│       │         │  Registry│                            │
-│       │         └──────────┘                            │
-│       │              │                                  │
-│       ▼              ▼                                  │
-│  ┌──────────┐   ┌──────────────────────────────────┐   │
-│  │  Session  │   │  Built-in Tools                  │   │
-│  │  Store    │   │  • File I/O (read/write/list)    │   │
-│  └──────────┘   │  • Search (regex across files)    │   │
-│                  │  • Story Memory (YAML)            │   │
-│                  │  • Chapters (list/read/write)     │   │
-│                  │  • Outlines (read/update)         │   │
-│                  │  • Image Gen (generate/edit)      │   │
-│                  │  • Project Meta                   │   │
-│                  │  • Git (status/commit/log/diff)   │   │
-│                  │  • Skills (load prompt)           │   │
-│                  └──────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Model Gateway (IPC)                            │    │
+│  │  model:generate-text / generate-image / video   │    │
+│  └─────────────────────────────────────────────────┘    │
+│         ▲                                               │
+│         │ injected via setGenerateTextFn()               │
+│         ▼                                               │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  @orison/desktop-agent (library)                │    │
+│  │                                                 │    │
+│  │  ┌──────────┐   ┌──────────────────┐           │    │
+│  │  │  Workflow │──▶│  LLM Provider    │           │    │
+│  │  │  Runtime  │   │  (IPC injection) │           │    │
+│  │  └──────────┘   └──────────────────┘           │    │
+│  │       │                                         │    │
+│  │       ▼                                         │    │
+│  │  ┌──────────┐                                   │    │
+│  │  │  Tools   │                                   │    │
+│  │  │  Registry│                                   │    │
+│  │  └──────────┘                                   │    │
+│  │       │                                         │    │
+│  │       ▼                                         │    │
+│  │  ┌──────────────────────────────────┐           │    │
+│  │  │  Built-in Tools                  │           │    │
+│  │  │  • Skills (workflow nodes)       │           │    │
+│  │  │  • spawn_agent (subagent)        │           │    │
+│  │  └──────────────────────────────────┘           │    │
+│  │                                                 │    │
+│  │  ┌──────────────────────────────────────────┐   │    │
+│  │  │  Shell-provided Tools (via setExecuteToolFn) │    │
+│  │  │  • File I/O (read/write/list)    │           │    │
+│  │  │  • Search (regex across files)   │           │    │
+│  │  │  • Story Memory (YAML)           │           │    │
+│  │  │  • Chapters (list/read/write)    │           │    │
+│  │  │  • Image Gen (generate/edit)     │           │    │
+│  │  │  • Git (status/commit/log/diff)  │           │    │
+│  │  └──────────────────────────────────┘           │    │
+│  └─────────────────────────────────────────────────┘    │
 │                                                         │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │  MCP Client (optional, .orison/mcp.json)         │   │
-│  │  • stdio JSON-RPC transport                      │   │
-│  │  • Dynamic tool discovery                        │   │
+│  │  Agent IPC Handlers (agentIpc.ts)                │   │
+│  │  agent:create-session / stream-message / ...     │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
          ▲
-         │ REST / SSE
+         │ IPC (Electron)
          ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Frontend (VSCode-style side panel)                     │
+│  Frontend (renderer process)                            │
 │  • Chat messages (text + tool calls + images)           │
 │  • Tool execution progress                             │
-│  • Image inline preview                                │
+│  • Skill launcher & continuation restore               │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 运行
+## 集成方式
 
-```bash
-# 开发模式
-pnpm --filter @orison/agent dev
+Agent 不再作为独立 HTTP 服务运行。它是一个 TypeScript 库，通过依赖注入集成到 Electron shell：
 
-# 构建
-pnpm --filter @orison/agent build
+```typescript
+import { createWorkflowRuntime, setGenerateTextFn, setExecuteToolFn } from '@orison/desktop-agent';
+
+// 注入 LLM 调用能力
+setGenerateTextFn(async (body, abort) => { /* shell model gateway */ });
+setExecuteToolFn(async (toolId, params, ctx) => { /* shell tool handlers */ });
+
+// 创建 runtime 实例
+const runtime = createWorkflowRuntime();
 ```
 
-环境变量（`.env.agent`）：
-```
-PORT=18422
-MODEL_GATEWAY_URL=http://localhost:18421
-LOG_LEVEL=info
-```
+通信通过 Electron IPC（`agent:*` 通道），不再需要 HTTP/SSE。
 
-## API 端点
+## IPC 通道
 
-### Session 管理
+Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 
-| Method | Path | 说明 |
-|--------|------|------|
-| POST | `/v1/agent/sessions` | 创建会话 |
-| GET | `/v1/agent/sessions/:id` | 获取会话状态 |
-| DELETE | `/v1/agent/sessions/:id` | 删除会话 |
-| POST | `/v1/agent/sessions/:id/messages` | 发送消息（同步返回） |
-| POST | `/v1/agent/sessions/:id/stream` | 发送消息（SSE 流式返回） |
+| 通道 | 说明 |
+|------|------|
+| `agent:create-session` | 创建会话 |
+| `agent:get-session` | 获取会话状态 |
+| `agent:list-sessions` | 列出项目会话 |
+| `agent:delete-session` | 删除会话 |
+| `agent:stream-message` | 发送消息并启动流式执行 |
+| `agent:resolve-confirmation` | 用户确认/拒绝工具调用 |
+| `agent:list-skills` | 列出项目 skills |
+| `agent:execute-skill` | 直接执行 skill |
+| `agent:list-continuations` | 列出会话 continuations |
+| `agent:restore-continuation` | 恢复 continuation |
+| `agent:abort-run` | 中止当前执行 |
 
-### 工具与技能
+### Stream 事件格式
 
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | `/v1/agent/tools` | 列出所有可用 tools |
-| GET | `/v1/agent/skills?projectPath=...` | 列出项目 skills |
+通过 `agent:stream-event` IPC 事件推送到渲染层：
 
-### SSE 事件格式
-
-```
-event: assistant
-data: {"id":"...","content":"...","toolCalls":[...]}
-
-event: tool
-data: {"id":"...","results":[{"toolId":"...","output":"..."}]}
-
-event: child
-data: {"source":"subagent","role":"story-architect","sessionId":"...","depth":1,"event":{"type":"assistant","data":{"id":"...","content":"..."}}}
-
-event: confirm_required
-data: {"sessionId":"...","callId":"...","name":"...","input":{...}}
-
-event: done
-data: {"status":"completed"}
-
-event: error
-data: {"message":"..."}
+```json
+{ "type": "assistant", "data": { "id": "...", "content": "...", "toolCalls": [...] } }
+{ "type": "tool", "data": { "id": "...", "results": [...] } }
+{ "type": "child", "data": { "source": "subagent", "role": "...", "depth": 1, "event": {...} } }
+{ "type": "confirm_required", "data": { "sessionId": "...", "callId": "...", "name": "...", "input": {...} } }
+{ "type": "done", "data": { "status": "completed" } }
+{ "type": "error", "data": { "message": "..." } }
 ```
 
 - `child` 事件用于把嵌套执行(spawn_agent、skill 内部的子 runLoop)中的 assistant / tool 消息回流给前端,UI 可凭 `source` (`subagent` 或 `skill`) 与 `role`、`depth` 加角标渲染。
@@ -288,9 +279,9 @@ tools:
 
 | 维度 | 处理方式 |
 |------|---------|
-| **abort 串联** | 外层 streamMessage 收到 cancel/socket close → 同一个 `AbortSignal` 透传至 `runChildAgent` / `executePrompt` 的内部 runLoop,子任务立即中断 |
+| **abort 串联** | 外层 streamMessage 收到取消 → 同一个 `AbortSignal` 透传至 `runChildAgent` / `executePrompt` 的内部 runLoop,子任务立即中断 |
 | **递归深度** | `ToolContext.spawnDepth` 每嵌套一层 +1,超过 `MAX_SPAWN_DEPTH = 5` 抛错 `SpawnDepthExceededError`,防止 A→B→A 无限递归 |
-| **SSE 透传** | 子 runLoop 的 assistant/tool 消息经 `emitChildEvent` 转译成 `child` SSE 事件,前端按 `[subagent:role:dN]` 角标渲染,父会话只产出一条最终 `done` |
+| **事件透传** | 子 runLoop 的 assistant/tool 消息经 `emitChildEvent` 转译成 `child` IPC 事件,前端按 `[subagent:role:dN]` 角标渲染,父会话只产出一条最终 `done` |
 | **会话隔离** | 子代理在 `forkSession` / `createChildSession` 的子会话中执行,父会话只看到子代理的最终 content,中间消息不入父会话历史(避免污染) |
 
 ### 典型调用形态
@@ -299,9 +290,9 @@ tools:
 [user] 写一个一开始就让主角死的故事
 
   └─ [skill: story]                            ← LLM 调用 skill 工具
-       └─ [child SSE: skill:story:d1] 路由到 oh-story 子 skill
+       └─ [child: skill:story:d1] 路由到 oh-story 子 skill
             └─ [spawn_agent: story-architect]   ← skill 内部派遣子代理
-                 └─ [child SSE: subagent:story-architect:d2] 在子会话内完成大纲
+                 └─ [child: subagent:story-architect:d2] 在子会话内完成大纲
 ```
 
 ## MCP 扩展
@@ -341,19 +332,19 @@ Agent Panel 作为工作区右侧独立面板（全高，不受 Bottom Panel 截
 - 写入类 tool 在 suggest 模式下显示 DiffCard（Accept/Reject）
 - 图像结果内联预览（`AgentImageResult`）
 - 支持中断/重试（`cancelAgent`）
-- 消息通过 SSE 实时推送
+- 消息通过 IPC stream 事件实时推送
 - 三档权限模式：Read / Suggest / Auto（前端控制，后端无感知）
 - 发送时自动附加当前编辑章节上下文
 - 所有文本已 i18n 化（`agent.*` 命名空间）
 
 详见 [Agent Panel UI 文档](agent-panel-ui.md) 和 [UI 层级结构](ui-hierarchy.md)。
-## 当前实现状态（2026-05-14）
+## 当前实现状态（2026-05-25）
 
-本文描述的 runtime 底座已经在 `apps/agent` 中实现，并已经接入当前 desktop-first 宿主链路。
+Agent runtime 已作为 `@orison/desktop-agent` 库内嵌于桌面主进程。
 
 已实现的 runtime 能力：
 
-- 以 `apps/agent/src/runtime/workflow.ts` 为核心的分层 runtime 编排
+- 以 `apps/desktop/agent/src/runtime/workflow.ts` 为核心的分层 runtime 编排
 - 带 parent / branch 元数据与兼容性 SQLite 自动迁移的 session tree 持久化
 - run-state 持有、并发重入保护、中断处理与面向恢复的 continuation snapshot
 - runtime 级 permission / confirmation 流与受控 subagent 分发
@@ -362,12 +353,11 @@ Agent Panel 作为工作区右侧独立面板（全高，不受 Bottom Panel 截
 - 通过 `executeSkillByName(...)` 执行 artifact-aware、reference-aware skill
 - 面向长流程 creative 工作流的 context builder、compaction 与 continuation 原语
 
-已落地的宿主 / API 能力：
+已落地的 IPC 能力：
 
-- `GET /v1/agent/skills` 已支持按配置合并项目内 skill root 与外部 skill root
-- `POST /v1/agent/sessions/:id/skills/:skillName/execute` 已支持 `input`、`artifactIds`、`referenceIds`
+- `agent:list-skills` 已支持按配置合并项目内 skill root 与外部 skill root
+- `agent:execute-skill` 已支持 `input`、`artifactIds`、`referenceIds`
 - skill 执行返回里现在会显式带上 `continuation` payload，调用方可以拿到明确恢复入口
-- 现有 desktop / server 兼容路由已切到 runtime-backed 实现
 
 当前产品层仍有缺口：
 
@@ -379,15 +369,14 @@ Agent Panel 作为工作区右侧独立面板（全高，不受 Bottom Panel 截
 
 本轮重点完善了"agent 自动召唤 skill / subagent"这条链路的运行时边界,使 LLM 可以像 Claude Code 那样自然地嵌套调用:
 
-- **`skill` 工具改为本地工具** — 不再走 remote IPC,在 ToolContext 中通过 `SkillExecutorRef` 直连 `WorkflowRuntime`,可在嵌套 runLoop 中继续递归触发其它 skill。
+- **`skill` 工具改为本地工具** — 在 ToolContext 中通过 `SkillExecutorRef` 直连 `WorkflowRuntime`,可在嵌套 runLoop 中继续递归触发其它 skill。
 - **`spawn_agent` 工具新增** — 在 `runChildAgent` 中创建子会话并跑独立 runLoop,子代理拿到完整工具集 + 父会话的全部能力。
-- **子代理定义文件** — 新增 `apps/agent/src/agent/agentDefinitions.ts`,按 `.orison/agents/<role>.md` → `.claude/agents/<role>.md` → 外部 root 顺序加载 frontmatter + 正文,作为子会话 system prompt 的前置段。
+- **子代理定义文件** — 按 `.orison/agents/<role>.md` → `.claude/agents/<role>.md` → 外部 root 顺序加载 frontmatter + 正文,作为子会话 system prompt 的前置段。
 - **嵌套消息回流** — `RuntimeEventPayload` 新增 `child` 变种,`ChildStreamEvent` 携带 `source` / `role` / `depth` / 内部事件;UI `agentSlice` 已加 `case 'child'`,带 `[subagent:role:dN]` 前缀渲染。
 - **abort 信号串联** — `SkillExecutorInvokeOptions { abort, spawnDepth, emitChildEvent }` 沿调用栈下传,外层取消立刻终止所有嵌套 runLoop。
 - **递归深度兜底** — `MAX_SPAWN_DEPTH = 5` + `SpawnDepthExceededError`,任意 skill 或 spawn_agent 嵌套超过 5 层直接拒绝。
 - **executePrompt 升级** — 之前是单次 generate 直接调用 LLM,现在改为运行完整 runLoop,允许 skill 步骤内 LLM 继续调用工具。
 - **buildRuntimeSystemPrompt 多 root 扫描** — 系统提示同时列出项目内 skill、`externalSkillRoots`、`.orison/agent.runtime.json` 配置的 root,并按 `required` / `optional` 分组,鼓励 LLM 主动识别并调用。
-- **CORS 修复(承接上一轮)** — `/sessions/:id/stream` 端点的 `reply.raw.writeHead` 现在手工补 `Access-Control-Allow-Origin` 头,避免 fastify onSend hook 被绕过导致 SSE 失败。
 
 ### 已知未处理
 

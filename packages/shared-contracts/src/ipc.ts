@@ -197,6 +197,19 @@ export type OrisonDesktopApi = {
   gitCommitDiff(dir: string, oid: string): Promise<GitFileDiff[]>;
   gitFileAtCommit(dir: string, oid: string, filepath: string): Promise<string | null>;
   onToolEvent(callback: (data: { type: string; [key: string]: unknown }) => void): () => void;
+  // Agent
+  createAgentSession(input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
+  getAgentSession(id: string, projectPath?: string): Promise<unknown>;
+  listAgentSessions(projectPath?: string): Promise<unknown>;
+  deleteAgentSession(id: string): Promise<boolean>;
+  streamAgentMessage(input: { sessionId: string; content: string }): Promise<{ status: string; message?: string }>;
+  onAgentStreamEvent(callback: (event: { type: string; data: unknown }) => void): () => void;
+  resolveAgentConfirmation(sessionId: string, callId: string, approved: boolean): Promise<unknown>;
+  listAgentSkills(projectPath: string): Promise<unknown>;
+  executeAgentSkill(sessionId: string, skillName: string, request?: unknown): Promise<unknown>;
+  listAgentContinuations(sessionId: string): Promise<unknown>;
+  restoreAgentContinuation(sessionId: string, continuationId: string): Promise<unknown>;
+  abortAgentRun(sessionId: string): Promise<boolean>;
 };
 
 export type FileTreeEntry = {

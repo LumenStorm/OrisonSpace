@@ -21,5 +21,10 @@ __pycache__/
 .claude/
 apps/agent/logs/
 apps/server/logs/
+logs/
+.orison/
+.plan.md
+**/PLAN-*.md
+**/plan.md
 apps/agent/test-tmp-*/
 apps/agent/.test-tmp-*/

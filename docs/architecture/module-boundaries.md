@@ -108,7 +108,16 @@
   - 负责 `model:generate-video`
   - 是唯一会解密模型 `apiKey` 并调用 provider 的主进程入口
 - 渲染层永远拿不到真实 `apiKey`
-- server 和 agent 也不再持有 provider `apiKey`
+- agent 不持有 provider `apiKey`
+
+## Agent（库）
+
+- `apps/desktop/agent` 是 `@orison/desktop-agent` 包，作为库内嵌于桌面主进程
+- 不再是独立 HTTP 服务
+- 通过 `setGenerateTextFn` / `setExecuteToolFn` 依赖注入获取 LLM 和工具执行能力
+- shell 中 `agentIpc.ts` 创建 runtime 实例并注册 IPC handlers
+- Agent 不持有 provider `apiKey`，不直接请求第三方模型
+- 如果任何代码路径让 agent 重新直接请求第三方模型，应视为回归
 
 ## Story Sync
 
@@ -141,30 +150,13 @@
 
 ## Auto Mode 持久化
 
-- Auto Mode 状态由 agent 侧拥有
+- Auto Mode 状态由 agent runtime 拥有
 - 主要模块：
   - `novelAutoModeRunner.ts`
   - `autoModeService.ts`
   - `autoModeStore.ts`
 - 持久化位置：
   - `<projectPath>/runs/auto-mode/<autoModeId>.yaml`
-- `POST /v1/orchestration/auto-mode/restore`
-  - 是跨进程恢复会话的唯一公开入口
-
-## 服务端
-
-- 服务端路由保持薄层：
-  - 校验输入
-  - 调用 service
-  - 翻译错误为 HTTP 响应
-- 当前服务端只拥有这些责任：
-  - `auth`
-  - `orchestration proxy`
-- 服务端 generation 模块已删除
-- 服务端不再直接请求任何第三方模型 provider
-- `/v1/orchestration/*` 全部作为 agent 代理转发
-- 服务端是唯一对公网暴露的进程
-- agent 只通过服务端代理间接访问
 
 ## 模型协议层
 
@@ -189,22 +181,6 @@
 - 渲染层支持上传参考图进入编辑模式，自动切换到 `/images/edits` 端点并强制 n=1
 - server 不允许 import 这个包
 - 桌面主进程才是它的调用方
-
-## 鉴权规则
-
-- 当前公开 auth 路由：
-  - `POST /v1/auth/login`
-  - `POST /v1/auth/register`
-- 密码传输安全：
-  - 客户端使用 Web Crypto API 计算 `SHA-256(password + "orison:auth:v1")`
-  - 服务端直接对收到的十六进制摘要做 bcrypt 存储/校验
-- `GET /v1/auth/me` 是受保护接口
-- 桌面端启动时使用 `/v1/auth/me` 做 bootstrap
-- `authSlice` 负责区分：
-  - `checking`
-  - `authenticated`
-  - `anonymous`
-  - `error`
 
 ## 文档同步规则
 

@@ -116,6 +116,23 @@
 | `git:commit-diff` | renderer -> main | invoke | 获取指定提交的变更文件列表 |
 | `git:file-at-commit` | renderer -> main | invoke | 读取指定提交中某文件的内容 |
 
+### Agent 通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `agent:create-session` | renderer -> main | invoke | 创建 agent 会话 |
+| `agent:get-session` | renderer -> main | invoke | 获取会话状态 |
+| `agent:list-sessions` | renderer -> main | invoke | 列出项目会话 |
+| `agent:delete-session` | renderer -> main | invoke | 删除会话 |
+| `agent:stream-message` | renderer -> main | invoke | 发送消息并启动流式执行 |
+| `agent:stream-event` | main -> renderer | event | 推送 stream 事件（assistant/tool/child/done/error） |
+| `agent:resolve-confirmation` | renderer -> main | invoke | 用户确认/拒绝工具调用 |
+| `agent:list-skills` | renderer -> main | invoke | 列出项目 skills |
+| `agent:execute-skill` | renderer -> main | invoke | 直接执行 skill |
+| `agent:list-continuations` | renderer -> main | invoke | 列出会话 continuations |
+| `agent:restore-continuation` | renderer -> main | invoke | 恢复 continuation |
+| `agent:abort-run` | renderer -> main | invoke | 中止当前执行 |
+
 ---
 
 ## 当前暴露的 preload API
@@ -173,6 +190,19 @@ window.orisonDesktop = {
   gitLog,
   gitCommitDiff,
   gitFileAtCommit,
+  // Agent
+  createAgentSession,
+  getAgentSession,
+  listAgentSessions,
+  deleteAgentSession,
+  streamAgentMessage,
+  onAgentStreamEvent,
+  resolveAgentConfirmation,
+  listAgentSkills,
+  executeAgentSkill,
+  listAgentContinuations,
+  restoreAgentContinuation,
+  abortAgentRun,
 }
 ```
 
@@ -327,5 +357,5 @@ type RunStorySyncResult = {
 
 ## 相关文档
 
-- [服务端 API 参考](../api/server-api.md)
+- [Agent 文档](../agent.md)
 - [模块边界规则](../architecture/module-boundaries.md)

@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@orison/shared-contracts": "file:../../../packages/shared-contracts",
+    "@orison/shared-contracts": "workspace:*",
     "zod": "^3.24.3",
     "yaml": "^2.7.1"
   }

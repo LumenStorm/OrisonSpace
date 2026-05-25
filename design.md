@@ -13,8 +13,8 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 - 用户主导创作
 - AI 提供生成、补全、审阅与可控修改
 - 本地项目文件是创作主存
-- 服务端负责认证与编排代理
-- 模型调用发生在用户机器上
+- 桌面主进程负责模型调用与 Agent 编排
+- 无独立服务端进程
 
 ## 二、当前总体架构
 
@@ -40,19 +40,15 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
   - 文本 / 图片 / 视频生成
   - story-sync 本地执行
   - 用户偏好持久化
+  - Agent workflow runtime（内嵌库）
 
-### 3. 服务端
+### 3. Agent（库）
 
-- Fastify
-- 负责：
-  - auth
-  - orchestration proxy
-
-### 4. Agent
-
-- 负责编排、章节生成、自动模式推进、规则回退
-- 不再持有 provider `apiKey`
-- 不再直接请求第三方模型
+- 作为 `@orison/desktop-agent` 包内嵌于桌面主进程
+- 负责编排、skill 执行、workflow runtime、continuation
+- 不再是独立 HTTP 服务
+- 不持有 provider `apiKey`
+- 通过依赖注入获取 LLM 调用能力（由 shell 提供）
 
 ## 三、UI 总布局
 
@@ -64,29 +60,12 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 - 中间 EditorArea
 - 底部 BottomPanel
 
-当前页面分为三层：
+当前页面分为两层：
 
-- AuthPage
 - ProjectsPage
 - WorkspacePage
 
-## 四、鉴权设计
-
-当前鉴权行为：
-
-- 本地缓存 token 与 user
-- 应用启动时执行 `bootstrapAuth`
-- 若有 token，先调用 `/v1/auth/me`
-- 401：清空会话并回到登录页
-- 非 401：进入匿名态并显示错误
-- 成功：同步最新 user，再进入项目页 / 工作区
-
-这意味着：
-
-- 不再只凭本地 token 是否存在决定入口页面
-- 不再出现“过期 token 先进入项目页”的问题
-
-## 五、模型配置设计
+## 四、模型配置设计
 
 当前模型配置采用 key-based 结构：
 
@@ -113,7 +92,7 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 - 新建中状态
 - 编辑已有 key 状态
 
-## 六、模型网关设计
+## 五、模型网关设计
 
 当前生成链路已迁移到桌面主进程：
 
@@ -124,7 +103,7 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 这样做的目标：
 
-- `apiKey` 不经过 server
+- `apiKey` 仅存在于桌面主进程
 - `apiKey` 不进入 agent
 - provider 适配逻辑统一收敛
 
@@ -134,7 +113,7 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 - 图片
 - 视频（接口已在，部分 adapter 仍为占位）
 
-## 七、Story Sync 设计
+## 六、Story Sync 设计
 
 Story Sync 现在是“两段式”：
 
@@ -147,7 +126,7 @@ Story Sync 现在是“两段式”：
 - 不让 agent 持有模型密钥
 - 保持补丁安全边界
 
-## 八、文件与数据设计
+## 七、文件与数据设计
 
 ### 本地项目
 
@@ -160,23 +139,13 @@ Story Sync 现在是“两段式”：
 - `temp/images/generation/*`
 - `assets/images/*`
 
-### 服务端数据库
+## 八、设计结论
 
-数据库负责：
-
-- `users`
-- `projects`
-- `tasks`
-- `task_asset_refs`
-- `project_assets`
-
-## 九、设计结论
-
-当前系统已经不是“服务端统一中转模型请求”的设计，而是：
+当前系统是纯本地桌面应用：
 
 - 桌面端拥有模型调用权
-- 服务端只负责认证和代理
-- agent 只做编排与规则逻辑
+- Agent 作为库内嵌于桌面主进程，负责编排与 skill 执行
+- 无独立服务端进程
 - 本地项目文件继续作为创作真相源
 
 这是目前代码实现对应的真实设计，而不是早期方案。
