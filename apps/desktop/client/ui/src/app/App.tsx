@@ -4,6 +4,7 @@ import { TopBar } from '../features/top-bar/TopBar';
 import { ProjectsPage } from '../pages/projects/ProjectsPage';
 import { WorkspacePage } from '../pages/workspace/WorkspacePage';
 import { CommandPalette } from '../features/command-palette/CommandPalette';
+import { Toast } from '../shared/components/Toast';
 import { useToolEvents } from '../shared/hooks/useToolEvents';
 
 export function App() {
@@ -25,6 +26,7 @@ export function App() {
       <TopBar />
       {!currentProject ? <ProjectsPage /> : <WorkspacePage />}
       <CommandPalette />
+      <Toast />
     </>
   );
 }

@@ -105,15 +105,10 @@
 
 /* ── File Editor: Markdown ── */
 .file-editor-md {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.file-editor-md .tiptap-wrapper {
-  flex: 1;
-  border: 0;
-  border-radius: 0;
 }
 
 .file-editor-md .tiptap-content .tiptap {

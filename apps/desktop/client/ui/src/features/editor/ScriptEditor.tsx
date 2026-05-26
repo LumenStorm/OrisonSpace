@@ -37,6 +37,7 @@ export function ScriptEditor() {
         content={activeChapter.content}
         placeholder={t('script.startWriting')}
         onChange={(html) => updateChapter(activeChapter.id, { content: html })}
+        flush
       />
     </div>
   );

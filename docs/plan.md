@@ -136,7 +136,7 @@
 
 ### 3. UI 命名与文案
 
-模型设置页底层已改为 key 概念，UI 文案可以继续优化，减少”模型”和”配置”混用带来的歧义。
+模型设置页底层已改为 key 概念，UI 文案可以继续优化，减少"模型"和"配置"混用带来的歧义。
 
 ### 4. 协议层简化（2026-05-08）
 
@@ -179,3 +179,137 @@
 - `OutlineEditor` 改为 Notion block 风格：无边框输入、底部细线 focus 变色、居中 720px 最大宽度
 - 创作字段展示组件（`OutlineV2View` / `WorldSettingView` / `CreativeBriefView`）补齐缺失样式（`.creative-list`、`.asset-card-tag`）
 - SideNav navItems 在 outline 前新增 overview 入口（`dashboard` 图标）
+
+---
+
+## 六、时间线面板化 + 创作分支 + 样式统一 + 基本功能补全（2026-05-26）
+
+### 需求总结
+
+1. **时间线 navbar 调整**：从独立主编辑区页面改为左侧面板（与 ProjectTree / SearchPanel 同级切换）
+2. **时间线功能完善**：git 封装为创作时间节点，支持手动创建节点（commit + tag）、从任意节点创建分支探索不同剧情走向
+3. **样式统一**：总览、大纲、小说页面遵循 design.md 的 "Literary Sanctuary" 设计语言
+4. **基本功能补全**：Ctrl+S 保存 + toast 提示、大纲拖拽排序 + 层级折叠、时间线节点标签/描述、分支切换后自动刷新工作区
+
+---
+
+### Phase 1：时间线从页面改为侧边栏面板
+
+#### 涉及文件
+
+- `apps/desktop/client/ui/src/shared/store/types.ts` — `SidebarPanel` 类型新增 `'timeline'`，`ActivePage` 移除 `'timeline'`
+- `apps/desktop/client/ui/src/features/side-nav/navItems.ts` — 移除 `timelineItem`
+- `apps/desktop/client/ui/src/features/side-nav/SideNav.tsx` — 在搜索图标下方添加 timeline 图标（history），点击切换 `activeSidebarPanel` 为 `'timeline'`
+- `apps/desktop/client/ui/src/widgets/layout/WorkspaceLayout.tsx` — 侧边栏区域支持渲染 `TimelinePanel`；移除主区域的 timeline 分支
+- `apps/desktop/client/ui/src/features/timeline/TimelinePanel.tsx` — 重构为竖向面板布局（适配侧边栏宽度）
+- `apps/desktop/client/ui/src/shared/styles/editor/timeline.css` — 适配侧边栏窄宽度
+
+#### 实施细节
+
+1. `SidebarPanel` 从 `'explorer' | 'search'` 改为 `'explorer' | 'search' | 'timeline'`
+2. SideNav 在搜索按钮下方增加 timeline 按钮（material icon: `history`）
+3. WorkspaceLayout 侧边栏 panel 区域：`activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />`
+4. 从 `ActivePage` 类型和 WorkspaceLayout 主区域路由中移除 `'timeline'`
+5. TimelinePanel 改为纵向单列布局（commit 列表 + 展开时显示 diff），不再左右分栏
+
+---
+
+### Phase 2：时间线创作分支功能
+
+#### 新增 IPC 通道
+
+在 `packages/shared-contracts/src/ipc.ts` 和 preload bridge 新增：
+
+```ts
+gitCreateNode(dir: string, message: string, tag?: string): Promise<{ oid: string }>;
+gitListBranches(dir: string): Promise<string[]>;
+gitCurrentBranch(dir: string): Promise<string>;
+gitCreateBranch(dir: string, name: string, fromOid?: string): Promise<void>;
+gitCheckoutBranch(dir: string, name: string): Promise<void>;
+```
+
+#### Shell 端 handler
+
+在 `apps/desktop/client/shell/main/ipc/` 新增 `gitTimelineIpc.ts`：
+
+- `gitCreateNode`：执行 `git.add` + `git.commit` + 可选 `git.tag`，完成后 `notifyUI({ type: 'git:changed' })`
+- `gitListBranches`：`git.listBranches({ fs, dir })`
+- `gitCurrentBranch`：`git.currentBranch({ fs, dir })`
+- `gitCreateBranch`：`git.branch({ fs, dir, ref, object? })`
+- `gitCheckoutBranch`：`git.checkout({ fs, dir, ref })` + `notifyUI({ type: 'git:changed' })`
+
+#### TimelinePanel UI 新增
+
+- 顶部显示当前分支名 + 分支下拉切换器
+- "创建节点" 按钮：弹出输入框填 message + 可选 tag/描述
+- 每个 commit 节点增加 "从此处创建分支" 操作按钮
+- commit 如果有 tag 则展示标签角标
+
+#### 分支切换后自动刷新工作区
+
+- `git:changed` 通知已在 `notifyUI` 中实现，前端监听后刷新文件树和 project 数据
+- 确认 `gitCheckoutBranch` 后发送 `git:changed`，前端收到后调用 `reloadProjectTree()` + 重新 hydrate creative fields
+
+---
+
+### Phase 3：样式统一（design.md Literary Sanctuary 设计语言）
+
+#### 设计原则映射
+
+- **No-Line Rule**：移除 1px solid border，改用 tonal shift（背景色差异）区分区域
+- **Writing Canvas**：总览/大纲/小说编辑区使用白色 `surface_container_lowest` 居中内容列，max-width 720px，padding 80px top/bottom
+- **Typography**：内容区使用衬线字体 (Newsreader)，UI 部分使用 Manrope
+- **Elevation**：用 ambient shadow 替代硬边框，浮动面板用 backdrop-blur
+- **Input Style**：无边框输入框，背景填充 + focus 时变白 + ghost border
+
+#### 涉及文件
+
+- `apps/desktop/client/ui/src/shared/styles/tokens.css` — 新增 design.md 色彩 token
+- `apps/desktop/client/ui/src/shared/styles/layout/workspace.css` — 主内容区居中画布样式
+- `apps/desktop/client/ui/src/shared/styles/editor/tiptap.css` — 编辑器内容字体改为 Newsreader
+- `apps/desktop/client/ui/src/features/overview/OverviewPage.tsx` — 结构改为 canvas layout
+- `apps/desktop/client/ui/src/features/editor/OutlineEditor.tsx` — 同步画布布局
+- `apps/desktop/client/ui/src/features/novel-workbench/` — 同步样式
+
+#### 具体变更
+
+1. 总览页：表单区居中画布，统计卡片从 grid 卡片改为内联指标行
+2. 大纲页：编辑区居中画布，字段组使用 tonal layering 分组
+3. 小说页：章节列表 + 编辑器居中，action bar 简化为内联工具条
+
+---
+
+### Phase 4：基本功能补全
+
+#### 4.1 Ctrl+S 保存 + Toast 提示
+
+- 新增全局 Toast 组件 `apps/desktop/client/ui/src/shared/components/Toast.tsx`
+- 新增 `toastSlice` 到 store
+- 在 `App.tsx` 挂载全局 `keydown` listener for Ctrl+S
+- 触发时调用当前页面的保存逻辑（overview/outline 的 `persist()` 立即 flush）+ 显示 toast
+
+#### 4.2 大纲拖拽排序 + 层级折叠
+
+当前大纲用独立字段表单。将 `major_turning_points` 和 `constraints` 列表改为可拖拽列表：
+
+- 使用原生 HTML5 drag-and-drop（无需新依赖）
+- 每个列表项支持拖拽手柄排序
+- 各 section (characters/conflict/turning points/constraints) 支持折叠/展开
+
+#### 4.3 时间线节点标签/描述
+
+- 创建节点时可填 tag 和描述（Phase 2 已覆盖）
+- 显示时如果有 tag 则展示彩色标签
+
+#### 4.4 分支切换后刷新（Phase 2 已覆盖）
+
+---
+
+### 实施顺序
+
+1. **Phase 1** — 时间线面板化（结构变更最基础）
+2. **Phase 2** — 时间线创作分支功能（新增 IPC + UI）
+3. **Phase 3** — 样式统一（在结构稳定后做）
+4. **Phase 4** — 基本功能补全（Toast / 拖拽 / 快捷键）
+
+预计涉及 ~15-20 个文件修改/新增。

@@ -54,6 +54,12 @@
   padding: 2rem;
 }
 
+.workspace-content--flush {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Bottom Panel Wrapper (transition) ── */
 .workspace-bottom-wrapper {
   flex-shrink: 0;

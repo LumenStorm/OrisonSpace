@@ -87,6 +87,7 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
         format="markdown"
         placeholder="Start writing..."
         onChange={handleChange}
+        flush
       />
     </div>
   );

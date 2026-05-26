@@ -19,6 +19,7 @@ export function TopBar() {
   const saveProject = useAppStore((s) => s.saveProject);
   const saveChaptersToProject = useAppStore((s) => s.saveChaptersToProject);
   const saveAllOpenFiles = useAppStore((s) => s.saveAllOpenFiles);
+  const showToast = useAppStore((s) => s.showToast);
   const requestCloseFile = useAppStore((s) => s.requestCloseFile);
   const reopenLastClosedFile = useAppStore((s) => s.reopenLastClosedFile);
   const cycleActiveFile = useAppStore((s) => s.cycleActiveFile);
@@ -44,7 +45,8 @@ export function TopBar() {
     await saveProject();
     await saveChaptersToProject();
     await saveAllOpenFiles();
-  }, [saveProject, saveChaptersToProject, saveAllOpenFiles]);
+    showToast(t('topbar.saved') || '已保存');
+  }, [saveProject, saveChaptersToProject, saveAllOpenFiles, showToast, t]);
 
   const handleUndo = useCallback(() => undo(), [undo]);
   const handleRedo = useCallback(() => redo(), [redo]);

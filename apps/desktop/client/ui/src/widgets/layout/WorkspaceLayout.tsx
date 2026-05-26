@@ -57,7 +57,7 @@ export function WorkspaceLayout() {
       return (
         <>
           <FileTabBar />
-          <div className="workspace-content" style={{ flex: 1, minWidth: 0 }}>
+          <div className="workspace-content workspace-content--flush" style={{ flex: 1, minWidth: 0 }}>
             <FileEditor />
           </div>
         </>
@@ -67,14 +67,13 @@ export function WorkspaceLayout() {
     // Page view
     switch (activePage) {
       case 'overview': return <div className="workspace-panel-content"><OverviewPage /></div>;
-      case 'outline': return <div className="workspace-content"><OutlineEditor /></div>;
+      case 'outline': return <div className="workspace-content workspace-content--flush"><OutlineEditor /></div>;
       case 'novel':
-      case 'script': return <div className="workspace-content"><ScriptEditorPage /></div>;
+      case 'script': return <div className="workspace-content workspace-content--flush"><ScriptEditorPage /></div>;
       case 'storyboard': return <div className="workspace-panel-content"><StoryboardCanvas /></div>;
       case 'image_gen': return <div className="workspace-panel-content"><ImageGenEditor /></div>;
       case 'video': return <div className="workspace-panel-content"><VideoEditor /></div>;
       case 'assets': return <div className="workspace-panel-content"><AssetsPanel /></div>;
-      case 'timeline': return <div className="workspace-panel-content"><TimelinePanel /></div>;
       default: return <div className="workspace-panel-content"><OverviewPage /></div>;
     }
   };
@@ -85,7 +84,7 @@ export function WorkspaceLayout() {
         <SideNav />
         {projectTreeOpen && (
           <>
-            {activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
+            {activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
             <ResizeHandle onResize={handleTreeResize} />
           </>
         )}

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import git from 'isomorphic-git';
 import fs from 'node:fs';
 import { assertSafePath } from './pathGuard';
@@ -21,11 +21,23 @@ async function getGitRoot(dir: string): Promise<string> {
 async function listCommits(dir: string, depth: number): Promise<GitCommitEntry[]> {
   const root = await getGitRoot(dir);
   const oids = await git.log({ fs, dir: root, depth });
+
+  // Build oid -> tag map
+  const tags = await git.listTags({ fs, dir: root });
+  const tagMap = new Map<string, string>();
+  for (const tag of tags) {
+    try {
+      const resolved = await git.resolveRef({ fs, dir: root, ref: `refs/tags/${tag}` });
+      tagMap.set(resolved, tag);
+    } catch { /* skip */ }
+  }
+
   return oids.map((entry) => ({
     oid: entry.oid,
     message: entry.commit.message.trim(),
     author: entry.commit.author.name,
     timestamp: entry.commit.author.timestamp,
+    tag: tagMap.get(entry.oid),
   }));
 }
 
@@ -85,6 +97,55 @@ async function getFileAtCommit(dir: string, oid: string, filepath: string): Prom
   }
 }
 
+function notifyGitChanged() {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('tool:event', { type: 'git:changed' });
+  }
+}
+
+async function createNode(dir: string, message: string, tag?: string): Promise<{ oid: string }> {
+  const root = await getGitRoot(dir);
+  const matrix = await git.statusMatrix({ fs, dir: root });
+  for (const [filepath, , workdir] of matrix) {
+    if (workdir !== 1) {
+      await git.add({ fs, dir: root, filepath });
+    }
+  }
+  const oid = await git.commit({
+    fs,
+    dir: root,
+    message,
+    author: { name: 'Orison', email: 'user@orison.local' },
+  });
+  if (tag) {
+    await git.tag({ fs, dir: root, ref: tag, object: oid });
+  }
+  notifyGitChanged();
+  return { oid };
+}
+
+async function listBranches(dir: string): Promise<string[]> {
+  const root = await getGitRoot(dir);
+  return git.listBranches({ fs, dir: root });
+}
+
+async function currentBranch(dir: string): Promise<string> {
+  const root = await getGitRoot(dir);
+  const branch = await git.currentBranch({ fs, dir: root });
+  return branch ?? 'HEAD';
+}
+
+async function createBranch(dir: string, name: string, fromOid?: string): Promise<void> {
+  const root = await getGitRoot(dir);
+  await git.branch({ fs, dir: root, ref: name, object: fromOid });
+}
+
+async function checkoutBranch(dir: string, name: string): Promise<void> {
+  const root = await getGitRoot(dir);
+  await git.checkout({ fs, dir: root, ref: name });
+  notifyGitChanged();
+}
+
 export function registerGitIpc() {
   const logger = getLogger();
 
@@ -125,6 +186,56 @@ export function registerGitIpc() {
     } catch (err) {
       logger.warn({ dir, oid, filepath, err }, 'git:file-at-commit failed');
       return null;
+    }
+  });
+
+  ipcMain.handle('git:create-node', async (_e, dir: string, message: string, tag?: string) => {
+    try {
+      assertSafePath(dir);
+      return await createNode(dir, message, tag);
+    } catch (err) {
+      logger.warn({ dir, err }, 'git:create-node failed');
+      throw err;
+    }
+  });
+
+  ipcMain.handle('git:list-branches', async (_e, dir: string) => {
+    try {
+      assertSafePath(dir);
+      return await listBranches(dir);
+    } catch (err) {
+      logger.warn({ dir, err }, 'git:list-branches failed');
+      return [];
+    }
+  });
+
+  ipcMain.handle('git:current-branch', async (_e, dir: string) => {
+    try {
+      assertSafePath(dir);
+      return await currentBranch(dir);
+    } catch (err) {
+      logger.warn({ dir, err }, 'git:current-branch failed');
+      return 'HEAD';
+    }
+  });
+
+  ipcMain.handle('git:create-branch', async (_e, dir: string, name: string, fromOid?: string) => {
+    try {
+      assertSafePath(dir);
+      await createBranch(dir, name, fromOid);
+    } catch (err) {
+      logger.warn({ dir, name, err }, 'git:create-branch failed');
+      throw err;
+    }
+  });
+
+  ipcMain.handle('git:checkout-branch', async (_e, dir: string, name: string) => {
+    try {
+      assertSafePath(dir);
+      await checkoutBranch(dir, name);
+    } catch (err) {
+      logger.warn({ dir, name, err }, 'git:checkout-branch failed');
+      throw err;
     }
   });
 }

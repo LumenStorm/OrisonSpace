@@ -6,7 +6,7 @@ import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { Tooltip } from '../../shared/components/Tooltip';
 import {
   overviewItem, outlineItem, assetsItem, novelItem, scriptItem,
-  productionItems, timelineItem, type PageNavItem,
+  productionItems, type PageNavItem,
 } from './navItems';
 
 function NavButton({ item, active, onClick, t }: { item: PageNavItem; active: boolean; onClick: () => void; t: (k: string) => string }) {
@@ -83,6 +83,17 @@ export function SideNav() {
             </button>
           </Tooltip>
 
+          <Tooltip label={t('nav.timeline') || '时间线'} placement="right">
+            <button
+              type="button"
+              className={`icon-rail-btn${activeSidebarPanel === 'timeline' ? ' icon-rail-btnActive' : ''}`}
+              onClick={() => setActiveSidebarPanel(activeSidebarPanel === 'timeline' ? 'explorer' : 'timeline')}
+              aria-label={t('nav.timeline') || '时间线'}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">history</span>
+            </button>
+          </Tooltip>
+
           <div className="side-nav-separator" />
 
           {/* --- Group 1: Overview / Outline / Assets / Novel|Script --- */}
@@ -111,9 +122,6 @@ export function SideNav() {
               <span className="material-symbols-outlined" aria-hidden="true">smart_toy</span>
             </button>
           </Tooltip>
-
-          {/* --- Timeline (below Agent) --- */}
-          <NavButton item={timelineItem} active={!hasOpenFiles && activePage === 'timeline'} onClick={() => handlePage('timeline')} t={t} />
         </div>
 
         <div className="icon-rail-bottom">

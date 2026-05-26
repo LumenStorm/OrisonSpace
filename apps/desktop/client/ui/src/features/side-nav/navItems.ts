@@ -16,5 +16,3 @@ export const productionItems: PageNavItem[] = [
   { id: 'video', icon: 'movie_filter', i18nKey: 'nav.video' },
 ];
 
-/** Timeline (below Agent) */
-export const timelineItem: PageNavItem = { id: 'timeline', icon: 'history', i18nKey: 'nav.timeline' };

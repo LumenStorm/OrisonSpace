@@ -119,6 +119,7 @@ script:
 
 topbar:
   save: "Save"
+  saved: "Saved"
   undo: "Undo"
   redo: "Redo"
   export: "Export"
@@ -618,6 +619,14 @@ timeline:
   loading: "Loading history..."
   noCommits: "No commits found."
   changedFiles: "Changed files"
+  createNode: "Create node"
+  nodeMessage: "Node description (required)"
+  nodeTag: "Tag (optional)"
+  save: "Save"
+  branchName: "Branch name"
+  create: "Create"
+  cancel: "Cancel"
+  createBranch: "Create branch from here"
 
 agent:
   title: "Agent"

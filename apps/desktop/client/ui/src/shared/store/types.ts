@@ -3,8 +3,8 @@ import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '
 
 export type WorkspaceModule = 'outline' | 'novel' | 'script';
 export type WorkspacePanel = 'overview' | 'storyboard' | 'image_gen' | 'video' | 'assets';
-export type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets' | 'timeline';
-export type SidebarPanel = 'explorer' | 'search';
+export type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets';
+export type SidebarPanel = 'explorer' | 'search' | 'timeline';
 export type BottomPanelTab = 'output' | 'tasks';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});
 export type LocaleSetting = 'system' | (string & {});

@@ -1,25 +1,139 @@
-/* ── Timeline Panel ── */
+/* ── Timeline Panel (sidebar) ── */
 .timeline-panel {
   display: flex;
-  gap: 0.75rem;
+  flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.5rem 0.35rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.timeline-branch-select {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 0.4rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.timeline-branch-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.timeline-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.timeline-action-btn:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.timeline-action-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Create node / branch form */
+.timeline-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.timeline-input {
+  width: 100%;
+  min-height: 26px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.timeline-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.timeline-form-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.timeline-submit-btn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.25rem;
+  background: var(--accent);
+  color: var(--surface-container-lowest);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.timeline-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.timeline-cancel-btn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.timeline-cancel-btn:hover {
+  background: var(--hover-overlay);
+}
+
+/* Commit list */
 .timeline-list {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
   overflow-y: auto;
+  padding: 0.35rem;
 }
 
 .timeline-commit {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem 0.5rem;
   border: none;
-  border-radius: 0.35rem;
+  border-radius: 0.3rem;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -32,30 +146,79 @@
 }
 
 .timeline-commit.is-selected {
-  background: var(--accent-container);
+  background: var(--active-indicator);
+}
+
+.timeline-commit-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .timeline-commit-msg {
-  font-size: 0.82rem;
+  flex: 1;
+  font-size: 0.78rem;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.timeline-commit-tag {
+  flex-shrink: 0;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
 .timeline-commit-meta {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--on-surface-variant);
 }
 
+.timeline-commit-actions {
+  display: flex;
+  gap: 0.2rem;
+  margin-top: 0.15rem;
+}
+
+.timeline-branch-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.2rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.timeline-branch-btn:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.timeline-branch-btn .material-symbols-outlined {
+  font-size: 12px;
+}
+
+/* Diff section */
 .timeline-diff {
-  flex: 1;
+  border-top: 1px solid var(--outline-variant);
+  padding: 0.5rem 0.5rem;
   overflow-y: auto;
+  max-height: 180px;
 }
 
 .timeline-diff-title {
-  margin: 0 0 0.4rem;
-  font-size: 0.78rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--on-surface-variant);
 }
@@ -69,20 +232,20 @@
 .timeline-diff-item {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0;
-  font-size: 0.8rem;
+  gap: 0.35rem;
+  padding: 0.15rem 0;
+  font-size: 0.72rem;
 }
 
 .timeline-diff-status {
-  width: 1.2em;
+  width: 1.1em;
   text-align: center;
   font-weight: 700;
-  font-size: 0.72rem;
-  border-radius: 0.2rem;
+  font-size: 0.65rem;
+  border-radius: 0.15rem;
 }
 
-.timeline-diff-added .timeline-diff-status { color: var(--success, #4caf50); }
+.timeline-diff-added .timeline-diff-status { color: var(--accent-strong); }
 .timeline-diff-modified .timeline-diff-status { color: var(--accent); }
 .timeline-diff-deleted .timeline-diff-status { color: var(--error); }
 
@@ -94,7 +257,7 @@
 
 .timeline-empty {
   padding: 1rem;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--on-surface-variant);
   text-align: center;
 }

@@ -120,6 +120,11 @@ export const exposedDesktopApi = {
   gitLog: (dir: string, depth?: number) => ipcRenderer.invoke('git:log', dir, depth) as Promise<GitCommitEntry[]>,
   gitCommitDiff: (dir: string, oid: string) => ipcRenderer.invoke('git:commit-diff', dir, oid) as Promise<GitFileDiff[]>,
   gitFileAtCommit: (dir: string, oid: string, filepath: string) => ipcRenderer.invoke('git:file-at-commit', dir, oid, filepath) as Promise<string | null>,
+  gitCreateNode: (dir: string, message: string, tag?: string) => ipcRenderer.invoke('git:create-node', dir, message, tag) as Promise<{ oid: string }>,
+  gitListBranches: (dir: string) => ipcRenderer.invoke('git:list-branches', dir) as Promise<string[]>,
+  gitCurrentBranch: (dir: string) => ipcRenderer.invoke('git:current-branch', dir) as Promise<string>,
+  gitCreateBranch: (dir: string, name: string, fromOid?: string) => ipcRenderer.invoke('git:create-branch', dir, name, fromOid) as Promise<void>,
+  gitCheckoutBranch: (dir: string, name: string) => ipcRenderer.invoke('git:checkout-branch', dir, name) as Promise<void>,
   // Tool event notifications (pushed from Shell when Agent executes tools)
   onToolEvent: (callback: (data: { type: string; [key: string]: unknown }) => void) => {
     ipcRenderer.on('tool:event', (_e, data) => callback(data));

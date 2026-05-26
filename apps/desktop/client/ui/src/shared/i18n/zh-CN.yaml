@@ -119,6 +119,7 @@ script:
 
 topbar:
   save: "保存"
+  saved: "已保存"
   undo: "撤回"
   redo: "恢复"
   export: "导出"
@@ -618,6 +619,14 @@ timeline:
   loading: "加载历史..."
   noCommits: "暂无提交记录。"
   changedFiles: "变更文件"
+  createNode: "创建节点"
+  nodeMessage: "节点描述（必填）"
+  nodeTag: "标签（可选）"
+  save: "保存"
+  branchName: "分支名称"
+  create: "创建"
+  cancel: "取消"
+  createBranch: "从此处创建分支"
 
 agent:
   title: "Agent"

@@ -28,6 +28,11 @@ export const desktopIpcSchema = z.object({
     'git:log',
     'git:commit-diff',
     'git:file-at-commit',
+    'git:create-node',
+    'git:list-branches',
+    'git:current-branch',
+    'git:create-branch',
+    'git:checkout-branch',
   ])
 });
 
@@ -128,6 +133,7 @@ export type GitCommitEntry = {
   message: string;
   author: string;
   timestamp: number;
+  tag?: string;
 };
 
 export type GitFileDiff = {
@@ -197,6 +203,11 @@ export type OrisonDesktopApi = {
   gitLog(dir: string, depth?: number): Promise<GitCommitEntry[]>;
   gitCommitDiff(dir: string, oid: string): Promise<GitFileDiff[]>;
   gitFileAtCommit(dir: string, oid: string, filepath: string): Promise<string | null>;
+  gitCreateNode(dir: string, message: string, tag?: string): Promise<{ oid: string }>;
+  gitListBranches(dir: string): Promise<string[]>;
+  gitCurrentBranch(dir: string): Promise<string>;
+  gitCreateBranch(dir: string, name: string, fromOid?: string): Promise<void>;
+  gitCheckoutBranch(dir: string, name: string): Promise<void>;
   onToolEvent(callback: (data: { type: string; [key: string]: unknown }) => void): () => void;
   // Agent
   createAgentSession(input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
