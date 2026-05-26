@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { storyMemoryIndexSchema, storyMemoryEntrySchema } from '@orison/shared-contracts';
 import type { StoryMemoryIndex, StoryMemoryEntry } from '@orison/shared-contracts';
 import YAML from 'yaml';
+import { atomicWriteFileSync } from './atomicWrite';
 
 const MEMORY_FILE = 'story-memory.yaml';
 const MEMORY_DIR = 'memory';
@@ -44,7 +45,7 @@ export function saveMemoryIndex(projectPath: string, index: StoryMemoryIndex): v
   index.updatedAt = new Date().toISOString();
 
   const validated = storyMemoryIndexSchema.parse(index);
-  writeFileSync(indexPath, YAML.stringify(validated), 'utf8');
+  atomicWriteFileSync(indexPath, YAML.stringify(validated), 'utf8');
 }
 
 /**

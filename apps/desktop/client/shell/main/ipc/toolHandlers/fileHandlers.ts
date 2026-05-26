@@ -1,11 +1,12 @@
 /**
  * File tool handlers — read_file, write_file, list_files, search
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
+import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 export const readFileHandler: ToolHandler = async ({ params, projectDir }) => {
   const { filePath, offset = 0, limit } = params as { filePath: string; offset?: number; limit?: number };
@@ -32,7 +33,7 @@ export const writeFileHandler: ToolHandler = async ({ params, projectDir }) => {
 
   const dir = path.dirname(fullPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(fullPath, content, 'utf-8');
+  atomicWriteFileSync(fullPath, content, 'utf-8');
 
   notifyUI({ type: 'file:changed', path: filePath });
   return {

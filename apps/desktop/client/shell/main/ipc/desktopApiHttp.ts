@@ -5,12 +5,13 @@
  * All paths are validated through pathGuard.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import git from 'isomorphic-git';
 import fs from 'node:fs';
 import { assertSafePath, assertWithinProject } from './pathGuard';
 import { getLogger } from '../logger';
+import { atomicWriteFileSync } from '../fs/atomicWrite';
 
 const logger = getLogger();
 
@@ -39,7 +40,7 @@ const routes: Record<string, RouteHandler> = {
     assertWithinProject(projectDir, fullPath);
     const dir = path.dirname(fullPath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(fullPath, content, 'utf-8');
+    atomicWriteFileSync(fullPath, content, 'utf-8');
     json(res, 200, { ok: true });
   },
 

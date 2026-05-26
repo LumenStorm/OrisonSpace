@@ -1,5 +1,5 @@
 import { ipcMain, safeStorage } from 'electron';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import type {
@@ -8,6 +8,7 @@ import type {
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
 import { parseFlatYaml, stringifyFlatYaml } from '@orison/shared-contracts';
+import { atomicWriteFileSync } from '../fs/atomicWrite';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
 
@@ -82,6 +83,15 @@ function readModelConfig(): ModelConfig {
   return { keys };
 }
 
+function redactModelConfig(config: ModelConfig): ModelConfig {
+  return {
+    keys: config.keys.map((key) => ({
+      ...key,
+      apiKey: '',
+    })),
+  };
+}
+
 function readKeyFile(filePath: string): ApiKeyEntry | null {
   try {
     const raw = parseFlatYaml(readFileSync(filePath, 'utf-8'));
@@ -120,6 +130,8 @@ function readCapability(value: unknown): 'text' | 'image' | 'video' {
 function writeModelConfig(config: ModelConfig): void {
   const keysDir = getKeysDir();
   if (!existsSync(keysDir)) mkdirSync(keysDir, { recursive: true });
+  const existing = readModelConfig();
+  const existingById = new Map(existing.keys.map((key) => [key.id, key]));
 
   const validIds = new Set(config.keys.map((k) => k.id));
 
@@ -131,11 +143,12 @@ function writeModelConfig(config: ModelConfig): void {
 
   // Write each key
   for (const key of config.keys) {
+    const apiKey = key.apiKey || existingById.get(key.id)?.apiKey || '';
     const flat: Record<string, string | number | boolean | null> = {
       id: key.id,
       name: key.name,
       baseUrl: key.baseUrl,
-      apiKey: encrypt(key.apiKey),
+      apiKey: encrypt(apiKey),
     };
     key.models.forEach((model, i) => {
       flat[`models.${i}.id`] = model.id;
@@ -143,7 +156,7 @@ function writeModelConfig(config: ModelConfig): void {
       flat[`models.${i}.alias`] = model.alias;
       flat[`models.${i}.enabled`] = model.enabled;
     });
-    writeFileSync(path.join(keysDir, `${key.id}.yaml`), stringifyFlatYaml(flat), 'utf-8');
+    atomicWriteFileSync(path.join(keysDir, `${key.id}.yaml`), stringifyFlatYaml(flat), 'utf-8');
   }
 }
 
@@ -224,7 +237,7 @@ function writeUserPreferences(config: UserPreferencesConfig): void {
     autoApplyPatches: config.autoApplyPatches,
   };
   if (config.updateManifestUrl) flat.updateManifestUrl = config.updateManifestUrl;
-  writeFileSync(p, stringifyFlatYaml(flat), 'utf-8');
+  atomicWriteFileSync(p, stringifyFlatYaml(flat), 'utf-8');
 }
 
 export function readUserPreferencesFromDisk(): UserPreferencesConfig {
@@ -242,7 +255,7 @@ export function getModelDirForTest(): string {
 }
 
 export function registerConfigIpc() {
-  ipcMain.handle('config:load-model', () => readModelConfig());
+  ipcMain.handle('config:load-model', () => redactModelConfig(readModelConfig()));
   ipcMain.handle('config:save-model', (_, config: ModelConfig) => {
     writeModelConfig(config);
   });

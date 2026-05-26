@@ -2,12 +2,13 @@
  * Image tool handlers — generate_image, edit_image
  * Delegates model calls to the existing model gateway, saves results to project.
  */
-import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { handleGenerateImage } from '../modelGatewayIpc';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
+import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 export const generateImageHandler: ToolHandler = async ({ params, projectDir }) => {
   const { prompt, size, quality, n, outputDir } = params as {
@@ -35,7 +36,7 @@ export const generateImageHandler: ToolHandler = async ({ params, projectDir }) 
     const slug = prompt.trim().toLowerCase().replace(/[^a-z0-9]+/gi, '-').slice(0, 36);
     const fileName = `${slug}-${i + 1}-${Date.now()}.${ext}`;
     const filePath = path.join(outDir, fileName);
-    writeFileSync(filePath, Buffer.from(img.b64Json, 'base64'));
+    atomicWriteFileSync(filePath, Buffer.from(img.b64Json, 'base64'));
     savedPaths.push(path.relative(projectDir, filePath));
   }
 
@@ -88,7 +89,7 @@ export const editImageHandler: ToolHandler = async ({ params, projectDir }) => {
     const ext = img.mimeType?.includes('png') ? 'png' : 'webp';
     const fileName = `edit-${Date.now()}-${i + 1}.${ext}`;
     const filePath = path.join(outDir, fileName);
-    writeFileSync(filePath, Buffer.from(img.b64Json, 'base64'));
+    atomicWriteFileSync(filePath, Buffer.from(img.b64Json, 'base64'));
     savedPaths.push(path.relative(projectDir, filePath));
   }
 

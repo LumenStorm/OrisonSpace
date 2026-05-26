@@ -39,8 +39,9 @@ export type { ModelCapability, DiscoveredModel, ApiKeyConfig, ApiKeyEntry, Model
  * Request to list models from a remote endpoint.
  */
 export type ListRemoteModelsRequest = {
-  apiKey: string;
-  baseUrl: string;
+  keyId?: string;
+  apiKey?: string;
+  baseUrl?: string;
 };
 
 /**

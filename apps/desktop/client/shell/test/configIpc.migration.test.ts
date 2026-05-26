@@ -65,7 +65,7 @@ describe('config IPC migration profiles -> keys', () => {
     const key = config.keys[0]!;
     expect(key.id).toBe('profile_v2');
     expect(key.name).toBe('Mixed');
-    expect(key.apiKey).toBe('sk-multi');
+    expect(key.apiKey).toBe('');
     expect(key.models).toHaveLength(2);
     expect(key.models[0]).toMatchObject({ id: 'gpt-4o', capability: 'text', enabled: true });
     expect(key.models[1]).toMatchObject({ id: 'dall-e-3', capability: 'image', enabled: true });

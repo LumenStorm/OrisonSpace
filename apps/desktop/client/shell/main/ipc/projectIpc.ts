@@ -1,8 +1,9 @@
 import { dialog, ipcMain } from 'electron';
-import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, copyFileSync, readFileSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
+import { atomicWriteFileSync } from '../fs/atomicWrite';
 import { ensureProject } from '../db/projectRepository';
 import {
   ALLOWED_IMAGE_DIRS,
@@ -70,7 +71,7 @@ export function registerProjectIpc() {
     assertSafePath(projectDir);
     const metaPath = path.join(projectDir, 'project.json');
     assertWithinProject(projectDir, metaPath);
-    writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+    atomicWriteFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
   });
 
   ipcMain.handle('project:load-meta', async (_, projectDir: string) => {
@@ -137,7 +138,7 @@ export function registerProjectIpc() {
       } else {
         const dir = path.dirname(fullPath);
         if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-        writeFileSync(fullPath, '', 'utf-8');
+        atomicWriteFileSync(fullPath, '', 'utf-8');
       }
       return true;
     } catch {
@@ -175,7 +176,7 @@ export function registerProjectIpc() {
     try {
       const dir = path.dirname(fullPath);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-      writeFileSync(fullPath, content, 'utf-8');
+      atomicWriteFileSync(fullPath, content, 'utf-8');
       return true;
     } catch {
       return false;
@@ -199,7 +200,7 @@ export function registerProjectIpc() {
     const dir = path.dirname(fullPath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
-    writeFileSync(fullPath, Buffer.from(input.b64Json, 'base64'));
+    atomicWriteFileSync(fullPath, Buffer.from(input.b64Json, 'base64'));
     return { relativePath, fullPath, fileName };
   });
 

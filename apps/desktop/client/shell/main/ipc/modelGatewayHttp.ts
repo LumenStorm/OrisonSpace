@@ -9,8 +9,10 @@ import { handleGenerateText, handleGenerateImage, handleGenerateVideo } from './
 import { handleDesktopApiRoute } from './desktopApiHttp';
 import { handleToolExecute, listRegisteredTools } from './toolExecution';
 import { getLogger } from '../logger';
+import { isGatewayRequestAuthorized } from './gatewayAuth';
 
 const PORT = Number(process.env.ORISON_GATEWAY_PORT) || 18421;
+const GATEWAY_TOKEN = process.env.ORISON_GATEWAY_TOKEN;
 const logger = getLogger();
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -23,22 +25,25 @@ function readBody(req: IncomingMessage): Promise<string> {
 }
 
 function json(res: ServerResponse, status: number, data: unknown) {
-  res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+  res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   // CORS preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    });
+    res.writeHead(204, { 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS' });
     return res.end();
   }
 
   const url = req.url ?? '';
+  if (!isGatewayRequestAuthorized({
+    expectedToken: GATEWAY_TOKEN,
+    url,
+    headers: req.headers,
+  })) {
+    return json(res, 401, { error: 'Unauthorized' });
+  }
 
   if (req.method === 'GET' && url === '/health') {
     return json(res, 200, { status: 'ok' });

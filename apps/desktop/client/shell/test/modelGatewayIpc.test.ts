@@ -70,11 +70,17 @@ describe('model gateway IPC', () => {
     registerModelGatewayIpc();
 
     const responseBody = JSON.stringify({
-      choices: [{ message: { content: 'hello world' } }],
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      created: 0,
+      model: 'gpt-4o-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'hello world' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
     });
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: async () => JSON.parse(responseBody),
       text: async () => responseBody,
     } as unknown as Response));
@@ -101,10 +107,18 @@ describe('model gateway IPC', () => {
     await seedConfig();
     registerModelGatewayIpc();
 
-    const body = JSON.stringify({ choices: [{ message: { content: 'ok' } }] });
+    const body = JSON.stringify({
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      created: 0,
+      model: 'gpt-4o-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+    });
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: async () => JSON.parse(body),
       text: async () => body,
     } as unknown as Response)) as unknown as typeof globalThis.fetch;

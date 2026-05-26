@@ -91,6 +91,43 @@ describe('model config IPC', () => {
     expect(result.keys[1].id).toBe('key_002');
   });
 
+  it('redacts api keys from renderer-facing load-model results', async () => {
+    registerConfigIpc();
+    const saveCall = handle.mock.calls.find(([channel]) => channel === 'config:save-model');
+    const loadCall = handle.mock.calls.find(([channel]) => channel === 'config:load-model');
+
+    await saveCall![1]({}, SAMPLE_CONFIG);
+    const result = (await loadCall![1]({})) as ModelConfig;
+
+    expect(result.keys[0].apiKey).toBe('');
+    expect(result.keys[1].apiKey).toBe('');
+    expect(JSON.stringify(result)).not.toContain('sk-test');
+    expect(JSON.stringify(result)).not.toContain('sk-image');
+  });
+
+  it('preserves the existing encrypted api key when renderer saves a redacted key unchanged', async () => {
+    registerConfigIpc();
+    const saveCall = handle.mock.calls.find(([channel]) => channel === 'config:save-model');
+
+    await saveCall![1]({}, SAMPLE_CONFIG);
+    await saveCall![1]({}, {
+      keys: [
+        {
+          ...SAMPLE_CONFIG.keys[0],
+          name: 'Renamed relay',
+          apiKey: '',
+        },
+      ],
+    } satisfies ModelConfig);
+
+    const keyFile = parseFlatYaml(readFileSync(path.join(TEST_MODEL_DIR, 'keys', 'key_001.yaml'), 'utf-8'));
+    expect(keyFile).toMatchObject({
+      id: 'key_001',
+      name: 'Renamed relay',
+      apiKey: 'sk-test',
+    });
+  });
+
   it('migrates old profile-based config on first read', async () => {
     // Seed old-style profiles directory
     const profilesDir = path.join(TEST_MODEL_DIR, 'profiles');
@@ -120,7 +157,7 @@ describe('model config IPC', () => {
     expect(result.keys[0]).toMatchObject({
       id: 'model_001',
       name: 'Legacy Profile',
-      apiKey: 'legacy-key',
+      apiKey: '',
       baseUrl: 'https://relay.example.com/v1',
     });
     expect(result.keys[0].models[0]).toMatchObject({

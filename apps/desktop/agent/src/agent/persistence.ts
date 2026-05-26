@@ -5,12 +5,13 @@
  * - JSONL files for full message history
  * - JSON metadata files for session tree and recovery metadata
  */
-import { existsSync, mkdirSync, appendFileSync, readFileSync, unlinkSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, appendFileSync, readFileSync, unlinkSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { SessionState, SessionMessage } from '../types';
 import type { ContinuationSnapshot } from '../context/continuation';
 import type { SerializedSkillRunState } from '../runtime/skillRunState';
+import { atomicWriteFileSync } from '../fs/atomicWrite';
 
 let Database: any = null;
 try {
@@ -97,7 +98,7 @@ export function overwriteMessagesFile(projectPath: string, sessionId: string, me
   const dir = sessionsDir(projectPath);
   const filePath = path.join(dir, `${sessionId}.jsonl`);
   const body = messages.map((message) => JSON.stringify(message)).join('\n');
-  writeFileSync(filePath, body ? `${body}\n` : '', 'utf-8');
+  atomicWriteFileSync(filePath, body ? `${body}\n` : '', 'utf-8');
 }
 
 export function loadMessagesFromFile(projectPath: string, sessionId: string): SessionMessage[] {
@@ -228,7 +229,7 @@ export function persistSessionMeta(session: SessionState): void {
     error: session.error,
     skillRunState: session.skillRunState,
   };
-  writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+  atomicWriteFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
 }
 
 export function loadSessionMeta(projectPath: string, sessionId: string): SessionMetaState | undefined {
@@ -241,7 +242,7 @@ export function persistContinuation(projectPath: string, record: PersistedContin
   const filePath = path.join(sessionsDir(projectPath), `${record.sessionId}.continuations.json`);
   const existing = loadContinuations(projectPath, record.sessionId);
   const next = [record, ...existing.filter((item) => item.continuationId !== record.continuationId)].slice(0, 20);
-  writeFileSync(filePath, JSON.stringify(next, null, 2), 'utf-8');
+  atomicWriteFileSync(filePath, JSON.stringify(next, null, 2), 'utf-8');
 }
 
 export function loadContinuations(projectPath: string, sessionId: string): PersistedContinuationRecord[] {

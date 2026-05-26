@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { loadProject, saveProject } from './localProjectRepository';
+import { atomicWriteFileSync } from './atomicWrite';
 
 // ── 章节元数据 ──
 
@@ -78,7 +79,7 @@ export function acceptChapterCandidate(
     mkdirSync(mdDir, { recursive: true });
   }
   const mdPath = path.join(projectPath, section.content_file);
-  writeFileSync(mdPath, candidate.content, 'utf8');
+  atomicWriteFileSync(mdPath, candidate.content, 'utf8');
 
   // 更新章节元数据
   if (candidate.title !== undefined) {

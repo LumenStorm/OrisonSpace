@@ -1,11 +1,12 @@
 /**
  * Project tool handlers — project_meta, memory_query, memory_update, skill
  */
-import { existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
+import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 export const projectMetaHandler: ToolHandler = async ({ projectDir }) => {
   const metaPath = path.join(projectDir, 'project.json');
@@ -38,7 +39,7 @@ export const memoryUpdateHandler: ToolHandler = async ({ params, projectDir }) =
   const { content } = params as { content: string };
   const memPath = path.join(projectDir, 'story-memory.yaml');
   assertWithinProject(projectDir, memPath);
-  writeFileSync(memPath, content, 'utf-8');
+  atomicWriteFileSync(memPath, content, 'utf-8');
 
   notifyUI({ type: 'memory:changed' });
   return { title: 'memory_update', output: `Updated story-memory.yaml (${content.length} chars)` };

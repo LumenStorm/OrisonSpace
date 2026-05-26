@@ -1,6 +1,5 @@
-import { app, BrowserWindow, net, protocol, session } from 'electron';
+import { app, BrowserWindow, protocol, session } from 'electron';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { getLogger, installGlobalErrorHandlers } from './logger';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
@@ -15,6 +14,7 @@ import { registerLogIpc } from './ipc/logIpc';
 import { registerUpdateIpc } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
 import { registerAgentIpc } from './ipc/agentIpc';
+import { fetchOrisonFile } from './orisonFileProtocol';
 
 /* ── CSP ── */
 
@@ -99,9 +99,7 @@ protocol.registerSchemesAsPrivileged([
 app.whenReady().then(() => {
   // Register orison-file:// protocol to serve local files from sandbox
   protocol.handle('orison-file', (request) => {
-    // URL format: orison-file:///C:/path/to/file.png (absolute path after triple slash)
-    const filePath = decodeURIComponent(new URL(request.url).pathname).replace(/^\/([A-Za-z]:)/, '$1');
-    return net.fetch(pathToFileURL(filePath).toString());
+    return fetchOrisonFile(request.url);
   });
 
   installGlobalErrorHandlers();

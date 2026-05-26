@@ -80,11 +80,17 @@ describe('story-sync bridge', () => {
       ],
     });
     const responseBody = JSON.stringify({
-      choices: [{ message: { content: llmText } }],
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      created: 0,
+      model: 'gpt-4o-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: llmText }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
     });
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: async () => JSON.parse(responseBody),
       text: async () => responseBody,
     } as unknown as Response)) as unknown as typeof globalThis.fetch;
@@ -110,7 +116,8 @@ describe('story-sync bridge', () => {
 
     globalThis.fetch = vi.fn(async () => ({
       ok: false,
-      status: 500,
+      status: 400,
+      headers: new Headers(),
       json: async () => ({ error: { message: 'boom' } }),
       text: async () => JSON.stringify({ error: { message: 'boom' } }),
     } as unknown as Response)) as unknown as typeof globalThis.fetch;
@@ -135,11 +142,17 @@ describe('story-sync bridge', () => {
     registerStorySyncIpc();
 
     const responseBody = JSON.stringify({
-      choices: [{ message: { content: 'sorry I cannot help' } }],
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      created: 0,
+      model: 'gpt-4o-mini',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'sorry I cannot help' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
     });
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
+      headers: new Headers(),
       json: async () => JSON.parse(responseBody),
       text: async () => responseBody,
     } as unknown as Response)) as unknown as typeof globalThis.fetch;

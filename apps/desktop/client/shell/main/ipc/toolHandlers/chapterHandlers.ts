@@ -1,11 +1,12 @@
 /**
  * Chapter tool handlers — chapter_list, chapter_read, chapter_write
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
+import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 const CHAPTERS_DIR = 'chapters';
 
@@ -47,7 +48,7 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
 
   const filePath = path.join(dir, `${chapterId}.md`);
   assertWithinProject(projectDir, filePath);
-  writeFileSync(filePath, content, 'utf-8');
+  atomicWriteFileSync(filePath, content, 'utf-8');
 
   notifyUI({ type: 'chapter:changed', chapterId });
   const wordCount = content.replace(/\s+/g, '').length;

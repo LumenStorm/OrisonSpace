@@ -1,4 +1,3 @@
-import os from 'node:os';
 import path from 'node:path';
 import { existsSync, rmSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,8 +16,9 @@ vi.mock('electron', () => ({
 }));
 
 import { registerFieldSyncIpc } from '../main/ipc/fieldSyncIpc';
+import { allowPath } from '../main/ipc/pathGuard';
 
-const TEST_PROJECT_PATH = path.join(os.homedir(), 'Documents', 'OrisonSpace', 'field-sync-project');
+const TEST_PROJECT_PATH = path.join(process.cwd(), 'test-tmp-field-sync-project');
 
 describe('field sync IPC', () => {
   beforeEach(() => {
@@ -44,6 +44,7 @@ describe('field sync IPC', () => {
     const [, handler] = handle.mock.calls[0]!;
     const payload = { rawRequirement: 'Make the opening darker.' };
 
+    allowPath(TEST_PROJECT_PATH);
     await expect(handler({}, TEST_PROJECT_PATH, 'creative_brief', payload)).resolves.toBeUndefined();
 
     const project = loadProject(TEST_PROJECT_PATH);

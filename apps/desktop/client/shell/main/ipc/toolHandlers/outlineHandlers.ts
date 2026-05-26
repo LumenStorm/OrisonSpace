@@ -1,11 +1,12 @@
 /**
  * Outline tool handlers — outline_read, outline_update
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
+import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 const OUTLINE_FILE = 'outline.md';
 
@@ -22,7 +23,7 @@ export const outlineUpdateHandler: ToolHandler = async ({ params, projectDir }) 
   const { content } = params as { content: string };
   const filePath = path.join(projectDir, OUTLINE_FILE);
   assertWithinProject(projectDir, filePath);
-  writeFileSync(filePath, content, 'utf-8');
+  atomicWriteFileSync(filePath, content, 'utf-8');
 
   notifyUI({ type: 'outline:changed' });
   return { title: 'outline_update', output: `Updated outline (${content.length} chars)` };

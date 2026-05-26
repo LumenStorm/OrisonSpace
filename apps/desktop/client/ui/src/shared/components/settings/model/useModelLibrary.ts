@@ -145,17 +145,16 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
   }
 
   async function refreshModels() {
-    if (!draft.baseUrl || !draft.apiKey) {
+    if (!draft.baseUrl || (!draft.apiKey && !draft.id)) {
       setRefreshError(t('settings.missingUrlOrKey'));
       return;
     }
     setRefreshing(true);
     setRefreshError(null);
     try {
-      const models = await loadRemoteModels({
-        apiKey: draft.apiKey,
-        baseUrl: draft.baseUrl,
-      });
+      const models = await loadRemoteModels(draft.id && !draft.apiKey
+        ? { keyId: draft.id }
+        : { apiKey: draft.apiKey, baseUrl: draft.baseUrl });
       setRemoteModels(models);
 
       // Merge into draft: add new models, keep existing enabled state

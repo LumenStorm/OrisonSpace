@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { z } from 'zod';
 import { patchOperationSchema, projectDocumentSchema } from '@orison/shared-contracts';
 import type { ProjectFieldPatch, CreativeFieldKey } from '@orison/shared-contracts';
 import YAML from 'yaml';
+import { atomicWriteFileSync } from './atomicWrite';
 
 type ProjectDocument = z.infer<typeof projectDocumentSchema>;
 type PatchOperation = z.infer<typeof patchOperationSchema>;
@@ -55,7 +56,7 @@ export function saveProject(projectPath: string, document: ProjectDocument): voi
   }
   const filePath = path.join(projectPath, PROJECT_FILE);
   const validated = projectDocumentSchema.parse(document);
-  writeFileSync(filePath, YAML.stringify(validated), 'utf8');
+  atomicWriteFileSync(filePath, YAML.stringify(validated), 'utf8');
 }
 
 /**
@@ -203,7 +204,7 @@ export function applyFieldPatches(
             if (!existsSync(mdDir)) {
               mkdirSync(mdDir, { recursive: true });
             }
-            writeFileSync(path.join(projectPath, section.content_file), data.candidate.content, 'utf8');
+            atomicWriteFileSync(path.join(projectPath, section.content_file), data.candidate.content, 'utf8');
 
             // 更新章节元数据
             const c = data.candidate;
