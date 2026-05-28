@@ -28,6 +28,7 @@ export function WorkspaceLayout() {
     toggleBottomPanel,
     agentPanelOpen, agentPanelWidth,
     hasOpenFiles,
+    overlayPage, setOverlayPage,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     projectTreeOpen: s.projectTreeOpen,
@@ -39,6 +40,8 @@ export function WorkspaceLayout() {
     agentPanelOpen: s.agentPanelOpen,
     agentPanelWidth: s.agentPanelWidth,
     hasOpenFiles: s.openFiles.length > 0,
+    overlayPage: s.overlayPage,
+    setOverlayPage: s.setOverlayPage,
   })));
 
   const handleTreeResize = useProjectTreeResize();
@@ -89,8 +92,22 @@ export function WorkspaceLayout() {
           </>
         )}
         <div style={{ display: 'flex', minWidth: 0, minHeight: 0 }}>
-          <div className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+          <div className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, position: 'relative' }}>
             {renderMainContent()}
+            {overlayPage && (
+              <div className="workspace-overlay">
+                <div className="workspace-overlay-header">
+                  <button type="button" className="overlay-close-btn" onClick={() => setOverlayPage(null)} aria-label="Close">
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div className="workspace-overlay-body">
+                  {overlayPage === 'overview' && <OverviewPage />}
+                  {overlayPage === 'outline' && <OutlineEditor />}
+                  {overlayPage === 'assets' && <AssetsPanel />}
+                </div>
+              </div>
+            )}
             <ResizeHandle direction="vertical" onResize={handleBottomResize} style={{ display: bottomPanelOpen ? undefined : 'none' }} />
             <div
               className={`workspace-bottom-wrapper${bottomPanelOpen ? ' is-open' : ''}`}

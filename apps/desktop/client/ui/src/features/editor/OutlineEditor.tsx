@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { z } from 'zod';
 import type { outlineV2Schema } from '@orison/shared-contracts';
 import { TiptapEditor } from './TiptapEditor';
+import { Skeleton } from '../../shared/components/Skeleton';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 
@@ -119,6 +120,18 @@ export function OutlineEditor() {
   const cDrag = useDragReorder(constraints, setConstraints, markEdited);
 
   const toggle = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  if (!projectDocumentHydrated) {
+    return (
+      <div className="outline-editor">
+        <div className="outline-fields" style={{ opacity: 0.4, pointerEvents: 'none' }}>
+          <Skeleton height="2rem" />
+          <Skeleton height="2rem" />
+          <Skeleton height="2rem" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="outline-editor">

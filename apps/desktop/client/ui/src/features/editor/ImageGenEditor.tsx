@@ -46,6 +46,8 @@ export function ImageGenEditor() {
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
+  const showToast = useAppStore((s) => s.showToast);
+  const requestConfirm = useAppStore((s) => s.requestConfirm);
   const imageGenParams = useAppStore((s) => s.imageGenParams);
   const imageGenFamily = useAppStore((s) => s.imageGenFamily);
   const reconcileImageGenForModel = useAppStore((s) => s.reconcileImageGenForModel);
@@ -249,7 +251,7 @@ export function ImageGenEditor() {
 
     submitBgTask({
       type: 'image_gen',
-      label: `${isEditMode ? '编辑' : '生成'}图片: ${capturedPrompt.slice(0, 40)}`,
+      label: `${isEditMode ? t('imageGen.editLabel') || '编辑' : t('imageGen.genLabel') || '生成'}图片: ${capturedPrompt.slice(0, 40)}`,
       execute: async (_signal) => {
         try {
           const response = await generateImage({
@@ -303,6 +305,11 @@ export function ImageGenEditor() {
           });
 
           return saved;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setError(msg);
+          showToast(msg, 'error');
+          throw err;
         } finally {
           setLoading(false);
         }
@@ -460,6 +467,7 @@ export function ImageGenEditor() {
     } catch (err) {
       const message = err instanceof Error ? err.message : t('imageGen.generateFailed');
       setError(message);
+      showToast(message, 'error');
       appendOutputEntry({
         scope: 'image',
         level: 'error',
@@ -519,7 +527,12 @@ export function ImageGenEditor() {
   async function handleDelete(item: GeneratedImageItem) {
     if (!currentProject?.path) return;
     if (item.savedRelativePath) return;
-    const confirmed = window.confirm(t('imageGen.deleteConfirm'));
+    const confirmed = await requestConfirm({
+      title: t('imageGen.deleteTitle') || '删除图片',
+      message: t('imageGen.deleteConfirm'),
+      variant: 'danger',
+      confirmLabel: t('common.delete') || '删除',
+    });
     if (!confirmed) return;
 
     try {

@@ -16,6 +16,7 @@ import { createUpdateSlice, type UpdateSlice } from './updateSlice';
 import { createCommandPaletteSlice, type CommandPaletteSlice } from './commandPaletteSlice';
 import { createAgentSlice, type AgentSlice } from './agentSlice';
 import { createToastSlice, type ToastSlice } from './toastSlice';
+import { createConfirmSlice, type ConfirmSlice } from './confirmSlice';
 
 export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, TaskAdapter, AgentMode } from './types';
 
@@ -35,7 +36,8 @@ type AppState = ProjectSlice &
   UpdateSlice &
   CommandPaletteSlice &
   AgentSlice &
-  ToastSlice;
+  ToastSlice &
+  ConfirmSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
   ...createProjectSlice(...a),
@@ -55,4 +57,5 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createCommandPaletteSlice(...a),
   ...createAgentSlice(...a),
   ...createToastSlice(...a),
+  ...createConfirmSlice(...a),
 }));

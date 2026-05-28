@@ -68,6 +68,8 @@ assets:
   description: "Description"
   descriptionPlaceholder: "Add a description..."
   ungrouped: "Ungrouped"
+  deleteTitle: "Delete Asset"
+  deleteConfirm: "Are you sure you want to delete this asset? This cannot be undone."
 
 overview:
   untitled: "Untitled Project"
@@ -224,6 +226,19 @@ editor:
   bulletList: "Bullet List"
   orderedList: "Ordered List"
   heading: "Heading {level}"
+  words: "Words"
+  chars: "Characters"
+  find: "Find"
+  replace: "Replace"
+  replaceOne: "Replace"
+  replaceAll: "Replace All"
+  cut: "Cut"
+  copy: "Copy"
+  paste: "Paste"
+  selectAll: "Select All"
+  findReplace: "Find & Replace"
+  aiContinue: "AI Continue"
+  aiPolish: "AI Polish"
 
 welcome:
   brand: "Orison Space"
@@ -397,6 +412,9 @@ imageGen:
   copyFailed: "Copy failed"
   delete: "Delete"
   deleteConfirm: "Delete this generated image? This cannot be undone."
+  deleteTitle: "Delete Image"
+  editLabel: "Edit"
+  genLabel: "Generate"
   deleteFailed: "Failed to delete image"
   cannotDeleteAsset: "Already added to assets — remove from the library first"
   dismiss: "Dismiss"
@@ -665,3 +683,8 @@ agent:
   recentContinuations: "Recent resumable runs"
   noContinuations: "No resumable runs yet"
   restoreRun: "Restore run"
+
+common:
+  cancel: "Cancel"
+  confirm: "Confirm"
+  delete: "Delete"

@@ -144,3 +144,15 @@
   min-height: 300px;
 }
 
+/* ── Editor Status Bar ── */
+.editor-status-bar {
+  display: flex;
+  gap: 1rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+  flex-shrink: 0;
+}
+

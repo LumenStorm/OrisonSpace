@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { htmlToMarkdown, markdownToHtml } from '../../shared/utils/markdown';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
+import { FindReplace } from './FindReplace';
 
 export type TiptapEditorFormat = 'html' | 'markdown';
 
@@ -15,6 +17,7 @@ type TiptapEditorProps = {
   editable?: boolean;
   format?: TiptapEditorFormat;
   flush?: boolean;
+  extraContextItems?: ContextMenuItem[];
 };
 
 const menuItems = [
@@ -36,10 +39,13 @@ export function TiptapEditor({
   editable = true,
   format = 'html',
   flush = false,
+  extraContextItems,
 }: TiptapEditorProps) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
   const initialHtml = format === 'markdown' ? markdownToHtml(content) : content;
+  const [showFind, setShowFind] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -54,6 +60,20 @@ export function TiptapEditor({
       onChange(format === 'markdown' ? htmlToMarkdown(html) : html);
     },
   });
+
+  const handleFindClose = useCallback(() => setShowFind(false), []);
+
+  useEffect(() => {
+    if (!editable) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowFind(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editable]);
 
   useEffect(() => {
     if (!editor) return;
@@ -70,8 +90,40 @@ export function TiptapEditor({
 
   if (!editor) return null;
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (!editable) return;
+    e.preventDefault();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const hasSelection = !editor.state.selection.empty;
+
+  const ctxItems: ContextMenuItem[] = [
+    { type: 'item', label: t('editor.cut'), icon: 'content_cut', disabled: !hasSelection, onClick: () => { document.execCommand('cut'); } },
+    { type: 'item', label: t('editor.copy'), icon: 'content_copy', disabled: !hasSelection, onClick: () => { document.execCommand('copy'); } },
+    { type: 'item', label: t('editor.paste'), icon: 'content_paste', onClick: () => { document.execCommand('paste'); } },
+    { type: 'item', label: t('editor.selectAll'), icon: 'select_all', onClick: () => { editor.chain().focus().selectAll().run(); } },
+    { type: 'separator' },
+    { type: 'item', label: t('editor.bold'), icon: 'format_bold', onClick: () => { editor.chain().focus().toggleBold().run(); } },
+    { type: 'item', label: t('editor.italic'), icon: 'format_italic', onClick: () => { editor.chain().focus().toggleItalic().run(); } },
+    { type: 'item', label: t('editor.strikethrough'), icon: 'strikethrough_s', onClick: () => { editor.chain().focus().toggleStrike().run(); } },
+    { type: 'separator' },
+    { type: 'item', label: t('editor.heading', { level: '1' }), onClick: () => { editor.chain().focus().toggleHeading({ level: 1 }).run(); } },
+    { type: 'item', label: t('editor.heading', { level: '2' }), onClick: () => { editor.chain().focus().toggleHeading({ level: 2 }).run(); } },
+    { type: 'item', label: t('editor.heading', { level: '3' }), onClick: () => { editor.chain().focus().toggleHeading({ level: 3 }).run(); } },
+    { type: 'separator' },
+    { type: 'item', label: t('editor.bulletList'), icon: 'format_list_bulleted', onClick: () => { editor.chain().focus().toggleBulletList().run(); } },
+    { type: 'item', label: t('editor.orderedList'), icon: 'format_list_numbered', onClick: () => { editor.chain().focus().toggleOrderedList().run(); } },
+    { type: 'item', label: t('editor.quote'), icon: 'format_quote', onClick: () => { editor.chain().focus().toggleBlockquote().run(); } },
+    { type: 'separator' },
+    { type: 'item', label: t('editor.findReplace'), icon: 'find_replace', onClick: () => { setShowFind(true); } },
+    ...(extraContextItems ?? []),
+  ];
+
   return (
-    <div className={`tiptap-wrapper${flush ? ' tiptap-wrapper--flush' : ''}`}>
+    <div className={`tiptap-wrapper${flush ? ' tiptap-wrapper--flush' : ''}`} onContextMenu={handleContextMenu}>
+      {showFind && editor && <FindReplace editor={editor} onClose={handleFindClose} />}
+      {ctxMenu && <ContextMenu x={ctxMenu.x} y={ctxMenu.y} items={ctxItems} onClose={() => setCtxMenu(null)} />}
       {editable && (
         <div className="tiptap-toolbar" role="toolbar" aria-label="Formatting">
           {([1, 2, 3] as HeadingLevel[]).map((level) => (

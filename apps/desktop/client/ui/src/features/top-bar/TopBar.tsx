@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
 import { WindowControls, detectIsMac } from '../../shared/components/WindowControls';
@@ -13,25 +14,31 @@ import { MenuDropdown, type MenuItem } from './MenuDropdown';
 
 export function TopBar() {
   const isMac = detectIsMac();
-  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
-  const closeProject = useAppStore((s) => s.closeProject);
-  const currentProject = useAppStore((s) => s.currentProject);
-  const saveProject = useAppStore((s) => s.saveProject);
-  const saveChaptersToProject = useAppStore((s) => s.saveChaptersToProject);
-  const saveAllOpenFiles = useAppStore((s) => s.saveAllOpenFiles);
-  const showToast = useAppStore((s) => s.showToast);
-  const requestCloseFile = useAppStore((s) => s.requestCloseFile);
-  const reopenLastClosedFile = useAppStore((s) => s.reopenLastClosedFile);
-  const cycleActiveFile = useAppStore((s) => s.cycleActiveFile);
-  const checkForUpdate = useAppStore((s) => s.checkForUpdate);
-  const appVersion = useAppStore((s) => s.appVersion);
-  const openPalette = useAppStore((s) => s.openPalette);
-  const undo = useAppStore((s) => s.undo);
-  const redo = useAppStore((s) => s.redo);
+  const {
+    resolvedLocale, closeProject, currentProject, saveProject, saveChaptersToProject,
+    saveAllOpenFiles, showToast, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
+    checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
+  } = useAppStore(useShallow((s) => ({
+    resolvedLocale: s.resolvedLocale,
+    closeProject: s.closeProject,
+    currentProject: s.currentProject,
+    saveProject: s.saveProject,
+    saveChaptersToProject: s.saveChaptersToProject,
+    saveAllOpenFiles: s.saveAllOpenFiles,
+    showToast: s.showToast,
+    requestCloseFile: s.requestCloseFile,
+    reopenLastClosedFile: s.reopenLastClosedFile,
+    cycleActiveFile: s.cycleActiveFile,
+    checkForUpdate: s.checkForUpdate,
+    appVersion: s.appVersion,
+    openPalette: s.openPalette,
+    undo: s.undo,
+    redo: s.redo,
+    toggleProjectTree: s.toggleProjectTree,
+    toggleBottomPanel: s.toggleBottomPanel,
+  })));
   const undoLen = useAppStore((s) => s.undoStack.length);
   const redoLen = useAppStore((s) => s.redoStack.length);
-  const toggleProjectTree = useAppStore((s) => s.toggleProjectTree);
-  const toggleBottomPanel = useAppStore((s) => s.toggleBottomPanel);
   const { t } = useI18n(resolvedLocale);
   const handleOpen = useOpenProject();
 

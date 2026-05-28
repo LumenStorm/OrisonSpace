@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 import { GeneralSettingsPage } from './settings/GeneralSettingsPage';
 import { ModelSettingsPage } from './settings/ModelSettingsPage';
 
@@ -30,10 +31,12 @@ export function SettingsDialog({ onClose }: Props) {
 
   const { t } = useI18n(resolvedLocale);
   const [activePage, setActivePage] = useState<SettingsPageId>('general');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(dialogRef, onClose);
 
   return (
-    <div className="topbar-new-dialog-overlay" onClick={onClose}>
-      <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
+    <div className="topbar-new-dialog-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="settings-dialog" ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="settings-dialog-header">
           <h2 className="settings-dialog-title">{t('nav.settings')}</h2>
           <button type="button" className="settings-dialog-close" onClick={onClose} aria-label="Close">

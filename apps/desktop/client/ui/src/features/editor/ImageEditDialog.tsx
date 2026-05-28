@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { GeneratedImageItem } from './ImageGenEditor';
+import { useDialogA11y } from '../../shared/hooks/useDialogA11y';
 
 type ImageEditTool = 'brush' | 'circle' | 'mask' | 'crop';
 
@@ -48,6 +49,7 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
   const drawingRef = useRef(false);
   const startRef = useRef<Point | null>(null);
   const lastRef = useRef<Point | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const [tool, setTool] = useState<ImageEditTool>('brush');
   const [color, setColor] = useState('#ff4d4f');
@@ -58,16 +60,7 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
   const [saving, setSaving] = useState(false);
   const [hasMask, setHasMask] = useState(false);
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancel();
-      }
-    }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onCancel]);
+  useDialogA11y(dialogRef, onCancel);
 
   useEffect(() => {
     const image = new Image();
@@ -327,8 +320,8 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
   }
 
   return (
-    <div className="image-edit-overlay" onClick={onCancel}>
-      <div className="image-edit-dialog" onClick={(event) => event.stopPropagation()}>
+    <div className="image-edit-overlay" role="dialog" aria-modal="true" onClick={onCancel}>
+      <div className="image-edit-dialog" ref={dialogRef} tabIndex={-1} onClick={(event) => event.stopPropagation()}>
         <div className="image-edit-toolbar">
           <div className="image-edit-toolbar-group">
             <ToolButton icon="brush" label="Brush" active={tool === 'brush'} onClick={() => setTool('brush')} />

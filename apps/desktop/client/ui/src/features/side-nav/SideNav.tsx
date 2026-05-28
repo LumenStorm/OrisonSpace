@@ -30,6 +30,7 @@ export function SideNav() {
     currentProject, resolvedLocale,
     toggleAgentPanel, agentPanelOpen,
     activeSidebarPanel, setActiveSidebarPanel,
+    overlayPage, setOverlayPage,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     setActivePage: s.setActivePage,
@@ -39,6 +40,8 @@ export function SideNav() {
     agentPanelOpen: s.agentPanelOpen,
     activeSidebarPanel: s.activeSidebarPanel,
     setActiveSidebarPanel: s.setActiveSidebarPanel,
+    overlayPage: s.overlayPage,
+    setOverlayPage: s.setOverlayPage,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -47,6 +50,10 @@ export function SideNav() {
   const [showSettings, setShowSettings] = useState(false);
 
   const handlePage = (page: ActivePage) => setActivePage(page);
+
+  const handleOverlay = (page: ActivePage) => {
+    setOverlayPage(overlayPage === page ? null : page);
+  };
 
   const handleSearchClick = () => {
     setActiveSidebarPanel(activeSidebarPanel === 'search' ? 'explorer' : 'search');
@@ -97,9 +104,9 @@ export function SideNav() {
           <div className="side-nav-separator" />
 
           {/* --- Group 1: Overview / Outline / Assets / Novel|Script --- */}
-          <NavButton item={overviewItem} active={!hasOpenFiles && activePage === 'overview'} onClick={() => handlePage('overview')} t={t} />
-          <NavButton item={outlineItem} active={!hasOpenFiles && activePage === 'outline'} onClick={() => handlePage('outline')} t={t} />
-          <NavButton item={assetsItem} active={!hasOpenFiles && activePage === 'assets'} onClick={() => handlePage('assets')} t={t} />
+          <NavButton item={overviewItem} active={overlayPage === 'overview' || (!hasOpenFiles && !overlayPage && activePage === 'overview')} onClick={() => handleOverlay('overview')} t={t} />
+          <NavButton item={outlineItem} active={overlayPage === 'outline' || (!hasOpenFiles && !overlayPage && activePage === 'outline')} onClick={() => handleOverlay('outline')} t={t} />
+          <NavButton item={assetsItem} active={overlayPage === 'assets' || (!hasOpenFiles && !overlayPage && activePage === 'assets')} onClick={() => handleOverlay('assets')} t={t} />
           <NavButton item={contentItem} active={!hasOpenFiles && activePage === contentItem.id} onClick={() => handlePage(contentItem.id)} t={t} />
 
           <div className="side-nav-separator" />

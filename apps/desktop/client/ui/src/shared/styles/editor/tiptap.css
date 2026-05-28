@@ -439,3 +439,46 @@
   min-height: 180px;
 }
 
+/* ── Find & Replace Bar ── */
+.find-replace-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--surface-container);
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.find-replace-input {
+  flex: 1;
+  min-width: 80px;
+  max-width: 180px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--on-surface);
+}
+
+.find-replace-count {
+  font-size: 0.7rem;
+  color: var(--on-surface-variant);
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.find-replace-btn {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.72rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  cursor: pointer;
+}
+
+.find-replace-btn:hover {
+  opacity: 0.85;
+}
+

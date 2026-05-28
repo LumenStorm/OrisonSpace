@@ -19,6 +19,7 @@ export type EditorSlice = {
 
   addChapter: (title?: string) => void;
   removeChapter: (id: string) => void;
+  reorderChapter: (id: string, direction: 'up' | 'down') => void;
   updateChapter: (id: string, patch: Partial<Omit<Chapter, 'id'>>) => void;
   setActiveChapter: (id: string | null) => void;
   undo: () => void;
@@ -71,6 +72,22 @@ export const createEditorSlice: StateCreator<
       redoStack: [],
       chapters: next,
       activeChapterId: state.activeChapterId === id ? (next[0]?.id ?? null) : state.activeChapterId,
+    });
+  },
+
+  reorderChapter: (id, direction) => {
+    const state = get();
+    const idx = state.chapters.findIndex((c) => c.id === id);
+    if (idx < 0) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= state.chapters.length) return;
+    const snapshot = snap(state);
+    const next = [...state.chapters];
+    [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+    set({
+      undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), snapshot],
+      redoStack: [],
+      chapters: next,
     });
   },
 

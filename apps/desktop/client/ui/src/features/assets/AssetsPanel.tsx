@@ -9,6 +9,7 @@ export function AssetsPanel() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const projectPath = useAppStore((s) => s.currentProject?.path);
   const projectId = useAppStore((s) => s.currentProject?.projectId);
+  const requestConfirm = useAppStore((s) => s.requestConfirm);
   const { t } = useI18n(resolvedLocale);
   const [assets, setAssets] = useState<MergedAsset[]>([]);
   const [selected, setSelected] = useState<MergedAsset | null>(null);
@@ -106,6 +107,13 @@ export function AssetsPanel() {
 
   const handleDelete = async () => {
     if (!selected) return;
+    const confirmed = await requestConfirm({
+      title: t('assets.deleteTitle') || '删除资产',
+      message: t('assets.deleteConfirm') || `确定要删除 "${selected.assetName}" 吗？此操作不可撤销。`,
+      variant: 'danger',
+      confirmLabel: t('common.delete') || '删除',
+    });
+    if (!confirmed) return;
     await window.orisonDesktop?.deleteEntry(selected.absolutePath);
     if (projectId) await window.orisonDesktop?.deleteAsset(projectId, selected.assetId);
     setSelected(null);

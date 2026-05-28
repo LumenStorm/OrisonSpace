@@ -68,6 +68,8 @@ assets:
   description: "描述"
   descriptionPlaceholder: "添加描述..."
   ungrouped: "未分组"
+  deleteTitle: "删除资产"
+  deleteConfirm: "确定要删除此资产吗？此操作不可撤销。"
 
 overview:
   untitled: "未命名项目"
@@ -224,6 +226,19 @@ editor:
   bulletList: "无序列表"
   orderedList: "有序列表"
   heading: "标题 {level}"
+  words: "字数"
+  chars: "字符"
+  find: "查找"
+  replace: "替换"
+  replaceOne: "替换"
+  replaceAll: "全部替换"
+  cut: "剪切"
+  copy: "复制"
+  paste: "粘贴"
+  selectAll: "全选"
+  findReplace: "查找替换"
+  aiContinue: "AI 续写"
+  aiPolish: "AI 润色"
 
 welcome:
   brand: "Orison Space"
@@ -397,6 +412,9 @@ imageGen:
   copyFailed: "复制失败"
   delete: "删除"
   deleteConfirm: "确定删除这张生成图片吗？此操作不可恢复。"
+  deleteTitle: "删除图片"
+  editLabel: "编辑"
+  genLabel: "生成"
   deleteFailed: "删除失败"
   cannotDeleteAsset: "已加入素材库，请先从素材库移除"
   dismiss: "关闭"
@@ -665,3 +683,8 @@ agent:
   recentContinuations: "最近可恢复运行"
   noContinuations: "还没有可恢复运行"
   restoreRun: "恢复运行"
+
+common:
+  cancel: "取消"
+  confirm: "确认"
+  delete: "删除"

@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { TiptapEditor } from './TiptapEditor';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
+import type { ContextMenuItem } from '../../shared/components/ContextMenu';
 
 export function ScriptEditor() {
   const { resolvedLocale, chapters, activeChapterId, updateChapter, addChapter } = useAppStore(
@@ -14,6 +16,12 @@ export function ScriptEditor() {
     })),
   );
   const { t } = useI18n(resolvedLocale);
+
+  const extraContextItems: ContextMenuItem[] = useMemo(() => [
+    { type: 'separator' },
+    { type: 'item', label: t('editor.aiContinue'), icon: 'auto_fix_high', disabled: true, onClick: () => {} },
+    { type: 'item', label: t('editor.aiPolish'), icon: 'auto_awesome', disabled: true, onClick: () => {} },
+  ], [t]);
 
   const activeChapter = chapters.find((c) => c.id === activeChapterId);
 
@@ -38,6 +46,7 @@ export function ScriptEditor() {
         placeholder={t('script.startWriting')}
         onChange={(html) => updateChapter(activeChapter.id, { content: html })}
         flush
+        extraContextItems={extraContextItems}
       />
     </div>
   );
