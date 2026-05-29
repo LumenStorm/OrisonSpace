@@ -55,6 +55,7 @@ nav:
 
 assets:
   empty: "暂无资产"
+  search: "搜索..."
   rename: "重命名"
   name: "名称"
   showInFolder: "在文件夹中显示"
@@ -495,6 +496,10 @@ fileEditor:
   reopenClosed: "重新打开关闭的标签"
   copyPath: "复制路径"
   showInExplorer: "在资源管理器中显示"
+  pin: "固定标签"
+  unpin: "取消固定"
+  splitRight: "向右拆分"
+  splitDown: "向下拆分"
 
 contextMenu:
   newFile: "新建文件"
@@ -665,6 +670,8 @@ agent:
   reject: "拒绝"
   applied: "已应用"
   resolved: "已处理"
+  original: "原文"
+  modified: "修改后"
   noHistory: "暂无历史对话。"
   skills: "技能"
   refreshSkills: "刷新技能"
@@ -688,3 +695,17 @@ common:
   cancel: "取消"
   confirm: "确认"
   delete: "删除"
+
+export:
+  title: "导出"
+  download: "下载"
+
+statusBar:
+  words: "字"
+  agentRunning: "运行中"
+  agentIdle: "就绪"
+
+notifications:
+  title: "通知"
+  clearAll: "清除全部"
+  empty: "暂无通知"

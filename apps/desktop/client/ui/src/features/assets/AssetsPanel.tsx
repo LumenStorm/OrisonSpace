@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AssetRecord } from '@orison/shared-contracts';
 
 type MergedAsset = AssetRecord & { absolutePath: string };
+type SortMode = 'name' | 'time';
 
 export function AssetsPanel() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
@@ -16,6 +17,11 @@ export function AssetsPanel() {
   const [editName, setEditName] = useState('');
   const [editGroup, setEditGroup] = useState('');
   const [editSummary, setEditSummary] = useState('');
+  const [search, setSearch] = useState('');
+  const [activeGroups, setActiveGroups] = useState<Set<string>>(new Set());
+  const [sortMode, setSortMode] = useState<SortMode>('name');
+  const [dragging, setDragging] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const assetsDir = projectPath ? `${projectPath}/assets/images` : '';
 
@@ -67,21 +73,38 @@ export function AssetsPanel() {
 
   useEffect(() => { void loadAssets(); }, [loadAssets]);
 
+  // Filter + search + sort
+  const filtered = useMemo(() => {
+    let result = assets;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((a) => a.assetName.toLowerCase().includes(q) || a.assetGroup.toLowerCase().includes(q));
+    }
+    if (activeGroups.size > 0) {
+      result = result.filter((a) => activeGroups.has(a.assetGroup || ''));
+    }
+    if (sortMode === 'time') {
+      result = [...result].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    } else {
+      result = [...result].sort((a, b) => a.assetName.localeCompare(b.assetName));
+    }
+    return result;
+  }, [assets, search, activeGroups, sortMode]);
+
   // Group assets
   const grouped = useMemo(() => {
     const map = new Map<string, MergedAsset[]>();
-    for (const a of assets) {
+    for (const a of filtered) {
       const g = a.assetGroup || '';
       if (!map.has(g)) map.set(g, []);
       map.get(g)!.push(a);
     }
-    // Sort: named groups first alphabetically, then ungrouped
     return [...map.entries()].sort(([a], [b]) => {
       if (!a && b) return 1;
       if (a && !b) return -1;
       return a.localeCompare(b);
     });
-  }, [assets]);
+  }, [filtered]);
 
   // Existing group names for dropdown (always include defaults)
   const groupOptions = useMemo(() => {
@@ -133,14 +156,85 @@ export function AssetsPanel() {
     void loadAssets();
   };
 
+  const toggleGroupFilter = (group: string) => {
+    setActiveGroups((prev) => {
+      const next = new Set(prev);
+      next.has(group) ? next.delete(group) : next.add(group);
+      return next;
+    });
+  };
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (!assetsDir) return;
+    const files = Array.from(e.dataTransfer.files).filter((f) => /\.(png|jpe?g|webp|gif|svg)$/i.test(f.name));
+    for (const file of files) {
+      const destPath = `${assetsDir}/${file.name}`;
+      const exists = await window.orisonDesktop?.pathExists(destPath);
+      if (!exists) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64 = (reader.result as string).split(',')[1];
+          if (base64 && projectPath) {
+            const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png';
+            const mimeMap: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' };
+            await window.orisonDesktop?.saveBase64Image(projectPath, {
+              b64Json: base64,
+              mimeType: mimeMap[ext] || 'image/png',
+              directory: 'assets/images',
+              fileName: file.name,
+            });
+            void loadAssets();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }, [assetsDir, projectPath, loadAssets]);
+
   return (
-    <div className="assets-panel">
+    <div
+      className={`assets-panel${dragging ? ' assets-panel--dragging' : ''}`}
+      ref={dropRef}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+    >
       <header className="assets-panel-header">
         <h2 className="assets-panel-title">{t('nav.assets') || 'Assets'}</h2>
         <button type="button" className="assets-panel-refresh" onClick={loadAssets}>
           <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
         </button>
       </header>
+
+      <div className="assets-toolbar">
+        <input
+          className="assets-search"
+          type="search"
+          placeholder={t('assets.search') || 'Search...'}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button type="button" className={`assets-sort-btn${sortMode === 'time' ? ' is-active' : ''}`} onClick={() => setSortMode(sortMode === 'name' ? 'time' : 'name')} title={sortMode === 'name' ? 'Sort by time' : 'Sort by name'}>
+          <span className="material-symbols-outlined">{sortMode === 'time' ? 'schedule' : 'sort_by_alpha'}</span>
+        </button>
+      </div>
+
+      {groupOptions.length > 0 && (
+        <div className="assets-filter-chips">
+          {groupOptions.map((g) => (
+            <button
+              key={g}
+              type="button"
+              className={`assets-chip${activeGroups.has(g) ? ' is-active' : ''}`}
+              onClick={() => toggleGroupFilter(g)}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      )}
 
       {assets.length === 0 ? (
         <div className="assets-panel-empty">

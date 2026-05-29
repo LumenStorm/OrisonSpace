@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -20,7 +20,7 @@ export function FileTabBar() {
   const {
     openFiles, activeFilePath, openFile, closeFile, requestCloseFile, cancelCloseConfirm,
     closeOtherFiles, closeFilesToRight, reopenLastClosedFile, pendingCloseConfirm,
-    hasRecentlyClosed, locale,
+    hasRecentlyClosed, locale, pinnedPaths, togglePinTab, reorderTabs, setSplit,
   } = useAppStore(
     useShallow((s) => ({
       openFiles: s.openFiles,
@@ -35,11 +35,17 @@ export function FileTabBar() {
       pendingCloseConfirm: s.pendingCloseConfirm,
       hasRecentlyClosed: s.recentlyClosed.length > 0,
       locale: s.resolvedLocale,
+      pinnedPaths: s.pinnedPaths,
+      togglePinTab: s.togglePinTab,
+      reorderTabs: s.reorderTabs,
+      setSplit: s.setSplit,
     })),
   );
   const { t } = useI18n(locale);
 
   const [ctx, setCtx] = useState<CtxMenuState>(null);
+  const dragIndexRef = useRef<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
 
   if (openFiles.length === 0 && !pendingCloseConfirm) return null;
 
@@ -54,6 +60,13 @@ export function FileTabBar() {
   };
 
   const buildCtxItems = (tab: FileTab): ContextMenuItem[] => [
+    {
+      type: 'item',
+      label: pinnedPaths.has(tab.path) ? (t('fileEditor.unpin') || 'Unpin') : (t('fileEditor.pin') || 'Pin'),
+      icon: pinnedPaths.has(tab.path) ? 'push_pin' : 'push_pin',
+      onClick: () => togglePinTab(tab.path),
+    },
+    { type: 'separator' },
     {
       type: 'item',
       label: t('fileEditor.close'),
@@ -95,6 +108,19 @@ export function FileTabBar() {
       icon: 'folder_open',
       onClick: () => { window.orisonDesktop?.showItemInFolder?.(tab.path); },
     },
+    { type: 'separator' },
+    {
+      type: 'item',
+      label: t('fileEditor.splitRight') || 'Split Right',
+      icon: 'vertical_split',
+      onClick: () => setSplit('horizontal', tab.path),
+    },
+    {
+      type: 'item',
+      label: t('fileEditor.splitDown') || 'Split Down',
+      icon: 'horizontal_split',
+      onClick: () => setSplit('vertical', tab.path),
+    },
   ];
 
   const confirmTab = pendingCloseConfirm
@@ -105,32 +131,50 @@ export function FileTabBar() {
     <>
       {openFiles.length > 0 && (
         <nav className="file-tab-bar" aria-label="Open files">
-          {openFiles.map((file) => {
+          {openFiles.map((file, index) => {
             const isActive = file.path === activeFilePath;
             const isDirty = file.kind === 'text' && file.content !== file.savedContent;
+            const isPinned = pinnedPaths.has(file.path);
             return (
               <div
                 key={file.path}
-                className={`file-tab${isActive ? ' file-tab-active' : ''}`}
+                className={`file-tab${isActive ? ' file-tab-active' : ''}${isPinned ? ' file-tab-pinned' : ''}${dropTarget === index ? ' file-tab-drop-target' : ''}`}
+                draggable
+                onDragStart={() => { dragIndexRef.current = index; }}
+                onDragOver={(e) => { e.preventDefault(); setDropTarget(index); }}
+                onDragLeave={() => setDropTarget(null)}
+                onDrop={() => {
+                  if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
+                    reorderTabs(dragIndexRef.current, index);
+                  }
+                  dragIndexRef.current = null;
+                  setDropTarget(null);
+                }}
+                onDragEnd={() => { dragIndexRef.current = null; setDropTarget(null); }}
                 onClick={() => openFile(file.path, file.name, file.content, { kind: file.kind, dataUrl: file.dataUrl })}
                 onContextMenu={(e) => handleContextMenu(e, file)}
                 onAuxClick={(e) => {
                   if (e.button === 1) handleCloseClick(e, file);
                 }}
               >
+                {isPinned && (
+                  <span className="material-symbols-outlined file-tab-pin-icon" aria-hidden="true">push_pin</span>
+                )}
                 <span className="material-symbols-outlined file-tab-icon" aria-hidden="true">
                   {getTabIcon(file)}
                 </span>
                 <span className="file-tab-name">{file.name}</span>
                 {isDirty && <span className="file-tab-dirty" aria-label="unsaved">●</span>}
-                <button
-                  type="button"
-                  className="file-tab-close"
-                  aria-label={`Close ${file.name}`}
-                  onClick={(e) => handleCloseClick(e, file)}
-                >
-                  <span className="material-symbols-outlined" aria-hidden="true">close</span>
-                </button>
+                {!isPinned && (
+                  <button
+                    type="button"
+                    className="file-tab-close"
+                    aria-label={`Close ${file.name}`}
+                    onClick={(e) => handleCloseClick(e, file)}
+                  >
+                    <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                  </button>
+                )}
               </div>
             );
           })}

@@ -8,9 +8,11 @@ import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { AboutDialog } from '../../shared/components/AboutDialog';
 import { UpdateAvailableDialog } from '../../shared/components/UpdateAvailableDialog';
 import { ShortcutsDialog } from '../../shared/components/ShortcutsDialog';
+import { ExportDialog } from '../../shared/components/ExportDialog';
 import { useGlobalShortcuts } from '../../shared/hooks/useGlobalShortcuts';
 import { useOpenProject } from '../../shared/hooks/useOpenProject';
 import { MenuDropdown, type MenuItem } from './MenuDropdown';
+import { NotificationCenter } from '../notifications/NotificationCenter';
 
 export function TopBar() {
   const isMac = detectIsMac();
@@ -46,6 +48,7 @@ export function TopBar() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
@@ -88,7 +91,7 @@ export function TopBar() {
     { type: 'action', label: t('topbar.newProject'), shortcut: `${modKey}N`, handler: () => setShowNewDialog(true) },
     { type: 'action', label: t('topbar.openProject'), shortcut: `${modKey}O`, handler: handleOpen },
     { type: 'action', label: t('topbar.save'), shortcut: `${modKey}S`, handler: handleSave, disabled: !hasSavePath },
-    { type: 'action', label: t('topbar.export'), handler: () => {}, disabled: true },
+    { type: 'action', label: t('topbar.export'), handler: () => setShowExport(true), disabled: !hasSavePath },
     { type: 'separator' },
     ...(currentProject
       ? [{ type: 'action' as const, label: t('topbar.backToProjects'), handler: closeProject }]
@@ -166,6 +169,7 @@ export function TopBar() {
             ))}
           </nav>
 
+        <NotificationCenter />
         <WindowControls />
       </header>
 
@@ -173,6 +177,7 @@ export function TopBar() {
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
       {showAbout && <AboutDialog onClose={() => setShowAbout(false)} />}
       {showShortcuts && <ShortcutsDialog onClose={() => setShowShortcuts(false)} />}
+      {showExport && <ExportDialog onClose={() => setShowExport(false)} />}
       <UpdateAvailableDialog />
     </>
   );

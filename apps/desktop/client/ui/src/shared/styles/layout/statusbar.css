@@ -1,0 +1,45 @@
+/* ── Status Bar ── */
+.status-bar {
+  flex-shrink: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  font-size: 0.7rem;
+  color: var(--on-surface-variant);
+  z-index: 20;
+}
+
+.status-bar-left,
+.status-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.status-bar-page {
+  text-transform: capitalize;
+}
+
+.status-bar-agent-icon {
+  font-size: 14px;
+}
+
+.status-bar-agent.is-running .status-bar-agent-icon {
+  animation: status-bar-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes status-bar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

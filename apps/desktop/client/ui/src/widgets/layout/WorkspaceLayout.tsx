@@ -12,12 +12,14 @@ import { OverviewPage } from '../../features/overview/OverviewPage';
 import { OutlineEditor } from '../../features/editor/OutlineEditor';
 import { FileTabBar } from '../../features/editor/FileTabBar';
 import { FileEditor } from '../../features/editor/FileEditor';
+import { SplitFileEditor } from '../../features/editor/SplitFileEditor';
 import { ImageGenEditor } from '../../features/editor/ImageGenEditor';
 import { StoryboardCanvas } from '../../features/editor/StoryboardCanvas';
 import { VideoEditor } from '../../features/editor/VideoEditor';
 import { AssetsPanel } from '../../features/assets/AssetsPanel';
 import { ScriptEditorPage } from '../../features/editor/ScriptEditorPage';
 import { TimelinePanel } from '../../features/timeline/TimelinePanel';
+import { StatusBar } from '../../features/status-bar/StatusBar';
 
 export function WorkspaceLayout() {
   const {
@@ -29,6 +31,7 @@ export function WorkspaceLayout() {
     agentPanelOpen, agentPanelWidth,
     hasOpenFiles,
     overlayPage, setOverlayPage,
+    splitDirection, splitFilePath,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     projectTreeOpen: s.projectTreeOpen,
@@ -42,6 +45,8 @@ export function WorkspaceLayout() {
     hasOpenFiles: s.openFiles.length > 0,
     overlayPage: s.overlayPage,
     setOverlayPage: s.setOverlayPage,
+    splitDirection: s.splitDirection,
+    splitFilePath: s.splitFilePath,
   })));
 
   const handleTreeResize = useProjectTreeResize();
@@ -57,11 +62,13 @@ export function WorkspaceLayout() {
   const renderMainContent = () => {
     // File tabs take priority over page view
     if (hasOpenFiles) {
+      const hasSplit = splitDirection !== 'none' && splitFilePath;
       return (
         <>
           <FileTabBar />
-          <div className="workspace-content workspace-content--flush" style={{ flex: 1, minWidth: 0 }}>
+          <div className={`workspace-content workspace-content--flush workspace-split--${hasSplit ? splitDirection : 'none'}`} style={{ flex: 1, minWidth: 0 }}>
             <FileEditor />
+            {hasSplit && <SplitFileEditor filePath={splitFilePath} />}
           </div>
         </>
       );
@@ -126,6 +133,7 @@ export function WorkspaceLayout() {
           )}
         </div>
       </div>
+      <StatusBar />
       {!bottomPanelOpen && (
         <button
           type="button"

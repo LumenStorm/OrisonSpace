@@ -103,6 +103,9 @@ importers:
       '@types/better-sqlite3':
         specifier: 7.6.13
         version: 7.6.13
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/react':
         specifier: ^19.1.2
         version: 19.2.14
@@ -118,6 +121,9 @@ importers:
       electron-vite:
         specifier: ^5.0.0
         version: 5.0.0(@swc/core@1.15.30)(vite@7.3.2(@types/node@24.12.2)(tsx@4.21.0)(yaml@2.8.3))
+      js-yaml:
+        specifier: ^4.1.1
+        version: 4.1.1
 
   apps/desktop/client/ui:
     dependencies:

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../../shared/store/appStore';
 import { TiptapEditor } from '../TiptapEditor';
+import { DocOutline } from '../DocOutline';
 import type { FileTab } from '../../../shared/store/fileTabsSlice';
 import { FindReplaceBar, type FindReplaceAdapter, type FindReplaceMode, type FindMatch } from '../FindReplaceBar';
 
@@ -76,11 +77,27 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
     },
   }), [file.content, file.path, updateFileContent]);
 
+  const handleJumpToLine = useCallback((line: number) => {
+    const el = containerRef.current;
+    if (!el) return;
+    // Find the corresponding heading element in Tiptap rendered DOM
+    const headings = el.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    // Count markdown headings up to 'line' to find the correct DOM heading
+    const lines = file.content.split('\n');
+    let headingIndex = 0;
+    for (let i = 0; i < line; i++) {
+      if (/^#{1,6}\s+/.test(lines[i])) headingIndex++;
+    }
+    const target = headings[headingIndex];
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [file.content]);
+
   return (
     <div className="file-editor-md" ref={containerRef}>
       {findMode && (
         <FindReplaceBar mode={findMode} adapter={adapter} onClose={() => setFindMode(null)} />
       )}
+      <DocOutline content={file.content} onJump={handleJumpToLine} />
       <TiptapEditor
         key={file.path}
         content={file.content}

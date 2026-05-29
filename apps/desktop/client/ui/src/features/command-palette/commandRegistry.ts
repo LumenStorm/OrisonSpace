@@ -23,9 +23,10 @@ export function buildCommandRegistry(actions: {
   saveFile: () => void;
   closeFile: () => void;
   reopenClosed: () => void;
+  exportProject?: () => void;
 }): CommandEntry[] {
   const { t } = actions;
-  return [
+  const cmds: CommandEntry[] = [
     { id: 'settings', label: t('topbar.settings'), icon: 'settings', handler: actions.openSettings },
     { id: 'about', label: t('topbar.about'), icon: 'info', handler: actions.openAbout },
     { id: 'checkUpdate', label: t('topbar.checkForUpdate'), icon: 'update', handler: actions.checkForUpdate },
@@ -37,6 +38,10 @@ export function buildCommandRegistry(actions: {
     { id: 'closeTab', label: t('fileEditor.close'), icon: 'close', shortcut: 'Ctrl+W', handler: actions.closeFile },
     { id: 'reopenClosed', label: t('fileEditor.reopenClosed'), icon: 'history', shortcut: 'Ctrl+Shift+T', handler: actions.reopenClosed },
   ];
+  if (actions.exportProject) {
+    cmds.push({ id: 'export', label: t('topbar.export'), icon: 'download', handler: actions.exportProject });
+  }
+  return cmds;
 }
 
 /** Simple fuzzy match: all query chars must appear in order. Returns score (lower = better) or -1 for no match. */

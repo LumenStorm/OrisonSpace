@@ -55,6 +55,7 @@ nav:
 
 assets:
   empty: "No assets yet"
+  search: "Search..."
   rename: "Rename"
   name: "Name"
   showInFolder: "Show in Folder"
@@ -495,6 +496,10 @@ fileEditor:
   reopenClosed: "Reopen closed editor"
   copyPath: "Copy path"
   showInExplorer: "Reveal in file manager"
+  pin: "Pin tab"
+  unpin: "Unpin tab"
+  splitRight: "Split Right"
+  splitDown: "Split Down"
 
 contextMenu:
   newFile: "New File"
@@ -665,6 +670,8 @@ agent:
   reject: "Reject"
   applied: "Applied"
   resolved: "Resolved"
+  original: "Original"
+  modified: "Modified"
   noHistory: "No previous conversations."
   skills: "Skills"
   refreshSkills: "Refresh skills"
@@ -688,3 +695,17 @@ common:
   cancel: "Cancel"
   confirm: "Confirm"
   delete: "Delete"
+
+export:
+  title: "Export"
+  download: "Download"
+
+statusBar:
+  words: "words"
+  agentRunning: "Running"
+  agentIdle: "Idle"
+
+notifications:
+  title: "Notifications"
+  clearAll: "Clear all"
+  empty: "No notifications"

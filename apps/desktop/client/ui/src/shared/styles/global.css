@@ -10,6 +10,8 @@
 
 @import "./layout/topbar.css";
 @import "./layout/workspace.css";
+@import "./layout/statusbar.css";
+@import "./layout/notifications.css";
 @import "./layout/sidebar.css";
 
 @import "./inspector.css";

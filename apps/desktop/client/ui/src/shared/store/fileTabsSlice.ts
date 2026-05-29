@@ -24,6 +24,7 @@ export type FileTabsSlice = {
   openFiles: FileTab[];
   activeFilePath: string | null;
   recentlyClosed: RecentlyClosedTab[];
+  pinnedPaths: Set<string>;
   /** Path of a file waiting on a "save before close?" confirmation. */
   pendingCloseConfirm: string | null;
   openFile: (path: string, name: string, content: string, options?: { kind?: FileTabKind; dataUrl?: string }) => void;
@@ -39,6 +40,8 @@ export type FileTabsSlice = {
   updateFileContent: (path: string, content: string) => void;
   saveFile: (path: string) => Promise<boolean>;
   saveAllOpenFiles: () => Promise<void>;
+  togglePinTab: (path: string) => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
 };
 
 function rememberClosedTab(prev: RecentlyClosedTab[], tab: FileTab): RecentlyClosedTab[] {
@@ -56,6 +59,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   openFiles: [],
   activeFilePath: null,
   recentlyClosed: [],
+  pinnedPaths: new Set(),
   pendingCloseConfirm: null,
 
   openFile: (path, name, content, options) => {
@@ -222,5 +226,28 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       (f) => f.kind === 'text' && f.content !== f.savedContent,
     );
     await Promise.all(dirty.map((f) => get().saveFile(f.path)));
+  },
+
+  togglePinTab: (path) => {
+    const state = get();
+    const next = new Set(state.pinnedPaths);
+    if (next.has(path)) {
+      next.delete(path);
+    } else {
+      next.add(path);
+    }
+    // Sort: pinned tabs first, preserve relative order within each group
+    const pinned = state.openFiles.filter((f) => next.has(f.path));
+    const unpinned = state.openFiles.filter((f) => !next.has(f.path));
+    set({ pinnedPaths: next, openFiles: [...pinned, ...unpinned] });
+  },
+
+  reorderTabs: (fromIndex, toIndex) => {
+    const state = get();
+    if (fromIndex === toIndex) return;
+    const files = [...state.openFiles];
+    const [moved] = files.splice(fromIndex, 1);
+    files.splice(toIndex, 0, moved);
+    set({ openFiles: files });
   },
 });

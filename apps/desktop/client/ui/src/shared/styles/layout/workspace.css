@@ -60,6 +60,22 @@
   flex-direction: column;
 }
 
+.workspace-split--horizontal {
+  flex-direction: row;
+}
+
+.workspace-split--horizontal > * {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.workspace-split--vertical > * {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 /* ── Overlay Page ── */
 .workspace-overlay {
   position: absolute;
@@ -389,6 +405,63 @@
 .assets-panel-refresh:hover {
   background: var(--hover-overlay);
 }
+
+.assets-panel--dragging {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+.assets-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.assets-search {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: var(--surface-container);
+  color: var(--on-surface);
+  font-size: 0.8rem;
+}
+
+.assets-sort-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+.assets-sort-btn:hover { background: var(--hover-overlay); }
+.assets-sort-btn.is-active { color: var(--accent); }
+.assets-sort-btn .material-symbols-outlined { font-size: 18px; }
+
+.assets-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.assets-chip {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.assets-chip:hover { background: var(--hover-overlay); }
+.assets-chip.is-active { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
 
 .assets-panel-empty {
   display: flex;
