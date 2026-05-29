@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 0.75rem;
-  border-top: 1px solid var(--outline-variant);
+  border-top: 1px solid var(--border-default);
   background: var(--surface-container-low);
   font-size: 0.7rem;
   color: var(--on-surface-variant);

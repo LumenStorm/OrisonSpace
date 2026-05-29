@@ -7,7 +7,7 @@
   gap: 0.75rem;
   padding: 0 1.5rem;
   height: 38px;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   background: var(--surface);
   backdrop-filter: blur(10px);
   -webkit-app-region: drag;
@@ -64,7 +64,7 @@
 
 .topbar-menu-trigger:hover,
 .topbar-menu-trigger.is-open {
-  background: var(--hover-overlay);
+  background: var(--menu-item-hover);
   color: var(--on-surface);
 }
 
@@ -78,7 +78,7 @@
   background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
   border-radius: 0.4rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-elevated);
 }
 
 .topbar-menu-item {
@@ -98,11 +98,11 @@
 }
 
 .topbar-menu-item:hover:not(:disabled) {
-  background: var(--hover-overlay);
+  background: var(--menu-item-hover);
 }
 
 .topbar-menu-item.is-focused:not(:disabled) {
-  background: var(--hover-overlay);
+  background: var(--menu-item-hover);
 }
 
 .topbar-menu-item:disabled {
@@ -152,7 +152,7 @@
 
 .window-control-close:hover {
   background: #e81123;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ── New Project Dialog ── */
@@ -164,7 +164,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay-backdrop);
 }
 
 .topbar-new-dialog {
@@ -271,7 +271,7 @@
   gap: 0.25rem;
   min-height: 0;
   padding: 1rem 0.75rem;
-  border-right: 1px solid var(--outline-variant);
+  border-right: 1px solid var(--border-default);
   background: var(--surface-container);
   overflow-y: auto;
 }

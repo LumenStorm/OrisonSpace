@@ -6,7 +6,7 @@
   width: 48px;
   height: 100%;
   background: var(--surface-container-low);
-  border-right: 1px solid var(--outline-variant);
+  border-right: 1px solid var(--border-default);
   overflow: hidden;
 }
 
@@ -27,7 +27,7 @@
   width: 60%;
   height: 1px;
   margin: 6px auto;
-  background: rgba(173, 179, 178, 0.15);
+  background: var(--border-subtle);
 }
 
 .icon-rail-btn {
@@ -86,7 +86,7 @@
   display: flex;
   align-items: center;
   padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .ptree-header-title {
@@ -118,7 +118,7 @@
 }
 
 .ptree-node:hover {
-  background: var(--hover-overlay);
+  background: var(--file-item-hover);
   color: var(--on-surface);
 }
 
@@ -402,7 +402,7 @@
 }
 
 .sidebar-config-dot.is-configured {
-  background: var(--success, #4caf50);
+  background: var(--success);
 }
 
 /* ── Auto-apply toggle ── */

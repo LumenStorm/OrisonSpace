@@ -17,7 +17,7 @@
   line-height: 1.3;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-elevated);
   animation: tooltip-in 0.12s ease-out;
 }
 
@@ -35,7 +35,7 @@
   border-radius: 0.4rem;
   background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-elevated);
   animation: ctx-menu-in 0.1s ease-out;
 }
 
@@ -62,7 +62,7 @@
 }
 
 .ctx-menu-item:hover {
-  background: var(--hover-overlay);
+  background: var(--menu-item-hover);
 }
 
 .ctx-menu-item-danger {
@@ -156,7 +156,7 @@
   align-items: flex-start;
   justify-content: center;
   padding-top: 15vh;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--overlay-backdrop);
 }
 
 .cmd-palette {
@@ -164,7 +164,7 @@
   background: var(--surface-container);
   border: 1px solid var(--outline-variant);
   border-radius: 0.6rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-elevated);
   overflow: hidden;
 }
 
@@ -245,7 +245,7 @@
   background: var(--surface-container-highest);
   color: var(--on-surface);
   font-size: 0.8rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-elevated);
   animation: toast-in 0.15s ease-out;
   pointer-events: auto;
   cursor: pointer;
@@ -269,7 +269,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--overlay-backdrop);
   animation: ctx-menu-in 0.1s ease-out;
 }
 
@@ -279,7 +279,7 @@
   background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
   border-radius: 0.6rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-elevated);
   outline: none;
 }
 
@@ -321,7 +321,7 @@
 
 .confirm-dialog-btn--primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--accent);
 }
 
@@ -331,7 +331,7 @@
 
 .confirm-dialog-btn--danger {
   background: var(--error);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--error);
 }
 

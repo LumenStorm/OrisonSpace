@@ -15,7 +15,7 @@
   display: flex;
   gap: 0;
   overflow-x: auto;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   background: var(--surface-container-low);
   flex-shrink: 0;
 }
@@ -34,7 +34,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.45rem 0.5rem 0.45rem 0.75rem;
-  border-right: 1px solid var(--outline-variant);
+  border-right: 1px solid var(--border-subtle);
   background: transparent;
   color: var(--on-surface-variant);
   font-size: 0.78rem;
@@ -45,7 +45,7 @@
 }
 
 .file-tab:hover {
-  background: var(--hover-overlay);
+  background: var(--file-item-hover);
   color: var(--on-surface);
 }
 
@@ -217,8 +217,8 @@
   gap: 0.3rem;
   padding: 0.4rem 0.6rem;
   background: var(--surface-container);
-  border-bottom: 1px solid var(--outline-variant);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border-default);
+  box-shadow: var(--shadow-soft);
 }
 
 .find-replace-row {
@@ -329,7 +329,7 @@
   background: var(--surface-container);
   border: 1px solid var(--outline-variant);
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-elevated);
   overflow: hidden;
 }
 
@@ -386,7 +386,7 @@
 }
 
 .doc-outline-item:hover {
-  background: var(--hover-overlay);
+  background: var(--file-item-hover);
   color: var(--on-surface);
 }
 
@@ -410,11 +410,11 @@
 }
 
 .editor-split--horizontal > *:first-child {
-  border-right: 1px solid var(--outline-variant);
+  border-right: 1px solid var(--border-default);
 }
 
 .editor-split--vertical > *:first-child {
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .split-editor-pane {
@@ -429,7 +429,7 @@
   justify-content: space-between;
   padding: 0.25rem 0.5rem;
   background: var(--surface-container-low);
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 

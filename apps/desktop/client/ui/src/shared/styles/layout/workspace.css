@@ -7,6 +7,7 @@
   background: var(--background);
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 
 /* ── Body Grid ── */
@@ -91,7 +92,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
@@ -135,7 +136,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-top: 1px solid var(--outline-variant);
+  border-top: 1px solid var(--border-default);
   background: var(--surface);
 }
 
@@ -144,7 +145,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 0.75rem;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   background: var(--surface-container-low);
   flex-shrink: 0;
 }
@@ -228,7 +229,7 @@
   justify-content: space-between;
   min-height: 32px;
   padding: 0 0.6rem;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   background: var(--surface-container-low);
 }
 
@@ -521,12 +522,12 @@
   border-radius: 0.5rem;
   background: var(--surface-container-lowest);
   cursor: pointer;
-  box-shadow: 0 12px 40px rgba(45, 52, 51, 0.06);
+  box-shadow: var(--shadow-soft);
   transition: box-shadow 0.15s;
 }
 
 .assets-panel-card:hover {
-  box-shadow: 0 12px 40px rgba(45, 52, 51, 0.12);
+  box-shadow: var(--shadow-elevated);
 }
 
 .assets-panel-card img {
@@ -553,7 +554,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(45, 52, 51, 0.6);
+  background: var(--overlay-backdrop);
 }
 
 .assets-detail-dialog {
@@ -565,7 +566,7 @@
   max-height: 90vh;
   border-radius: 0.75rem;
   background: var(--surface);
-  box-shadow: 0 12px 40px rgba(45, 52, 51, 0.2);
+  box-shadow: var(--shadow-elevated);
   overflow-y: auto;
 }
 
@@ -603,7 +604,7 @@
 
 .assets-detail-info {
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--outline-variant);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .assets-detail-name {

@@ -171,7 +171,7 @@
   justify-content: space-between;
   height: 56px;
   padding: 0 2rem;
-  border-bottom: 1px solid var(--outline-variant);
+  border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
   min-width: 0;
 }
@@ -518,7 +518,7 @@
   border: 0;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
 }
 

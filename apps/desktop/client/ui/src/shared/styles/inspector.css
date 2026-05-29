@@ -233,8 +233,8 @@
 }
 
 .task-row-running .task-row-icon { color: var(--accent); }
-.task-row-completed .task-row-icon { color: var(--success, #4caf50); }
-.task-row-failed .task-row-icon { color: var(--error, #f44336); }
+.task-row-completed .task-row-icon { color: var(--success); }
+.task-row-failed .task-row-icon { color: var(--error); }
 .task-row-cancelled .task-row-icon { color: var(--on-surface-variant); }
 
 .task-row-label {

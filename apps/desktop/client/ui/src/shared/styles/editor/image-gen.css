@@ -330,7 +330,7 @@
   border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: 999px;
   background: rgba(18, 18, 18, 0.68);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   transition: background 0.12s, transform 0.12s;
 }
@@ -404,7 +404,7 @@
   border: 0;
   border-radius: 0.3rem;
   background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.12s;
