@@ -17,7 +17,7 @@ import type { ProtocolCallContext } from './types';
 
 // ── Provider factory ──
 
-export function createProvider(model: ResolvedModel) {
+export function createProvider(model: ResolvedModel): import('@ai-sdk/provider').LanguageModelV3 {
   const openai = createOpenAI({
     baseURL: normalizeBaseUrl(model.baseUrl),
     apiKey: model.apiKey,
