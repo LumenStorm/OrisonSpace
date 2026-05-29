@@ -1,7 +1,3 @@
-import { DEFAULT_API_BASE } from '@orison/shared-contracts';
-
-export const API_BASE = DEFAULT_API_BASE;
-
 // Icon rail (fixed width, no resize)
 export const ICON_RAIL_WIDTH = 48;
 

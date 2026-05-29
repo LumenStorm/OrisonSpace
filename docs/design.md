@@ -22,7 +22,6 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 - React + TypeScript + Zustand
 - 负责：
-  - 登录 / 注册
   - 项目管理
   - 工作区创作
   - 模型配置

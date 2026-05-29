@@ -43,3 +43,12 @@ export type TaskEntry = {
 };
 
 export type AgentMode = 'auto' | 'suggest' | 'readonly';
+
+/* ── Cross-slice dependency interfaces ── */
+
+/** Subset of EditorSlice consumed by AgentSlice */
+export interface ChapterAccessor {
+  activeChapterId: string | null;
+  chapters: { id: string; title: string; content: string }[];
+  updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
+}

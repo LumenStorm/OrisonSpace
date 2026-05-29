@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { ModelRef } from '@orison/shared-contracts';
-import type { AgentMode } from './types';
+import type { AgentMode, ChapterAccessor } from './types';
 import {
   createAgentSession,
   executeAgentSkill,
@@ -73,11 +73,8 @@ export type PendingDiff = {
   chapterId?: string;
 };
 
-type Deps = AgentSlice & {
+type Deps = AgentSlice & ChapterAccessor & {
   currentProject: { path?: string } | null;
-  activeChapterId: string | null;
-  chapters: { id: string; title: string; content: string }[];
-  updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
 };
 
 const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update'];

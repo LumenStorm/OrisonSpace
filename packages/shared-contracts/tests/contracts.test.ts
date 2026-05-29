@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  loginResponseSchema,
   projectDocumentSchema,
   projectCreateRequestSchema,
   projectCreateResponseSchema,
@@ -73,20 +72,6 @@ describe('shared contracts', () => {
 
     expect(() => projectCreateRequestSchema.parse(request)).not.toThrow();
     expect(() => projectCreateResponseSchema.parse(response)).not.toThrow();
-  });
-
-  it('requires the login response to include a bearer token and user id', () => {
-    const parsed = loginResponseSchema.parse({
-      accessToken: 'token_123',
-      tokenType: 'Bearer',
-      user: {
-        id: 'user_1',
-        email: 'creator@example.com',
-        displayName: 'Creator'
-      }
-    });
-
-    expect(parsed.user.id).toBe('user_1');
   });
 
   it('accepts the minimal local project document shape', () => {

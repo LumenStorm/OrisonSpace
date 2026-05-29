@@ -14,6 +14,7 @@ import { registerLogIpc } from './ipc/logIpc';
 import { registerUpdateIpc } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
 import { registerAgentIpc } from './ipc/agentIpc';
+import { registerOrchestrationIpc } from './ipc/orchestrationIpc';
 import { fetchOrisonFile } from './orisonFileProtocol';
 
 /* ── CSP ── */
@@ -75,6 +76,7 @@ function createWindow() {
   registerUpdateIpc();
   registerGitIpc();
   registerAgentIpc(mainWindow);
+  registerOrchestrationIpc();
 
   // Prevent Chromium from swallowing shortcuts we handle in the renderer
   const passthroughKeys = new Set(['Tab', 'n', 'w', 't']);

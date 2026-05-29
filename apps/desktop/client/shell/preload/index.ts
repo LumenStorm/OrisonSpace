@@ -157,6 +157,20 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('agent:restore-continuation', sessionId, continuationId),
   abortAgentRun: (sessionId: string) =>
     ipcRenderer.invoke('agent:abort-run', sessionId),
+  // Orchestration
+  startOrchestrationRun: (input: { projectPath: string; requirement: string; configRoot?: string }) =>
+    ipcRenderer.invoke('orchestration:start-run', input),
+  getOrchestrationRun: (runId: string) =>
+    ipcRenderer.invoke('orchestration:get-run', runId),
+  performOrchestrationAction: (action: { runId: string; action: string; nodeId?: string; payload?: unknown }) =>
+    ipcRenderer.invoke('orchestration:action', action),
+  // Auto Mode
+  startAutoMode: (input: { projectPath: string; mode?: string; chapterIds?: string[]; plotSummary?: string; modelRuntime?: unknown }) =>
+    ipcRenderer.invoke('orchestration:auto-mode-start', input),
+  performAutoModeAction: (autoModeId: string, action: string) =>
+    ipcRenderer.invoke('orchestration:auto-mode-action', autoModeId, action),
+  getAutoModeState: (autoModeId: string) =>
+    ipcRenderer.invoke('orchestration:auto-mode-get', autoModeId),
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

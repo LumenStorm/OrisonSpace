@@ -139,7 +139,7 @@ OneLine2Video/
 │  │  │     │  ├─ memory/             长期记忆面板
 │  │  │     │  └─ tasks/
 │  │  │     └─ shared/
-│  │  │        ├─ api/                HTTP helper（唯一 fetch 层）
+│  │  │        ├─ api/                IPC helper（preload bridge 层）
 │  │  │        ├─ store/              Zustand slice 化 store
 │  │  │        ├─ i18n/               en-US / zh-CN yaml
 │  │  │        ├─ themes/             主题 token 生成
@@ -160,6 +160,8 @@ OneLine2Video/
 │  │  │           │  ├─ workspace.css
 │  │  │           │  ├─ topbar.css
 │  │  │           │  ├─ sidebar.css
+│  │  │           │  ├─ statusbar.css
+│  │  │           │  ├─ notifications.css
 │  │  │           │  └─ pages.css
 │  │  │           └─ editor/          原 editor.css 拆分而成
 │  │  │              ├─ tiptap.css    Tiptap + Outline + Acts
@@ -168,7 +170,8 @@ OneLine2Video/
 │  │  │              ├─ image-gen.css 图片生成 + 画廊 + 分页 + model chip
 │  │  │              ├─ image-dialog.css 预览弹窗 + 编辑弹窗
 │  │  │              ├─ novel.css     Novel Workbench + Memory Panel + 子 tab
-│  │  │              └─ file.css      File Editor + Tab Bar + markdown/code/image
+│  │  │              ├─ file.css      File Editor + Tab Bar + markdown/code/image
+│  │  │              └─ timeline.css  时间线编辑器
 │  │  └─ local-bff/                   本地项目数据读写层
 │  │     ├─ api/                      project.yaml / chapters / memory 读写
 │  │     ├─ sync/                     字段同步桥
@@ -176,10 +179,7 @@ OneLine2Video/
 ├─ packages/
 │  ├─ shared-contracts/               Zod schema、IPC 类型、跨进程契约
 │  ├─ model-protocols/                统一 OpenAI 兼容适配层（text/image/video 生成 + listModels）
-│  ├─ story-sync/                     story-sync 共享逻辑（prompt / parse / patch）
-│  ├─ shared-utils/
-│  ├─ ui-kit/
-│  └─ eslint-config/
+│  └─ story-sync/                     story-sync 共享逻辑（prompt / parse / patch）
 ├─ docs/
 │  ├─ ipc/desktop-ipc.md              桌面 IPC 参考
 │  ├─ architecture/module-boundaries.md 模块边界规则
@@ -240,7 +240,6 @@ pnpm install
 
 ```powershell
 pnpm dev           # 启动桌面端（desktop-shell）
-pnpm dev:agent     # 启动 Agent http://localhost:18422
 ```
 
 构建：

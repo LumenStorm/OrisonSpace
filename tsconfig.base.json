@@ -14,18 +14,6 @@
       "@orison/shared-contracts/*": [
         "./packages/shared-contracts/src/*"
       ],
-      "@orison/shared-utils": [
-        "./packages/shared-utils/src/index.ts"
-      ],
-      "@orison/shared-utils/*": [
-        "./packages/shared-utils/src/*"
-      ],
-      "@orison/ui-kit": [
-        "./packages/ui-kit/src/index.ts"
-      ],
-      "@orison/ui-kit/*": [
-        "./packages/ui-kit/src/*"
-      ],
       "@orison/model-protocols": [
         "./packages/model-protocols/src/index.ts"
       ],

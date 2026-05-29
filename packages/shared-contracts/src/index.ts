@@ -1,4 +1,3 @@
-export * from './contracts/auth';
 export * from './contracts/project';
 export * from './contracts/project-patch';
 export * from './contracts/tasks';
@@ -11,6 +10,5 @@ export * from './contracts/generation';
 export * from './contracts/model';
 export * from './ipc';
 export * from './orchestration';
-export * from './config';
 export * from './config-yaml';
 export * from './model-registry';

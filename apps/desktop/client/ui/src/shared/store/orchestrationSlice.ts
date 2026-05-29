@@ -38,10 +38,10 @@ export type OrchestrationSlice = {
 };
 
 type WithPatchSink = OrchestrationSlice & {
-  setPendingPatch: (patch: ProjectFieldPatch) => void;
+  setPendingPatch: (patch: ProjectFieldPatch | null) => void;
   autoApplyPatches: boolean;
   togglePatchSelection: (field: string) => void;
-  applySelectedPatches: () => void;
+  applySelectedPatches: () => ProjectFieldPatch | null;
 };
 
 export const createOrchestrationSlice: StateCreator<

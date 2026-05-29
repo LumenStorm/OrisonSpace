@@ -9,10 +9,9 @@ import { handleGenerateText, handleGenerateImage, handleGenerateVideo } from './
 import { handleDesktopApiRoute } from './desktopApiHttp';
 import { handleToolExecute, listRegisteredTools } from './toolExecution';
 import { getLogger } from '../logger';
-import { isGatewayRequestAuthorized } from './gatewayAuth';
+import { isGatewayRequestAuthorized, getGatewayToken } from './gatewayAuth';
 
 const PORT = Number(process.env.ORISON_GATEWAY_PORT) || 18421;
-const GATEWAY_TOKEN = process.env.ORISON_GATEWAY_TOKEN;
 const logger = getLogger();
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -38,7 +37,6 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
   const url = req.url ?? '';
   if (!isGatewayRequestAuthorized({
-    expectedToken: GATEWAY_TOKEN,
     url,
     headers: req.headers,
   })) {

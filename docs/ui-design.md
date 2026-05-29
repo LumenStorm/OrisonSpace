@@ -274,11 +274,11 @@ BottomPanel 当前包含：
 
 ## 10. 样式组织约定
 
-- 渲染层全局样式位于 `apps/desktop/ui/src/shared/styles/`
+- 渲染层全局样式位于 `apps/desktop/client/ui/src/shared/styles/`
 - 采用文件夹分层：
   - 根：`tokens.css`、`global.css`（唯一入口）、`inspector.css`、`creative.css`
   - `base/`：`components.css`、`welcome.css`
-  - `layout/`：`workspace.css`、`topbar.css`、`sidebar.css`、`pages.css`
+  - `layout/`：`workspace.css`、`topbar.css`、`sidebar.css`、`statusbar.css`、`notifications.css`、`pages.css`
   - `editor/`：`tiptap.css`、`script.css`、`video.css`、`image-gen.css`、`image-dialog.css`、`novel.css`、`file.css`、`timeline.css`
 - `global.css` 通过 `@import` 串联所有文件，顺序与原单文件时期一致，级联敏感规则（例如 `.image-gen-inspector-*` 排在 `.image-gen-*` 之后、`components.css` 作为末尾层）必须保留
 - 渲染层只 import 一次 `global.css`，不单独引入子文件

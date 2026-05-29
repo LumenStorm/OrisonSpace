@@ -6,8 +6,6 @@ import type {
   ModelRef,
   NovelModelRuntime,
 } from '@orison/shared-contracts';
-import { API_BASE } from '../constants';
-import { jsonHeaders } from './session';
 
 export type NovelChapterRunMode = z.infer<typeof novelChapterRunRequestSchema>['mode'];
 export type AutoModeState = z.infer<typeof novelAutoModeStateSchema>;
@@ -50,22 +48,16 @@ export async function startChapterRun(input: StartChapterRunInput): Promise<unkn
     }
   }
 
-  const body: Record<string, unknown> = {
-    projectPath: input.projectPath,
-    chapterId: input.chapterId,
-    mode: input.mode,
-  };
-  if (input.instruction) body.instruction = input.instruction;
-  if (input.modelRuntime) body.modelRuntime = input.modelRuntime;
-  if (Object.keys(artifacts).length > 0) body.artifacts = artifacts;
+  const requirement = [
+    `mode:${input.mode}`,
+    `chapter:${input.chapterId}`,
+    input.instruction ?? '',
+  ].filter(Boolean).join(' | ');
 
-  const res = await fetch(`${API_BASE}/v1/orchestration/runs`, {
-    method: 'POST',
-    headers: jsonHeaders(),
-    body: JSON.stringify(body),
+  return window.orisonDesktop.startOrchestrationRun({
+    projectPath: input.projectPath,
+    requirement,
   });
-  if (!res.ok) throw new Error(`startChapterRun:${res.status}`);
-  return res.json();
 }
 
 export async function startAutoMode(
@@ -74,35 +66,19 @@ export async function startAutoMode(
   plotSummary?: string,
   modelRuntime?: NovelModelRuntime | null,
 ): Promise<AutoModeState> {
-  const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode`, {
-    method: 'POST',
-    headers: jsonHeaders(),
-    body: JSON.stringify({
-      projectPath,
-      mode: 'generate',
-      ...(chapterIds && chapterIds.length > 0 ? { chapterIds } : {}),
-      ...(plotSummary?.trim() ? { plotSummary: plotSummary.trim() } : {}),
-      ...(modelRuntime ? { modelRuntime } : {}),
-    }),
-  });
-  if (!res.ok) throw new Error(`startAutoMode:${res.status}`);
-  return (await res.json()) as AutoModeState;
+  return window.orisonDesktop.startAutoMode({
+    projectPath,
+    mode: 'generate',
+    ...(chapterIds && chapterIds.length > 0 ? { chapterIds } : {}),
+    ...(plotSummary?.trim() ? { plotSummary: plotSummary.trim() } : {}),
+    ...(modelRuntime ? { modelRuntime } : {}),
+  }) as Promise<AutoModeState>;
 }
 
 export async function performAutoModeAction(autoModeId: string, action: AutoModeAction): Promise<AutoModeState> {
-  const res = await fetch(`${API_BASE}/v1/orchestration/auto-mode/actions`, {
-    method: 'POST',
-    headers: jsonHeaders(),
-    body: JSON.stringify({ autoModeId, action }),
-  });
-  if (!res.ok) throw new Error(`autoModeAction:${action}:${res.status}`);
-  return (await res.json()) as AutoModeState;
+  return window.orisonDesktop.performAutoModeAction(autoModeId, action) as Promise<AutoModeState>;
 }
 
 export async function refreshAutoMode(autoModeId: string): Promise<AutoModeState | null> {
-  const res = await fetch(
-    `${API_BASE}/v1/orchestration/auto-mode/${encodeURIComponent(autoModeId)}`,
-  );
-  if (!res.ok) return null;
-  return (await res.json()) as AutoModeState;
+  return window.orisonDesktop.getAutoModeState(autoModeId) as Promise<AutoModeState | null>;
 }

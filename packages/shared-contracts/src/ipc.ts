@@ -8,7 +8,9 @@ import type {
   VideoGenerationResponse,
 } from './contracts/generation';
 import type { ModelCapability, ModelConfig, DiscoveredModel } from './contracts/model';
-import type { NovelStorySyncPayload } from './contracts/novel-orchestration';
+import type { NovelStorySyncPayload, NovelAutoModeState, NovelAutoModeStartRequest, NovelAutoModeAction, NovelChapterRunRequest } from './contracts/novel-orchestration';
+import type { z as Z } from 'zod';
+import type { orchestrationRunSchema, orchestrationActionSchema, startOrchestrationRunSchema } from './orchestration';
 
 export const desktopIpcSchema = z.object({
   channel: z.enum([
@@ -57,6 +59,8 @@ export type RemoteModel = {
   capability: ModelCapability;
   alias: string;
 };
+
+export type OrchestrationRun = Z.infer<typeof orchestrationRunSchema>;
 
 /* ── Generation IPC payloads ── */
 
@@ -222,6 +226,14 @@ export type OrisonDesktopApi = {
   listAgentContinuations(sessionId: string): Promise<unknown>;
   restoreAgentContinuation(sessionId: string, continuationId: string): Promise<unknown>;
   abortAgentRun(sessionId: string): Promise<boolean>;
+  // Orchestration
+  startOrchestrationRun(input: { projectPath: string; requirement: string; configRoot?: string }): Promise<OrchestrationRun>;
+  getOrchestrationRun(runId: string): Promise<OrchestrationRun>;
+  performOrchestrationAction(action: { runId: string; action: string; nodeId?: string; payload?: unknown }): Promise<OrchestrationRun>;
+  // Auto Mode
+  startAutoMode(input: { projectPath: string; mode?: string; chapterIds?: string[]; plotSummary?: string; modelRuntime?: unknown }): Promise<NovelAutoModeState>;
+  performAutoModeAction(autoModeId: string, action: string): Promise<NovelAutoModeState>;
+  getAutoModeState(autoModeId: string): Promise<NovelAutoModeState | null>;
 };
 
 export type FileTreeEntry = {
