@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { storyMemoryIndexSchema, storyMemoryEntrySchema } from '@orison/shared-contracts';
+import { storyMemoryIndexSchema } from '@orison/shared-contracts';
 import type { StoryMemoryIndex, StoryMemoryEntry } from '@orison/shared-contracts';
 import YAML from 'yaml';
 import { atomicWriteFileSync } from './atomicWrite';
+import { loadTagRegistry, saveTagRegistry, normalizeAndRegister } from './tagRegistry';
 
 const MEMORY_FILE = 'story-memory.yaml';
 const MEMORY_DIR = 'memory';
@@ -51,11 +52,29 @@ export function saveMemoryIndex(projectPath: string, index: StoryMemoryIndex): v
 /**
  * 添加或更新一条记忆条目。
  * 如果条目 ID 已存在则覆盖，否则追加。
+ * 自动归一化 structuredTags 中的标签。
  * 返回更新后的索引。
  */
 export function addMemoryEntry(projectPath: string, entry: StoryMemoryEntry): StoryMemoryIndex {
   const novelId = entry.novelId;
   const index = loadMemoryIndex(projectPath, novelId);
+
+  // 归一化 structuredTags
+  if (entry.structuredTags?.length) {
+    const registry = loadTagRegistry(projectPath, novelId);
+    let changed = false;
+    for (const tag of entry.structuredTags) {
+      const { registry: updated, canonicalName } = normalizeAndRegister(
+        registry, tag.category, tag.value, entry.chapterNumber
+      );
+      if (canonicalName !== tag.value) {
+        tag.value = canonicalName;
+        changed = true;
+      }
+      if (updated !== registry) changed = true;
+    }
+    if (changed) saveTagRegistry(projectPath, registry);
+  }
 
   const existingIdx = index.entries.findIndex((e) => e.id === entry.id);
   if (existingIdx !== -1) {

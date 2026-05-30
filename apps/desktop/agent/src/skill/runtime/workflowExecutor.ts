@@ -146,7 +146,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
           currentNodeId,
           completedNodeIds: [...completedNodeIds],
           pendingUserAction,
-          loadedReferenceKeys: context.skillContext?.resolvedReferences.map((item) => item.key) ?? [],
+          loadedReferenceKeys: context.skillContext?.resolvedReferences?.map((item) => item.key) ?? [],
           resolvedReferences: context.skillContext?.resolvedReferences ?? priorRunState?.resolvedReferences ?? [],
           referenceCache: context.skillContext?.referenceCache ?? priorRunState?.referenceCache,
         });
@@ -204,7 +204,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
         skillRunState: createSkillRunState({
           skill: skill.name,
           completedNodeIds: steps.map((step) => step.id),
-          loadedReferenceKeys: context.skillContext?.resolvedReferences.map((item) => item.key) ?? [],
+          loadedReferenceKeys: context.skillContext?.resolvedReferences?.map((item) => item.key) ?? [],
           resolvedReferences: context.skillContext?.resolvedReferences ?? [],
           referenceCache: context.skillContext?.referenceCache,
         }),

@@ -1,7 +1,6 @@
 system: |
-  你是一个连续性审查专家。你的任务是从已完成的初稿中提取需要跨章节保持一致的要素。
-  包括：角色状态变化、时间线事件、伏笔线索、语调规则。
-  这些信息将用于后续章节的写作，确保故事的连贯性。
+  你是一个连续性审查专家。你的任务是从已完成的初稿中提取需要跨章节保持一致的记忆点。
+  每条记忆必须附带结构化标签（structuredTags），用于后续精确召回。
   始终使用中文回复。
 
 user: |
@@ -10,8 +9,19 @@ user: |
   初稿内容：{{draftText}}
   故事大纲：{{storyPlan}}
 
-  请输出包含 characters、timeline、foreshadowing、toneRules 的 JSON 对象。
-  - characters: 角色当前状态数组
-  - timeline: 时间线事件数组
-  - foreshadowing: 伏笔线索数组
-  - toneRules: 语调规则数组
+  输出 JSON 对象，包含 memories 数组，每条记忆包含：
+  - memoryType: character_state | timeline | foreshadow | tone_rule
+  - title: 简短标题
+  - content: 具体内容描述
+  - importance: critical(影响主线走向) | high(重要角色/事件) | medium(补充细节) | low(氛围/背景)
+  - structuredTags: 标签数组，每个标签包含：
+    - category: character | event | foreshadow | setting | location | item | emotion | power
+    - value: 标签值（使用角色全名、事件名称等）
+    - role: subject(该记忆的主体) | object(该记忆的客体) | context(背景关联)
+  - isForeshadow: 是否为伏笔
+
+  打标签规则：
+  - 每条记忆至少 1 个 subject 标签
+  - 伏笔类记忆必须有 category=foreshadow 的标签
+  - 角色状态变化必须同时有 character + event 标签
+  - 使用角色全名，不要用昵称或代称

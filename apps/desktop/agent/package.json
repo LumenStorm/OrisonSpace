@@ -7,12 +7,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "dev": "tsx watch src/index.ts --env-file=.env.agent",
     "test": "vitest --run test/context.compaction.test.ts test/env.test.ts test/persistence.sessionSchemaMigration.test.ts test/runtime.*.test.ts test/skill.*.test.ts",
     "lint": "echo agent lint placeholder",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@orison/desktop-local-bff": "workspace:*",
     "@orison/shared-contracts": "workspace:*",
+    "@orison/story-sync": "workspace:*",
     "better-sqlite3": "^12.10.0",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",

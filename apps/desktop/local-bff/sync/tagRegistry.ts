@@ -1,0 +1,78 @@
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import YAML from 'yaml';
+import { tagRegistrySchema } from '@orison/shared-contracts';
+import type { TagRegistry, TagCategory, TagRegistryEntry } from '@orison/shared-contracts';
+import { atomicWriteFileSync } from './atomicWrite';
+
+const REGISTRY_FILE = 'tag-registry.yaml';
+const MEMORY_DIR = 'memory';
+
+function getRegistryPath(projectPath: string): string {
+  return path.join(projectPath, MEMORY_DIR, REGISTRY_FILE);
+}
+
+export function loadTagRegistry(projectPath: string, novelId: string): TagRegistry {
+  const filePath = getRegistryPath(projectPath);
+  if (!existsSync(filePath)) {
+    return tagRegistrySchema.parse({ novelId, entries: [], version: 0 });
+  }
+  const raw = readFileSync(filePath, 'utf8');
+  return tagRegistrySchema.parse(YAML.parse(raw));
+}
+
+export function saveTagRegistry(projectPath: string, registry: TagRegistry): void {
+  const filePath = getRegistryPath(projectPath);
+  const dir = path.dirname(filePath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  registry.version += 1;
+  atomicWriteFileSync(filePath, YAML.stringify(tagRegistrySchema.parse(registry)), 'utf8');
+}
+
+export function normalizeTag(registry: TagRegistry, category: TagCategory, rawName: string): string {
+  const name = rawName.trim();
+  for (const entry of registry.entries) {
+    if (entry.category !== category) continue;
+    if (entry.canonicalName === name) return entry.canonicalName;
+    if (entry.aliases.some(a => a === name)) return entry.canonicalName;
+  }
+  return name;
+}
+
+export function registerTag(
+  registry: TagRegistry,
+  category: TagCategory,
+  name: string,
+  aliases: string[] = [],
+): TagRegistry {
+  const id = `${category}:${name}`;
+  const existing = registry.entries.find(e => e.id === id);
+  if (existing) {
+    const newAliases = aliases.filter(a => !existing.aliases.includes(a));
+    if (newAliases.length) existing.aliases.push(...newAliases);
+    return registry;
+  }
+  const entry: TagRegistryEntry = { id, category, canonicalName: name, aliases, lastSeenChapter: 0 };
+  registry.entries.push(entry);
+  return registry;
+}
+
+export function normalizeAndRegister(
+  registry: TagRegistry,
+  category: TagCategory,
+  rawName: string,
+  chapterNumber: number,
+): { registry: TagRegistry; canonicalName: string } {
+  const canonical = normalizeTag(registry, category, rawName);
+  const id = `${category}:${canonical}`;
+  const existing = registry.entries.find(e => e.id === id);
+  if (existing) {
+    if (chapterNumber > existing.lastSeenChapter) existing.lastSeenChapter = chapterNumber;
+    if (canonical !== rawName.trim() && !existing.aliases.includes(rawName.trim())) {
+      existing.aliases.push(rawName.trim());
+    }
+  } else {
+    registry.entries.push({ id, category, canonicalName: canonical, aliases: [], lastSeenChapter: chapterNumber });
+  }
+  return { registry, canonicalName: canonical };
+}

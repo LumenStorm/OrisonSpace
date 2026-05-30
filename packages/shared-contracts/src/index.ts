@@ -4,6 +4,7 @@ export * from './contracts/tasks';
 export * from './contracts/creative-fields';
 export * from './contracts/agent-contract';
 export * from './contracts/workflow-sync';
+export * from './contracts/memory-tags';
 export * from './contracts/story-memory';
 export * from './contracts/novel-orchestration';
 export * from './contracts/generation';

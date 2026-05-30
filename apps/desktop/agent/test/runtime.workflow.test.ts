@@ -159,8 +159,8 @@ describe('runtime workflow run state', () => {
     });
 
     const runtime = createWorkflowRuntime({
-      generate: vi.fn(async () => ({
-        content: 'Checkpoint: outline-ready',
+      generate: vi.fn(async (messages) => ({
+        content: messages[messages.length - 1]?.content ?? 'Checkpoint: outline-ready',
         finishReason: 'stop',
       })),
       skillRegistry,

@@ -1,0 +1,112 @@
+import type { AgentContract } from '@orison/shared-contracts';
+import type { CreativeFieldKey } from '@orison/shared-contracts';
+
+const CONTRACTS: AgentContract[] = [
+  {
+    id: 'intake-agent',
+    role: '需求解析',
+    goal: '将用户需求转化为结构化创作 brief',
+    owns: ['creative_brief'],
+    reads: [],
+    must: ['输出结构化创作 brief'],
+    mustNot: ['直接生成故事内容'],
+    outputSchemaName: 'creativeBriefSchema',
+    qualityGates: ['has_genre', 'has_tone'],
+  },
+  {
+    id: 'asset-loader-agent',
+    role: '资产加载',
+    goal: '生成世设、资产卡和关系图',
+    owns: ['world_setting', 'asset_cards', 'relationship_graph'],
+    reads: ['creative_brief'],
+    must: ['生成完整世设'],
+    mustNot: ['修改创作 brief'],
+    outputSchemaName: 'assetLoaderOutputSchema',
+    qualityGates: ['has_world_setting', 'has_asset_cards'],
+  },
+  {
+    id: 'story-planner-agent',
+    role: '故事规划',
+    goal: '生成或修订总大纲',
+    owns: ['outline'],
+    reads: ['creative_brief', 'world_setting', 'asset_cards', 'relationship_graph'],
+    must: ['明确主题和核心冲突', '包含主要转折点'],
+    mustNot: ['直接写章节正文', '修改世设'],
+    outputSchemaName: 'outlineV2Schema',
+    qualityGates: ['has_central_conflict', 'has_major_turning_points', 'has_ending_direction'],
+  },
+  {
+    id: 'curve-planner-agent',
+    role: '曲线规划',
+    goal: '规划成长曲线、节奏曲线和情感曲线',
+    owns: ['growth_curve', 'pacing_curve', 'emotion_curve'],
+    reads: ['outline', 'asset_cards', 'world_setting'],
+    must: ['生成三条曲线'],
+    mustNot: ['修改大纲结构'],
+    outputSchemaName: 'curvePlannerOutputSchema',
+    qualityGates: ['has_growth_curve', 'has_pacing_curve', 'has_emotion_curve'],
+  },
+  {
+    id: 'episode-planner-agent',
+    role: '集纲规划',
+    goal: '将大纲分解为集纲列表',
+    owns: ['episode_outlines', 'foreshadow_registry'],
+    reads: ['outline', 'growth_curve', 'pacing_curve', 'emotion_curve', 'asset_cards', 'relationship_graph', 'world_setting'],
+    must: ['为每集定义核心事件'],
+    mustNot: ['修改总大纲'],
+    outputSchemaName: 'episodePlannerOutputSchema',
+    qualityGates: ['has_episodes', 'has_foreshadowing'],
+  },
+  {
+    id: 'draft-writer-agent',
+    role: '初稿撰写',
+    goal: '根据章节任务生成初稿',
+    owns: [],
+    reads: ['outline', 'episode_outlines', 'asset_cards', 'world_setting', 'growth_curve', 'foreshadow_registry'],
+    must: ['按章节目标输出正文'],
+    mustNot: ['修改大纲或集纲'],
+    outputSchemaName: 'draftOutputSchema',
+    qualityGates: ['meets_word_target'],
+  },
+  {
+    id: 'continuity-memory-agent',
+    role: '连续性记忆',
+    goal: '从草稿中提取连续性记忆',
+    owns: [],
+    reads: ['asset_cards', 'foreshadow_registry'],
+    must: ['提取角色状态和时间线'],
+    mustNot: ['修改草稿内容'],
+    outputSchemaName: 'continuityMemorySchema',
+    qualityGates: ['has_character_state'],
+  },
+  {
+    id: 'multi-review-agent',
+    role: '多维审核',
+    goal: '从结构、连贯性等维度审核',
+    owns: [],
+    reads: ['creative_brief', 'world_setting', 'outline', 'episode_outlines', 'asset_cards', 'relationship_graph', 'growth_curve', 'pacing_curve', 'emotion_curve', 'foreshadow_registry'],
+    must: ['给出通过或修订判定'],
+    mustNot: ['直接修改内容'],
+    outputSchemaName: 'reviewOutputSchema',
+    qualityGates: ['has_verdict'],
+  },
+  {
+    id: 'targeted-revision-agent',
+    role: '定向修订',
+    goal: '根据审核意见修订指定内容',
+    owns: [],
+    reads: ['outline', 'episode_outlines', 'asset_cards', 'world_setting'],
+    must: ['仅修改指定部分'],
+    mustNot: ['全文重写', '忽略审核意见'],
+    outputSchemaName: 'revisionOutputSchema',
+    qualityGates: ['addresses_feedback'],
+  },
+];
+
+export function getAllAgentContracts(): AgentContract[] {
+  return CONTRACTS;
+}
+
+export function getAgentContract(id: string): AgentContract | undefined {
+  return CONTRACTS.find((c) => c.id === id);
+}

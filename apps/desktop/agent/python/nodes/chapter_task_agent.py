@@ -24,8 +24,27 @@ CHAPTER_TASKS_SCHEMA = {
                 "description": "涉及角色",
             },
             "wordTarget": {"type": "integer", "description": "预期字数"},
+            "recallTags": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "category": {
+                            "type": "string",
+                            "enum": [
+                                "character", "event", "foreshadow",
+                                "setting", "location", "item", "emotion", "power",
+                            ],
+                        },
+                        "value": {"type": "string"},
+                        "reason": {"type": "string"},
+                    },
+                    "required": ["category", "value"],
+                },
+                "description": "本章需要召回的记忆标签",
+            },
         },
-        "required": ["id", "title", "goal", "scenes", "characters", "wordTarget"],
+        "required": ["id", "title", "goal", "scenes", "characters", "wordTarget", "recallTags"],
     },
 }
 

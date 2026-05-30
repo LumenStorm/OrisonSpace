@@ -19,6 +19,7 @@ export function compileDirectorySkill(skill: CompiledSkill): CompiledSkill {
   };
 
   let previousNodeId: string | undefined;
+  const spawnedAgentTypes = new Set<string>();
   for (const phase of phaseSections) {
     nodes.push({
       id: phase.id,
@@ -71,6 +72,8 @@ export function compileDirectorySkill(skill: CompiledSkill): CompiledSkill {
     }
 
     for (const agentCall of extractAgentCalls(phase.content)) {
+      if (spawnedAgentTypes.has(agentCall.agentType)) continue;
+      spawnedAgentTypes.add(agentCall.agentType);
       const nodeId = `${phase.id}:agent:${nodes.length}`;
       nodes.push({
         id: nodeId,

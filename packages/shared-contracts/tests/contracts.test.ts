@@ -273,7 +273,7 @@ describe('model config v3 schemas', () => {
 
   it('resolveModelInfo matches known patterns', () => {
     expect(resolveModelInfo('dall-e-3').capability).toBe('image');
-    expect(resolveModelInfo('dall-e-3').alias).toBe('DALL·E');
+    expect(resolveModelInfo('dall-e-3').alias).toBe('DALL·E 3');
     expect(resolveModelInfo('gpt-4o-mini').capability).toBe('text');
     expect(resolveModelInfo('sora-1.0').capability).toBe('video');
     expect(resolveModelInfo('unknown-model-xyz').capability).toBe('text');

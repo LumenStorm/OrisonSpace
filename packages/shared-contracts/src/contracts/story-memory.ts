@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { structuredTagSchema, memoryImportanceSchema } from './memory-tags';
 
 // ── Story Memory 条目 ──
 
@@ -20,6 +21,10 @@ export const storyMemoryEntrySchema = z.object({
   embeddingDim: z.number().int().positive().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
+  // ── 标记召回系统字段 ──
+  structuredTags: z.array(structuredTagSchema).optional(),
+  importance: memoryImportanceSchema.optional(),
+  recallBudget: z.number().int().nonnegative().optional(),
 });
 
 export type StoryMemoryEntry = z.infer<typeof storyMemoryEntrySchema>;

@@ -13,10 +13,8 @@ describe('repository shape', () => {
     expect(existsSync(repoPath('apps/desktop/shell'))).toBe(true);
     expect(existsSync(repoPath('apps/desktop/ui'))).toBe(true);
     expect(existsSync(repoPath('apps/desktop/local-bff'))).toBe(true);
-    expect(existsSync(repoPath('apps/server'))).toBe(true);
     expect(existsSync(repoPath('packages/shared-contracts'))).toBe(true);
-    expect(existsSync(repoPath('packages/shared-utils'))).toBe(true);
-    expect(existsSync(repoPath('packages/ui-kit'))).toBe(true);
-    expect(existsSync(repoPath('packages/eslint-config'))).toBe(true);
+    expect(existsSync(repoPath('packages/model-protocols'))).toBe(true);
+    expect(existsSync(repoPath('packages/story-sync'))).toBe(true);
   });
 });

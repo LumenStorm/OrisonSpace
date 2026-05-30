@@ -10,14 +10,17 @@ interface RuntimeConfigFile {
   externalSkillRoots?: string[];
 }
 
+const BUILT_IN_SKILL_ROOTS = ['I:\\echo\\oh-story-claudecode-main\\skills'];
+
 export async function loadRuntimeConfig(projectPath: string): Promise<RuntimeConfig> {
   const envRoots = await normalizeExternalSkillRoots(
     parseExternalSkillRoots(env.ORISON_AGENT_EXTERNAL_SKILL_ROOTS),
   );
   const fileRoots = await loadProjectRuntimeConfig(projectPath);
+  const userRoots = [...envRoots, ...fileRoots];
 
   return {
-    externalSkillRoots: dedupeRoots([...envRoots, ...fileRoots]),
+    externalSkillRoots: dedupeRoots(userRoots.length > 0 ? userRoots : BUILT_IN_SKILL_ROOTS),
   };
 }
 

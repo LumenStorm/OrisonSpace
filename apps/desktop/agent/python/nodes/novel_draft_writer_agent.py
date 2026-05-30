@@ -25,6 +25,7 @@ def run(context: dict) -> dict:
     # 小说流水线上下文（替代 creative 流水线的 story_plan / chapter_tasks）
     chapter_context = artifacts.get("context.chapterContext", {})
     bridge_guidance = artifacts.get("context.bridgeGuidance", {})
+    recalled_memories = artifacts.get("context.recalledMemories", "")
     existing_draft = artifacts.get("draft.initial", {})
 
     # continue 模式：已有草稿
@@ -40,11 +41,12 @@ def run(context: dict) -> dict:
     system_prompt = prompt.get("system", "你是一位小说作家，根据上下文撰写章节内容。")
     user_template = prompt.get(
         "user",
-        "请根据提供的上下文和桥接指南，撰写章节内容。{{chapterContext}} {{bridgeGuidance}} {{existingDraft}}",
+        "请根据提供的上下文和桥接指南，撰写章节内容。{{chapterContext}} {{bridgeGuidance}} {{recalledMemories}} {{existingDraft}}",
     )
     user_prompt = render_template(user_template, {
         "chapterContext": json.dumps(chapter_context, ensure_ascii=False)[:4000],
         "bridgeGuidance": json.dumps(bridge_guidance, ensure_ascii=False)[:2000],
+        "recalledMemories": str(recalled_memories)[:2500] if recalled_memories else "",
         "existingDraft": draft_text[:3000] if draft_text else "（新章节，无已有草稿）",
     })
 

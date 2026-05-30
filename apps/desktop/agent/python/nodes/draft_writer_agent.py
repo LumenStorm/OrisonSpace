@@ -28,8 +28,7 @@ def run(context: dict) -> dict:
     if not story_plan:
         return failure(node_id=node_id, error_type="InputError", message="planning.storyPlan is missing", retryable=False)
 
-    # 取第一个章节任务卡作为当前写作目标
-    chapter_task = chapter_tasks[0] if chapter_tasks else {"id": "chapter_1", "title": "第一章", "goal": "开篇"}
+    chapter_task = chapter_tasks[0] if isinstance(chapter_tasks, list) and chapter_tasks else {"id": "chapter_1", "title": "第一章", "goal": "开篇"}
 
     config = context.get("config", {})
     model = config.get("model", "gpt-4o-mini")

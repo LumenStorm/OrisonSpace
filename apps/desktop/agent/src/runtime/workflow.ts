@@ -111,7 +111,7 @@ export interface WorkflowRuntime {
   restoreContinuation(sessionId: string, continuationId: string): RestoredContinuationResponse;
   executeSkill(skillName: string, context: WorkflowExecutionContext): Promise<WorkflowExecutionResult>;
   executeSkillByName(sessionId: string, skillName: string, request?: string | ExecuteSkillRequest, options?: SkillExecutorInvokeOptions): Promise<ExecuteSkillResponse>;
-  buildSkillContext(sessionId: string, skillName: string, artifactIds?: string[], referenceIds?: string[]): SkillRuntimeContext;
+  buildSkillContext(sessionId: string, skillNameOrArtifactIds?: string | string[], artifactIdsOrReferenceIds?: string[], referenceIds?: string[]): SkillRuntimeContext;
   compactSession(sessionId: string, preserveLast?: number, skillRunState?: SkillRunState): CompactedConversation;
   createContinuationSnapshot(sessionId: string, workflowState: { activeSkill?: string; checkpoints: string[]; currentNodeId?: string; skillRunState?: SkillRunState }): ContinuationSnapshot;
   restoreContinuationSnapshot(snapshot: ContinuationSnapshot): ReturnType<typeof restoreContinuationSnapshot>;
@@ -506,10 +506,23 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       };
     },
 
-    buildSkillContext(sessionId, skillName, artifactIds, referenceIds) {
+    buildSkillContext(sessionId, skillNameOrArtifactIds, artifactIdsOrReferenceIds, referenceIdsArg) {
+      let skillName: string | undefined;
+      let artifactIds: string[] | undefined;
+      let referenceIds: string[] | undefined;
+
+      if (Array.isArray(skillNameOrArtifactIds)) {
+        artifactIds = skillNameOrArtifactIds;
+        referenceIds = artifactIdsOrReferenceIds;
+      } else {
+        skillName = skillNameOrArtifactIds;
+        artifactIds = artifactIdsOrReferenceIds;
+        referenceIds = referenceIdsArg;
+      }
+
       const state = runtime.getRunState(sessionId);
       const session = getSession(sessionId);
-      const restoredSkillRunState = session?.skillRunState?.skill === skillName
+      const restoredSkillRunState = skillName && session?.skillRunState?.skill === skillName
         ? restoreSkillContinuation({ skillRunState: session.skillRunState })
         : undefined;
       return buildSkillContext({

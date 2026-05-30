@@ -8,36 +8,49 @@ from python_agent.shared.template import render_template
 CONTINUITY_SCHEMA = {
     "type": "object",
     "properties": {
-        "characters": {
+        "memories": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string"},
-                    "status": {"type": "string"},
-                    "lastAction": {"type": "string"},
+                    "memoryType": {
+                        "type": "string",
+                        "enum": ["character_state", "timeline", "foreshadow", "tone_rule"],
+                    },
+                    "title": {"type": "string"},
+                    "content": {"type": "string"},
+                    "importance": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                    },
+                    "structuredTags": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "category": {
+                                    "type": "string",
+                                    "enum": [
+                                        "character", "event", "foreshadow",
+                                        "setting", "location", "item", "emotion", "power",
+                                    ],
+                                },
+                                "value": {"type": "string"},
+                                "role": {
+                                    "type": "string",
+                                    "enum": ["subject", "object", "context"],
+                                },
+                            },
+                            "required": ["category", "value", "role"],
+                        },
+                    },
+                    "isForeshadow": {"type": "boolean"},
                 },
-                "required": ["name", "status", "lastAction"],
+                "required": ["memoryType", "title", "content", "importance", "structuredTags", "isForeshadow"],
             },
-            "description": "角色当前状态",
-        },
-        "timeline": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "时间线事件",
-        },
-        "foreshadowing": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "伏笔线索",
-        },
-        "toneRules": {
-            "type": "array",
-            "items": {"type": "string"},
-            "description": "语调规则",
         },
     },
-    "required": ["characters", "timeline", "foreshadowing", "toneRules"],
+    "required": ["memories"],
     "additionalProperties": False,
 }
 
@@ -56,7 +69,7 @@ def run(context: dict) -> dict:
     system_prompt = prompt.get("system", "你是一个连续性审查专家。")
     user_template = prompt.get("user", "请提取连续性记忆：{{draftText}} {{storyPlan}}")
     user_prompt = render_template(user_template, {
-        "draftText": draft_text[:3000],  # 截断避免 token 过长
+        "draftText": draft_text[:3000],
         "storyPlan": json.dumps(story_plan, ensure_ascii=False)[:2000],
     })
 
