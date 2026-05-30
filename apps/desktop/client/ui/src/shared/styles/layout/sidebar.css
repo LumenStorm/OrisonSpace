@@ -5,7 +5,7 @@
   justify-content: space-between;
   width: 48px;
   height: 100%;
-  background: var(--surface-container-low);
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--border-default);
   overflow: hidden;
 }
@@ -39,20 +39,20 @@
   border: 0;
   border-radius: 0.35rem;
   background: transparent;
-  color: var(--on-surface-variant);
+  color: var(--sidebar-icon);
   cursor: pointer;
   font: inherit;
   transition: background 0.15s, color 0.15s;
 }
 
 .icon-rail-btn:hover {
-  background: var(--hover-overlay);
-  color: var(--on-surface);
+  background: var(--sidebar-item-hover);
+  color: var(--sidebar-icon-hover);
 }
 
 .icon-rail-btnActive {
-  background: var(--active-indicator);
-  color: var(--on-surface);
+  background: var(--sidebar-item-active);
+  color: var(--sidebar-icon-active);
 }
 
 .icon-rail-btn .material-symbols-outlined {
@@ -77,8 +77,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--surface-container-low);
-  overflow-y: auto;
+  background: var(--project-tree-bg);  overflow-y: auto;
   min-height: 0;
 }
 
@@ -118,8 +117,8 @@
 }
 
 .ptree-node:hover {
-  background: var(--file-item-hover);
-  color: var(--on-surface);
+  background: var(--project-tree-item-hover);
+  color: var(--project-tree-item-text);
 }
 
 .ptree-icon {
@@ -377,8 +376,7 @@
   border: 1px solid var(--outline-variant);
   border-left: 0;
   border-radius: 0 0.25rem 0.25rem 0;
-  background: var(--surface-container);
-  color: var(--on-surface-variant);
+  background: var(--input-bg);  color: var(--on-surface-variant);
   cursor: pointer;
   font: inherit;
 }

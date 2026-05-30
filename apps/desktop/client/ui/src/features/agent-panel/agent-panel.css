@@ -7,7 +7,7 @@
   overflow-y: auto;
   padding: 0.6rem 0.75rem 0.5rem;
   border-bottom: 1px solid var(--outline-variant);
-  background: var(--surface-container);
+  background: var(--agent-panel-skills-bg);
 }
 
 .agent-skills-header {
@@ -73,8 +73,8 @@
   align-items: center;
   padding: 0.12rem 0.4rem;
   border-radius: 999px;
-  background: var(--surface-container-high);
-  color: var(--on-surface-variant);
+  background: var(--chip-bg);
+  color: var(--chip-text);
   font-size: 0.66rem;
   font-weight: 600;
 }
@@ -190,7 +190,7 @@
 .agent-workbench-tail-item {
   padding: 0.4rem 0.45rem;
   border-radius: 0.45rem;
-  background: var(--surface-container);
+  background: var(--agent-panel-tail-bg);
 }
 
 .agent-workbench-tail-role {
@@ -221,7 +221,7 @@
   gap: 0.5rem;
   padding: 0.45rem 0.5rem;
   border-radius: 0.45rem;
-  background: var(--surface-container);
+  background: var(--agent-panel-tail-bg);
 }
 
 .agent-resume-meta {
@@ -249,7 +249,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--surface-container-low);
+  background: var(--agent-panel-bg);
   border-left: 1px solid var(--outline-variant);
   overflow: hidden;
 }
@@ -523,7 +523,7 @@
 
 .agent-confirm-btn-accept {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .agent-confirm-btn-reject {
   background: var(--surface-container-high);
@@ -536,7 +536,7 @@
   flex-shrink: 0;
   border-top: 1px solid var(--outline-variant);
   padding: 0.5rem 0.75rem;
-  background: var(--surface-container-low);
+  background: var(--agent-panel-header-bg);
 }
 
 .agent-input-toolbar {
@@ -597,7 +597,7 @@
   border: none;
   border-radius: 0.35rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
   transition: opacity 0.12s;
   flex-shrink: 0;
@@ -739,7 +739,7 @@
   gap: 0.35rem;
   padding: 0.35rem 0.5rem;
   border-top: 1px solid var(--outline-variant);
-  background: var(--surface-container-low);
+  background: var(--agent-panel-header-bg);
 }
 
 .agent-diff-btn {
@@ -755,7 +755,7 @@
 
 .agent-diff-btn-accept {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .agent-diff-btn-reject {
   background: var(--surface-container-high);
@@ -797,7 +797,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.4rem 0.6rem;
-  background: var(--surface-container-low);
+  background: var(--agent-panel-header-bg);
   border-bottom: 1px solid var(--outline-variant);
 }
 
@@ -825,8 +825,8 @@
   gap: 0.2rem;
 }
 .diff-sbs-btn .material-symbols-outlined { font-size: 14px; }
-.diff-sbs-btn--accept { background: var(--accent); color: #fff; }
-.diff-sbs-btn--reject { background: var(--error, #d32f2f); color: #fff; }
+.diff-sbs-btn--accept { background: var(--accent); color: var(--on-accent); }
+.diff-sbs-btn--reject { background: var(--error); color: var(--on-accent); }
 
 .diff-sbs-body {
   display: flex;
@@ -845,7 +845,7 @@
   font-size: 0.65rem;
   font-weight: 600;
   color: var(--on-surface-variant);
-  background: var(--surface-container);
+  background: var(--agent-panel-skills-bg);
   border-bottom: 1px solid var(--outline-variant);
 }
 
@@ -879,8 +879,8 @@
 }
 .diff-sbs-gutter-btn .material-symbols-outlined { font-size: 12px; }
 .diff-sbs-gutter-btn:hover { background: var(--surface-container-highest); }
-.diff-sbs-gutter-btn.is-active { background: var(--accent); color: #fff; }
-.diff-sbs-gutter-btn--reject.is-active { background: var(--error, #d32f2f); color: #fff; }
+.diff-sbs-gutter-btn.is-active { background: var(--accent); color: var(--on-accent); }
+.diff-sbs-gutter-btn--reject.is-active { background: var(--error); color: var(--on-accent); }
 
 .diff-sbs-line {
   display: flex;
@@ -906,7 +906,7 @@
   text-overflow: ellipsis;
 }
 
-.diff-sbs-line--add { background: rgba(76, 175, 80, 0.1); }
-.diff-sbs-line--remove { background: rgba(244, 67, 54, 0.1); }
-.diff-sbs-line--accepted { background: rgba(76, 175, 80, 0.25); }
-.diff-sbs-line--rejected { background: rgba(244, 67, 54, 0.25); text-decoration: line-through; opacity: 0.6; }
+.diff-sbs-line--add { background: var(--diff-add-bg); }
+.diff-sbs-line--remove { background: var(--diff-remove-bg); }
+.diff-sbs-line--accepted { background: var(--diff-add-bg-strong); }
+.diff-sbs-line--rejected { background: var(--diff-remove-bg-strong); text-decoration: line-through; opacity: 0.6; }

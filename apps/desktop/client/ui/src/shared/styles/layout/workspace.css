@@ -137,7 +137,7 @@
   flex-direction: column;
   height: 100%;
   border-top: 1px solid var(--border-default);
-  background: var(--surface);
+  background: var(--bottom-panel-bg);
 }
 
 .bottom-panel-header {
@@ -146,7 +146,7 @@
   justify-content: space-between;
   padding: 0 0.75rem;
   border-bottom: 1px solid var(--border-default);
-  background: var(--surface-container-low);
+  background: var(--bottom-panel-header-bg);
   flex-shrink: 0;
 }
 
@@ -177,7 +177,7 @@
 
 .bottom-panel-tab-active {
   color: var(--on-surface);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--bottom-panel-tab-active-border);
 }
 
 .bottom-panel-tab .material-symbols-outlined {
@@ -230,9 +230,8 @@
   min-height: 32px;
   padding: 0 0.6rem;
   border-bottom: 1px solid var(--border-default);
-  background: var(--surface-container-low);
+  background: var(--bottom-panel-toolbar-bg);
 }
-
 .output-console-title {
   color: var(--on-surface-variant);
   font-family: monospace;
@@ -422,10 +421,10 @@
 .assets-search {
   flex: 1;
   padding: 0.35rem 0.6rem;
-  border: 1px solid var(--outline-variant);
+  border: 1px solid var(--input-border);
   border-radius: 0.25rem;
-  background: var(--surface-container);
-  color: var(--on-surface);
+  background: var(--assets-search-bg);
+  color: var(--input-text);
   font-size: 0.8rem;
 }
 
@@ -462,7 +461,7 @@
   cursor: pointer;
 }
 .assets-chip:hover { background: var(--hover-overlay); }
-.assets-chip.is-active { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
+.assets-chip.is-active { background: var(--assets-chip-active-bg); color: var(--assets-chip-active-text); border-color: var(--assets-chip-active-bg); }
 
 .assets-panel-empty {
   display: flex;
@@ -500,9 +499,8 @@
 .assets-group-count {
   font-size: 0.7rem;
   font-weight: 500;
-  color: var(--on-surface-variant);
-  background: var(--surface-container-high);
-  padding: 0.1rem 0.4rem;
+  color: var(--chip-text);
+  background: var(--chip-bg);  padding: 0.1rem 0.4rem;
   border-radius: 999px;
 }
 
@@ -520,7 +518,7 @@
   padding: 0.75rem;
   border: 0;
   border-radius: 0.5rem;
-  background: var(--surface-container-lowest);
+  background: var(--assets-card-bg);
   cursor: pointer;
   box-shadow: var(--shadow-soft);
   transition: box-shadow 0.15s;

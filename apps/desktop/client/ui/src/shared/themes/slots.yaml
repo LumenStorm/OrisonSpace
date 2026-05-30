@@ -1,0 +1,58 @@
+# Orison Space — UI Slots (界面槽位)
+# 设计师直接编辑此文件，修改各区域的颜色映射
+# 值为 {token-name} 引用 palette 中的语义 token，或直接写色值
+
+# ─── 侧边导航 rail ───
+sidebar-bg: "{surface-container-low}"
+sidebar-icon: "{on-surface-variant}"
+sidebar-icon-hover: "{on-surface}"
+sidebar-icon-active: "{on-surface}"
+sidebar-item-hover: "{hover-overlay}"
+sidebar-item-active: "{active-indicator}"
+
+# ─── 项目目录树 ───
+project-tree-bg: "{surface-container-low}"
+project-tree-item-hover: "{file-item-hover}"
+project-tree-item-text: "{on-surface}"
+
+# ─── Agent 面板 ───
+agent-panel-bg: "{surface-container-low}"
+agent-panel-header-bg: "{surface-container-low}"
+agent-panel-skills-bg: "{surface-container}"
+agent-panel-card-bg: "{surface}"
+agent-panel-tail-bg: "{surface-container}"
+
+# ─── 资产库 ───
+assets-search-bg: "{surface-container}"
+assets-card-bg: "{surface-container-lowest}"
+assets-chip-active-bg: "{accent}"
+assets-chip-active-text: "{on-accent}"
+
+# ─── 输入控件（全局） ───
+input-bg: "{surface-container}"
+input-bg-focus: "{surface-container-lowest}"
+input-border: "{outline-variant}"
+input-border-focus: "{accent}"
+input-text: "{on-surface}"
+input-placeholder: "{on-surface-variant}"
+
+# ─── 底部面板 ───
+bottom-panel-bg: "{surface}"
+bottom-panel-header-bg: "{surface-container-low}"
+bottom-panel-toolbar-bg: "{surface-container-low}"
+bottom-panel-tab-active-border: "{accent}"
+
+# ─── Diff ───
+diff-add-bg: "rgba(76, 175, 80, 0.1)"
+diff-add-bg-strong: "rgba(76, 175, 80, 0.25)"
+diff-remove-bg: "rgba(244, 67, 54, 0.1)"
+diff-remove-bg-strong: "rgba(244, 67, 54, 0.25)"
+
+# ─── 通用卡片 ───
+card-bg: "{surface-container-lowest}"
+card-border: "{outline-variant}"
+card-bg-hover: "{surface-container-low}"
+
+# ─── 通用 chip/badge ───
+chip-bg: "{surface-container-high}"
+chip-text: "{on-surface-variant}"

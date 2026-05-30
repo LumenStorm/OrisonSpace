@@ -1,0 +1,6 @@
+# Orison Space — Dark Slots Override
+# 仅列出在暗色主题下需要不同映射的槽位
+# 未列出的槽位沿用 slots.yaml 中的引用（会自动解析到 dark palette）
+
+# 示例：如果暗色下 agent 面板需要比侧边栏更深
+# agent-panel-bg: "{surface}"
