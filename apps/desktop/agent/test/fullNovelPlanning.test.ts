@@ -28,8 +28,8 @@ describe('full novel planning bundle', () => {
     if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
   });
 
-  it('creates a reusable planning bundle and chapter slots from the plot summary', () => {
-    const result = createFullNovelPlanningBundle({
+  it('creates a reusable planning bundle and chapter slots from the plot summary', async () => {
+    const result = await createFullNovelPlanningBundle({
       projectPath: TEST_DIR,
       autoModeId: 'auto_full',
       plotSummary: 'A courier uncovers a conspiracy in a sealed city.',
@@ -48,7 +48,7 @@ describe('full novel planning bundle', () => {
     expect(project.novel.chapters.map((chapter: any) => chapter.id)).toEqual(['ch_001', 'ch_002', 'ch_003']);
   });
 
-  it('bootstraps a project.yaml for a new desktop project that only has project.json', () => {
+  it('bootstraps a project.yaml for a new desktop project that only has project.json', async () => {
     rmSync(path.join(TEST_DIR, 'project.yaml'), { force: true });
     writeFileSync(
       path.join(TEST_DIR, 'project.json'),
@@ -56,7 +56,7 @@ describe('full novel planning bundle', () => {
       'utf8',
     );
 
-    const result = createFullNovelPlanningBundle({
+    const result = await createFullNovelPlanningBundle({
       projectPath: TEST_DIR,
       autoModeId: 'auto_desktop',
       plotSummary: 'A forgotten archivist rewrites a city memory.',

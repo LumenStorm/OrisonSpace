@@ -3,6 +3,7 @@ import json
 from python_agent.shared.model_client import generate_structured
 from python_agent.shared.result_schema import success, failure
 from python_agent.shared.template import render_template
+from python_agent.shared.truncate import smart_truncate
 
 
 REVIEW_SCHEMA = {
@@ -72,9 +73,9 @@ def run(context: dict) -> dict:
     system_prompt = prompt.get("system", "你是一个多维度内容审核专家。")
     user_template = prompt.get("user", "请审核初稿：{{draftText}} {{storyPlan}} {{continuityMemory}}")
     user_prompt = render_template(user_template, {
-        "draftText": draft_text[:3000],
-        "storyPlan": json.dumps(story_plan, ensure_ascii=False)[:2000],
-        "continuityMemory": json.dumps(continuity, ensure_ascii=False)[:1000],
+        "draftText": smart_truncate(draft_text, max_tokens=4000),
+        "storyPlan": smart_truncate(json.dumps(story_plan, ensure_ascii=False), max_tokens=1500),
+        "continuityMemory": smart_truncate(json.dumps(continuity, ensure_ascii=False), max_tokens=800),
     })
 
     result = generate_structured(

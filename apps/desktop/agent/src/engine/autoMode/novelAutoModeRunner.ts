@@ -50,7 +50,7 @@ export function createNovelAutoModeRunner() {
 
         if (!chapters || chapters.length === 0) {
           // Bootstrap from plotSummary
-          const bundle = createFullNovelPlanningBundle({
+          const bundle = await createFullNovelPlanningBundle({
             projectPath,
             autoModeId: `auto_${Date.now().toString(36)}`,
             plotSummary: plotSummary || '',

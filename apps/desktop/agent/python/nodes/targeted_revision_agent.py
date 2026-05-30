@@ -3,6 +3,7 @@ import json
 from python_agent.shared.model_client import generate_structured
 from python_agent.shared.result_schema import success, failure
 from python_agent.shared.template import render_template
+from python_agent.shared.truncate import smart_truncate
 
 
 REVISION_SCHEMA = {
@@ -37,8 +38,8 @@ def run(context: dict) -> dict:
     system_prompt = prompt.get("system", "你是一个专业的故事修订编辑。")
     user_template = prompt.get("user", "请修订初稿：{{draftText}} {{reviewResult}}")
     user_prompt = render_template(user_template, {
-        "draftText": draft_text[:3000],
-        "reviewResult": json.dumps(review, ensure_ascii=False)[:2000],
+        "draftText": smart_truncate(draft_text, max_tokens=4000),
+        "reviewResult": smart_truncate(json.dumps(review, ensure_ascii=False), max_tokens=2000),
     })
 
     result = generate_structured(
