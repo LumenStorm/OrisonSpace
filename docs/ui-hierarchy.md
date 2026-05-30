@@ -17,11 +17,15 @@
 ├──────┬──────────┬──────────────────────────┬────────────────────────┤
 │ Icon │ Project  │                          │                        │
 │ Rail │ Tree /   │  文件编辑模式             │     Agent Panel        │
-│      │ Search   │  (有打开的文件 Tab 时)    │     (全高独立)          │
-│      │ Panel    │  ─── 或 ───              │                        │
+│      │ Search / │  (有打开的文件 Tab 时)    │     (全高独立)          │
+│      │ Timeline │  ─── 或 ───              │                        │
 │      │ (互斥)   │  ActivePage 页面视图      │                        │
 │      │          │  (无文件 Tab 时)          │                        │
-└──────┴──────────┴──────────────────────────┴────────────────────────┘
+│      │          │  ─── 叠加 ───            │                        │
+│      │          │  OverlayPage 浮层         │                        │
+├──────┴──────────┴──────────────────────────┴────────────────────────┤
+│                          StatusBar                                   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 组件层级树
@@ -40,21 +44,24 @@ App
         ├── SideNav (Icon Rail)
         │   ├── ExplorerBtn (资源管理器，切换左侧面板)
         │   ├── SearchBtn (搜索，切换左侧面板)
+        │   ├── TimelineBtn (时间线，切换左侧面板)
         │   ├── ─── 分隔线 ───
-        │   ├── NavButton[] (overview/outline/assets/novel|script — setActivePage)
+        │   ├── NavButton[] (overview/outline/assets — setOverlayPage)
+        │   ├── NavButton (novel|script — setActivePage)
         │   ├── ─── 分隔线 ───
         │   ├── NavButton[] (storyboard/image_gen/video — setActivePage)
         │   ├── ─── 分隔线 ───
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
-        │   ├── NavButton (timeline — setActivePage)
         │   └── SettingsBtn
         ├── 左侧面板 (互斥，由 activeSidebarPanel 控制)
         │   ├── ProjectTree (activeSidebarPanel='explorer')
-        │   └── SearchPanel (activeSidebarPanel='search')
+        │   ├── SearchPanel (activeSidebarPanel='search')
+        │   └── TimelinePanel (activeSidebarPanel='timeline')
         ├── workspace-main (flex column)
         │   ├── [文件编辑模式: hasOpenFiles = true]
         │   │   ├── FileTabBar
-        │   │   └── FileEditor
+        │   │   ├── FileEditor
+        │   │   └── SplitFileEditor (splitDirection !== 'none' 时)
         │   ├── [页面模式: hasOpenFiles = false, 按 activePage 切换]
         │   │   ├── OverviewPage (activePage='overview')
         │   │   ├── OutlineEditor (activePage='outline')
@@ -62,36 +69,43 @@ App
         │   │   ├── StoryboardCanvas (activePage='storyboard')
         │   │   ├── ImageGenEditor (activePage='image_gen')
         │   │   ├── VideoEditor (activePage='video')
-        │   │   ├── AssetsPanel (activePage='assets')
-        │   │   └── TimelinePanel (activePage='timeline')
+        │   │   └── AssetsPanel (activePage='assets')
+        │   ├── [OverlayPage 浮层: overlayPage 非 null 时叠加显示]
+        │   │   ├── OverviewPage (overlayPage='overview')
+        │   │   ├── OutlineEditor (overlayPage='outline')
+        │   │   └── AssetsPanel (overlayPage='assets')
         │   ├── ResizeHandle (vertical, 底部面板)
         │   └── BottomPanel (可折叠)
         │       ├── Tab: Output
         │       └── Tab: Tasks
-        └── AgentPanel (可折叠，全高)
-            ├── AgentPanel header
-            │   ├── Title ("Agent")
-            │   ├── NewConversation btn
-            │   └── History btn
-            ├── AgentMessages (消息流，auto-scroll)
-            │   ├── AgentMessageItem (role=user)
-            │   ├── AgentMessageItem (role=assistant)
-            │   │   └── AgentToolCallBadge[]
-            │   └── AgentMessageItem (role=tool)
-            │       ├── AgentToolCard (普通 tool 结果)
-            │       └── DiffCard (写入类 tool 结果)
-            │           ├── Header (fileName + status)
-            │           ├── Body (diff preview)
-            │           └── Actions (Accept / Reject)
-            ├── AgentConfirmCard (pendingToolConfirm 时显示)
-            ├── AgentInput
-            │   ├── Toolbar
-            │   │   ├── Model select (下拉框)
-            │   │   └── Mode select (下拉框: Read/Suggest/Auto)
-            │   ├── Textarea (消息输入)
-            │   └── Send/Stop btn
-            └── AgentHistory (历史列表 overlay)
-                └── HistoryItem[] (title + date + messageCount + delete)
+        ├── AgentPanel (可折叠，全高)
+        │   ├── AgentPanel header
+        │   │   ├── Title ("Agent")
+        │   │   ├── NewConversation btn
+        │   │   └── History btn
+        │   ├── AgentMessages (消息流，auto-scroll)
+        │   │   ├── AgentMessageItem (role=user)
+        │   │   ├── AgentMessageItem (role=assistant)
+        │   │   │   └── AgentToolCallBadge[]
+        │   │   └── AgentMessageItem (role=tool)
+        │   │       ├── AgentToolCard (普通 tool 结果)
+        │   │       └── DiffCard (写入类 tool 结果)
+        │   │           ├── Header (fileName + status)
+        │   │           ├── Body (diff preview)
+        │   │           └── Actions (Accept / Reject)
+        │   ├── AgentConfirmCard (pendingToolConfirm 时显示)
+        │   ├── AgentSkillsPanel (skill 列表 + 刷新)
+        │   ├── AgentContinuationCard (最新 continuation 恢复/重跑)
+        │   ├── AgentWorkbenchCard (已恢复 continuation 的 workbench)
+        │   ├── AgentInput
+        │   │   ├── Toolbar
+        │   │   │   ├── Model select (下拉框)
+        │   │   │   └── Mode select (下拉框: Read/Suggest/Auto)
+        │   │   ├── Textarea (消息输入)
+        │   │   └── Send/Stop btn
+        │   └── AgentHistory (历史列表 overlay)
+        │       └── HistoryItem[] (title + date + messageCount + delete)
+        └── StatusBar (底部状态栏，常驻)
 ```
 
 ## 组件名称对照表
@@ -102,6 +116,7 @@ App
 | `SideNav` | `features/side-nav/SideNav.tsx` | 左侧图标导航栏 |
 | `ProjectTree` | `features/project-tree/ProjectTree.tsx` | 项目文件树 |
 | `SearchPanel` | `features/search-panel/SearchPanel.tsx` | 搜索面板（与 ProjectTree 互斥） |
+| `TimelinePanel` | `features/timeline/TimelinePanel.tsx` | 时间线面板（左侧面板模式） |
 | `OverviewPage` | `features/overview/OverviewPage.tsx` | 项目总览仪表盘 |
 | `OutlineEditor` | `features/editor/OutlineEditor.tsx` | 大纲编辑器（Notion block 风格） |
 | `ScriptEditorPage` | `features/editor/ScriptEditorPage.tsx` | 小说/剧本编辑器页面 |
@@ -109,9 +124,9 @@ App
 | `StoryboardCanvas` | `features/editor/StoryboardCanvas.tsx` | 分镜面板 |
 | `VideoEditor` | `features/editor/VideoEditor.tsx` | 视频面板 |
 | `AssetsPanel` | `features/assets/AssetsPanel.tsx` | 资产库面板 |
-| `TimelinePanel` | `features/timeline/TimelinePanel.tsx` | 时间线面板 |
 | `FileTabBar` | `features/editor/FileTabBar.tsx` | 文件标签栏 |
 | `FileEditor` | `features/editor/FileEditor.tsx` | 文件编辑器 |
+| `SplitFileEditor` | `features/editor/SplitFileEditor.tsx` | 分屏文件编辑器 |
 | `FindReplaceBar` | `features/editor/FindReplaceBar.tsx` | 查找替换栏 |
 | `CommandPalette` | `features/command-palette/CommandPalette.tsx` | 命令面板 |
 | `BottomPanel` | `features/bottom-panel/BottomPanel.tsx` | 底部面板容器（output / tasks） |
@@ -124,6 +139,7 @@ App
 | `AgentConfirmCard` | `features/agent-panel/AgentConfirmCard.tsx` | Tool 执行确认卡片 |
 | `AgentInput` | `features/agent-panel/AgentInput.tsx` | 输入区 + 工具栏 |
 | `AgentHistory` | `features/agent-panel/AgentHistory.tsx` | 历史对话列表 |
+| `StatusBar` | `features/status-bar/StatusBar.tsx` | 底部状态栏 |
 | `ResizeHandle` | `shared/components/ResizeHandle.tsx` | 面板拖拽调整手柄 |
 | `WorkspaceLayout` | `widgets/layout/WorkspaceLayout.tsx` | 工作区 Grid/Flex 布局编排 |
 
@@ -132,26 +148,34 @@ App
 `WorkspaceLayout` 使用 CSS Grid + Flex 组合：
 
 ```
-workspace-body (CSS Grid: icon-rail | sidebar-panel | resize | main-area)
-  └── main-area (Flex row)
-      ├── workspace-main (Flex column, flex:1)
-      │   ├── [文件编辑模式: hasOpenFiles = true]
-      │   │   ├── FileTabBar
-      │   │   └── workspace-content → FileEditor
-      │   ├── [页面模式: hasOpenFiles = false]
-      │   │   └── workspace-panel-content → 按 activePage 渲染对应组件
-      │   ├── ResizeHandle (vertical)
-      │   └── workspace-bottom-wrapper → BottomPanel
-      └── AgentPanel (固定宽度, 全高)
+workspace-shell
+├── workspace-body (CSS Grid: icon-rail | sidebar-panel | resize | main-area)
+│   ├── SideNav
+│   ├── 左侧面板 (ProjectTree / SearchPanel / TimelinePanel)
+│   ├── ResizeHandle
+│   └── main-area (Flex row)
+│       ├── workspace-main (Flex column, flex:1)
+│       │   ├── [文件编辑模式: hasOpenFiles = true]
+│       │   │   ├── FileTabBar
+│       │   │   └── workspace-content → FileEditor + SplitFileEditor
+│       │   ├── [页面模式: hasOpenFiles = false]
+│       │   │   └── workspace-panel-content → 按 activePage 渲染对应组件
+│       │   ├── [OverlayPage 浮层: overlayPage 非 null 时]
+│       │   │   └── workspace-overlay → overview / outline / assets
+│       │   ├── ResizeHandle (vertical)
+│       │   └── workspace-bottom-wrapper → BottomPanel
+│       └── AgentPanel (可调宽度, 全高)
+└── StatusBar
 ```
 
 渲染逻辑：
-1. 如果 `hasOpenFiles` 为 true → 显示 FileTabBar + FileEditor
+1. 如果 `hasOpenFiles` 为 true → 显示 FileTabBar + FileEditor（+ 可选 SplitFileEditor）
 2. 否则按 `activePage` switch 渲染对应页面组件
+3. `overlayPage` 非 null 时，在 workspace-main 上叠加浮层显示 overview / outline / assets
 
 底部面板始终可用（所有模式下都可展开）。底部展开按钮在面板关闭时显示。
 
-左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换，类似 VSCode 的 Explorer / Search 面板。
+左侧面板（ProjectTree / SearchPanel / TimelinePanel）由 `activeSidebarPanel` 状态控制互斥切换，类似 VSCode 的 Explorer / Search 面板。
 
 Agent Panel 与 workspace-main 同级 flex 子项，因此不受 BottomPanel 高度影响，始终从顶部延伸到窗口底部。
 

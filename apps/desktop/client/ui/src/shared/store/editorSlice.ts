@@ -16,12 +16,17 @@ export type EditorSlice = {
   activeChapterId: string | null;
   undoStack: EditorSnapshot[];
   redoStack: EditorSnapshot[];
+  cursorLine: number;
+  cursorCol: number;
+  wordCount: number;
 
   addChapter: (title?: string) => void;
   removeChapter: (id: string) => void;
   reorderChapter: (id: string, direction: 'up' | 'down') => void;
   updateChapter: (id: string, patch: Partial<Omit<Chapter, 'id'>>) => void;
   setActiveChapter: (id: string | null) => void;
+  setCursorPosition: (line: number, col: number) => void;
+  setWordCount: (count: number) => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -49,6 +54,12 @@ export const createEditorSlice: StateCreator<
   activeChapterId: null,
   undoStack: [],
   redoStack: [],
+  cursorLine: 0,
+  cursorCol: 0,
+  wordCount: 0,
+
+  setCursorPosition: (line, col) => set({ cursorLine: line, cursorCol: col }),
+  setWordCount: (count) => set({ wordCount: count }),
 
   addChapter: (title) => {
     const state = get();

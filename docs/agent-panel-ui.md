@@ -254,7 +254,7 @@ agent:resolve-confirmation
 - Tool 卡片：`border-left: 3px solid var(--accent)`，可折叠
 - 输入区工具栏：小型 pill 按钮，紧凑排列
 - 跟随全局 theme（system/light/dark）
-## 当前实现状态（2026-05-25）
+## 当前实现状态（2026-05-30）
 
 桌面端 Agent Panel 已接入 `@orison/desktop-agent` runtime（内嵌库）。
 
@@ -262,19 +262,55 @@ agent:resolve-confirmation
 
 - 通过 `agent:list-skills` IPC 加载 skill 列表，感知项目配置与外部 skill root
 - 在面板中手动刷新可用 skill 列表
-- 针对当前 agent session 直接执行 skill
+- 针对当前 agent session 直接执行 skill（点击 skill 卡片的 Run 按钮）
 - 展示 runtime-backed 执行结果中的 continuation 信息
 - Continuation restore / rerun 控件（最新 continuation 卡片 + 历史列表）
 - 已恢复 continuation 的 workbench 面板（展示 summary、activeSkill、checkpoints、tail）
+- 最近 continuations 列表，支持按条目恢复
+- SideBySideDiff 组件用于 diff 展示
+
+### Agent Panel 内部结构（当前实现）
+
+```
+agent-panel
+├── agent-panel-header
+│   ├── Title ("Agent")
+│   ├── NewConversation btn (+)
+│   └── History btn (history)
+├── [showHistory = true] → AgentHistory overlay
+├── [showHistory = false] →
+│   ├── agent-skills-panel
+│   │   ├── header (Skills 标题 + Refresh 按钮)
+│   │   ├── skill-error (错误提示)
+│   │   └── skill-list (skill 卡片 × N)
+│   │       └── skill-card (name + description + Run btn)
+│   ├── agent-continuation-card (latestSkillContinuation 存在时)
+│   │   ├── summary 文本
+│   │   ├── Restore 按钮
+│   │   └── Rerun 按钮
+│   ├── agent-workbench-card (restoredSkillContinuation 存在时)
+│   │   ├── workbench-title
+│   │   ├── workbench-summary
+│   │   ├── workbench-section: activeSkill
+│   │   ├── workbench-section: checkpoints 列表
+│   │   └── workbench-section: tail 列表
+│   ├── agent-workbench-card (最近 continuations 列表)
+│   │   └── agent-resume-list
+│   │       └── agent-resume-item × N (skill + summary + Restore btn)
+│   ├── AgentMessages (消息流，auto-scroll)
+│   └── AgentInput (输入区 + 工具栏)
+```
 
 注意事项：
 
 - `agent:list-skills` IPC 直接返回数组（非 `{ skills: [...] }` 包装），前端 API 层已兼容两种格式
 - store 中 `agentSkills`、`agentContinuations`、`agentSessions` 使用 `?? []` 防御 undefined
+- 面板打开时自动加载 skills 和 continuations（useEffect）
 
 相关实现文件：
 
 - `apps/desktop/client/ui/src/features/agent-panel/AgentPanel.tsx`
+- `apps/desktop/client/ui/src/features/agent-panel/SideBySideDiff.tsx`
 - `apps/desktop/client/ui/src/shared/api/agent.ts`
 - `apps/desktop/client/ui/src/shared/store/agentSlice.ts`
 - `apps/desktop/client/shell/main/ipc/agentIpc.ts`

@@ -1,4 +1,4 @@
-import type { StateCreator } from 'zustand';
+import { create } from 'zustand';
 
 export type ConfirmOptions = {
   title: string;
@@ -8,7 +8,7 @@ export type ConfirmOptions = {
   variant?: 'danger' | 'default';
 };
 
-export type ConfirmSlice = {
+type ConfirmState = {
   confirmOpen: boolean;
   confirmOptions: ConfirmOptions | null;
   confirmResolve: ((value: boolean) => void) | null;
@@ -16,18 +16,17 @@ export type ConfirmSlice = {
   resolveConfirm: (value: boolean) => void;
 };
 
-export const createConfirmSlice: StateCreator<ConfirmSlice, [], [], ConfirmSlice> = (set, get) => ({
+export const useConfirmStore = create<ConfirmState>((set, get) => ({
   confirmOpen: false,
   confirmOptions: null,
   confirmResolve: null,
-  requestConfirm: (options) => {
-    return new Promise<boolean>((resolve) => {
+  requestConfirm: (options) =>
+    new Promise<boolean>((resolve) => {
       set({ confirmOpen: true, confirmOptions: options, confirmResolve: resolve });
-    });
-  },
+    }),
   resolveConfirm: (value) => {
     const { confirmResolve } = get();
     if (confirmResolve) confirmResolve(value);
     set({ confirmOpen: false, confirmOptions: null, confirmResolve: null });
   },
-});
+}));

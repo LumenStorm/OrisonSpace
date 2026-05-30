@@ -517,7 +517,7 @@
   height: 24px;
   border: 0;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--overlay-heavy);
   color: var(--on-accent);
   cursor: pointer;
 }

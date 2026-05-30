@@ -1,6 +1,6 @@
-import { app } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import pino from 'pino';
 
 let _logger: pino.Logger | null = null;
@@ -8,7 +8,7 @@ let _logsDir: string | null = null;
 
 function getLogsDir(): string {
   if (_logsDir) return _logsDir;
-  const home = app.getPath('home');
+  const home = os.homedir();
   const dir = path.join(home, '.orison', 'logs');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   _logsDir = dir;

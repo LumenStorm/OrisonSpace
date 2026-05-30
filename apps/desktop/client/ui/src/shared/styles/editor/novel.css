@@ -150,8 +150,8 @@
 }
 
 .novel-chapter-item[data-status="generating"] .novel-chapter-status {
-  color: #b38600;
-  background: #e6a70022;
+  color: var(--warning);
+  background: var(--warning-bg);
 }
 
 .novel-chapter-item[data-status="final"] .novel-chapter-status {
@@ -267,13 +267,13 @@
 }
 
 .novel-chapter-result-status[data-status="running"] {
-  color: #b38600;
-  background: #e6a70022;
+  color: var(--warning);
+  background: var(--warning-bg);
 }
 
 .novel-chapter-result-status[data-status="pending"] {
-  color: #0066cc;
-  background: #0066cc22;
+  color: var(--info);
+  background: var(--info-bg);
 }
 
 .novel-chapter-result-status[data-status="failed"] {
@@ -422,11 +422,11 @@
   margin-top: 0.6rem;
 }
 
-.auto-mode-console-error {
+.auto-mode-console .auto-mode-console-error {
   padding: 0.45rem 0.55rem;
   border-radius: 0.35rem;
   background: var(--error-bg);
-  color: var(--error) !important;
+  color: var(--error);
 }
 
 /* ── Memory Panel ── */
@@ -490,7 +490,7 @@
 }
 
 .memory-entry[data-foreshadow="true"] {
-  border-color: #e6a70066;
+  border-color: var(--warning);
 }
 
 .memory-entry-header {
@@ -521,8 +521,8 @@
 }
 
 .memory-entry-fs-badge {
-  background: #e6a70022;
-  color: #b38600;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .memory-entry-content,

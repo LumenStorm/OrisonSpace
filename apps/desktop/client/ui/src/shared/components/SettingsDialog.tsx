@@ -4,7 +4,7 @@ import { useI18n } from '../i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { GeneralSettingsPage } from './settings/GeneralSettingsPage';
-import { ModelSettingsPage } from './settings/ModelSettingsPage';
+import { ModelSettingsPage } from '../../features/model-settings/ModelSettingsPage';
 
 type Props = { onClose: () => void };
 type SettingsPageId = 'general' | 'model';

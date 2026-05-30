@@ -1,9 +1,8 @@
-import { useAppStore } from '../store/appStore';
-import type { ToastItem } from '../store/toastSlice';
+import { useToastStore } from '../store/toastStore';
 
 export function Toast() {
-  const toasts = useAppStore((s) => s.toasts);
-  const dismissToast = useAppStore((s) => s.dismissToast);
+  const toasts = useToastStore((s) => s.toasts);
+  const dismissToast = useToastStore((s) => s.dismissToast);
 
   if (toasts.length === 0) return null;
 

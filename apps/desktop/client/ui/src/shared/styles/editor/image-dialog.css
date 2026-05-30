@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--overlay-heavy);
 }
 
 .image-preview-dialog {
@@ -48,7 +48,7 @@
   height: 28px;
   border: 0;
   border-radius: 0.3rem;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-backdrop);
   color: var(--on-accent);
   cursor: pointer;
 }
@@ -68,7 +68,7 @@
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--overlay-heavy);
   color: var(--on-accent);
   cursor: pointer;
   transform: translateY(-50%);
@@ -76,7 +76,7 @@
 }
 
 .image-preview-nav:hover {
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--overlay-heavy);
 }
 
 .image-preview-nav.is-prev {
@@ -162,7 +162,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.68);
+  background: var(--overlay-heavy);
 }
 
 .image-edit-dialog {

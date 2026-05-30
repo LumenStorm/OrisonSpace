@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { CreativeFieldKey, ImageInput, ApiKeyEntry, DiscoveredModel, ModelRef } from '@orison/shared-contracts';
 import { generateImage } from '../../shared/api/generation';
+import { readDirectory, readFileBinary, saveBase64Image, moveProjectFile, deleteProjectFile } from '../../shared/api/filesystem';
 import { useAppStore } from '../../shared/store/appStore';
+import { useToastStore } from '../../shared/store/toastStore';
+import { useConfirmStore } from '../../shared/store/confirmStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { paramsToRequestPayload } from '../../shared/imageGen/schema';
 import { ImageEditDialog } from './ImageEditDialog';
@@ -46,8 +49,8 @@ export function ImageGenEditor() {
   const creativeFields = useAppStore((s) => s.creativeFields);
   const updateField = useAppStore((s) => s.updateField);
   const appendOutputEntry = useAppStore((s) => s.appendOutputEntry);
-  const showToast = useAppStore((s) => s.showToast);
-  const requestConfirm = useAppStore((s) => s.requestConfirm);
+  const showToast = useToastStore((s) => s.showToast);
+  const requestConfirm = useConfirmStore((s) => s.requestConfirm);
   const imageGenParams = useAppStore((s) => s.imageGenParams);
   const imageGenFamily = useAppStore((s) => s.imageGenFamily);
   const reconcileImageGenForModel = useAppStore((s) => s.reconcileImageGenForModel);
@@ -84,7 +87,7 @@ export function ImageGenEditor() {
 
     async function loadGenerationIndex() {
       try {
-        const entries = await window.orisonDesktop.readDirectory(projectPath, 5);
+        const entries = await readDirectory(projectPath, 5);
         const generationDir = findFileTreeEntry(entries, `/${GENERATION_IMAGE_DIR}`);
         const imageFiles = (generationDir?.children ?? []).filter(
           (entry) => !entry.isDir && isReadableImagePath(entry.path),
@@ -155,7 +158,7 @@ export function ImageGenEditor() {
           .filter((item) => claimedSet.has(item.id))
           .map(async (item) => {
             try {
-              const payload = await window.orisonDesktop.readFileBinary(item.tempFullPath);
+              const payload = await readFileBinary(item.tempFullPath);
               if (!payload) return { id: item.id, loading: false };
               return {
                 id: item.id,
@@ -265,7 +268,7 @@ export function ImageGenEditor() {
             response.images.map(async (image, index) => {
               if (!image.b64Json) throw new Error(t('imageGen.missingBase64'));
 
-              const file = await window.orisonDesktop.saveBase64Image(projectPath, {
+              const file = await saveBase64Image(projectPath, {
                 b64Json: image.b64Json,
                 mimeType: image.mimeType ?? 'image/png',
                 directory: GENERATION_IMAGE_DIR,
@@ -320,7 +323,7 @@ export function ImageGenEditor() {
   async function promoteToAssetFile(item: GeneratedImageItem) {
     if (!currentProject?.path || item.savedRelativePath) return;
     const targetRelativePath = `assets/images/${fileNameOf(item.tempRelativePath)}`;
-    await window.orisonDesktop.moveProjectFile(currentProject.path, item.tempRelativePath, targetRelativePath);
+    await moveProjectFile(currentProject.path, item.tempRelativePath, targetRelativePath);
     appendOutputEntry({
       scope: 'image',
       level: 'success',
@@ -347,7 +350,7 @@ export function ImageGenEditor() {
     }
 
     const editName = createImageName(`${fileNameOf(item.tempRelativePath)} edited`, 0);
-    const editedFile = await window.orisonDesktop.saveBase64Image(currentProject.path, {
+    const editedFile = await saveBase64Image(currentProject.path, {
       b64Json: payload.b64Json,
       mimeType: payload.mimeType,
       directory: GENERATION_IMAGE_DIR,
@@ -355,7 +358,7 @@ export function ImageGenEditor() {
     });
 
     if (payload.maskB64Json) {
-      await window.orisonDesktop.saveBase64Image(currentProject.path, {
+      await saveBase64Image(currentProject.path, {
         b64Json: payload.maskB64Json,
         mimeType: 'image/png',
         directory: GENERATION_IMAGE_DIR,
@@ -435,7 +438,7 @@ export function ImageGenEditor() {
           if (!image.b64Json) {
             throw new Error(t('imageGen.missingBase64'));
           }
-          const file = await window.orisonDesktop.saveBase64Image(currentProject.path!, {
+          const file = await saveBase64Image(currentProject.path!, {
             b64Json: image.b64Json,
             mimeType: image.mimeType ?? 'image/png',
             directory: GENERATION_IMAGE_DIR,
@@ -536,7 +539,7 @@ export function ImageGenEditor() {
     if (!confirmed) return;
 
     try {
-      await window.orisonDesktop.deleteProjectFile(currentProject.path, item.tempRelativePath);
+      await deleteProjectFile(currentProject.path, item.tempRelativePath);
       setResults((current) => current.filter((entry) => entry.id !== item.id));
       appendOutputEntry({
         scope: 'image',

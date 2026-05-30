@@ -1,9 +1,9 @@
 import type { ModelConfig } from '@orison/shared-contracts';
-import { ProfileList } from './model/ProfileList';
-import { ProfileEditor } from './model/ProfileEditor';
-import { ProfileEmptyState } from './model/ProfileEmptyState';
-import { DeleteConfirmDialog } from './model/DeleteConfirmDialog';
-import { useModelLibrary } from './model/useModelLibrary';
+import { ProfileList } from './ProfileList';
+import { ProfileEditor } from './ProfileEditor';
+import { ProfileEmptyState } from './ProfileEmptyState';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { useModelLibrary } from './useModelLibrary';
 
 type Props = {
   t: (key: string) => string;

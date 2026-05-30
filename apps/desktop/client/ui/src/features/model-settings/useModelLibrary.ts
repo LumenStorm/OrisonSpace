@@ -4,8 +4,8 @@ import type {
   ModelConfig,
   RemoteModel,
 } from '@orison/shared-contracts';
-import { loadRemoteModels } from '../../../api/generation';
-import { useAppStore } from '../../../store/appStore';
+import { loadRemoteModels } from '../../shared/api/generation';
+import { useAppStore } from '../../shared/store/appStore';
 import {
   draftToKey,
   emptyKeyDraft,

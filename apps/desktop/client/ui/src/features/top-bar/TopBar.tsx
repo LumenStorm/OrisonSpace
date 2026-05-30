@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { useToastStore } from '../../shared/store/toastStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
@@ -18,7 +19,7 @@ export function TopBar() {
   const isMac = detectIsMac();
   const {
     resolvedLocale, closeProject, currentProject, saveProject, saveChaptersToProject,
-    saveAllOpenFiles, showToast, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
+    saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
@@ -27,7 +28,6 @@ export function TopBar() {
     saveProject: s.saveProject,
     saveChaptersToProject: s.saveChaptersToProject,
     saveAllOpenFiles: s.saveAllOpenFiles,
-    showToast: s.showToast,
     requestCloseFile: s.requestCloseFile,
     reopenLastClosedFile: s.reopenLastClosedFile,
     cycleActiveFile: s.cycleActiveFile,
@@ -39,6 +39,7 @@ export function TopBar() {
     toggleProjectTree: s.toggleProjectTree,
     toggleBottomPanel: s.toggleBottomPanel,
   })));
+  const showToast = useToastStore((s) => s.showToast);
   const undoLen = useAppStore((s) => s.undoStack.length);
   const redoLen = useAppStore((s) => s.redoStack.length);
   const { t } = useI18n(resolvedLocale);

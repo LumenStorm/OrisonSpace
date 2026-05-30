@@ -14,12 +14,15 @@ import { createOrchestrationSlice, type OrchestrationSlice } from './orchestrati
 import { createBackgroundTasksSlice, type BackgroundTasksSlice } from './backgroundTasksSlice';
 import { createUpdateSlice, type UpdateSlice } from './updateSlice';
 import { createCommandPaletteSlice, type CommandPaletteSlice } from './commandPaletteSlice';
-import { createAgentSlice, type AgentSlice } from './agentSlice';
-import { createToastSlice, type ToastSlice } from './toastSlice';
-import { createConfirmSlice, type ConfirmSlice } from './confirmSlice';
+import { createAgentSessionSlice, type AgentSessionSlice } from './agentSessionSlice';
+import { createAgentSkillSlice, type AgentSkillSlice } from './agentSkillSlice';
+import { createAgentDiffSlice, type AgentDiffSlice } from './agentDiffSlice';
 import { createNotificationSlice, type NotificationSlice } from './notificationSlice';
+import { installProjectSubscription } from './projectSubscription';
 
 export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, TaskAdapter, AgentMode } from './types';
+
+export type AgentSlice = AgentSessionSlice & AgentSkillSlice & AgentDiffSlice;
 
 type AppState = ProjectSlice &
   SettingsSlice &
@@ -36,9 +39,9 @@ type AppState = ProjectSlice &
   BackgroundTasksSlice &
   UpdateSlice &
   CommandPaletteSlice &
-  AgentSlice &
-  ToastSlice &
-  ConfirmSlice &
+  AgentSessionSlice &
+  AgentSkillSlice &
+  AgentDiffSlice &
   NotificationSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
@@ -57,8 +60,10 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createBackgroundTasksSlice(...a),
   ...createUpdateSlice(...a),
   ...createCommandPaletteSlice(...a),
-  ...createAgentSlice(...a),
-  ...createToastSlice(...a),
-  ...createConfirmSlice(...a),
+  ...createAgentSessionSlice(...a),
+  ...createAgentSkillSlice(...a),
+  ...createAgentDiffSlice(...a),
   ...createNotificationSlice(...a),
 }));
+
+installProjectSubscription(useAppStore);

@@ -409,9 +409,9 @@
 }
 
 .episode-status--planned { background: var(--surface-container-high); color: var(--on-surface-variant); }
-.episode-status--drafted { background: #e6a70022; color: #b38600; }
-.episode-status--revised { background: #0066cc22; color: #0066cc; }
-.episode-status--locked { background: #cc333322; color: #cc3333; }
+.episode-status--drafted { background: var(--warning-bg); color: var(--warning); }
+.episode-status--revised { background: var(--info-bg); color: var(--info); }
+.episode-status--locked { background: var(--error-bg); color: var(--error); }
 
 .episode-beats {
   display: flex;

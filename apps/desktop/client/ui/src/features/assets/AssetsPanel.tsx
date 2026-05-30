@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { useConfirmStore } from '../../shared/store/confirmStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AssetRecord } from '@orison/shared-contracts';
+import {
+  readAssetsDirectory, listAssets, upsertAsset, updateAsset,
+  deleteAsset, deleteEntry, pathExists, saveBase64Image, showItemInFolder,
+} from '../../shared/api/assets';
 
 type MergedAsset = AssetRecord & { absolutePath: string };
 type SortMode = 'name' | 'time';
@@ -10,7 +15,7 @@ export function AssetsPanel() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const projectPath = useAppStore((s) => s.currentProject?.path);
   const projectId = useAppStore((s) => s.currentProject?.projectId);
-  const requestConfirm = useAppStore((s) => s.requestConfirm);
+  const requestConfirm = useConfirmStore((s) => s.requestConfirm);
   const { t } = useI18n(resolvedLocale);
   const [assets, setAssets] = useState<MergedAsset[]>([]);
   const [selected, setSelected] = useState<MergedAsset | null>(null);
@@ -26,10 +31,10 @@ export function AssetsPanel() {
   const assetsDir = projectPath ? `${projectPath}/assets/images` : '';
 
   const loadAssets = useCallback(async () => {
-    if (!assetsDir || !window.orisonDesktop?.readDirectory) return;
+    if (!assetsDir) return;
     try {
-      const entries = await window.orisonDesktop.readDirectory(assetsDir);
-      const dbRecords = projectId ? await window.orisonDesktop.listAssets(projectId) : [];
+      const entries = await readAssetsDirectory(assetsDir);
+      const dbRecords = projectId ? await listAssets(projectId) : [];
       const dbMap = new Map(dbRecords.map((r) => [r.relativePath, r]));
       const images = entries
         .filter((e) => !e.isDir && /\.(png|jpe?g|webp|gif|svg)$/i.test(e.name))
@@ -40,7 +45,6 @@ export function AssetsPanel() {
           if (existing) {
             return { ...existing, absolutePath };
           }
-          // Auto-register new file in DB (if projectId available)
           const newRecord: MergedAsset = {
             assetId: crypto.randomUUID(),
             projectId: projectId ?? '',
@@ -54,7 +58,7 @@ export function AssetsPanel() {
             absolutePath,
           };
           if (projectId) {
-            window.orisonDesktop.upsertAsset({
+            upsertAsset({
               assetId: newRecord.assetId,
               projectId,
               assetType: 'image',
@@ -125,7 +129,7 @@ export function AssetsPanel() {
   };
 
   const handleShowInFolder = () => {
-    if (selected) window.orisonDesktop?.showItemInFolder(selected.absolutePath);
+    if (selected) showItemInFolder(selected.absolutePath);
   };
 
   const handleDelete = async () => {
@@ -137,8 +141,8 @@ export function AssetsPanel() {
       confirmLabel: t('common.delete') || '删除',
     });
     if (!confirmed) return;
-    await window.orisonDesktop?.deleteEntry(selected.absolutePath);
-    if (projectId) await window.orisonDesktop?.deleteAsset(projectId, selected.assetId);
+    await deleteEntry(selected.absolutePath);
+    if (projectId) await deleteAsset(projectId, selected.assetId);
     setSelected(null);
     void loadAssets();
   };
@@ -146,7 +150,7 @@ export function AssetsPanel() {
   const handleSave = async () => {
     if (!selected) return;
     if (projectId) {
-      await window.orisonDesktop?.updateAsset(projectId, selected.assetId, {
+      await updateAsset(projectId, selected.assetId, {
         assetName: editName,
         assetGroup: editGroup,
         summary: editSummary,
@@ -171,7 +175,7 @@ export function AssetsPanel() {
     const files = Array.from(e.dataTransfer.files).filter((f) => /\.(png|jpe?g|webp|gif|svg)$/i.test(f.name));
     for (const file of files) {
       const destPath = `${assetsDir}/${file.name}`;
-      const exists = await window.orisonDesktop?.pathExists(destPath);
+      const exists = await pathExists(destPath);
       if (!exists) {
         const reader = new FileReader();
         reader.onload = async () => {
@@ -179,7 +183,7 @@ export function AssetsPanel() {
           if (base64 && projectPath) {
             const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png';
             const mimeMap: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' };
-            await window.orisonDesktop?.saveBase64Image(projectPath, {
+            await saveBase64Image(projectPath, {
               b64Json: base64,
               mimeType: mimeMap[ext] || 'image/png',
               directory: 'assets/images',

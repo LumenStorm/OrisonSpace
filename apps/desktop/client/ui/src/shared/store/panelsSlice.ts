@@ -36,11 +36,6 @@ export type PanelsSlice = {
   setActivePage: (page: ActivePage) => void;
   overlayPage: ActivePage | null;
   setOverlayPage: (page: ActivePage | null) => void;
-  cursorLine: number;
-  cursorCol: number;
-  wordCount: number;
-  setCursorPosition: (line: number, col: number) => void;
-  setWordCount: (count: number) => void;
   splitDirection: SplitDirection;
   splitFilePath: string | null;
   setSplit: (direction: SplitDirection, filePath?: string | null) => void;
@@ -79,11 +74,6 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   setActivePage: (page) => { storage.set('activePage', page); set({ activePage: page }); },
   overlayPage: null,
   setOverlayPage: (page) => set({ overlayPage: page }),
-  cursorLine: 0,
-  cursorCol: 0,
-  wordCount: 0,
-  setCursorPosition: (line, col) => set({ cursorLine: line, cursorCol: col }),
-  setWordCount: (count) => set({ wordCount: count }),
   splitDirection: 'none',
   splitFilePath: null,
   setSplit: (direction, filePath) => set({ splitDirection: direction, splitFilePath: filePath ?? null }),

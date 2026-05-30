@@ -1,11 +1,12 @@
 import { useRef, useEffect } from 'react';
+import { useConfirmStore } from '../store/confirmStore';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
 
 export function ConfirmDialog() {
-  const confirmOpen = useAppStore((s) => s.confirmOpen);
-  const options = useAppStore((s) => s.confirmOptions);
-  const resolveConfirm = useAppStore((s) => s.resolveConfirm);
+  const confirmOpen = useConfirmStore((s) => s.confirmOpen);
+  const options = useConfirmStore((s) => s.confirmOptions);
+  const resolveConfirm = useConfirmStore((s) => s.resolveConfirm);
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
   const dialogRef = useRef<HTMLDivElement>(null);

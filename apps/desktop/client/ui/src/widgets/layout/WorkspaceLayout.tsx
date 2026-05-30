@@ -1,25 +1,27 @@
+import { lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { SideNav } from '../../features/side-nav/SideNav';
-import { ProjectTree } from '../../features/project-tree/ProjectTree';
-import { SearchPanel } from '../../features/search-panel/SearchPanel';
 import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { useAppStore } from '../../shared/store/appStore';
 import { useBottomPanelResize, useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
 import { ICON_RAIL_WIDTH } from '../../shared/constants';
-import { OverviewPage } from '../../features/overview/OverviewPage';
-import { OutlineEditor } from '../../features/editor/OutlineEditor';
-import { FileTabBar } from '../../features/editor/FileTabBar';
-import { FileEditor } from '../../features/editor/FileEditor';
-import { SplitFileEditor } from '../../features/editor/SplitFileEditor';
-import { ImageGenEditor } from '../../features/editor/ImageGenEditor';
-import { StoryboardCanvas } from '../../features/editor/StoryboardCanvas';
-import { VideoEditor } from '../../features/editor/VideoEditor';
-import { AssetsPanel } from '../../features/assets/AssetsPanel';
-import { ScriptEditorPage } from '../../features/editor/ScriptEditorPage';
-import { TimelinePanel } from '../../features/timeline/TimelinePanel';
 import { StatusBar } from '../../features/status-bar/StatusBar';
+
+const ProjectTree = lazy(() => import('../../features/project-tree/ProjectTree').then((m) => ({ default: m.ProjectTree })));
+const SearchPanel = lazy(() => import('../../features/search-panel/SearchPanel').then((m) => ({ default: m.SearchPanel })));
+const TimelinePanel = lazy(() => import('../../features/timeline/TimelinePanel').then((m) => ({ default: m.TimelinePanel })));
+const OverviewPage = lazy(() => import('../../features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })));
+const OutlineEditor = lazy(() => import('../../features/editor/OutlineEditor').then((m) => ({ default: m.OutlineEditor })));
+const ScriptEditorPage = lazy(() => import('../../features/editor/ScriptEditorPage').then((m) => ({ default: m.ScriptEditorPage })));
+const StoryboardCanvas = lazy(() => import('../../features/editor/StoryboardCanvas').then((m) => ({ default: m.StoryboardCanvas })));
+const ImageGenEditor = lazy(() => import('../../features/editor/ImageGenEditor').then((m) => ({ default: m.ImageGenEditor })));
+const VideoEditor = lazy(() => import('../../features/editor/VideoEditor').then((m) => ({ default: m.VideoEditor })));
+const AssetsPanel = lazy(() => import('../../features/assets/AssetsPanel').then((m) => ({ default: m.AssetsPanel })));
+const FileTabBar = lazy(() => import('../../features/editor/FileTabBar').then((m) => ({ default: m.FileTabBar })));
+const FileEditor = lazy(() => import('../../features/editor/FileEditor').then((m) => ({ default: m.FileEditor })));
+const SplitFileEditor = lazy(() => import('../../features/editor/SplitFileEditor').then((m) => ({ default: m.SplitFileEditor })));
 
 export function WorkspaceLayout() {
   const {
@@ -94,13 +96,17 @@ export function WorkspaceLayout() {
         <SideNav />
         {projectTreeOpen && (
           <>
-            {activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
+            <Suspense fallback={null}>
+              {activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
+            </Suspense>
             <ResizeHandle onResize={handleTreeResize} />
           </>
         )}
         <div style={{ display: 'flex', minWidth: 0, minHeight: 0 }}>
           <div className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, position: 'relative' }}>
-            {renderMainContent()}
+            <Suspense fallback={null}>
+              {renderMainContent()}
+            </Suspense>
             {overlayPage && (
               <div className="workspace-overlay">
                 <div className="workspace-overlay-header">
@@ -109,9 +115,11 @@ export function WorkspaceLayout() {
                   </button>
                 </div>
                 <div className="workspace-overlay-body">
-                  {overlayPage === 'overview' && <OverviewPage />}
-                  {overlayPage === 'outline' && <OutlineEditor />}
-                  {overlayPage === 'assets' && <AssetsPanel />}
+                  <Suspense fallback={null}>
+                    {overlayPage === 'overview' && <OverviewPage />}
+                    {overlayPage === 'outline' && <OutlineEditor />}
+                    {overlayPage === 'assets' && <AssetsPanel />}
+                  </Suspense>
                 </div>
               </div>
             )}
