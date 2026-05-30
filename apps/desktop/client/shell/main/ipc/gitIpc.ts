@@ -20,7 +20,26 @@ async function getGitRoot(dir: string): Promise<string> {
 
 async function listCommits(dir: string, depth: number): Promise<GitCommitEntry[]> {
   const root = await getGitRoot(dir);
-  const oids = await git.log({ fs, dir: root, depth });
+
+  // Collect commits from all branches for full graph
+  const branchNames = await git.listBranches({ fs, dir: root });
+  const seen = new Set<string>();
+  const allEntries: Array<{ oid: string; commit: { message: string; author: { name: string; timestamp: number }; parent: string[] } }> = [];
+
+  for (const branch of branchNames) {
+    try {
+      const logs = await git.log({ fs, dir: root, ref: branch, depth });
+      for (const entry of logs) {
+        if (!seen.has(entry.oid)) {
+          seen.add(entry.oid);
+          allEntries.push(entry);
+        }
+      }
+    } catch { /* skip unresolvable branches */ }
+  }
+
+  // Sort by timestamp descending
+  allEntries.sort((a, b) => b.commit.author.timestamp - a.commit.author.timestamp);
 
   // Build oid -> tag map
   const tags = await git.listTags({ fs, dir: root });
@@ -32,8 +51,9 @@ async function listCommits(dir: string, depth: number): Promise<GitCommitEntry[]
     } catch { /* skip */ }
   }
 
-  return oids.map((entry) => ({
+  return allEntries.map((entry) => ({
     oid: entry.oid,
+    parents: entry.commit.parent,
     message: entry.commit.message.trim(),
     author: entry.commit.author.name,
     timestamp: entry.commit.author.timestamp,

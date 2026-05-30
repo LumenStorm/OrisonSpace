@@ -112,9 +112,36 @@
 | 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
 | `git:is-repo` | renderer -> main | invoke | 检查目录是否为 Git 仓库 |
-| `git:log` | renderer -> main | invoke | 获取提交历史（默认 50 条） |
+| `git:log` | renderer -> main | invoke | 获取所有分支的提交历史（默认 50 条/分支），按时间倒序返回 |
 | `git:commit-diff` | renderer -> main | invoke | 获取指定提交的变更文件列表 |
 | `git:file-at-commit` | renderer -> main | invoke | 读取指定提交中某文件的内容 |
+| `git:create-node` | renderer -> main | invoke | 全量暂存 + 创建提交（可选 tag），完成后广播 `git:changed` |
+| `git:list-branches` | renderer -> main | invoke | 列出所有本地分支 |
+| `git:current-branch` | renderer -> main | invoke | 获取当前分支名 |
+| `git:create-branch` | renderer -> main | invoke | 从指定 OID 创建新分支 |
+| `git:checkout-branch` | renderer -> main | invoke | 切换分支，完成后广播 `git:changed` |
+
+`git:log` 返回类型：
+
+```ts
+type GitCommitEntry = {
+  oid: string;
+  parents: string[];     // 父提交 OID 列表，用于构建 DAG 拓扑
+  message: string;
+  author: string;
+  timestamp: number;
+  tag?: string;
+};
+```
+
+`git:commit-diff` 返回类型：
+
+```ts
+type GitFileDiff = {
+  filepath: string;
+  status: 'added' | 'modified' | 'deleted';
+};
+```
 
 ### Agent 通道
 
@@ -190,6 +217,11 @@ window.orisonDesktop = {
   gitLog,
   gitCommitDiff,
   gitFileAtCommit,
+  gitCreateNode,
+  gitListBranches,
+  gitCurrentBranch,
+  gitCreateBranch,
+  gitCheckoutBranch,
   // Agent
   createAgentSession,
   getAgentSession,

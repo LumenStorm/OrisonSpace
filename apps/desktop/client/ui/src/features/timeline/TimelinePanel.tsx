@@ -1,8 +1,87 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { GitCommitEntry, GitFileDiff } from '@orison/shared-contracts';
+import {
+  gitIsRepo, gitLog, gitListBranches, gitCurrentBranch,
+  gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch,
+} from '../../shared/api/git';
+
+/* ── Graph layout ── */
+
+type GraphNode = {
+  commit: GitCommitEntry;
+  col: number;
+  lines: { fromCol: number; toCol: number; type: 'straight' | 'merge' | 'fork' }[];
+};
+
+function computeGraph(commits: GitCommitEntry[]): GraphNode[] {
+  if (commits.length === 0) return [];
+
+  // Active columns: each slot holds the OID that "owns" that column going downward
+  const activeCols: (string | null)[] = [];
+  const result: GraphNode[] = [];
+
+  function findCol(oid: string): number {
+    const idx = activeCols.indexOf(oid);
+    return idx >= 0 ? idx : -1;
+  }
+
+  function allocCol(): number {
+    const idx = activeCols.indexOf(null);
+    if (idx >= 0) return idx;
+    activeCols.push(null);
+    return activeCols.length - 1;
+  }
+
+  for (const commit of commits) {
+    let col = findCol(commit.oid);
+    if (col === -1) {
+      col = allocCol();
+      activeCols[col] = commit.oid;
+    }
+
+    const lines: GraphNode['lines'] = [];
+
+    // First parent continues in the same column
+    if (commit.parents.length > 0) {
+      activeCols[col] = commit.parents[0];
+      lines.push({ fromCol: col, toCol: col, type: 'straight' });
+    } else {
+      activeCols[col] = null;
+    }
+
+    // Additional parents = merge lines coming from other columns
+    for (let i = 1; i < commit.parents.length; i++) {
+      const parentOid = commit.parents[i];
+      let parentCol = findCol(parentOid);
+      if (parentCol === -1) {
+        parentCol = allocCol();
+        activeCols[parentCol] = parentOid;
+      }
+      lines.push({ fromCol: parentCol, toCol: col, type: 'merge' });
+    }
+
+    // Check for forks: if a parent appears in multiple active slots, that's a fork visualization
+    // Also draw pass-through lines for other active columns
+    for (let c = 0; c < activeCols.length; c++) {
+      if (c === col) continue;
+      if (activeCols[c] !== null) {
+        lines.push({ fromCol: c, toCol: c, type: 'straight' });
+      }
+    }
+
+    result.push({ commit, col, lines });
+  }
+
+  return result;
+}
+
+/* ── Constants ── */
+const COL_WIDTH = 14;
+const NODE_RADIUS = 4;
+const ROW_HEIGHT = 44;
 
 export function TimelinePanel() {
   const { currentProject, locale } = useAppStore(
@@ -33,24 +112,23 @@ export function TimelinePanel() {
 
   const refresh = useCallback(async () => {
     if (!projectDir) return;
-    const repo = await window.orisonDesktop?.gitIsRepo(projectDir);
-    setIsRepo(!!repo);
+    const repo = await gitIsRepo(projectDir);
+    setIsRepo(repo);
     if (!repo) return;
     setLoading(true);
     const [log, branchList, branch] = await Promise.all([
-      window.orisonDesktop?.gitLog(projectDir, 50),
-      window.orisonDesktop?.gitListBranches(projectDir),
-      window.orisonDesktop?.gitCurrentBranch(projectDir),
+      gitLog(projectDir, 50),
+      gitListBranches(projectDir),
+      gitCurrentBranch(projectDir),
     ]);
-    setCommits(log ?? []);
-    setBranches(branchList ?? []);
-    setCurrentBranch(branch ?? 'HEAD');
+    setCommits(log);
+    setBranches(branchList);
+    setCurrentBranch(branch);
     setLoading(false);
   }, [projectDir]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  // Listen for git:changed events to auto-refresh
   useEffect(() => {
     const unsub = window.orisonDesktop?.onToolEvent((data) => {
       if (data.type === 'git:changed') void refresh();
@@ -58,12 +136,16 @@ export function TimelinePanel() {
     return () => { unsub?.(); };
   }, [refresh]);
 
+  const graph = useMemo(() => computeGraph(commits), [commits]);
+  const maxCol = useMemo(() => Math.max(0, ...graph.map((n) => n.col)), [graph]);
+  const graphWidth = (maxCol + 1) * COL_WIDTH + 8;
+
   const handleSelectCommit = useCallback(async (oid: string) => {
     if (!projectDir) return;
     setSelectedOid(oid === selectedOid ? null : oid);
     if (oid !== selectedOid) {
-      const d = await window.orisonDesktop?.gitCommitDiff(projectDir, oid);
-      setDiff(d ?? []);
+      const d = await gitCommitDiff(projectDir, oid);
+      setDiff(d);
     } else {
       setDiff([]);
     }
@@ -71,7 +153,7 @@ export function TimelinePanel() {
 
   const handleCreateNode = useCallback(async () => {
     if (!projectDir || !nodeMessage.trim()) return;
-    await window.orisonDesktop?.gitCreateNode(projectDir, nodeMessage.trim(), nodeTag.trim() || undefined);
+    await gitCreateNode(projectDir, nodeMessage.trim(), nodeTag.trim() || undefined);
     setNodeMessage('');
     setNodeTag('');
     setShowCreateNode(false);
@@ -79,7 +161,7 @@ export function TimelinePanel() {
 
   const handleCreateBranch = useCallback(async () => {
     if (!projectDir || !branchName.trim() || !showCreateBranch) return;
-    await window.orisonDesktop?.gitCreateBranch(projectDir, branchName.trim(), showCreateBranch);
+    await gitCreateBranch(projectDir, branchName.trim(), showCreateBranch);
     setBranchName('');
     setShowCreateBranch(null);
     await refresh();
@@ -87,7 +169,7 @@ export function TimelinePanel() {
 
   const handleCheckout = useCallback(async (name: string) => {
     if (!projectDir) return;
-    await window.orisonDesktop?.gitCheckoutBranch(projectDir, name);
+    await gitCheckoutBranch(projectDir, name);
   }, [projectDir]);
 
   if (!projectDir) {
@@ -181,28 +263,70 @@ export function TimelinePanel() {
         </div>
       )}
 
-      {/* Commit list */}
+      {/* Commit graph list */}
       <div className="timeline-list">
-        {commits.map((c) => (
-          <div key={c.oid} className={`timeline-commit${selectedOid === c.oid ? ' is-selected' : ''}`}>
+        {graph.map((node, idx) => (
+          <div
+            key={node.commit.oid}
+            className={`timeline-commit${selectedOid === node.commit.oid ? ' is-selected' : ''}`}
+          >
+            {/* SVG graph rail */}
+            <svg
+              className="timeline-graph-svg"
+              width={graphWidth}
+              height={ROW_HEIGHT}
+              aria-hidden="true"
+            >
+              {node.lines.map((line, li) => {
+                const x1 = line.fromCol * COL_WIDTH + COL_WIDTH / 2;
+                const x2 = line.toCol * COL_WIDTH + COL_WIDTH / 2;
+                const midY = ROW_HEIGHT / 2;
+                if (line.type === 'straight') {
+                  return (
+                    <line
+                      key={li}
+                      x1={x1} y1={0} x2={x2} y2={ROW_HEIGHT}
+                      className="timeline-graph-line"
+                    />
+                  );
+                }
+                // merge/fork: curve from parent column to this node
+                return (
+                  <path
+                    key={li}
+                    d={`M${x1},${ROW_HEIGHT} C${x1},${midY} ${x2},${midY} ${x2},${midY}`}
+                    className="timeline-graph-line timeline-graph-merge"
+                  />
+                );
+              })}
+              {/* Node dot */}
+              <circle
+                cx={node.col * COL_WIDTH + COL_WIDTH / 2}
+                cy={ROW_HEIGHT / 2}
+                r={NODE_RADIUS}
+                className="timeline-graph-node"
+              />
+            </svg>
+
+            {/* Commit info */}
             <button
               type="button"
               className="timeline-commit-main"
-              onClick={() => { void handleSelectCommit(c.oid); }}
+              onClick={() => { void handleSelectCommit(node.commit.oid); }}
             >
               <span className="timeline-commit-msg">
-                {c.tag && <span className="timeline-tag">{c.tag}</span>}
-                {c.message.split('\n')[0]}
+                {node.commit.tag && <span className="timeline-tag">{node.commit.tag}</span>}
+                {node.commit.message.split('\n')[0]}
               </span>
               <span className="timeline-commit-meta">
-                {c.author} · {new Date(c.timestamp * 1000).toLocaleDateString()}
+                {new Date(node.commit.timestamp * 1000).toLocaleDateString()}
               </span>
             </button>
             <button
               type="button"
               className="timeline-branch-btn"
               title={t('timeline.createBranchFrom')}
-              onClick={() => setShowCreateBranch(c.oid)}
+              onClick={() => setShowCreateBranch(node.commit.oid)}
             >
               <span className="material-symbols-outlined">fork_right</span>
             </button>

@@ -37,10 +37,11 @@
 
 - TopBar
 - 左侧 Icon Rail
-- 左侧 Project Tree
+- 左侧 Project Tree / Search / Timeline（互斥）
 - 中间 EditorArea
 - 底部 BottomPanel
 - 右侧 Agent Panel（可选，通过 Icon Rail 按钮 toggle）
+- 底部 StatusBar
 
 Agent Panel 独立于 Bottom Panel，全高显示（从顶部到窗口底部），不受 Bottom Panel 高度影响。
 
@@ -69,10 +70,11 @@ Icon Rail 分为 top section 和 bottom section：
 |------|------|------|
 | `folder_open` | 资源管理器 | 切换左侧面板为 ProjectTree |
 | `search` | 搜索 | 切换左侧面板为 SearchPanel |
+| `history` | 时间线 | 切换左侧面板为 TimelinePanel（铁路图展示 git 提交 DAG） |
 | ─── 分隔线 ─── | | |
-| `dashboard` | 总览 | `setActivePage('overview')` |
-| `auto_stories` | 大纲 | `setActivePage('outline')` |
-| `perm_media` | 资产库 | `setActivePage('assets')` |
+| `dashboard` | 总览 | `setOverlayPage('overview')` |
+| `auto_stories` | 大纲 | `setOverlayPage('outline')` |
+| `perm_media` | 资产库 | `setOverlayPage('assets')` |
 | `menu_book` / `description` | 小说/剧本 | `setActivePage('novel'/'script')` |
 | ─── 分隔线 ─── | | |
 | `view_quilt` | 分镜 | `setActivePage('storyboard')` |
@@ -80,7 +82,6 @@ Icon Rail 分为 top section 和 bottom section：
 | `movie_filter` | 视频 | `setActivePage('video')` |
 | ─── 分隔线 ─── | | |
 | `smart_toy` | Agent | toggle 右侧 Agent Panel |
-| `history` | 时间线 | `setActivePage('timeline')` |
 
 #### Bottom section
 
@@ -88,19 +89,21 @@ Icon Rail 分为 top section 和 bottom section：
 |------|------|
 | `settings` | 打开设置对话框 |
 
-左侧面板（ProjectTree / SearchPanel）由 `activeSidebarPanel` 状态控制互斥切换。
+左侧面板（ProjectTree / SearchPanel / TimelinePanel）由 `activeSidebarPanel` 状态控制互斥切换。
 
 ### 页面模型
 
 工作区使用统一的 `ActivePage` 类型控制中间内容区：
 
 ```ts
-type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets' | 'timeline';
+type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets';
+type SidebarPanel = 'explorer' | 'search' | 'timeline';
 ```
 
 渲染逻辑（`WorkspaceLayout`）：
-1. 如果有打开的文件 Tab → 显示 FileTabBar + FileEditor（文件编辑模式）
+1. 如果有打开的文件 Tab → 显示 FileTabBar + FileEditor（文件编辑模式），支持 SplitFileEditor 分屏
 2. 否则 → 按 `activePage` 渲染对应页面组件
+3. `overlayPage` 浮层可在文件编辑模式下叠加显示 overview / outline / assets
 
 默认进入工作区时 `activePage` 为 `overview`。
 
@@ -115,7 +118,14 @@ type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | '
 | `image_gen` | `ImageGenEditor` | 图片生成面板 |
 | `video` | `VideoEditor` | 视频面板 |
 | `assets` | `AssetsPanel` | 资产库面板 |
-| `timeline` | `TimelinePanel` | 时间线面板 |
+
+左侧面板组件：
+
+| activeSidebarPanel | 组件 | 说明 |
+|------|------|------|
+| `explorer` | `ProjectTree` | 项目文件树 |
+| `search` | `SearchPanel` | 全局搜索 |
+| `timeline` | `TimelinePanel` | 时间线面板（纵向铁路图，展示多分支 DAG 拓扑） |
 
 ### FileTabBar（文件标签栏）
 
@@ -267,10 +277,13 @@ BottomPanel 当前包含：
 - 模型设置页交互状态已收口，不再混乱地依赖隐式条件
 - 模型生成走 desktop main，不走 server generation route
 - story-sync 已变为桌面本地执行 + agent 二次校验
-- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`
+- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`（小说/剧本/分镜/图片/视频）或 `setOverlayPage`（总览/大纲/资产）
+- timeline 作为左侧面板（`SidebarPanel`），通过 `setActiveSidebarPanel('timeline')` 切换
 - 底部面板只保留 output / tasks 两个 tab
-- timeline 已提升为独立页面
 - 资产库（assets）已作为独立页面加入侧边栏
+- 文件编辑支持 SplitFileEditor 分屏
+- `overlayPage` 机制允许在文件编辑模式下浮层查看 overview / outline / assets
+- 底部 StatusBar 常驻显示
 
 ## 10. 样式组织约定
 

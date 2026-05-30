@@ -134,6 +134,7 @@ export type UpdateCheckResult =
 
 export type GitCommitEntry = {
   oid: string;
+  parents: string[];
   message: string;
   author: string;
   timestamp: number;

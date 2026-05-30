@@ -122,16 +122,17 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0;
   overflow-y: auto;
   padding: 0.35rem;
 }
 
 .timeline-commit {
   display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  padding: 0.4rem 0.5rem;
+  align-items: center;
+  gap: 0;
+  height: 44px;
+  padding: 0 0.5rem 0 0;
   border: none;
   border-radius: 0.3rem;
   background: transparent;
@@ -149,10 +150,44 @@
   background: var(--active-indicator);
 }
 
-.timeline-commit-top {
+/* Graph SVG rail */
+.timeline-graph-svg {
+  flex-shrink: 0;
+}
+
+.timeline-graph-line {
+  stroke: var(--outline-variant);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.timeline-graph-merge {
+  stroke: var(--accent);
+}
+
+.timeline-graph-node {
+  fill: var(--accent);
+  stroke: var(--surface-container-lowest);
+  stroke-width: 1.5;
+}
+
+.timeline-commit.is-selected .timeline-graph-node {
+  fill: var(--accent-strong);
+}
+
+.timeline-commit-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.3rem 0.4rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
 }
 
 .timeline-commit-msg {
@@ -164,7 +199,7 @@
   text-overflow: ellipsis;
 }
 
-.timeline-commit-tag {
+.timeline-tag {
   flex-shrink: 0;
   padding: 0.05rem 0.35rem;
   border-radius: 999px;
@@ -172,17 +207,12 @@
   color: var(--accent-strong);
   font-size: 0.65rem;
   font-weight: 600;
+  margin-right: 0.25rem;
 }
 
 .timeline-commit-meta {
   font-size: 0.68rem;
   color: var(--on-surface-variant);
-}
-
-.timeline-commit-actions {
-  display: flex;
-  gap: 0.2rem;
-  margin-top: 0.15rem;
 }
 
 .timeline-branch-btn {

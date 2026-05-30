@@ -159,7 +159,7 @@
 - FileTabBar：右键上下文菜单、未保存关闭确认、`recentlyClosed` 栈、`Ctrl+W/Tab/Shift+T` 快捷键
 - FindReplaceBar：`Ctrl+F/H` 查找替换，adapter 模式适配 Markdown/Code 编辑器
 - CommandPalette：`Ctrl+Shift+P` 命令面板 / `Ctrl+P` 文件搜索，fuzzy match
-- Git Timeline：底部面板新增 timeline 标签，基于 isomorphic-git 展示提交历史与变更文件
+- Git Timeline：左侧面板铁路图，基于 isomorphic-git 展示多分支提交拓扑、变更文件与分支操作
 - 主进程日志系统：pino 文件流 + `logIpc` 暴露给渲染层
 - 版本号与更新检查：`AboutDialog` + `UpdateAvailableDialog`
 
@@ -187,7 +187,7 @@
 ### 需求总结
 
 1. **时间线 navbar 调整**：从独立主编辑区页面改为左侧面板（与 ProjectTree / SearchPanel 同级切换）
-2. **时间线功能完善**：git 封装为创作时间节点，支持手动创建节点（commit + tag）、从任意节点创建分支探索不同剧情走向
+2. **时间线功能完善**：git 封装为创作时间节点，纵向铁路图展示多分支 DAG 拓扑，支持手动创建节点（commit + tag）、从任意节点创建分支探索不同剧情走向
 3. **样式统一**：总览、大纲、小说页面遵循 design.md 的 "Literary Sanctuary" 设计语言
 4. **基本功能补全**：Ctrl+S 保存 + toast 提示、大纲拖拽排序 + 层级折叠、时间线节点标签/描述、分支切换后自动刷新工作区
 
@@ -210,7 +210,7 @@
 2. SideNav 在搜索按钮下方增加 timeline 按钮（material icon: `history`）
 3. WorkspaceLayout 侧边栏 panel 区域：`activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />`
 4. 从 `ActivePage` 类型和 WorkspaceLayout 主区域路由中移除 `'timeline'`
-5. TimelinePanel 改为纵向单列布局（commit 列表 + 展开时显示 diff），不再左右分栏
+5. TimelinePanel 改为纵向铁路图布局（左侧 SVG 绘制 DAG 拓扑连线 + 节点圆点，右侧 commit 信息），适配侧边栏宽度
 
 ---
 
@@ -230,18 +230,21 @@ gitCheckoutBranch(dir: string, name: string): Promise<void>;
 
 #### Shell 端 handler
 
-在 `apps/desktop/client/shell/main/ipc/` 新增 `gitTimelineIpc.ts`：
+在 `apps/desktop/client/shell/main/ipc/gitIpc.ts` 中统一实现：
 
 - `gitCreateNode`：执行 `git.add` + `git.commit` + 可选 `git.tag`，完成后 `notifyUI({ type: 'git:changed' })`
 - `gitListBranches`：`git.listBranches({ fs, dir })`
 - `gitCurrentBranch`：`git.currentBranch({ fs, dir })`
 - `gitCreateBranch`：`git.branch({ fs, dir, ref, object? })`
 - `gitCheckoutBranch`：`git.checkout({ fs, dir, ref })` + `notifyUI({ type: 'git:changed' })`
+- `gitLog`：遍历所有分支收集 commits，返回含 `parents[]` 的 `GitCommitEntry[]`，按时间倒序
 
-#### TimelinePanel UI 新增
+#### TimelinePanel UI
 
+- 纵向铁路图（railroad graph）：左侧 SVG 绘制竖线 + 圆点节点 + 分叉/合并曲线，右侧显示 commit 信息
+- 多分支拓扑可视化：基于 `parents[]` 计算列分配，分支占不同列，合并时绘制贝塞尔曲线
 - 顶部显示当前分支名 + 分支下拉切换器
-- "创建节点" 按钮：弹出输入框填 message + 可选 tag/描述
+- "创建节点" 按钮：弹出输入框填 message + 可选 tag
 - 每个 commit 节点增加 "从此处创建分支" 操作按钮
 - commit 如果有 tag 则展示标签角标
 
