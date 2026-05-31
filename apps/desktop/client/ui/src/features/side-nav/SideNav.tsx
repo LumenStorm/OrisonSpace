@@ -30,7 +30,7 @@ export function SideNav() {
     currentProject, resolvedLocale,
     toggleAgentPanel, agentPanelOpen,
     activeSidebarPanel, setActiveSidebarPanel,
-    overlayPage, setOverlayPage,
+    mainView,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     setActivePage: s.setActivePage,
@@ -40,8 +40,7 @@ export function SideNav() {
     agentPanelOpen: s.agentPanelOpen,
     activeSidebarPanel: s.activeSidebarPanel,
     setActiveSidebarPanel: s.setActiveSidebarPanel,
-    overlayPage: s.overlayPage,
-    setOverlayPage: s.setOverlayPage,
+    mainView: s.mainView,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -51,17 +50,11 @@ export function SideNav() {
 
   const handlePage = (page: ActivePage) => setActivePage(page);
 
-  const handleOverlay = (page: ActivePage) => {
-    setOverlayPage(overlayPage === page ? null : page);
-  };
-
   const handleSearchClick = () => {
     setActiveSidebarPanel(activeSidebarPanel === 'search' ? 'explorer' : 'search');
   };
 
-  // Check if there are open file tabs (file editing takes over the main area visually)
-  const openFiles = useAppStore((s) => s.openFiles);
-  const hasOpenFiles = openFiles.length > 0;
+  const isPageActive = (page: ActivePage) => mainView === 'page' && activePage === page;
 
   return (
     <>
@@ -104,16 +97,16 @@ export function SideNav() {
           <div className="side-nav-separator" />
 
           {/* --- Group 1: Overview / Outline / Assets / Novel|Script --- */}
-          <NavButton item={overviewItem} active={overlayPage === 'overview' || (!hasOpenFiles && !overlayPage && activePage === 'overview')} onClick={() => handleOverlay('overview')} t={t} />
-          <NavButton item={outlineItem} active={overlayPage === 'outline' || (!hasOpenFiles && !overlayPage && activePage === 'outline')} onClick={() => handleOverlay('outline')} t={t} />
-          <NavButton item={assetsItem} active={overlayPage === 'assets' || (!hasOpenFiles && !overlayPage && activePage === 'assets')} onClick={() => handleOverlay('assets')} t={t} />
-          <NavButton item={contentItem} active={!hasOpenFiles && activePage === contentItem.id} onClick={() => handlePage(contentItem.id)} t={t} />
+          <NavButton item={overviewItem} active={isPageActive('overview')} onClick={() => handlePage('overview')} t={t} />
+          <NavButton item={outlineItem} active={isPageActive('outline')} onClick={() => handlePage('outline')} t={t} />
+          <NavButton item={assetsItem} active={isPageActive('assets')} onClick={() => handlePage('assets')} t={t} />
+          <NavButton item={contentItem} active={isPageActive(contentItem.id)} onClick={() => handlePage(contentItem.id)} t={t} />
 
           <div className="side-nav-separator" />
 
           {/* --- Group 2: Production tools --- */}
           {productionItems.map((item) => (
-            <NavButton key={item.id} item={item} active={!hasOpenFiles && activePage === item.id} onClick={() => handlePage(item.id)} t={t} />
+            <NavButton key={item.id} item={item} active={isPageActive(item.id)} onClick={() => handlePage(item.id)} t={t} />
           ))}
 
           <div className="side-nav-separator" />

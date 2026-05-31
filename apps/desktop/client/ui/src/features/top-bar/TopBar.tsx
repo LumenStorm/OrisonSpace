@@ -21,6 +21,7 @@ export function TopBar() {
     resolvedLocale, closeProject, currentProject, saveProject, saveChaptersToProject,
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
+    toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     closeProject: s.closeProject,
@@ -38,6 +39,10 @@ export function TopBar() {
     redo: s.redo,
     toggleProjectTree: s.toggleProjectTree,
     toggleBottomPanel: s.toggleBottomPanel,
+    toggleAgentPanel: s.toggleAgentPanel,
+    toggleNotificationPanel: s.toggleNotificationPanel,
+    setTheme: s.setTheme,
+    closeAllFiles: s.closeAllFiles,
   })));
   const showToast = useToastStore((s) => s.showToast);
   const undoLen = useAppStore((s) => s.undoStack.length);
@@ -88,11 +93,22 @@ export function TopBar() {
   const hasSavePath = !!currentProject?.path;
   const modKey = isMac ? '⌘' : 'Ctrl+';
 
+  const activeFilePath = useAppStore((s) => s.activeFilePath);
+
+  const dispatchKey = useCallback((key: string, shift = false) => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, metaKey: true, shiftKey: shift, bubbles: true }));
+  }, []);
+
   const fileItems: MenuItem[] = [
     { type: 'action', label: t('topbar.newProject'), shortcut: `${modKey}N`, handler: () => setShowNewDialog(true) },
     { type: 'action', label: t('topbar.openProject'), shortcut: `${modKey}O`, handler: handleOpen },
+    { type: 'action', label: t('topbar.openFolder'), handler: handleOpen },
     { type: 'action', label: t('topbar.save'), shortcut: `${modKey}S`, handler: handleSave, disabled: !hasSavePath },
+    { type: 'action', label: t('topbar.saveAll'), shortcut: `${modKey}Shift+S`, handler: () => { void saveAllOpenFiles(); } },
     { type: 'action', label: t('topbar.export'), handler: () => setShowExport(true), disabled: !hasSavePath },
+    { type: 'separator' },
+    { type: 'action', label: t('topbar.closeFile'), shortcut: `${modKey}W`, handler: () => { if (activeFilePath) requestCloseFile(activeFilePath); }, disabled: !activeFilePath },
+    { type: 'action', label: t('topbar.closeAllFiles'), handler: closeAllFiles, disabled: !activeFilePath },
     { type: 'separator' },
     ...(currentProject
       ? [{ type: 'action' as const, label: t('topbar.backToProjects'), handler: closeProject }]
@@ -102,11 +118,20 @@ export function TopBar() {
   const editItems: MenuItem[] = [
     { type: 'action', label: t('topbar.undo'), shortcut: `${modKey}Z`, handler: handleUndo, disabled: undoLen === 0 },
     { type: 'action', label: t('topbar.redo'), shortcut: isMac ? '⌘⇧Z' : 'Ctrl+Shift+Z', handler: handleRedo, disabled: redoLen === 0 },
+    { type: 'separator' },
+    { type: 'action', label: t('topbar.find'), shortcut: `${modKey}F`, handler: () => dispatchKey('f') },
+    { type: 'action', label: t('topbar.replace'), shortcut: `${modKey}H`, handler: () => dispatchKey('h') },
   ];
 
   const viewItems: MenuItem[] = [
     { type: 'action', label: t('topbar.toggleProjectTree'), shortcut: `${modKey}B`, handler: toggleProjectTree },
     { type: 'action', label: t('topbar.toggleBottomPanel'), shortcut: `${modKey}J`, handler: toggleBottomPanel },
+    { type: 'action', label: t('topbar.toggleAgentPanel'), handler: toggleAgentPanel },
+    { type: 'action', label: t('topbar.toggleNotifications'), handler: toggleNotificationPanel },
+    { type: 'separator' },
+    { type: 'action', label: t('topbar.themeLight'), handler: () => setTheme('light') },
+    { type: 'action', label: t('topbar.themeDark'), handler: () => setTheme('dark') },
+    { type: 'action', label: t('topbar.themeSystem'), handler: () => setTheme('system') },
     { type: 'separator' },
     { type: 'action', label: t('topbar.settings'), handler: () => setShowSettings(true) },
   ];

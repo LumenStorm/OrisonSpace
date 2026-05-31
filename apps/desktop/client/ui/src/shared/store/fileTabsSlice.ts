@@ -66,7 +66,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const state = get();
     const existing = state.openFiles.find((f) => f.path === path);
     if (existing) {
-      set({ activeFilePath: path, recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path) });
+      (set as any)({ activeFilePath: path, recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path), mainView: 'files' });
       return;
     }
     const tab: FileTab = {
@@ -77,10 +77,11 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       kind: options?.kind ?? 'text',
       dataUrl: options?.dataUrl,
     };
-    set({
+    (set as any)({
       openFiles: [...state.openFiles, tab],
       activeFilePath: path,
       recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path),
+      mainView: 'files',
     });
   },
 

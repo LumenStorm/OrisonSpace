@@ -19,6 +19,7 @@ export function ProjectTree() {
     })),
   );
   const activeFilePath = useAppStore((state) => state.activeFilePath);
+  const mainView = useAppStore((state) => state.mainView);
   const { t } = useI18n(resolvedLocale);
 
   const displayNameMap = useMemo<Record<string, string>>(() => ({
@@ -264,7 +265,7 @@ export function ProjectTree() {
             entry={entry}
             expandedPaths={expandedPaths}
             onToggle={handleToggle}
-            selectedPath={activeFilePath}
+            selectedPath={mainView === 'files' ? activeFilePath : null}
             onSelect={handleSelect}
             dirtyPaths={dirtyPaths}
             onContextMenu={handleContextMenu}

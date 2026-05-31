@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../../shared/store/appStore';
 import { TiptapEditor } from '../TiptapEditor';
 import { DocOutline } from '../DocOutline';
+import { EditorStatusBar } from './EditorStatusBar';
 import type { FileTab } from '../../../shared/store/fileTabsSlice';
 import { FindReplaceBar, type FindReplaceAdapter, type FindReplaceMode, type FindMatch } from '../FindReplaceBar';
 
@@ -105,7 +106,9 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
         placeholder="Start writing..."
         onChange={handleChange}
         flush
+        bubbleMenu
       />
+      <EditorStatusBar content={file.content} fileType="Markdown" />
     </div>
   );
 }

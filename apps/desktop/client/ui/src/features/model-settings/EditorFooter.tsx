@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function EditorFooter({ isDirty, isNew, canApply, onApply, onDelete, t }: Props) {
-  const applyLabel = isNew ? t('settings.addModel') : t('settings.applyChanges');
+  const applyLabel = t('settings.applyChanges');
 
   return (
     <footer className="model-editor-actions">

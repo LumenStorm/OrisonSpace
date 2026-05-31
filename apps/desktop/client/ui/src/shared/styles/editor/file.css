@@ -109,6 +109,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .file-editor-md .tiptap-content .tiptap {
@@ -120,12 +121,35 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.code-editor-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-editor-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0.5rem 1rem 0.75rem;
+  background: var(--surface-container-low);
+  border-right: 1px solid var(--border-subtle);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: var(--on-surface-variant);
+  text-align: right;
+  user-select: none;
+  overflow: hidden;
 }
 
 .code-editor-textarea {
   flex: 1;
   width: 100%;
-  min-height: 300px;
+  min-height: 0;
   resize: none;
   padding: 1rem;
   border: 0;
@@ -136,10 +160,105 @@
   line-height: 1.65;
   tab-size: 2;
   outline: none;
+  overflow-y: auto;
 }
 
 .code-editor-textarea::selection {
   background: var(--active-indicator);
+}
+
+/* ── Editor Status Bar ── */
+.editor-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-container-low);
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+}
+
+.editor-status-type {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.editor-status-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.editor-status-word-btn {
+  border: none;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.2rem;
+}
+
+.editor-status-word-btn:hover {
+  background: var(--hover-overlay);
+}
+
+.editor-status-detail {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-container-highest);
+  border: 1px solid var(--border-default);
+  border-radius: 0.35rem;
+  box-shadow: var(--shadow-soft);
+  white-space: nowrap;
+  z-index: 50;
+}
+
+/* ── Bubble Toolbar ── */
+.bubble-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem 0.35rem;
+  background: var(--surface-container-highest);
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.bubble-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.bubble-toolbar-btn:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.bubble-toolbar-btn.is-active {
+  background: var(--active-indicator);
+  color: var(--accent-strong);
+}
+
+.bubble-toolbar-btn .material-symbols-outlined {
+  font-size: 16px;
 }
 
 /* ── File Editor: Read-only ── */
@@ -209,16 +328,20 @@
 
 /* ── Find / Replace Bar ── */
 .find-replace-bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: absolute;
+  top: 0.5rem;
+  right: 1rem;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.6rem;
   background: var(--surface-container);
-  border-bottom: 1px solid var(--border-default);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
   box-shadow: var(--shadow-soft);
+  min-width: 320px;
+  max-width: 420px;
 }
 
 .find-replace-row {

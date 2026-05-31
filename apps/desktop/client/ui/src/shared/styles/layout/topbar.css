@@ -187,10 +187,10 @@
 .settings-dialog {
   display: flex;
   flex-direction: column;
-  width: min(760px, calc(100vw - 2rem));
+  width: min(920px, calc(100vw - 2rem));
   min-width: 400px;
-  max-width: 760px;
-  height: min(620px, calc(100vh - 2rem));
+  max-width: 920px;
+  height: min(720px, calc(100vh - 2rem));
   max-height: calc(100vh - 2rem);
   border-radius: 0.5rem;
   background: var(--surface-container-lowest);
@@ -447,7 +447,7 @@
 
 .model-library-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 0.85fr) minmax(300px, 1.6fr);
+  grid-template-columns: minmax(240px, 0.8fr) minmax(400px, 1.8fr);
   gap: 1.25rem;
   min-height: 0;
 }
@@ -642,7 +642,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.55rem;
+  padding: 0.5rem 0.65rem;
   border-radius: 0.375rem;
   background: var(--surface-container);
   transition: background 0.12s ease;
@@ -678,7 +678,7 @@
   flex: 0 0 auto;
   font-size: 0.72rem;
   color: var(--on-surface-variant);
-  max-width: 100px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

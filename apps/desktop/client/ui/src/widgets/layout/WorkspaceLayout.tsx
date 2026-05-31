@@ -32,7 +32,7 @@ export function WorkspaceLayout() {
     toggleBottomPanel,
     agentPanelOpen, agentPanelWidth,
     hasOpenFiles,
-    overlayPage, setOverlayPage,
+    mainView,
     splitDirection, splitFilePath,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
@@ -45,8 +45,7 @@ export function WorkspaceLayout() {
     agentPanelOpen: s.agentPanelOpen,
     agentPanelWidth: s.agentPanelWidth,
     hasOpenFiles: s.openFiles.length > 0,
-    overlayPage: s.overlayPage,
-    setOverlayPage: s.setOverlayPage,
+    mainView: s.mainView,
     splitDirection: s.splitDirection,
     splitFilePath: s.splitFilePath,
   })));
@@ -62,8 +61,8 @@ export function WorkspaceLayout() {
   const gridColumns = `${ICON_RAIL_WIDTH}px ${treeCols}1fr`;
 
   const renderMainContent = () => {
-    // File tabs take priority over page view
-    if (hasOpenFiles) {
+    // File tabs take priority when mainView is 'files'
+    if (mainView === 'files' && hasOpenFiles) {
       const hasSplit = splitDirection !== 'none' && splitFilePath;
       return (
         <>
@@ -107,22 +106,6 @@ export function WorkspaceLayout() {
             <Suspense fallback={null}>
               {renderMainContent()}
             </Suspense>
-            {overlayPage && (
-              <div className="workspace-overlay">
-                <div className="workspace-overlay-header">
-                  <button type="button" className="overlay-close-btn" onClick={() => setOverlayPage(null)} aria-label="Close">
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-                <div className="workspace-overlay-body">
-                  <Suspense fallback={null}>
-                    {overlayPage === 'overview' && <OverviewPage />}
-                    {overlayPage === 'outline' && <OutlineEditor />}
-                    {overlayPage === 'assets' && <AssetsPanel />}
-                  </Suspense>
-                </div>
-              </div>
-            )}
             <ResizeHandle direction="vertical" onResize={handleBottomResize} style={{ display: bottomPanelOpen ? undefined : 'none' }} />
             <div
               className={`workspace-bottom-wrapper${bottomPanelOpen ? ' is-open' : ''}`}

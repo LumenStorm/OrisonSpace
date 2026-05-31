@@ -8,6 +8,21 @@ import {
   gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch,
 } from '../../shared/api/git';
 
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp * 1000;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}天前`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}个月前`;
+  return `${Math.floor(months / 12)}年前`;
+}
+
 /* ── Graph layout ── */
 
 type GraphNode = {
@@ -79,9 +94,9 @@ function computeGraph(commits: GitCommitEntry[]): GraphNode[] {
 }
 
 /* ── Constants ── */
-const COL_WIDTH = 14;
-const NODE_RADIUS = 4;
-const ROW_HEIGHT = 44;
+const COL_WIDTH = 18;
+const NODE_RADIUS = 6;
+const ROW_HEIGHT = 52;
 
 export function TimelinePanel() {
   const { currentProject, locale } = useAppStore(
@@ -319,7 +334,7 @@ export function TimelinePanel() {
                 {node.commit.message.split('\n')[0]}
               </span>
               <span className="timeline-commit-meta">
-                {new Date(node.commit.timestamp * 1000).toLocaleDateString()}
+                {formatRelativeTime(node.commit.timestamp)}
               </span>
             </button>
             <button
@@ -345,7 +360,7 @@ export function TimelinePanel() {
             {diff.map((d) => (
               <li key={d.filepath} className={`timeline-diff-item timeline-diff-${d.status}`}>
                 <span className="timeline-diff-status">{d.status[0].toUpperCase()}</span>
-                <span className="timeline-diff-path">{d.filepath}</span>
+                <span className="timeline-diff-path">{d.filepath.split('/').pop()}</span>
               </li>
             ))}
           </ul>

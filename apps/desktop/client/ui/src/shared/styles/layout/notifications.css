@@ -9,10 +9,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -21,6 +21,10 @@
 
 .notification-bell:hover {
   background: var(--surface-container-highest);
+}
+
+.notification-bell .material-symbols-outlined {
+  font-size: 18px;
 }
 
 .notification-badge {

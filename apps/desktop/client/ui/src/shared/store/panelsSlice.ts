@@ -15,6 +15,8 @@ import {
 
 export type SplitDirection = 'none' | 'horizontal' | 'vertical';
 
+export type MainView = 'page' | 'files';
+
 export type PanelsSlice = {
   projectTreeOpen: boolean;
   toggleProjectTree: () => void;
@@ -34,8 +36,8 @@ export type PanelsSlice = {
   setAgentPanelWidth: (w: number) => void;
   activePage: ActivePage;
   setActivePage: (page: ActivePage) => void;
-  overlayPage: ActivePage | null;
-  setOverlayPage: (page: ActivePage | null) => void;
+  mainView: MainView;
+  setMainView: (view: MainView) => void;
   splitDirection: SplitDirection;
   splitFilePath: string | null;
   setSplit: (direction: SplitDirection, filePath?: string | null) => void;
@@ -71,9 +73,9 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
     set({ agentPanelWidth: clamped });
   },
   activePage: storage.get<ActivePage>('activePage', 'overview'),
-  setActivePage: (page) => { storage.set('activePage', page); set({ activePage: page }); },
-  overlayPage: null,
-  setOverlayPage: (page) => set({ overlayPage: page }),
+  setActivePage: (page) => { storage.set('activePage', page); set({ activePage: page, mainView: 'page' }); },
+  mainView: 'page' as MainView,
+  setMainView: (view) => set({ mainView: view }),
   splitDirection: 'none',
   splitFilePath: null,
   setSplit: (direction, filePath) => set({ splitDirection: direction, splitFilePath: filePath ?? null }),

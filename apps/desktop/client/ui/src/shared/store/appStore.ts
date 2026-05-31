@@ -21,6 +21,7 @@ import { createNotificationSlice, type NotificationSlice } from './notificationS
 import { installProjectSubscription } from './projectSubscription';
 
 export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, TaskAdapter, AgentMode } from './types';
+export type { MainView } from './panelsSlice';
 
 export type AgentSlice = AgentSessionSlice & AgentSkillSlice & AgentDiffSlice;
 

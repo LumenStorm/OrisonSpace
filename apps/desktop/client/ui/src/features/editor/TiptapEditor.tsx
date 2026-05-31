@@ -7,6 +7,7 @@ import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
 import { FindReplace } from './FindReplace';
+import { BubbleToolbar } from './file-editor/BubbleToolbar';
 
 export type TiptapEditorFormat = 'html' | 'markdown';
 
@@ -18,6 +19,7 @@ type TiptapEditorProps = {
   format?: TiptapEditorFormat;
   flush?: boolean;
   extraContextItems?: ContextMenuItem[];
+  bubbleMenu?: boolean;
 };
 
 const menuItems = [
@@ -40,6 +42,7 @@ export function TiptapEditor({
   format = 'html',
   flush = false,
   extraContextItems,
+  bubbleMenu = false,
 }: TiptapEditorProps) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
@@ -124,6 +127,7 @@ export function TiptapEditor({
     <div className={`tiptap-wrapper${flush ? ' tiptap-wrapper--flush' : ''}`} onContextMenu={handleContextMenu}>
       {showFind && editor && <FindReplace editor={editor} onClose={handleFindClose} />}
       {ctxMenu && <ContextMenu x={ctxMenu.x} y={ctxMenu.y} items={ctxItems} onClose={() => setCtxMenu(null)} />}
+      {bubbleMenu && editable && <BubbleToolbar editor={editor} />}
       {editable && (
         <div className="tiptap-toolbar" role="toolbar" aria-label="Formatting">
           {([1, 2, 3] as HeadingLevel[]).map((level) => (
