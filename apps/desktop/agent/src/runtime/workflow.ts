@@ -209,6 +209,18 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       const content = context.input ? `${prompt}\n\nUser request:\n${context.input}` : prompt;
       const systemPrompt = await buildRuntimeSystemPrompt(session, externalSkillRoots);
       const childOnMessage = makeChildOnMessage('skill', skill.name, session.id, depth, context.emitChildEvent);
+      const availableTools = context.suppressAllTools
+        ? []
+        : (() => {
+          let tools = registry.all();
+          if (context.suppressSpawnAgent) {
+            tools = tools.filter((t) => t.id !== 'spawn_agent');
+          }
+          if (context.suppressWriteTools) {
+            tools = tools.filter((t) => t.id !== 'write_file' && t.id !== 'chapter_write');
+          }
+          return tools;
+        })();
       const messages = await runLoop({
         sessionId: context.sessionId,
         projectPath: session.projectPath,
@@ -219,7 +231,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           createdAt: Date.now(),
         }],
         systemPrompt,
-        tools: registry.all(),
+        tools: availableTools,
         maxSteps: 30,
         generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }),
         onMessage: childOnMessage,

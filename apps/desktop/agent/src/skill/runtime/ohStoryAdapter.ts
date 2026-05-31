@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { NormalizedSkill, WorkflowDefinition } from '../types';
 import { loadDirectorySkill } from './directoryAdapter';
-import type { ExecutionPlan, ExecutionNode } from './executionPlan';
+import type { ExecutionEdge, ExecutionPlan, ExecutionNode } from './executionPlan';
 
 const ROUTABLE_SKILLS = new Set([
   'story',
@@ -13,6 +13,8 @@ const ROUTABLE_SKILLS = new Set([
   'story-deslop',
   'story-review',
 ]);
+
+const SKILLS_WITH_WIZARD = new Set(['story-long-write', 'story-short-write']);
 
 const ROUTER_SKILL = 'story';
 const ROUTER_PROMPT_PREFIX = '__orison_oh_story_router__';
@@ -69,10 +71,14 @@ function buildExecutionPrompt(originalPrompt: string, skillName: string): string
 function adaptCompiledPlan(plan: ExecutionPlan | undefined, skillName: string): ExecutionPlan | undefined {
   if (!plan) return plan;
 
-  return {
-    ...plan,
-    nodes: plan.nodes.map((node) => adaptCompiledNode(node, skillName)),
-  };
+  const adaptedNodes = plan.nodes.map((node) => adaptCompiledNode(node, skillName));
+  const adaptedEdges = [...plan.edges];
+
+  if (SKILLS_WITH_WIZARD.has(skillName)) {
+    return injectBookWizard(adaptedNodes, adaptedEdges, plan.entryNodeId);
+  }
+
+  return { ...plan, nodes: adaptedNodes, edges: adaptedEdges };
 }
 
 function adaptCompiledNode(node: ExecutionNode, skillName: string): ExecutionNode {
@@ -123,4 +129,54 @@ export function resolveOhStoryRoute(input?: string): string {
 function matchesAny(input: string, keywords: string[]): boolean {
   const lowered = input.toLowerCase();
   return keywords.some((keyword) => lowered.includes(keyword.toLowerCase()));
+}
+
+const BOOK_WIZARD_STEPS: Array<{ id: string; question: string; choices: string[] }> = [
+  {
+    id: 'wizard:genre',
+    question: '题材方向',
+    choices: ['都市重生', '修仙玄幻', '诡异悬疑', '游戏异界', '科幻未来', '历史架空'],
+  },
+  {
+    id: 'wizard:style',
+    question: '风格偏好',
+    choices: ['快节奏连续打脸', '慢热铺垫后爆发', '轻松搞笑', '暗黑严肃', '热血燃向'],
+  },
+  {
+    id: 'wizard:chapters',
+    question: '章数规划',
+    choices: ['30章（约10万字）', '50章（约17万字）', '80章（约28万字）', '100章+（约35万字）'],
+  },
+  {
+    id: 'wizard:wordcount',
+    question: '每章字数',
+    choices: ['2000字', '3000字', '3500字', '4000字', '5000字'],
+  },
+  {
+    id: 'wizard:extra',
+    question: '补充信息（主角名、核心设定、对标作品等，可直接输入或回复"跳过"）',
+    choices: [],
+  },
+];
+
+function injectBookWizard(nodes: ExecutionNode[], edges: ExecutionEdge[], originalEntryId: string): ExecutionPlan {
+  const wizardNodes: ExecutionNode[] = BOOK_WIZARD_STEPS.map((step) => ({
+    id: step.id,
+    type: 'ask_user' as const,
+    question: step.question,
+    choices: step.choices.length > 0 ? step.choices : undefined,
+  }));
+
+  // Chain wizard nodes together, then connect last wizard node to original entry
+  const wizardEdges: ExecutionEdge[] = [];
+  for (let i = 0; i < wizardNodes.length - 1; i++) {
+    wizardEdges.push({ from: wizardNodes[i].id, to: wizardNodes[i + 1].id });
+  }
+  wizardEdges.push({ from: wizardNodes[wizardNodes.length - 1].id, to: originalEntryId });
+
+  return {
+    entryNodeId: wizardNodes[0].id,
+    nodes: [...wizardNodes, ...nodes],
+    edges: [...wizardEdges, ...edges],
+  };
 }

@@ -15,6 +15,7 @@ export interface SerializedSkillRunState {
   loadedReferenceKeys: string[];
   writtenArtifactIds: string[];
   pendingUserAction?: PendingSkillUserAction;
+  userResponses?: Record<string, string>;
   resolvedReferences: ResolvedReferencePayload[];
 }
 
@@ -29,6 +30,7 @@ export function createSkillRunState(input: {
   loadedReferenceKeys?: string[];
   writtenArtifactIds?: string[];
   pendingUserAction?: PendingSkillUserAction;
+  userResponses?: Record<string, string>;
   resolvedReferences?: ResolvedReferencePayload[];
   referenceCache?: Map<string, ResolvedReferencePayload>;
 }): SkillRunState {
@@ -44,6 +46,7 @@ export function createSkillRunState(input: {
     loadedReferenceKeys: [...(input.loadedReferenceKeys ?? [])],
     writtenArtifactIds: [...(input.writtenArtifactIds ?? [])],
     pendingUserAction: input.pendingUserAction,
+    userResponses: input.userResponses,
     resolvedReferences,
     referenceCache,
   };
@@ -58,6 +61,7 @@ export function serializeSkillRunState(state?: SkillRunState): SerializedSkillRu
     loadedReferenceKeys: [...state.loadedReferenceKeys],
     writtenArtifactIds: [...state.writtenArtifactIds],
     pendingUserAction: state.pendingUserAction,
+    userResponses: state.userResponses,
     resolvedReferences: [...state.resolvedReferences],
   };
 }
@@ -71,6 +75,7 @@ export function restoreSkillRunState(state?: SerializedSkillRunState): SkillRunS
     loadedReferenceKeys: state.loadedReferenceKeys,
     writtenArtifactIds: state.writtenArtifactIds,
     pendingUserAction: state.pendingUserAction,
+    userResponses: state.userResponses,
     resolvedReferences: state.resolvedReferences,
   });
 }

@@ -20,7 +20,7 @@ export interface AgentCall {
 
 export function extractPhaseSections(raw: string): PhaseSection[] {
   const normalized = raw.replace(/\r\n/g, '\n');
-  const matches = [...normalized.matchAll(/^(?:##\s*)?Phase\s+(\d+)(?:[:：]\s*(.+))?$/gim)];
+  const matches = [...normalized.matchAll(/^(?:#{2,6}\s*)?Phase\s+(\d+)(?:[:：]\s*(.+))?$/gim)];
   if (matches.length === 0) {
     return [{
       id: 'phase-1',
@@ -56,8 +56,35 @@ export function extractSkillCalls(raw: string): SkillCall[] {
   }));
 }
 
-export function extractAskUserMarkers(raw: string): string[] {
-  return [...raw.matchAll(/AskUserQuestion/g)].map(() => 'AskUserQuestion');
+export interface AskUserMarker {
+  question: string;
+  choices?: string[];
+}
+
+export function extractAskUserMarkers(raw: string): AskUserMarker[] {
+  const results: AskUserMarker[] = [];
+
+  // Structured: AskUser("question", choices: ["a", "b", "c"])
+  for (const match of raw.matchAll(/AskUser\(\s*"([^"]+)"(?:\s*,\s*choices:\s*\[([^\]]*)\])?\s*\)/g)) {
+    const question = match[1] ?? '';
+    const choicesRaw = match[2];
+    const choices = choicesRaw
+      ? [...choicesRaw.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? '')
+      : undefined;
+    results.push({ question, choices });
+  }
+
+  // Legacy: bare AskUserQuestion keyword (not followed by parens — avoid matching AskUser(...) above)
+  for (const _match of raw.matchAll(/(?<!\w)AskUserQuestion(?!\w|\()/g)) {
+    results.push({ question: 'AskUserQuestion' });
+  }
+
+  // Chinese: 问用户：/ 询问用户：
+  for (const _match of raw.matchAll(/(?:^|\n)\s*(?:问用户|询问用户)[：:](.+)/g)) {
+    results.push({ question: _match[1]?.trim() ?? 'AskUserQuestion' });
+  }
+
+  return results;
 }
 
 export function extractAgentCalls(raw: string): AgentCall[] {

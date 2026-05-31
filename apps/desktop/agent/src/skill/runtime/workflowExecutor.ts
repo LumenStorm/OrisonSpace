@@ -21,6 +21,9 @@ export interface WorkflowExecutionContext {
   abort?: AbortSignal;
   spawnDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
+  suppressSpawnAgent?: boolean;
+  suppressAllTools?: boolean;
+  suppressWriteTools?: boolean;
 }
 
 export interface WorkflowExecutionResult {
@@ -95,14 +98,19 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
         let currentNodeId: string | undefined = priorRunState?.currentNodeId ?? skill.compiledPlan.entryNodeId;
         let pendingUserAction: PendingSkillUserAction | undefined;
         let canExecute = !currentNodeId;
+        const userResponses: Record<string, string> = { ...(priorRunState?.userResponses ?? {}) };
 
         if (priorRunState?.pendingUserAction && context.input?.trim()) {
+          userResponses[priorRunState.pendingUserAction.nodeId] = context.input.trim();
           completedNodeIds.add(priorRunState.pendingUserAction.nodeId);
           currentNodeId = undefined;
           canExecute = true;
         }
 
-        for (const node of skill.compiledPlan.nodes) {
+        const isFirstExecution = !priorRunState || (priorRunState.completedNodeIds?.length ?? 0) === 0;
+
+        for (let nodeIdx = 0; nodeIdx < skill.compiledPlan.nodes.length; nodeIdx++) {
+          let node: ExecutionNode = skill.compiledPlan.nodes[nodeIdx];
           if (completedNodeIds.has(node.id)) {
             continue;
           }
@@ -113,7 +121,37 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
             canExecute = true;
           }
 
-          await executeCompiledNode(node, skill, context, {
+          // On first execution, skip spawn_agent nodes — wait for user response first
+          if (isFirstExecution && node.type === 'spawn_agent') {
+            currentNodeId = node.id;
+            break;
+          }
+
+          // Inject accumulated userResponses into instruction prompt
+          if (node.type === 'instruction' && Object.keys(userResponses).length > 0) {
+            const responseSummary = formatUserResponses(userResponses, skill.compiledPlan.nodes);
+            node = { ...node, content: `${node.content}\n\n${responseSummary}` };
+          }
+
+          // If the next node requires an explicit user answer, the current prompt
+          // must not be able to advance the workflow by calling tools on its own.
+          const nextNode = skill.compiledPlan.nodes[nodeIdx + 1];
+          const hasFollowingSpawnAgent = node.type === 'instruction' &&
+            skill.compiledPlan.nodes.slice(nodeIdx + 1).some((n) => n.type === 'spawn_agent');
+          const suppressAllTools = node.type === 'instruction' && nextNode?.type === 'ask_user';
+          const suppressSpawnAgent = node.type === 'instruction' &&
+            (nextNode?.type === 'ask_user' || isFirstExecution);
+          const suppressWriteTools = hasFollowingSpawnAgent;
+          const execContext = (suppressAllTools || suppressSpawnAgent || suppressWriteTools)
+            ? {
+              ...context,
+              suppressAllTools,
+              suppressSpawnAgent,
+              suppressWriteTools,
+            }
+            : context;
+
+          await executeCompiledNode(node, skill, execContext, {
             executePrompt: options.executePrompt,
             requestConfirmation: options.requestConfirmation,
             executeSkill: this.executeSkill.bind(this),
@@ -146,6 +184,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
           currentNodeId,
           completedNodeIds: [...completedNodeIds],
           pendingUserAction,
+          userResponses,
           loadedReferenceKeys: context.skillContext?.resolvedReferences?.map((item) => item.key) ?? [],
           resolvedReferences: context.skillContext?.resolvedReferences ?? priorRunState?.resolvedReferences ?? [],
           referenceCache: context.skillContext?.referenceCache ?? priorRunState?.referenceCache,
@@ -163,10 +202,12 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
       }
 
       const steps = skill.workflow?.steps ?? [{ id: `${skill.name}:prompt`, type: 'prompt', content: skill.prompt } satisfies WorkflowStep];
+      // Suppress spawn_agent on first execution in prompt-based path too
+      const promptContext = !priorRunState ? { ...context, suppressSpawnAgent: true } : context;
       for (const step of steps) {
         switch (step.type) {
           case 'prompt': {
-            outputs.push(await options.executePrompt(step.content, skill, context));
+            outputs.push(await options.executePrompt(step.content, skill, promptContext));
             break;
           }
           case 'tool': {
@@ -262,4 +303,14 @@ async function executeCompiledNode(
     default:
       throw new Error(`compiled workflow node "${node.type}" is not supported yet`);
   }
+}
+
+function formatUserResponses(responses: Record<string, string>, nodes: ExecutionNode[]): string {
+  const lines: string[] = ['[用户已确认的设定]'];
+  for (const [nodeId, answer] of Object.entries(responses)) {
+    const node = nodes.find((n) => n.id === nodeId);
+    const label = node?.type === 'ask_user' ? node.question : nodeId;
+    lines.push(`- ${label}: ${answer}`);
+  }
+  return lines.join('\n');
 }

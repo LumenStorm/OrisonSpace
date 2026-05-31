@@ -59,12 +59,13 @@ export function compileDirectorySkill(skill: CompiledSkill): CompiledSkill {
       capabilities.add('delegate_skill');
     }
 
-    for (const _question of extractAskUserMarkers(phase.content)) {
+    for (const marker of extractAskUserMarkers(phase.content)) {
       const nodeId = `${phase.id}:ask:${nodes.length}`;
       nodes.push({
         id: nodeId,
         type: 'ask_user',
-        question: 'AskUserQuestion',
+        question: marker.question,
+        choices: marker.choices,
       });
       appendEdge(lastPhaseNodeId, nodeId);
       lastPhaseNodeId = nodeId;
