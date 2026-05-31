@@ -66,7 +66,6 @@
 | `model:list-remote-models` | renderer -> main | invoke | 请求远端模型列表 |
 | `model:generate-text` | renderer -> main | invoke | 文本生成 |
 | `model:generate-image` | renderer -> main | invoke | 图片生成 |
-| `model:generate-video` | renderer -> main | invoke | 视频生成 |
 | `storySync:run` | renderer -> main | invoke | 本地执行 story-sync 提取 |
 
 ### 任务持久化通道
@@ -184,7 +183,6 @@ window.orisonDesktop = {
   listRemoteModels,
   generateText,
   generateImage,
-  generateVideo,
   runStorySync,
   loadUserPreferences,
   saveUserPreferences,
@@ -251,7 +249,7 @@ type ModelConfig = {
     apiKey: string
     models: Array<{
       id: string
-      capability: 'text' | 'image' | 'video'
+      capability: 'text' | 'image'
       alias: string
       enabled: boolean
     }>
@@ -312,7 +310,7 @@ type RunStorySyncResult = {
 
 - 磁盘存储时使用 `safeStorage` 加密
 - 解密只发生在 desktop main
-- 文本 / 图片 / 视频生成的 renderer payload 中不会携带 `apiKey`
+- 文本 / 图片生成的 renderer payload 中不会携带 `apiKey`
 - server 和 agent 都拿不到 provider `apiKey`
 
 ### 3. CSP
@@ -335,7 +333,7 @@ type RunStorySyncResult = {
 | `apps/desktop/shell/main/ipc/windowIpc.ts` | 窗口与系统操作 |
 | `apps/desktop/shell/main/ipc/configIpc.ts` | 模型配置与用户偏好 |
 | `apps/desktop/shell/main/ipc/modelProviderIpc.ts` | provider 模型列表刷新 |
-| `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` | 文本 / 图片 / 视频生成 |
+| `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` | 文本 / 图片生成 |
 | `apps/desktop/shell/main/ipc/taskIpc.ts` | 后台任务持久化（SQLite CRUD） |
 | `apps/desktop/shell/main/ipc/storySyncIpc.ts` | story-sync 入口 |
 | `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` | 创作字段同步 |
@@ -357,7 +355,6 @@ type RunStorySyncResult = {
 
 - `model:generate-text`
 - `model:generate-image`
-- `model:generate-video`
 
 ### 2. Story Sync 已本地化
 

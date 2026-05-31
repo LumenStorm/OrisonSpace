@@ -223,7 +223,6 @@ Agent 侧 auto mode 持久化位置：
 
 - `model:generate-text`
 - `model:generate-image`
-- `model:generate-video`
 
 ### 8.2 旧模型配置路径
 

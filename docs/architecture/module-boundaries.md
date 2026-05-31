@@ -95,7 +95,7 @@
   - `apiKey`
 - 每个 key 下的 `models[]` 表示发现的模型条目：
   - `id`
-  - `capability`（text/image/video，由 model-registry 推断）
+  - `capability`（text/image，由 model-registry 推断）
   - `alias`（由 model-registry 推断）
   - `enabled`
 - 生成请求使用 `ModelRef`：`{ keyId, modelId }`
@@ -105,7 +105,6 @@
 - `apps/desktop/shell/main/ipc/modelGatewayIpc.ts`
   - 负责 `model:generate-text`
   - 负责 `model:generate-image`
-  - 负责 `model:generate-video`
   - 是唯一会解密模型 `apiKey` 并调用 provider 的主进程入口
 - 渲染层永远拿不到真实 `apiKey`
 - agent 不持有 provider `apiKey`
@@ -171,7 +170,7 @@
   - `baseUrl` 支持带或不带 `/v1` 后缀（内部通过 `normalizeBaseUrl` 统一补齐）
   - 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
   - 返回 `RemoteModel[]`（id + capability + alias），能力由 `model-registry` 推断
-- `generateText / generateImage / generateVideo`
+- `generateText / generateImage`
   - 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）
   - text 生成使用 `@ai-sdk/openai` 的 `.chat()` 方法强制 Chat Completions API（兼容第三方 OpenAI 兼容端点，避免 Responses API）
   - system 消息从 messages 数组中提取，通过 AI SDK 的 `system` 参数传递

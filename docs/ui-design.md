@@ -79,7 +79,6 @@ Icon Rail 分为 top section 和 bottom section：
 | ─── 分隔线 ─── | | |
 | `view_quilt` | 分镜 | `setActivePage('storyboard')` |
 | `image` | 图片生成 | `setActivePage('image_gen')` |
-| `movie_filter` | 视频 | `setActivePage('video')` |
 | ─── 分隔线 ─── | | |
 | `smart_toy` | Agent | toggle 右侧 Agent Panel |
 
@@ -96,7 +95,7 @@ Icon Rail 分为 top section 和 bottom section：
 工作区使用统一的 `ActivePage` 类型控制中间内容区：
 
 ```ts
-type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets';
+type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'assets';
 type SidebarPanel = 'explorer' | 'search' | 'timeline';
 ```
 
@@ -116,7 +115,6 @@ type SidebarPanel = 'explorer' | 'search' | 'timeline';
 | `novel` / `script` | `ScriptEditorPage` | 小说/剧本编辑器 + creative fields |
 | `storyboard` | `StoryboardCanvas` | 分镜面板 |
 | `image_gen` | `ImageGenEditor` | 图片生成面板 |
-| `video` | `VideoEditor` | 视频面板 |
 | `assets` | `AssetsPanel` | 资产库面板 |
 
 左侧面板组件：
@@ -206,7 +204,7 @@ FileTabBar 只管理文件 tab（纯文件编辑），不再有模块 tab。打�
 
 - 每个 model entry 包含：
   - `id`
-  - `capability`（text/image/video，自动推断）
+  - `capability`（text/image，自动推断）
   - `alias`（自动推断）
   - `enabled`
 
@@ -276,7 +274,7 @@ BottomPanel 当前包含：
 - 模型设置页交互状态已收口，不再混乱地依赖隐式条件
 - 模型生成走 desktop main，不走 server generation route
 - story-sync 已变为桌面本地执行 + agent 二次校验
-- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`（小说/剧本/分镜/图片/视频）或 `setOverlayPage`（总览/大纲/资产）
+- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`（小说/剧本/分镜/图片）或 `setOverlayPage`（总览/大纲/资产）
 - timeline 作为左侧面板（`SidebarPanel`），通过 `setActiveSidebarPanel('timeline')` 切换
 - 底部面板只保留 output / tasks 两个 tab
 - 资产库（assets）已作为独立页面加入侧边栏

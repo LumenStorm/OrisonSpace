@@ -34,7 +34,7 @@
 ```
 ┌─────────────────────────────────────────────────┐
 │  Electron Shell (主进程)                         │
-│  ├─ Model Gateway (文本/图片/视频生成)           │
+│  ├─ Model Gateway (文本/图片生成)                    │
 │  ├─ @orison/desktop-agent (Workflow Runtime)    │
 │  ├─ Local BFF (项目文件读写)                     │
 │  └─ IPC 安全边界 + 路径沙箱                      │

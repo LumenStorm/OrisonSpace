@@ -49,7 +49,7 @@ App
         │   ├── NavButton[] (overview/outline/assets — setOverlayPage)
         │   ├── NavButton (novel|script — setActivePage)
         │   ├── ─── 分隔线 ───
-        │   ├── NavButton[] (storyboard/image_gen/video — setActivePage)
+        │   ├── NavButton[] (storyboard/image_gen — setActivePage)
         │   ├── ─── 分隔线 ───
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
         │   └── SettingsBtn
@@ -68,7 +68,6 @@ App
         │   │   ├── ScriptEditorPage (activePage='novel'|'script')
         │   │   ├── StoryboardCanvas (activePage='storyboard')
         │   │   ├── ImageGenEditor (activePage='image_gen')
-        │   │   ├── VideoEditor (activePage='video')
         │   │   └── AssetsPanel (activePage='assets')
         │   ├── [OverlayPage 浮层: overlayPage 非 null 时叠加显示]
         │   │   ├── OverviewPage (overlayPage='overview')
@@ -122,7 +121,6 @@ App
 | `ScriptEditorPage` | `features/editor/ScriptEditorPage.tsx` | 小说/剧本编辑器页面 |
 | `ImageGenEditor` | `features/editor/ImageGenEditor.tsx` | 图片生成面板 |
 | `StoryboardCanvas` | `features/editor/StoryboardCanvas.tsx` | 分镜面板 |
-| `VideoEditor` | `features/editor/VideoEditor.tsx` | 视频面板 |
 | `AssetsPanel` | `features/assets/AssetsPanel.tsx` | 资产库面板 |
 | `FileTabBar` | `features/editor/FileTabBar.tsx` | 文件标签栏 |
 | `FileEditor` | `features/editor/FileEditor.tsx` | 文件编辑器 |

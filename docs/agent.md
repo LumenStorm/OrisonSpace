@@ -10,7 +10,7 @@ AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构�
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │  Model Gateway (IPC)                            │    │
-│  │  model:generate-text / generate-image / video   │    │
+│  │  model:generate-text / generate-image            │    │
 │  └─────────────────────────────────────────────────┘    │
 │         ▲                                               │
 │         │ injected via setGenerateTextFn()               │

@@ -36,7 +36,7 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
   - 文件系统与路径安全
   - 模型配置读写
   - provider 模型列表刷新
-  - 文本 / 图片 / 视频生成
+  - 文本 / 图片生成
   - story-sync 本地执行
   - 用户偏好持久化
   - Agent workflow runtime（内嵌库）
@@ -80,7 +80,6 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 - `novel -> { keyId, modelId }`
 - `image -> { keyId, modelId }`
-- `video -> { keyId, modelId }`
 
 ### UI 交互状态
 
@@ -110,7 +109,6 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 - 文本
 - 图片
-- 视频（接口已在，部分 adapter 仍为占位）
 
 ## 六、Story Sync 设计
 

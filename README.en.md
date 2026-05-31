@@ -34,7 +34,7 @@
 ```
 ┌─────────────────────────────────────────────────┐
 │  Electron Shell (main process)                   │
-│  ├─ Model Gateway (text/image/video generation) │
+│  ├─ Model Gateway (text/image generation)           │
 │  ├─ @orison/desktop-agent (Workflow Runtime)    │
 │  ├─ Local BFF (project file I/O)                │
 │  └─ IPC security boundary + path sandbox        │

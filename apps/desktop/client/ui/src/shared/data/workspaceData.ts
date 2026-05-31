@@ -5,7 +5,7 @@ export const moduleItems: Array<{ key: ActivePage; label: string; icon: string }
   { key: 'script', label: 'Script', icon: 'description' },
   { key: 'storyboard', label: 'Storyboard', icon: 'view_quilt' },
   { key: 'image_gen', label: 'Image Gen', icon: 'image' },
-  { key: 'video', label: 'Video', icon: 'movie_filter' }
+  { key: 'video', label: 'Video', icon: 'movie_filter' },
 ];
 
 export const projectTreeItems = [
