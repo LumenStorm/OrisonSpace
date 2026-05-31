@@ -1,10 +1,10 @@
-# OneLine2Video Electron Bootstrap Design
+# Orison Space Electron Bootstrap Design
 
 **Date:** 2026-04-22
 
 ## Goal
 
-在保留当前目录现有文件的前提下，为项目补齐最小可运行的 Electron 开发环境，并将 GitHub 仓库 `https://github.com/LightYuki/OneLine2Video` 配置为 `origin`。
+在保留当前目录现有文件的前提下，为项目补齐最小可运行的 Electron 开发环境，并将 GitHub 仓库 `https://github.com/LumenStorm/OrisonSpace` 配置为 `origin`。
 
 ## Scope
 

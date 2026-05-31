@@ -2,9 +2,9 @@
 
 ## Goal
 
-把当前 `H:\小说` 下的小说最小实现迁入 `OneLine2Video-git`，并且以 `oneline2video` 的现有架构为主干完成正式产品化整合。迁入后的小说功能不再以独立 `FastAPI + React/Vite + SQLite` 应用存在，而是成为 `shared-contracts + local-bff + agent + desktop/ui` 体系中的一等能力。
+把当前 `H:\小说` 下的小说最小实现迁入 `OrisonSpace`，并且以 `orison-space` 的现有架构为主干完成正式产品化整合。迁入后的小说功能不再以独立 `FastAPI + React/Vite + SQLite` 应用存在，而是成为 `shared-contracts + local-bff + agent + desktop/ui` 体系中的一等能力。
 
-目标状态不是“能在同一仓库里共存”，而是“在 `oneline2video` 内部接近完整替代当前小说系统”，包含：
+目标状态不是”能在同一仓库里共存”，而是”在 `orison-space` 内部接近完整替代当前小说系统”，包含：
 
 1. 小说项目读写与本地文件持久化
 2. 角色、世界观、关系图、伏笔、集纲、章节的统一编辑
@@ -17,7 +17,7 @@
 
 本设计覆盖：
 
-1. 小说系统迁入 `oneline2video` 后的目标架构
+1. 小说系统迁入 `orison-space` 后的目标架构
 2. 当前小说系统模块到主项目模块的映射关系
 3. 哪些模块必须重写，哪些逻辑可以复用
 4. 主项目需要新增的契约、同步层、agent 节点和 UI 功能
@@ -48,7 +48,7 @@
 3. Story Sync 和长期记忆这两层中间能力
 4. 一批真实可用的 prompt 和测试边界
 
-### 2. OneLine2Video-git 主项目
+### 2. OrisonSpace 主项目
 
 - Monorepo：`pnpm + turbo`
 - Server：`apps/server`
@@ -72,7 +72,7 @@
 
 具体来说：
 
-1. 最终架构必须服从 `oneline2video` 现有边界
+1. 最终架构必须服从 `orison-space` 现有边界
 2. 当前小说系统的 `FastAPI API`、`SQLite/SQLAlchemy`、独立 `React` 前端不保留为长期边界
 3. 当前小说系统中真正保留的是领域逻辑、流程顺序、提示词经验和测试边界
 4. 如果第一阶段为了降低风险，需要保留少量 Python 逻辑，可暂时挂到 `apps/agent/python`，但不能继续以独立服务形态存在

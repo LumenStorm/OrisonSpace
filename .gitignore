@@ -25,3 +25,4 @@ logs/
 .plan.md
 **/PLAN-*.md
 **/plan.md
+*.tsbuildinfo

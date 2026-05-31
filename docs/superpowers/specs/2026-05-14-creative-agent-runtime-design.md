@@ -5,7 +5,7 @@
 
 ## 1. Goal
 
-Build a desktop-first creative agent runtime inside the existing `OneLine2Video` application.
+Build a desktop-first creative agent runtime inside the existing `OrisonSpace` application.
 
 The runtime must support:
 

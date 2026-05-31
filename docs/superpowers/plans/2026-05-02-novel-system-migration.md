@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the validated standalone novel-system MVP as a native `OneLine2Video-git` capability, with local project files as the source of truth, reviewable AI outputs, and enough functional coverage to retire the old `H:\小说\backend + frontend` stack.
+**Goal:** Rebuild the validated standalone novel-system MVP as a native `OrisonSpace` capability, with local project files as the source of truth, reviewable AI outputs, and enough functional coverage to retire the old `H:\小说\backend + frontend` stack.
 
 **Architecture:** Migrate by domain layer instead of copying the old application. `packages/shared-contracts` becomes the canonical novel schema boundary, `apps/desktop/local-bff` owns file persistence and patch application, `apps/agent` owns chapter generation/story sync/memory/auto mode orchestration, and `apps/desktop/ui` owns the authoring and review surfaces. The migration proceeds in vertical slices so every phase leaves behind working software and durable checkpoints.
 
@@ -45,10 +45,10 @@ The current risk is not only "missing code" but "losing migration state" across 
 
 ### Migration Target
 
-- Contracts: `H:/小说/OneLine2Video-git/packages/shared-contracts/*`
-- Local persistence: `H:/小说/OneLine2Video-git/apps/desktop/local-bff/*`
-- Agent orchestration: `H:/小说/OneLine2Video-git/apps/agent/*`
-- Desktop UI: `H:/小说/OneLine2Video-git/apps/desktop/ui/*`
+- Contracts: `packages/shared-contracts/*`
+- Local persistence: `apps/desktop/local-bff/*`
+- Agent orchestration: `apps/agent/*`
+- Desktop UI: `apps/desktop/ui/*`
 
 ### Explicit Non-Goals
 
@@ -77,7 +77,7 @@ Every implementation phase must leave behind all of the following:
 ### File Boundary Rules
 
 1. Old standalone files under `H:/小说/backend` and `H:/小说/frontend` are references only.
-2. New runtime behavior must land inside `OneLine2Video-git`.
+2. New runtime behavior must land inside `OrisonSpace`.
 3. Reused prompt logic may temporarily remain in Python nodes if that avoids re-deriving validated behavior too early.
 4. All new cross-layer payloads must be formalized in `shared-contracts` before being used by `local-bff`, `agent`, or `ui`.
 
@@ -1002,9 +1002,9 @@ git commit -m "docs: record novel migration parity audit"
 
 When resuming this migration later, do these in order:
 
-1. Open [2026-05-02-novel-system-migration.md](/abs/path/H:/小说/OneLine2Video-git/docs/superpowers/plans/2026-05-02-novel-system-migration.md)
+1. Open [2026-05-02-novel-system-migration.md](docs/superpowers/plans/2026-05-02-novel-system-migration.md)
 2. Read the `Migration Status` block
-3. Open [plan.md](/abs/path/H:/小说/OneLine2Video-git/docs/plan.md)
+3. Open [plan.md](docs/plan.md)
 4. Find the last completed `Novel Migration Phase N` note
 5. Run the `Last green command` again
 6. Continue from the first unchecked step in the current phase
@@ -1058,7 +1058,7 @@ Mitigation:
 
 The migration is done when all of the following are true:
 
-1. novel chapter data lives in local project files under `OneLine2Video-git`
+1. novel chapter data lives in local project files under `OrisonSpace`
 2. a chapter can be generated and accepted through the desktop workbench
 3. story sync outputs reviewable native field patches
 4. story-memory items persist locally and feed later generation context

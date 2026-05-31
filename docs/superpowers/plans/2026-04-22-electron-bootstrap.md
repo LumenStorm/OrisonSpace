@@ -18,14 +18,14 @@
 
 - [ ] **Step 1: 初始化 Git 仓库并添加远程**
 
-Run: `git init` and `git remote add origin https://github.com/LightYuki/OneLine2Video`
+Run: `git init` and `git remote add origin https://github.com/LumenStorm/OrisonSpace`
 Expected: local repository initialized and `origin` configured
 
 - [ ] **Step 2: 创建基础 npm 项目**
 
 ```json
 {
-  "name": "oneline2video",
+  "name": "orison-space",
   "version": "0.1.0",
   "private": true,
   "main": "src/main/main.js",
@@ -106,10 +106,10 @@ window.addEventListener('DOMContentLoaded', () => {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OneLine2Video</title>
+    <title>Orison Space</title>
   </head>
   <body>
-    <h1>OneLine2Video</h1>
+    <h1>Orison Space</h1>
     <p>Electron development environment is ready.</p>
     <script src="./renderer.js"></script>
   </body>
@@ -131,7 +131,7 @@ document.body.dataset.ready = 'true';
 - [ ] **Step 1: 检查远程仓库配置**
 
 Run: `git remote -v`
-Expected: `origin` points to `https://github.com/LightYuki/OneLine2Video`
+Expected: `origin` points to `https://github.com/LumenStorm/OrisonSpace`
 
 - [ ] **Step 2: 检查 Electron 依赖安装**
 

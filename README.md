@@ -1,4 +1,4 @@
-# OneLine2Video / Orison Space
+# Orison Space
 
 面向长篇故事、小说、剧本、分镜与视频策划的 AI 创作工作台。
 
@@ -80,7 +80,7 @@ Agent runtime 打通"自动召唤 skill / 子代理"的完整嵌套链路:
 ## 仓库结构
 
 ```text
-OneLine2Video/
+OrisonSpace/
 ├─ apps/
 │  ├─ desktop/
 │  │  ├─ agent/                        @orison/desktop-agent 库：workflow runtime、skill 执行、continuation

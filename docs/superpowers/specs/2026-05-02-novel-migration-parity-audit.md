@@ -1,7 +1,7 @@
 # Novel System Migration — Parity Audit
 
 **审计日期**：2026-05-03
-**审计范围**：从 `H:/小说/{backend, frontend}` (FastAPI + React 单体应用) 迁移到 `H:/小说/OneLine2Video-git` (pnpm monorepo / TypeScript / Electron) 的功能对等性评估。
+**审计范围**：从 `H:/小说/{backend, frontend}` (FastAPI + React 单体应用) 迁移到 `H:/小说/OrisonSpace` (pnpm monorepo / TypeScript / Electron) 的功能对等性评估。
 **编写人**：迁移执行 agent
 **目标读者**：项目维护者，决定旧 standalone app 是否可以归档/退役。
 
@@ -134,7 +134,7 @@
 
 | # | 标准 | 验证 |
 |---|---|---|
-| 1 | novel chapter data 存在于 `OneLine2Video-git` 本地项目文件 | ✅ `project.yaml.novel.chapters` + `chapters/*.md` |
+| 1 | novel chapter data 存在于 `OrisonSpace` 本地项目文件 | ✅ `project.yaml.novel.chapters` + `chapters/*.md` |
 | 2 | 章节可在桌面 workbench 生成与接受 | ✅ `NovelWorkbench` + `acceptChapterCandidate` IPC |
 | 3 | story sync 输出可审阅的 native field patches | ✅ `story-sync-agent` 输出符合 `fieldPatchEntrySchema` |
 | 4 | story-memory 本地持久化 + 反哺生成 | ✅ `memory/story-memory.yaml` + context loader 已读取 |
@@ -164,7 +164,7 @@
 
 ### 退役清单（建议执行顺序）
 
-1. 在 `H:/小说/backend` 与 `H:/小说/frontend` 仓库 README 顶部加 deprecation notice，指向 `OneLine2Video-git`。
+1. 在 `H:/小说/backend` 与 `H:/小说/frontend` 仓库 README 顶部加 deprecation notice，指向 `OrisonSpace`。
 2. 等待 30 天 dogfood 期，期间收集 issue。
 3. 30 天后将旧仓库改为 `archived` 状态，保留只读访问。
 4. 更新内部 README，将旧仓库从默认入口移除。

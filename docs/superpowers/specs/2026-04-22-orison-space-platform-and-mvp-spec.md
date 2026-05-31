@@ -216,7 +216,7 @@ Inspector + AI Review 面板根据上下文动态变化：
 当前仓库建议整理为：
 
 ```text
-OneLine2Video/
+OrisonSpace/
 ├─ apps/
 │  ├─ desktop/
 │  │  ├─ shell/

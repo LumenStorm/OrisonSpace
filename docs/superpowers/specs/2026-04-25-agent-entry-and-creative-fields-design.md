@@ -48,7 +48,7 @@
 
 ## Reference Orchestration Architecture
 
-编排架构参考 `I:\OneLine2Video-dev\v2.drawio.html`。图中的主链路是：
+编排架构参考 `I:\OrisonSpace-dev\v2.drawio.html`。图中的主链路是：
 
 ```text
 需求接入
