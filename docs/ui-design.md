@@ -273,7 +273,6 @@ BottomPanel 当前包含：
 
 以下是已经同步到代码的现状：
 
-- 启动时鉴权先校验会话，再决定进入哪个页面
 - 模型设置页交互状态已收口，不再混乱地依赖隐式条件
 - 模型生成走 desktop main，不走 server generation route
 - story-sync 已变为桌面本地执行 + agent 二次校验

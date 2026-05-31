@@ -2,11 +2,10 @@
 
 ## 1. 数据边界总览
 
-系统采用“本地创作文件 + 服务端认证 + 桌面本地状态”结构：
+系统采用”本地创作文件 + 桌面本地状态”结构：
 
 - 本地项目目录负责创作正文与创作字段
-- PostgreSQL 当前只负责用户认证数据
-- 桌面本地 SQLite 负责后台任务恢复
+- 桌面本地 SQLite 负责后台任务恢复与项目索引
 - 桌面主进程负责模型配置与 provider 调用
 
 ## 2. 已废弃：PostgreSQL（服务端）
@@ -196,17 +195,7 @@ autoApplyPatches: true
 
 ## 6. 鉴权会话数据
 
-渲染层本地缓存：
-
-- `localStorage` 中的 `orison_token`
-- `localStorage` 中的 `orison_user`
-
-启动时行为：
-
-- 若有 token，先请求 `GET /v1/auth/me`
-- 成功后同步最新 user 到 store
-- 401 视为会话过期，清空本地会话并回到登录页
-- 非 401 失败进入匿名态并保留错误信息
+> 已废弃：桌面端为纯本地应用，无需登录。启动后直接进入项目页。
 
 ## 7. Orchestration / Auto Mode 相关文件
 
@@ -219,7 +208,7 @@ Agent 侧 auto mode 持久化位置：
 用于：
 
 - 进程重启后的会话恢复
-- `POST /v1/orchestration/auto-mode/restore` 回放
+- Agent runtime 内部 restore
 
 ## 8. 已废弃/迁移说明
 

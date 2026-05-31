@@ -9,43 +9,22 @@ show_menu() {
   echo "  Orison Space"
   echo "  ============"
   echo ""
-  echo "  1) dev           Agent + Electron dev"
-  echo "  2) dev:electron  Electron dev only"
-  echo "  3) dev:agent     Agent dev only"
-  echo "  4) build         Build all"
-  echo "  5) build:desktop Build desktop"
-  echo "  6) test          Run tests"
-  echo "  7) typecheck     Type check"
+  echo "  1) dev           Electron dev"
+  echo "  2) build         Build all"
+  echo "  3) build:desktop Build desktop"
+  echo "  4) test          Run tests"
+  echo "  5) typecheck     Type check"
   echo "  0) exit"
   echo ""
 }
 
-kill_port() {
-  local port="$1"
-  if command -v lsof >/dev/null 2>&1; then
-    local pids
-    pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
-    if [ -n "$pids" ]; then
-      echo "  Killing PID(s) $pids on port $port..."
-      kill -9 $pids 2>/dev/null || true
-    fi
-  fi
-}
-
 run_choice() {
   case "$1" in
-    1)
-      kill_port 18422
-      (pnpm dev:agent) &
-      sleep 4
-      pnpm dev
-      ;;
-    2) pnpm dev ;;
-    3) kill_port 18422; pnpm dev:agent ;;
-    4) pnpm build ;;
-    5) pnpm build:desktop ;;
-    6) pnpm test ;;
-    7) pnpm typecheck ;;
+    1) pnpm dev ;;
+    2) pnpm build ;;
+    3) pnpm build:desktop ;;
+    4) pnpm test ;;
+    5) pnpm typecheck ;;
     0) exit 0 ;;
     *) echo "  Invalid: $1" ;;
   esac
@@ -58,7 +37,7 @@ fi
 
 while true; do
   show_menu
-  read -rp "  Select [0-7]: " choice
+  read -rp "  Select [0-5]: " choice
   run_choice "$choice"
   echo ""
 done
