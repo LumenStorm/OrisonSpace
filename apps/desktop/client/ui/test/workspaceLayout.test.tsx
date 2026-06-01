@@ -17,7 +17,7 @@ describe('WorkspaceLayout', () => {
     render(<WorkspaceLayout />);
 
     expect(screen.getByRole('navigation', { name: 'Main Navigation' })).toBeInTheDocument();
-    expect(screen.getByText('overview.untitled')).toBeInTheDocument();
+    expect(screen.getByText('Untitled Project')).toBeInTheDocument();
   });
 
   it('renders editor workspace and bottom panel for non-standalone modules', () => {

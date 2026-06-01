@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -6,7 +6,7 @@ import { htmlToMarkdown, markdownToHtml } from '../../shared/utils/markdown';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
-import { FindReplace } from './FindReplace';
+import { FindReplaceBar, type FindReplaceAdapter, type FindMatch, type FindReplaceMode } from './FindReplaceBar';
 import { BubbleToolbar } from './file-editor/BubbleToolbar';
 
 export type TiptapEditorFormat = 'html' | 'markdown';
@@ -20,6 +20,7 @@ type TiptapEditorProps = {
   flush?: boolean;
   extraContextItems?: ContextMenuItem[];
   bubbleMenu?: boolean;
+  disableFind?: boolean;
 };
 
 const menuItems = [
@@ -43,11 +44,12 @@ export function TiptapEditor({
   flush = false,
   extraContextItems,
   bubbleMenu = false,
+  disableFind = false,
 }: TiptapEditorProps) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
   const initialHtml = format === 'markdown' ? markdownToHtml(content) : content;
-  const [showFind, setShowFind] = useState(false);
+  const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
 
   const editor = useEditor({
@@ -64,19 +66,19 @@ export function TiptapEditor({
     },
   });
 
-  const handleFindClose = useCallback(() => setShowFind(false), []);
+  const handleFindClose = useCallback(() => setFindMode(null), []);
 
   useEffect(() => {
-    if (!editable) return;
+    if (!editable || disableFind) return;
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        setShowFind(true);
-      }
+      if (e.defaultPrevented) return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'f') { e.preventDefault(); setFindMode('find'); }
+      if (e.key === 'h') { e.preventDefault(); setFindMode('replace'); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [editable]);
+  }, [editable, disableFind]);
 
   useEffect(() => {
     if (!editor) return;
@@ -90,6 +92,60 @@ export function TiptapEditor({
       editor.commands.setContent(newHtml, { emitUpdate: false });
     }
   }, [editor, content, format]);
+
+  const findAdapter: FindReplaceAdapter = useMemo(() => {
+    if (!editor) return { getText: () => '', highlight: () => {}, replaceOne: () => {}, replaceAll: () => {} };
+
+    function buildPosMap() {
+      const doc = editor!.state.doc;
+      const chars: string[] = [];
+      const positions: number[] = [];
+      let needSep = false;
+      doc.descendants((node, pos) => {
+        if (node.isTextblock && needSep) {
+          chars.push('\n');
+          positions.push(pos);
+          needSep = false;
+        }
+        if (node.isText) {
+          for (let i = 0; i < node.text!.length; i++) {
+            chars.push(node.text![i]);
+            positions.push(pos + i);
+          }
+          needSep = true;
+        }
+      });
+      return { text: chars.join(''), positions };
+    }
+
+    return {
+      getText: () => buildPosMap().text,
+      highlight: (match: FindMatch) => {
+        const { positions } = buildPosMap();
+        if (positions.length === 0) return;
+        const from = positions[match.start] ?? 0;
+        const to = match.end > 0 ? (positions[match.end - 1] ?? 0) + 1 : from;
+        editor!.chain().setTextSelection({ from, to }).scrollIntoView().run();
+      },
+      replaceOne: (match: FindMatch, replacement: string) => {
+        const { positions } = buildPosMap();
+        if (positions.length === 0) return;
+        const from = positions[match.start] ?? 0;
+        const to = match.end > 0 ? (positions[match.end - 1] ?? 0) + 1 : from;
+        editor!.chain().setTextSelection({ from, to }).deleteSelection().insertContent(replacement).run();
+      },
+      replaceAll: (matches: FindMatch[], replacement: string) => {
+        for (let i = matches.length - 1; i >= 0; i--) {
+          const { positions } = buildPosMap();
+          if (positions.length === 0) return;
+          const m = matches[i];
+          const from = positions[m.start] ?? 0;
+          const to = m.end > 0 ? (positions[m.end - 1] ?? 0) + 1 : from;
+          editor!.chain().setTextSelection({ from, to }).deleteSelection().insertContent(replacement).run();
+        }
+      },
+    };
+  }, [editor]);
 
   if (!editor) return null;
 
@@ -119,13 +175,13 @@ export function TiptapEditor({
     { type: 'item', label: t('editor.orderedList'), icon: 'format_list_numbered', onClick: () => { editor.chain().focus().toggleOrderedList().run(); } },
     { type: 'item', label: t('editor.quote'), icon: 'format_quote', onClick: () => { editor.chain().focus().toggleBlockquote().run(); } },
     { type: 'separator' },
-    { type: 'item', label: t('editor.findReplace'), icon: 'find_replace', onClick: () => { setShowFind(true); } },
+    { type: 'item', label: t('editor.findReplace'), icon: 'find_replace', onClick: () => { setFindMode('find'); } },
     ...(extraContextItems ?? []),
   ];
 
   return (
     <div className={`tiptap-wrapper${flush ? ' tiptap-wrapper--flush' : ''}`} onContextMenu={handleContextMenu}>
-      {showFind && editor && <FindReplace editor={editor} onClose={handleFindClose} />}
+      {!disableFind && findMode && <FindReplaceBar initialMode={findMode} adapter={findAdapter} onClose={handleFindClose} />}
       {ctxMenu && <ContextMenu x={ctxMenu.x} y={ctxMenu.y} items={ctxItems} onClose={() => setCtxMenu(null)} />}
       {bubbleMenu && editable && <BubbleToolbar editor={editor} />}
       {editable && (

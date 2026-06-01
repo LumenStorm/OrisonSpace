@@ -20,7 +20,7 @@ export type EditorSlice = {
   cursorCol: number;
   wordCount: number;
 
-  addChapter: (title?: string) => void;
+  addChapter: (title?: string) => Promise<void>;
   removeChapter: (id: string) => void;
   reorderChapter: (id: string, direction: 'up' | 'down') => void;
   updateChapter: (id: string, patch: Partial<Omit<Chapter, 'id'>>) => void;
@@ -45,7 +45,7 @@ function snap(state: { chapters: Chapter[]; activeChapterId: string | null }): E
 }
 
 export const createEditorSlice: StateCreator<
-  EditorSlice & { currentProject: { path: string } | null },
+  EditorSlice & { currentProject: { path: string } | null; openFile: (path: string, name: string, content: string) => void },
   [],
   [],
   EditorSlice
@@ -61,17 +61,33 @@ export const createEditorSlice: StateCreator<
   setCursorPosition: (line, col) => set({ cursorLine: line, cursorCol: col }),
   setWordCount: (count) => set({ wordCount: count }),
 
-  addChapter: (title) => {
+  addChapter: async (title) => {
     const state = get();
     const snapshot = snap(state);
     const id = `ch-${Date.now()}`;
-    const ch: Chapter = { id, title: title ?? `Chapter ${state.chapters.length + 1}`, content: '' };
+    const chapterTitle = title ?? `Chapter ${state.chapters.length + 1}`;
+
+    // Generate filename: chapter-01.md, chapter-02.md, ...
+    const num = state.chapters.length + 1;
+    const padded = String(num).padStart(2, '0');
+    const filename = `chapter-${padded}.md`;
+
+    const ch: Chapter = { id, title: chapterTitle, content: '' };
     set({
       undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), snapshot],
       redoStack: [],
       chapters: [...state.chapters, ch],
       activeChapterId: id,
     });
+
+    // Create file and open in tabs
+    if (state.currentProject?.path) {
+      const chapterDir = `${state.currentProject.path}/chapters`;
+      const filePath = `${chapterDir}/${filename}`;
+      await window.orisonDesktop?.createEntry(chapterDir, true);
+      await window.orisonDesktop?.writeFile(filePath, '');
+      state.openFile(filePath, filename, '');
+    }
   },
 
   removeChapter: (id) => {

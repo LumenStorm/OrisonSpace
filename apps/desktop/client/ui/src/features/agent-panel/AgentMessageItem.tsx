@@ -1,17 +1,30 @@
+import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AgentMessage } from '../../shared/store/agentSlice';
 import { AgentToolCard } from './AgentToolCard';
 import { DiffCard } from './DiffCard';
+import { marked } from 'marked';
 
 const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update'];
 
 type Props = { message: AgentMessage };
 
+function renderMarkdown(content: string): string {
+  return marked.parse(content, { async: false }) as string;
+}
+
 export function AgentMessageItem({ message }: Props) {
   const { resolvedLocale } = useAppStore(useShallow((s) => ({ resolvedLocale: s.resolvedLocale })));
   const { t } = useI18n(resolvedLocale);
+
+  const renderedHtml = useMemo(() => {
+    if (message.role === 'assistant' && message.content) {
+      return renderMarkdown(message.content);
+    }
+    return null;
+  }, [message.role, message.content]);
 
   if (message.role === 'user') {
     return (
@@ -38,7 +51,9 @@ export function AgentMessageItem({ message }: Props) {
   return (
     <div className="agent-msg agent-msg-assistant">
       <div className="agent-msg-label">{t('agent.agent')}</div>
-      {message.content && <div className="agent-msg-content">{message.content}</div>}
+      {renderedHtml && (
+        <div className="agent-msg-content agent-msg-md" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+      )}
       {message.toolCalls?.map((tc) => (
         <div key={tc.id} className="agent-tool-call-badge">
           <span className="material-symbols-outlined">build</span>

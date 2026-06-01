@@ -46,10 +46,6 @@ type Deps = AgentSessionSlice & {
   updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
   pendingDiffs: { id: string; toolId: string; fileName: string; content: string; chapterId?: string }[];
   pendingToolConfirm: { callId: string; name: string; input: unknown } | null;
-  latestSkillContinuation: unknown;
-  agentContinuations: unknown[];
-  restoredSkillContinuation: unknown;
-  continuationSourceSessionId: string | null;
 };
 
 export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSlice> = (set, get) => ({
@@ -218,10 +214,6 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       agentError: null,
       pendingToolConfirm: null,
       pendingDiffs: [],
-      latestSkillContinuation: null,
-      agentContinuations: [],
-      restoredSkillContinuation: null,
-      continuationSourceSessionId: null,
     });
   },
 

@@ -1,7 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { ChapterAccessor } from './types';
 import { resolveAgentConfirmation } from '../api/agent';
-import { randomUUID } from '../util/id';
 
 export type PendingDiff = {
   id: string;

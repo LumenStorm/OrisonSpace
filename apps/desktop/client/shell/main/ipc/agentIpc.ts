@@ -5,6 +5,9 @@ import {
   setExecuteToolFn,
   registerBuiltinTools,
   loadRuntimeConfig,
+  listSkillPackages,
+  setPackageEnabled,
+  setSkillEnabled,
   type WorkflowRuntime,
   type CreateSessionInput,
   type ExecuteSkillRequest,
@@ -84,6 +87,22 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
 
   ipcMain.handle('agent:abort-run', async (_event, sessionId: string) => {
     return runtime.abortRun(sessionId);
+  });
+
+  // ─── Skill package management ───
+
+  ipcMain.handle('agent:list-skill-packages', async () => {
+    return listSkillPackages();
+  });
+
+  ipcMain.handle('agent:set-package-enabled', async (_event, packageName: string, enabled: boolean) => {
+    await setPackageEnabled(packageName, enabled);
+    return { ok: true };
+  });
+
+  ipcMain.handle('agent:set-skill-enabled', async (_event, packageName: string, skillName: string, enabled: boolean) => {
+    await setSkillEnabled(packageName, skillName, enabled);
+    return { ok: true };
   });
 
   // ─── Streaming handler ───

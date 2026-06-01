@@ -151,6 +151,10 @@ topbar:
   about: "About"
   shortcuts: "Shortcuts"
   checkForUpdate: "Check for Updates"
+  splitOutline: "Split Outline"
+  splitRight: "Split Right"
+  splitDown: "Split Down"
+  toggleMinimap: "Toggle Minimap"
 
 storyboard:
   cameraLens: "Camera Lens"
@@ -251,6 +255,8 @@ editor:
   findReplace: "Find & Replace"
   aiContinue: "AI Continue"
   aiPolish: "AI Polish"
+  unsaved: "Unsaved changes"
+  closeTab: "Close {name}"
 
 welcome:
   brand: "Orison Space"
@@ -511,6 +517,10 @@ fileEditor:
   unpin: "Unpin tab"
   splitRight: "Split Right"
   splitDown: "Split Down"
+  splitOutline: "Split Outline"
+  toggleMinimap: "Toggle Minimap"
+  closeSplit: "Close Split"
+  minimap: "Minimap"
 
 contextMenu:
   newFile: "New File"
@@ -701,6 +711,16 @@ agent:
   recentContinuations: "Recent resumable runs"
   noContinuations: "No resumable runs yet"
   restoreRun: "Restore run"
+  settings: "Settings"
+  noSkillPackages: "No skill packages found. Place packages in ~/.orison/skills/"
+  comingSoon: "Coming soon"
+  plugins: "Plugins"
+  attach: "Attach"
+  attachChapter: "Chapters"
+  attachFile: "Open files"
+  removeAttachment: "Remove"
+  mcp: "MCP"
+  loading: "Loading..."
 
 common:
   cancel: "Cancel"

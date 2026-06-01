@@ -151,6 +151,10 @@ topbar:
   about: "关于"
   shortcuts: "快捷键"
   checkForUpdate: "检查更新"
+  splitOutline: "大纲分屏"
+  splitRight: "向右拆分"
+  splitDown: "向下拆分"
+  toggleMinimap: "切换小地图"
 
 storyboard:
   cameraLens: "镜头焦距"
@@ -251,6 +255,8 @@ editor:
   findReplace: "查找替换"
   aiContinue: "AI 续写"
   aiPolish: "AI 润色"
+  unsaved: "未保存的更改"
+  closeTab: "关闭 {name}"
 
 welcome:
   brand: "Orison Space"
@@ -511,6 +517,10 @@ fileEditor:
   unpin: "取消固定"
   splitRight: "向右拆分"
   splitDown: "向下拆分"
+  splitOutline: "大纲分屏"
+  closeSplit: "关闭分屏"
+  minimap: "小地图"
+  toggleMinimap: "切换小地图"
 
 contextMenu:
   newFile: "新建文件"
@@ -701,6 +711,16 @@ agent:
   recentContinuations: "最近可恢复运行"
   noContinuations: "还没有可恢复运行"
   restoreRun: "恢复运行"
+  settings: "设置"
+  noSkillPackages: "未找到 skill 包。请将包放置在 ~/.orison/skills/"
+  comingSoon: "即将推出"
+  plugins: "插件"
+  attach: "附加"
+  attachChapter: "章节"
+  attachFile: "已打开文件"
+  removeAttachment: "移除"
+  mcp: "MCP"
+  loading: "加载中..."
 
 common:
   cancel: "取消"

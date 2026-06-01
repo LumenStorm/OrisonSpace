@@ -18,12 +18,11 @@ import { createAgentSessionSlice, type AgentSessionSlice } from './agentSessionS
 import { createAgentSkillSlice, type AgentSkillSlice } from './agentSkillSlice';
 import { createAgentDiffSlice, type AgentDiffSlice } from './agentDiffSlice';
 import { createNotificationSlice, type NotificationSlice } from './notificationSlice';
+import { createAgentSettingsSlice, type AgentSettingsSlice } from './agentSettingsSlice';
 import { installProjectSubscription } from './projectSubscription';
 
 export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, TaskAdapter, AgentMode } from './types';
 export type { MainView } from './panelsSlice';
-
-export type AgentSlice = AgentSessionSlice & AgentSkillSlice & AgentDiffSlice;
 
 type AppState = ProjectSlice &
   SettingsSlice &
@@ -43,6 +42,7 @@ type AppState = ProjectSlice &
   AgentSessionSlice &
   AgentSkillSlice &
   AgentDiffSlice &
+  AgentSettingsSlice &
   NotificationSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
@@ -64,6 +64,7 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createAgentSessionSlice(...a),
   ...createAgentSkillSlice(...a),
   ...createAgentDiffSlice(...a),
+  ...createAgentSettingsSlice(...a),
   ...createNotificationSlice(...a),
 }));
 

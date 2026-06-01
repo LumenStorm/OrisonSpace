@@ -47,36 +47,6 @@ export type AgentSkillInfo = {
   source?: 'project' | 'external';
 };
 
-export type AgentContinuation = {
-  continuationId?: string;
-  sessionId: string;
-  compacted: {
-    sessionId: string;
-    summary: string;
-    tail: Array<{ id: string; role: string; content: string; createdAt: number }>;
-  };
-  workflowState: {
-    activeSkill?: string;
-    checkpoints: string[];
-  };
-};
-
-export type AgentContinuationRestoreState = {
-  sourceSessionId: string;
-  sessionId: string;
-  summary: string;
-  tail: Array<{ id: string; role: string; content: string; createdAt: number }>;
-  workflowState: AgentContinuation['workflowState'];
-};
-
-export type AgentContinuationListItem = {
-  continuationId: string;
-  sessionId: string;
-  createdAt: number;
-  summary: string;
-  workflowState: AgentContinuation['workflowState'];
-};
-
 export async function createAgentSession(projectPath: string, mode?: AgentMode, modelRef?: ModelRef | null) {
   return api.createAgentSession({
     agentName: mode ?? 'writer',
@@ -104,27 +74,8 @@ export async function listAgentSkills(projectPath: string) {
   return ((result as any)?.skills ?? []) as AgentSkillInfo[];
 }
 
-export async function executeAgentSkill(sessionId: string, skillName: string, request?: { input?: string; artifactIds?: string[]; referenceIds?: string[] }) {
-  return api.executeAgentSkill(sessionId, skillName, request) as Promise<{ outputs: string[]; continuation?: AgentContinuation }>;
-}
-
 export async function resolveAgentConfirmation(sessionId: string, callId: string, approved: boolean) {
   return api.resolveAgentConfirmation(sessionId, callId, approved);
-}
-
-export async function listAgentContinuations(sessionId: string) {
-  return api.listAgentContinuations(sessionId) as Promise<AgentContinuationListItem[]>;
-}
-
-export async function restoreAgentContinuation(sessionId: string, continuationId: string): Promise<AgentContinuationRestoreState> {
-  const raw = await api.restoreAgentContinuation(sessionId, continuationId) as any;
-  return {
-    sourceSessionId: raw.sourceSessionId,
-    sessionId: raw.session?.id ?? raw.sessionId,
-    summary: raw.summary,
-    tail: raw.tail,
-    workflowState: raw.workflowState,
-  };
 }
 
 /**

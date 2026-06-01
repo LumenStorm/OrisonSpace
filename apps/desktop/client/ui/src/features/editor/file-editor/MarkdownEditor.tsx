@@ -4,7 +4,7 @@ import { TiptapEditor } from '../TiptapEditor';
 import { DocOutline } from '../DocOutline';
 import { EditorStatusBar } from './EditorStatusBar';
 import type { FileTab } from '../../../shared/store/fileTabsSlice';
-import { FindReplaceBar, type FindReplaceAdapter, type FindReplaceMode, type FindMatch } from '../FindReplaceBar';
+import { FindReplaceBar, type FindReplaceAdapter, type FindMatch, type FindReplaceMode } from '../FindReplaceBar';
 
 export function MarkdownEditor({ file }: { file: FileTab }) {
   const updateFileContent = useAppStore((s) => s.updateFileContent);
@@ -96,7 +96,7 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
   return (
     <div className="file-editor-md" ref={containerRef}>
       {findMode && (
-        <FindReplaceBar mode={findMode} adapter={adapter} onClose={() => setFindMode(null)} />
+        <FindReplaceBar initialMode={findMode ?? 'find'} adapter={adapter} onClose={() => setFindMode(null)} />
       )}
       <DocOutline content={file.content} onJump={handleJumpToLine} />
       <TiptapEditor
@@ -107,6 +107,7 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
         onChange={handleChange}
         flush
         bubbleMenu
+        disableFind
       />
       <EditorStatusBar content={file.content} fileType="Markdown" />
     </div>

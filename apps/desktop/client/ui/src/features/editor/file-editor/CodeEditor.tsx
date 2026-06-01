@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../../shared/store/appStore';
 import type { FileTab } from '../../../shared/store/fileTabsSlice';
-import { FindReplaceBar, type FindReplaceAdapter, type FindReplaceMode, type FindMatch } from '../FindReplaceBar';
+import { FindReplaceBar, type FindReplaceAdapter, type FindMatch, type FindReplaceMode } from '../FindReplaceBar';
 import { EditorStatusBar } from './EditorStatusBar';
 
 export function CodeEditor({ file }: { file: FileTab }) {
@@ -67,7 +67,7 @@ export function CodeEditor({ file }: { file: FileTab }) {
   return (
     <div className="file-editor-code">
       {findMode && (
-        <FindReplaceBar mode={findMode} adapter={adapter} onClose={() => setFindMode(null)} />
+        <FindReplaceBar initialMode={findMode ?? 'find'} adapter={adapter} onClose={() => setFindMode(null)} />
       )}
       <div className="code-editor-body">
         <div className="code-editor-line-numbers" ref={lineNumRef} aria-hidden="true">

@@ -157,6 +157,13 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('agent:restore-continuation', sessionId, continuationId),
   abortAgentRun: (sessionId: string) =>
     ipcRenderer.invoke('agent:abort-run', sessionId),
+  // Skill package management
+  listSkillPackages: () =>
+    ipcRenderer.invoke('agent:list-skill-packages'),
+  setPackageEnabled: (packageName: string, enabled: boolean) =>
+    ipcRenderer.invoke('agent:set-package-enabled', packageName, enabled),
+  setSkillEnabled: (packageName: string, skillName: string, enabled: boolean) =>
+    ipcRenderer.invoke('agent:set-skill-enabled', packageName, skillName, enabled),
   // Orchestration
   startOrchestrationRun: (input: { projectPath: string; requirement: string; configRoot?: string }) =>
     ipcRenderer.invoke('orchestration:start-run', input),

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useI18n } from '../../shared/i18n/useI18n';
-import { useAppStore } from '../../shared/store/appStore';
 
 export type FindReplaceMode = 'find' | 'replace';
+import { useI18n } from '../../shared/i18n/useI18n';
+import { useAppStore } from '../../shared/store/appStore';
 
 export type FindMatch = {
   index: number;
@@ -11,20 +11,17 @@ export type FindMatch = {
 };
 
 export type FindReplaceAdapter = {
-  /** Full plain-text content used for search. */
   getText: () => string;
-  /** Highlight + scroll to a match. */
   highlight: (match: FindMatch) => void;
-  /** Replace a single match with the given string. */
   replaceOne: (match: FindMatch, replacement: string) => void;
-  /** Replace all matches with the given string. */
   replaceAll: (matches: FindMatch[], replacement: string) => void;
 };
 
 type Props = {
-  mode: FindReplaceMode;
   adapter: FindReplaceAdapter;
   onClose: () => void;
+  /** Initial mode: 'find' = find only, 'replace' = show replace row too */
+  initialMode?: 'find' | 'replace';
 };
 
 function computeMatches(text: string, query: string, caseSensitive: boolean): FindMatch[] {
@@ -46,7 +43,7 @@ function computeMatches(text: string, query: string, caseSensitive: boolean): Fi
   return matches;
 }
 
-export function FindReplaceBar({ mode, adapter, onClose }: Props) {
+export function FindReplaceBar({ adapter, onClose, initialMode = 'find' }: Props) {
   const locale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(locale);
 
@@ -54,7 +51,12 @@ export function FindReplaceBar({ mode, adapter, onClose }: Props) {
   const [replacement, setReplacement] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [expanded, setExpanded] = useState(initialMode === 'replace');
   const queryRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialMode === 'replace') setExpanded(true);
+  }, [initialMode]);
 
   const matches = useMemo(
     () => computeMatches(adapter.getText(), query, caseSensitive),
@@ -64,7 +66,7 @@ export function FindReplaceBar({ mode, adapter, onClose }: Props) {
   useEffect(() => {
     queryRef.current?.focus();
     queryRef.current?.select();
-  }, [mode]);
+  }, []);
 
   useEffect(() => {
     if (matches.length === 0) {
@@ -101,69 +103,87 @@ export function FindReplaceBar({ mode, adapter, onClose }: Props) {
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.shiftKey ? goPrev() : goNext();
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      e.shiftKey ? goPrev() : goNext();
     }
   };
 
   return (
-    <div className="find-replace-bar" role="search">
-      <div className="find-replace-row">
-        <input
-          ref={queryRef}
-          type="text"
-          className="find-replace-input"
-          placeholder={t('findReplace.findPlaceholder')}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKey}
-        />
-        <span className="find-replace-count" aria-live="polite">
-          {matches.length === 0 ? '0/0' : `${activeIndex + 1}/${matches.length}`}
+    <div className="find-replace-bar">
+      <button
+        type="button"
+        className="find-replace-expand"
+        title={t('findReplace.toggleReplace')}
+        onClick={() => setExpanded(!expanded)}
+        aria-label={t('findReplace.toggleReplace')}
+        aria-expanded={expanded}
+      >
+        <span className="material-symbols-outlined" aria-hidden="true">
+          {expanded ? 'expand_more' : 'chevron_right'}
         </span>
-        <button
-          type="button"
-          className={`find-replace-toggle${caseSensitive ? ' is-active' : ''}`}
-          title={t('findReplace.caseSensitive')}
-          onClick={() => setCaseSensitive((v) => !v)}
-        >
-          Aa
-        </button>
-        <button type="button" className="find-replace-btn" onClick={goPrev} title={t('findReplace.previous')} aria-label={t('findReplace.previous')}>
-          <span className="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span>
-        </button>
-        <button type="button" className="find-replace-btn" onClick={goNext} title={t('findReplace.next')} aria-label={t('findReplace.next')}>
-          <span className="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span>
-        </button>
-        <button type="button" className="find-replace-btn" onClick={onClose} title={t('findReplace.close')} aria-label={t('findReplace.close')}>
-          <span className="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </div>
-      {mode === 'replace' && (
+      </button>
+
+      <div className="find-replace-rows">
+        {/* Find row */}
         <div className="find-replace-row">
           <input
+            ref={queryRef}
             type="text"
             className="find-replace-input"
-            placeholder={t('findReplace.replacePlaceholder')}
-            value={replacement}
-            onChange={(e) => setReplacement(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') doReplaceOne();
-              if (e.key === 'Escape') onClose();
-            }}
+            placeholder={t('findReplace.findPlaceholder')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKey}
           />
-          <button type="button" className="find-replace-action" onClick={doReplaceOne} disabled={matches.length === 0}>
-            {t('findReplace.replace')}
+          <span className="find-replace-count" aria-live="polite">
+            {matches.length === 0 ? '0/0' : `${activeIndex + 1}/${matches.length}`}
+          </span>
+          <button
+            type="button"
+            className={`find-replace-toggle${caseSensitive ? ' is-active' : ''}`}
+            title={t('findReplace.caseSensitive')}
+            onClick={() => setCaseSensitive((v) => !v)}
+          >
+            Aa
           </button>
-          <button type="button" className="find-replace-action" onClick={doReplaceAll} disabled={matches.length === 0}>
-            {t('findReplace.replaceAll')}
+          <button type="button" className="find-replace-btn" onClick={goPrev} title={t('findReplace.previous')} aria-label={t('findReplace.previous')}>
+            <span className="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span>
+          </button>
+          <button type="button" className="find-replace-btn" onClick={goNext} title={t('findReplace.next')} aria-label={t('findReplace.next')}>
+            <span className="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span>
+          </button>
+          <button type="button" className="find-replace-btn" onClick={onClose} title={t('findReplace.close')} aria-label={t('findReplace.close')}>
+            <span className="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </div>
-      )}
+
+        {/* Replace row */}
+        {expanded && (
+          <div className="find-replace-row find-replace-row--replace">
+            <input
+              type="text"
+              className="find-replace-input"
+              placeholder={t('findReplace.replacePlaceholder')}
+              value={replacement}
+              onChange={(e) => setReplacement(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') doReplaceOne();
+                if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+              }}
+            />
+            <button type="button" className="find-replace-action" onClick={doReplaceOne} disabled={matches.length === 0}>
+              {t('findReplace.replace')}
+            </button>
+            <button type="button" className="find-replace-action" onClick={doReplaceAll} disabled={matches.length === 0}>
+              {t('findReplace.replaceAll')}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

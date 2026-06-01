@@ -38,6 +38,15 @@ export const desktopIpcSchema = z.object({
   ])
 });
 
+/* ── Skill Package types ── */
+
+export type SkillPackageInfo = {
+  name: string;
+  path: string;
+  enabled: boolean;
+  skills: Array<{ name: string; description?: string; enabled: boolean }>;
+};
+
 /* ── Shared types ── */
 
 export type { ModelCapability, DiscoveredModel, ApiKeyConfig, ApiKeyEntry, ModelConfig, ResolvedModel } from './contracts/model';
@@ -227,6 +236,10 @@ export type OrisonDesktopApi = {
   listAgentContinuations(sessionId: string): Promise<unknown>;
   restoreAgentContinuation(sessionId: string, continuationId: string): Promise<unknown>;
   abortAgentRun(sessionId: string): Promise<boolean>;
+  // Skill package management
+  listSkillPackages(): Promise<SkillPackageInfo[]>;
+  setPackageEnabled(packageName: string, enabled: boolean): Promise<{ ok: boolean }>;
+  setSkillEnabled(packageName: string, skillName: string, enabled: boolean): Promise<{ ok: boolean }>;
   // Orchestration
   startOrchestrationRun(input: { projectPath: string; requirement: string; configRoot?: string }): Promise<OrchestrationRun>;
   getOrchestrationRun(runId: string): Promise<OrchestrationRun>;

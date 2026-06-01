@@ -21,6 +21,7 @@ export function FileTabBar() {
     openFiles, activeFilePath, openFile, closeFile, requestCloseFile, cancelCloseConfirm,
     closeOtherFiles, closeFilesToRight, reopenLastClosedFile, pendingCloseConfirm,
     hasRecentlyClosed, locale, pinnedPaths, togglePinTab, reorderTabs, setSplit,
+    splitDirection, showMinimap, toggleMinimap,
   } = useAppStore(
     useShallow((s) => ({
       openFiles: s.openFiles,
@@ -39,6 +40,9 @@ export function FileTabBar() {
       togglePinTab: s.togglePinTab,
       reorderTabs: s.reorderTabs,
       setSplit: s.setSplit,
+      splitDirection: s.splitDirection,
+      showMinimap: s.showMinimap,
+      toggleMinimap: s.toggleMinimap,
     })),
   );
   const { t } = useI18n(locale);
@@ -121,6 +125,13 @@ export function FileTabBar() {
       icon: 'horizontal_split',
       onClick: () => setSplit('vertical', tab.path),
     },
+    { type: 'separator' },
+    {
+      type: 'item',
+      label: t('fileEditor.splitOutline') || 'Split Outline',
+      icon: 'view_sidebar',
+      onClick: () => setSplit('outline'),
+    },
   ];
 
   const confirmTab = pendingCloseConfirm
@@ -130,8 +141,9 @@ export function FileTabBar() {
   return (
     <>
       {openFiles.length > 0 && (
-        <nav className="file-tab-bar" aria-label="Open files">
-          {openFiles.map((file, index) => {
+        <div className="file-tab-bar-wrapper">
+          <nav className="file-tab-bar" aria-label="Open files">
+            {openFiles.map((file, index) => {
             const isActive = file.path === activeFilePath;
             const isDirty = file.kind === 'text' && file.content !== file.savedContent;
             const isPinned = pinnedPaths.has(file.path);
@@ -164,12 +176,12 @@ export function FileTabBar() {
                   {getTabIcon(file)}
                 </span>
                 <span className="file-tab-name">{file.name}</span>
-                {isDirty && <span className="file-tab-dirty" aria-label="unsaved">●</span>}
+                {isDirty && <span className="file-tab-dirty" aria-label={t('editor.unsaved')}>●</span>}
                 {!isPinned && (
                   <button
                     type="button"
                     className="file-tab-close"
-                    aria-label={`Close ${file.name}`}
+                    aria-label={t('editor.closeTab', { name: file.name })}
                     onClick={(e) => handleCloseClick(e, file)}
                   >
                     <span className="material-symbols-outlined" aria-hidden="true">close</span>
@@ -179,6 +191,32 @@ export function FileTabBar() {
             );
           })}
         </nav>
+        <div className="file-tab-bar-actions">
+          {splitDirection === 'none' && (
+            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.splitOutline') || 'Split Outline'} onClick={() => setSplit('outline')}>
+              <span className="material-symbols-outlined">view_sidebar</span>
+            </button>
+          )}
+          {splitDirection === 'outline' && (
+            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.closeSplit') || 'Close Split'} onClick={() => setSplit('none')}>
+              <span className="material-symbols-outlined">view_sidebar</span>
+            </button>
+          )}
+          {splitDirection !== 'none' && splitDirection !== 'outline' && (
+            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.closeSplit') || 'Close Split'} onClick={() => setSplit('none')}>
+              <span className="material-symbols-outlined">view_sidebar</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className={`file-tab-bar-action-btn${showMinimap ? ' is-active' : ''}`}
+            title={t('fileEditor.minimap') || 'Minimap'}
+            onClick={() => toggleMinimap()}
+          >
+            <span className="material-symbols-outlined">map</span>
+          </button>
+        </div>
+        </div>
       )}
 
       {ctx && (

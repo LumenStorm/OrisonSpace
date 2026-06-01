@@ -17,4 +17,5 @@ export { setGenerateTextFn } from './provider/ipc-provider';
 export { setExecuteToolFn } from './tool/remote';
 export { registerBuiltinTools } from './tool/builtin';
 export { registry } from './tool/registry';
-export { loadRuntimeConfig } from './runtime/config';
+export { loadRuntimeConfig, listSkillPackages, setPackageEnabled, setSkillEnabled } from './runtime/config';
+export type { SkillPackageInfo, SkillsConfig } from './runtime/config';

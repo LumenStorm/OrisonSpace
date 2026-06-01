@@ -13,7 +13,7 @@ import {
   AGENT_PANEL_WIDTH_MAX,
 } from '../constants';
 
-export type SplitDirection = 'none' | 'horizontal' | 'vertical';
+export type SplitDirection = 'none' | 'horizontal' | 'vertical' | 'outline';
 
 export type MainView = 'page' | 'files';
 
@@ -41,6 +41,8 @@ export type PanelsSlice = {
   splitDirection: SplitDirection;
   splitFilePath: string | null;
   setSplit: (direction: SplitDirection, filePath?: string | null) => void;
+  showMinimap: boolean;
+  toggleMinimap: () => void;
 };
 
 export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set) => ({
@@ -79,4 +81,6 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   splitDirection: 'none',
   splitFilePath: null,
   setSplit: (direction, filePath) => set({ splitDirection: direction, splitFilePath: filePath ?? null }),
+  showMinimap: false,
+  toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
 });

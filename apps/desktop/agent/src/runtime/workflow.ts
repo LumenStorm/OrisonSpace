@@ -928,9 +928,8 @@ export function renderSkillExecutionResult(result: WorkflowExecutionResult): str
   return sections.join('\n\n') || `Skill "${result.skill}" completed.`;
 }
 
-async function loadProjectSkills(skillRegistry: SkillRegistry, projectPath: string, externalRoots: string[]) {
+async function loadProjectSkills(skillRegistry: SkillRegistry, _projectPath: string, externalRoots: string[]) {
   const roots = [
-    { path: path.join(projectPath, '.orison', 'skills'), source: 'project' as const },
     ...externalRoots.map((root) => ({ path: root, source: 'external' as const })),
   ];
   const loaded = [];

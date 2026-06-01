@@ -22,6 +22,7 @@ export function TopBar() {
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
+    splitDirection, setSplit, showMinimap, toggleMinimap,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     closeProject: s.closeProject,
@@ -43,6 +44,10 @@ export function TopBar() {
     toggleNotificationPanel: s.toggleNotificationPanel,
     setTheme: s.setTheme,
     closeAllFiles: s.closeAllFiles,
+    splitDirection: s.splitDirection,
+    setSplit: s.setSplit,
+    showMinimap: s.showMinimap,
+    toggleMinimap: s.toggleMinimap,
   })));
   const showToast = useToastStore((s) => s.showToast);
   const undoLen = useAppStore((s) => s.undoStack.length);
@@ -61,7 +66,7 @@ export function TopBar() {
     await saveProject();
     await saveChaptersToProject();
     await saveAllOpenFiles();
-    showToast(t('topbar.saved') || '已保存');
+    showToast(t('topbar.saved'));
   }, [saveProject, saveChaptersToProject, saveAllOpenFiles, showToast, t]);
 
   const handleUndo = useCallback(() => undo(), [undo]);
@@ -129,6 +134,13 @@ export function TopBar() {
     { type: 'action', label: t('topbar.toggleAgentPanel'), handler: toggleAgentPanel },
     { type: 'action', label: t('topbar.toggleNotifications'), handler: toggleNotificationPanel },
     { type: 'separator' },
+    ...(activeFilePath ? [
+      { type: 'action' as const, label: t('topbar.splitOutline'), handler: () => setSplit(splitDirection === 'outline' ? 'none' : 'outline') },
+      { type: 'action' as const, label: t('topbar.splitRight'), handler: () => setSplit(splitDirection !== 'none' && splitDirection !== 'outline' ? 'none' : 'horizontal', activeFilePath) },
+      { type: 'action' as const, label: t('topbar.splitDown'), handler: () => setSplit(splitDirection !== 'none' && splitDirection !== 'outline' ? 'none' : 'vertical', activeFilePath) },
+      { type: 'action' as const, label: t('topbar.toggleMinimap'), handler: toggleMinimap },
+      { type: 'separator' as const },
+    ] : []),
     { type: 'action', label: t('topbar.themeLight'), handler: () => setTheme('light') },
     { type: 'action', label: t('topbar.themeDark'), handler: () => setTheme('dark') },
     { type: 'action', label: t('topbar.themeSystem'), handler: () => setTheme('system') },
