@@ -1,0 +1,55 @@
+appId: com.lumenstorm.orisonspace
+productName: Orison Space
+copyright: Copyright © 2026 LumenStorm
+
+directories:
+  output: ../../../../release
+  buildResources: resources
+
+files:
+  - dist/**
+  - resources/**
+  - package.json
+  - node_modules/**
+
+extraResources:
+  - from: ../../agent/python
+    to: python
+    filter:
+      - "**/*"
+      - "!tests/**"
+      - "!**/__pycache__/**"
+      - "!**/*.pyc"
+      - "!requirements.txt"
+      - "!requirements.runtime.txt"
+  - from: resources/python-runtime
+    to: python-runtime
+    filter:
+      - "**/*"
+
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/better-sqlite3/**"
+
+npmRebuild: true
+buildDependenciesFromSource: false
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Orison Space
+
+publish: null
+electronDist: node_modules/electron/dist

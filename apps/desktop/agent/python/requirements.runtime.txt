@@ -1,0 +1,4 @@
+# Runtime-only Python deps for the packaged embeddable interpreter.
+# Excludes pytest (dev/test only). Keep in sync with requirements.txt.
+PyYAML==6.0.3
+openai>=1.0.0

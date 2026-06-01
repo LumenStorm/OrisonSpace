@@ -7,6 +7,10 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "dist": "pnpm build && electron-builder --config electron-builder.yml --win nsis --x64",
+    "prepare:python": "node scripts/prepare-python-runtime.mjs",
+    "pack:portable": "pnpm prepare:python && pnpm build && electron-builder --config electron-builder.portable.yml --dir",
+    "pack:dir": "pnpm build && electron-builder --config electron-builder.portable.yml --dir",
     "test": "vitest --run",
     "lint": "echo shell lint placeholder",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -31,6 +35,7 @@
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "4.7.0",
     "electron": "^37.10.3",
+    "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "js-yaml": "^4.1.1"
   }

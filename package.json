@@ -12,6 +12,9 @@
     "dev": "pnpm --filter @orison/desktop-shell dev",
     "build": "turbo run build",
     "build:desktop": "pnpm --filter @orison/desktop-shell build",
+    "package:desktop": "pnpm --filter @orison/desktop-shell dist",
+    "package:desktop:portable": "pnpm --filter @orison/desktop-shell pack:portable",
+    "package:desktop:dir": "pnpm --filter @orison/desktop-shell pack:dir",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"

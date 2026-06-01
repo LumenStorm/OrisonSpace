@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import { buildPythonSpawnCommand, resolvePythonCommand } from './pythonRuntime';
 
 interface PythonNodeRequest {
   runId: string;
@@ -36,11 +37,12 @@ interface ExecuteOptions {
 
 export async function executePythonNode(options: ExecuteOptions): Promise<PythonNodeResult> {
   const { request, timeoutMs = 30000 } = options;
-  const pythonCommand = options.pythonCommand ?? 'python';
+  const pythonCommand = options.pythonCommand ?? resolvePythonCommand();
   const runnerPath = options.runnerPath ?? path.join(__dirname, '../../python/runner/main.py');
+  const spawnCommand = buildPythonSpawnCommand(pythonCommand, [runnerPath]);
 
   return new Promise((resolve, reject) => {
-    const proc = spawn(pythonCommand, [runnerPath], {
+    const proc = spawn(spawnCommand.command, spawnCommand.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env },
       timeout: timeoutMs,

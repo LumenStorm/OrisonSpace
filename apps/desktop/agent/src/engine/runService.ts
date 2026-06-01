@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import { executePythonNode } from './pythonNodeExecutor';
+import { resolveAgentPythonDir, resolvePythonCommand } from './pythonRuntime';
 import { registerRun } from './runStore';
 import { writeArtifactYaml, writeContextPacketYaml } from './artifactYaml';
 import type { NovelModelRuntime } from '@orison/shared-contracts';
@@ -44,7 +45,7 @@ export interface RunResult {
 
 // ── Helpers ──
 
-const AGENT_DIR = path.resolve(__dirname, '../../python');
+const AGENT_DIR = resolveAgentPythonDir();
 
 function resolvePromptFile(promptPath: string): { system: string; user: string } {
   const resolved = path.resolve(AGENT_DIR, '..', promptPath);
@@ -78,7 +79,7 @@ async function runPythonAgent(
 
   try {
     const result = await executePythonNode({
-      pythonCommand: 'python',
+      pythonCommand: resolvePythonCommand(),
       runnerPath: path.join(AGENT_DIR, 'runner/main.py'),
       request: {
         runId: `run_${Date.now().toString(36)}`,
