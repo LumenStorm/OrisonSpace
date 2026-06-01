@@ -21,6 +21,10 @@ __pycache__/
 *.pem
 .claude/
 logs/
+release/
+portable/
+apps/desktop/client/shell/resources/python-runtime/
+apps/desktop/client/shell/.python-cache/
 .orison/
 .plan.md
 **/PLAN-*.md

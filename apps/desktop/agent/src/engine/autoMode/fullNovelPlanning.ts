@@ -2,8 +2,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import { executePythonNode } from '../pythonNodeExecutor';
+import { resolveAgentPythonDir, resolvePythonCommand } from '../pythonRuntime';
 
-const AGENT_DIR = path.resolve(__dirname, '../../../python');
+const AGENT_DIR = resolveAgentPythonDir();
 
 function resolvePromptFile(promptPath: string): { system: string; user: string } {
   const resolved = path.resolve(AGENT_DIR, '..', promptPath);
@@ -39,7 +40,7 @@ async function callAgent(nodeId: string, input: Record<string, unknown>, modelRu
 
   try {
     const result = await executePythonNode({
-      pythonCommand: 'python',
+      pythonCommand: resolvePythonCommand(),
       runnerPath: path.join(AGENT_DIR, 'runner/main.py'),
       request: {
         runId: `run_plan_${Date.now().toString(36)}`,
