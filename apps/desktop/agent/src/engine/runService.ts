@@ -187,7 +187,7 @@ export function createRunService(options: RunOptions = {}) {
             completedNodes, artifacts, archive: null, delivery: null, feedback: null,
             review: { summary: 'python node failed (forced)', reasons: [] },
           };
-          registerRun(run);
+          registerRun(run, input.projectPath);
           return run;
         }
 
@@ -200,7 +200,7 @@ export function createRunService(options: RunOptions = {}) {
             completedNodes, artifacts, archive: null, delivery: null, feedback: null,
             review: { summary: `python node failed: ${err.message}`, reasons: [] },
           };
-          registerRun(run);
+          registerRun(run, input.projectPath);
           return run;
         }
         artifacts[result.stateKey] = result.artifact;
@@ -215,7 +215,7 @@ export function createRunService(options: RunOptions = {}) {
               completedNodes, artifacts, archive: null, delivery: null, feedback: null,
               review: { verdict: 'revise', reasons: review?.reasons ?? [] },
             };
-            registerRun(run);
+            registerRun(run, input.projectPath);
             return run;
           }
           if (reviewMode === 'escalate' || review?.verdict === 'escalate') {
@@ -225,7 +225,7 @@ export function createRunService(options: RunOptions = {}) {
               archive: null, delivery: null, feedback: null,
               review: { verdict: 'escalate', reasons: review?.reasons ?? [] },
             };
-            registerRun(run);
+            registerRun(run, input.projectPath);
             return run;
           }
         }
@@ -242,7 +242,7 @@ export function createRunService(options: RunOptions = {}) {
         feedback: { feedbackId },
         review: null,
       };
-      registerRun(run);
+      registerRun(run, input.projectPath);
       return run;
     },
 
@@ -495,13 +495,15 @@ export function createRunService(options: RunOptions = {}) {
       const deliveryId = `dlv_${Date.now().toString(36)}`;
       const feedbackId = `fb_${Date.now().toString(36)}`;
 
-      return {
+      const run: RunResult = {
         runId, status: 'delivered', currentNodeId: null, completedNodes, artifacts,
         archive: { versionId },
         delivery: { deliveryId },
         feedback: { feedbackId },
         review: null,
       };
+      registerRun(run, input.projectPath);
+      return run;
     },
   };
 }

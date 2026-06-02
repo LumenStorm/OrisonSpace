@@ -158,8 +158,8 @@ export const exposedDesktopApi = {
   abortAgentRun: (sessionId: string) =>
     ipcRenderer.invoke('agent:abort-run', sessionId),
   // Skill package management
-  listSkillPackages: () =>
-    ipcRenderer.invoke('agent:list-skill-packages'),
+  listSkillPackages: (projectPath?: string) =>
+    ipcRenderer.invoke('agent:list-skill-packages', projectPath),
   setPackageEnabled: (packageName: string, enabled: boolean) =>
     ipcRenderer.invoke('agent:set-package-enabled', packageName, enabled),
   setSkillEnabled: (packageName: string, skillName: string, enabled: boolean) =>

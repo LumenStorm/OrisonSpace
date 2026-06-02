@@ -1,4 +1,21 @@
 import type { RunSnapshot } from '../contracts/run';
+import type { RunResult } from './runService';
+import { extractAssetCandidates, classifyPatches } from './assetLibrary';
+
+export function buildCreativeFeedback(
+  run: RunResult,
+  existingAssets: Array<{ id: string; [k: string]: unknown }>,
+) {
+  const artifact = (run.artifacts['assets.projectContext'] ?? {}) as Record<string, unknown>;
+  const candidates = extractAssetCandidates(artifact, existingAssets);
+  const classified = classifyPatches(candidates);
+
+  return {
+    feedbackId: `fb_${Date.now().toString(36)}`,
+    createdAt: new Date().toISOString(),
+    assetPatches: classified,
+  };
+}
 
 export function buildFeedback(run: RunSnapshot) {
   const assetPatches: Array<{ target: 'asset' | 'rule' | 'prompt'; key: string; value: unknown }> = [];

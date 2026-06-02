@@ -206,4 +206,59 @@ describe('runtime workflow run state', () => {
     expect(restored.workflowState.checkpoints).toEqual(['story-setup:completed']);
     expect(restored.tail.length).toBeGreaterThan(0);
   });
+
+  it('persists a first-run ask_user pause and resumes the skill on the next invocation', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const { SkillRegistry } = await import('../src/skill/runtime/registry');
+
+    const skillRegistry = new SkillRegistry();
+    skillRegistry.register({
+      format: 'manifest',
+      name: 'story-long-write',
+      description: 'Pause for setup first, then continue.',
+      location: 'I:/skills/oh-story-claudecode-main/skills/story-long-write',
+      entryPath: 'I:/skills/oh-story-claudecode-main/skills/story-long-write/SKILL.md',
+      prompt: 'Ask for setup before writing.',
+      workflowMode: 'workflow',
+      assets: { references: [], scripts: [] },
+      compiledPlan: {
+        entryNodeId: 'instruction',
+        nodes: [
+          { id: 'instruction', type: 'instruction', content: '先收集设定。' },
+          { id: 'clarify', type: 'ask_user', question: '你想写什么类型？' },
+          { id: 'writer', type: 'instruction', content: '根据用户设定继续写作。' },
+          { id: 'finish', type: 'finish' },
+        ],
+        edges: [],
+      },
+    });
+
+    const runtime = createWorkflowRuntime({
+      generate: vi.fn(async (messages, _system, tools) => ({
+        content: JSON.stringify({
+          lastUserMessage: messages[messages.length - 1]?.content ?? '',
+          toolCount: tools.length,
+        }),
+        finishReason: 'stop',
+      })),
+      skillRegistry,
+    });
+
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+    });
+
+    const firstRun = await runtime.executeSkillByName(session.id, 'story-long-write', '生成50章的小说');
+    expect(firstRun.pendingConfirmations).toHaveLength(1);
+    expect(firstRun.outputs).toHaveLength(1);
+    expect(firstRun.outputs[0]).toContain('"toolCount":0');
+
+    const secondRun = await runtime.executeSkillByName(session.id, 'story-long-write', '起点男频，17万字，诡异修仙');
+    expect(secondRun.pendingConfirmations).toHaveLength(0);
+    expect(secondRun.outputs).toEqual([
+      expect.stringContaining('起点男频，17万字，诡异修仙'),
+    ]);
+    expect(secondRun.outputs[0]).toContain('根据用户设定继续写作');
+  });
 });

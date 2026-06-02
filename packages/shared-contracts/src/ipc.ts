@@ -237,7 +237,7 @@ export type OrisonDesktopApi = {
   restoreAgentContinuation(sessionId: string, continuationId: string): Promise<unknown>;
   abortAgentRun(sessionId: string): Promise<boolean>;
   // Skill package management
-  listSkillPackages(): Promise<SkillPackageInfo[]>;
+  listSkillPackages(projectPath?: string): Promise<SkillPackageInfo[]>;
   setPackageEnabled(packageName: string, enabled: boolean): Promise<{ ok: boolean }>;
   setSkillEnabled(packageName: string, skillName: string, enabled: boolean): Promise<{ ok: boolean }>;
   // Orchestration

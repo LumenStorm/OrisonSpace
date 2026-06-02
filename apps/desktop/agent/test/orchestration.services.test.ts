@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createArchiveRecord } from '../src/engine/archiveService';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import path from 'node:path';
+import { tmpdir } from 'node:os';
+import { createArchiveRecord, createCreativeArchiveRecord } from '../src/engine/archiveService';
 import { buildDeliveryOutput } from '../src/engine/deliveryService';
-import { buildFeedback } from '../src/engine/feedbackService';
+import { buildFeedback, buildCreativeFeedback } from '../src/engine/feedbackService';
 import type { RunSnapshot } from '../src/contracts/run';
+import type { RunResult } from '../src/engine/runService';
 
 function makeRun(overrides?: Partial<RunSnapshot>): RunSnapshot {
   return {
@@ -93,5 +97,78 @@ describe('feedbackService', () => {
     const feedback = buildFeedback(run);
 
     expect(feedback.memo).toContain('无审核记录');
+  });
+});
+
+function makeRunResult(overrides?: Partial<RunResult>): RunResult {
+  return {
+    runId: 'run_creative',
+    status: 'approved',
+    currentNodeId: null,
+    completedNodes: ['intake-agent', 'asset-loader-agent'],
+    artifacts: {
+      'assets.projectContext': {
+        asset_cards: [
+          { id: 'char_1', name: '主角', role: 'protagonist' },
+          { id: 'char_2', name: '反派', role: 'antagonist' },
+        ],
+        relationship_graph: {
+          edges: [{ id: 'edge_1', from: 'char_1', to: 'char_2', type: 'enemy' }],
+        },
+      },
+    },
+    archive: null,
+    delivery: null,
+    feedback: null,
+    review: null,
+    ...overrides,
+  };
+}
+
+describe('buildCreativeFeedback', () => {
+  it('extracts and classifies asset patches from projectContext', () => {
+    const run = makeRunResult();
+    const existing = [{ id: 'char_1', name: '主角', status: 'locked' }];
+    const fb = buildCreativeFeedback(run, existing);
+
+    expect(fb.feedbackId).toMatch(/^fb_/);
+    expect(fb.assetPatches.autoApply.length).toBeGreaterThan(0);
+    expect(fb.assetPatches.needsReview.length).toBeGreaterThan(0);
+  });
+
+  it('returns empty patches when no assets artifact', () => {
+    const run = makeRunResult({ artifacts: {} });
+    const fb = buildCreativeFeedback(run, []);
+
+    expect(fb.assetPatches.autoApply).toHaveLength(0);
+    expect(fb.assetPatches.needsReview).toHaveLength(0);
+  });
+});
+
+describe('createCreativeArchiveRecord', () => {
+  const tmpDir = path.join(tmpdir(), 'archive-test-' + Date.now());
+
+  it('lists artifact yaml files from disk', () => {
+    const run = makeRunResult();
+    const artifactDir = path.join(tmpDir, 'runs', run.runId, 'artifacts');
+    mkdirSync(artifactDir, { recursive: true });
+    writeFileSync(path.join(artifactDir, 'world_setting.yaml'), 'data: test');
+    writeFileSync(path.join(artifactDir, 'asset_cards.yaml'), 'data: test');
+
+    const record = createCreativeArchiveRecord(run, tmpDir);
+
+    expect(record.versionId).toMatch(/^ver_/);
+    expect(record.artifactFiles).toContain('world_setting.yaml');
+    expect(record.artifactFiles).toContain('asset_cards.yaml');
+    expect(record.completedNodes).toEqual(run.completedNodes);
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns empty list when no artifacts dir exists', () => {
+    const run = makeRunResult();
+    const record = createCreativeArchiveRecord(run, '/nonexistent_path_xyz');
+
+    expect(record.artifactFiles).toHaveLength(0);
   });
 });

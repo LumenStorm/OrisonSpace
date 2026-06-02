@@ -11,14 +11,18 @@ export type AgentSettingsSlice = {
   toggleSkill: (pkg: string, skill: string, enabled: boolean) => Promise<void>;
 };
 
-export const createAgentSettingsSlice: StateCreator<AgentSettingsSlice, [], [], AgentSettingsSlice> = (set, get) => ({
+export const createAgentSettingsSlice: StateCreator<
+  AgentSettingsSlice & { currentProject: { path?: string } | null },
+  [], [], AgentSettingsSlice
+> = (set, get) => ({
   skillPackages: [],
   skillPackagesLoading: false,
 
   async loadSkillPackages() {
     set({ skillPackagesLoading: true });
     try {
-      const packages = await api.listSkillPackages();
+      const projectPath = get().currentProject?.path;
+      const packages = await api.listSkillPackages(projectPath);
       set({ skillPackages: packages, skillPackagesLoading: false });
     } catch {
       set({ skillPackagesLoading: false });

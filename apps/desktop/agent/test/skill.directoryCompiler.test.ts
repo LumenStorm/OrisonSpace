@@ -194,4 +194,62 @@ describe('directory skill compiler core types', () => {
     ]));
     expect(compiled.capabilities).toContain('spawn_agent');
   });
+
+  it('recognizes deeper markdown phase headings and Chinese ask-user prompts', async () => {
+    const { compileDirectorySkill } = await import('../src/skill/runtime/compiler');
+
+    const compiled = compileDirectorySkill({
+      id: 'story-long-write',
+      name: 'story-long-write',
+      source: 'directory',
+      entryPath: 'I:\\echo\\skill\\story-long-write\\SKILL.md',
+      location: 'I:\\echo\\skill\\story-long-write',
+      description: 'Long-form story writing',
+      rawPrompt: `# story-long-write
+
+### Phase 1：确认选题方向
+
+如果用户没有方向：
+
+问用户：**「你想写什么类型？有没有喜欢的书想对标？」**
+
+#### Agent 调用：story-architect
+
+确认选题方向后，可 spawn Agent(subagent_type: "story-architect", prompt: "题材定位")。
+
+### Phase 2：核心设定
+
+帮用户确立主角设定和世界观。
+
+#### Agent 调用：character-designer
+
+可 spawn Agent(subagent_type: "character-designer", prompt: "角色设定")。
+`,
+      references: [],
+      scripts: [],
+      capabilities: [],
+      compiledPlan: {
+        entryNodeId: 'placeholder',
+        nodes: [],
+        edges: [],
+      },
+      warnings: [],
+    });
+
+    const nodeTypes = compiled.compiledPlan.nodes.map((node) => node.type);
+    expect(compiled.compiledPlan.nodes.filter((node) => node.type === 'instruction')).toHaveLength(2);
+    expect(nodeTypes).toEqual(expect.arrayContaining([
+      'instruction',
+      'ask_user',
+      'spawn_agent',
+      'finish',
+    ]));
+    expect(compiled.compiledPlan.nodes.find((node) => node.type === 'ask_user')).toBeTruthy();
+    expect(compiled.compiledPlan.nodes.filter((node) => node.type === 'spawn_agent')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ agentType: 'story-architect' }),
+        expect.objectContaining({ agentType: 'character-designer' }),
+      ]),
+    );
+  });
 });

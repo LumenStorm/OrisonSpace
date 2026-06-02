@@ -48,13 +48,25 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
 
   const filePath = path.join(dir, `${chapterId}.md`);
   assertWithinProject(projectDir, filePath);
-  atomicWriteFileSync(filePath, content, 'utf-8');
 
+  if (existsSync(filePath)) {
+    const existing = readFileSync(filePath, 'utf-8');
+    if (existing === content) {
+      const wordCount = content.replace(/\s+/g, '').length;
+      return {
+        title: `chapter_write: ${chapterId}`,
+        output: `Chapter ${chapterId} already up to date (${wordCount} chars). No changes needed — proceed to the next chapter.`,
+        metadata: { wordCount },
+      };
+    }
+  }
+
+  atomicWriteFileSync(filePath, content, 'utf-8');
   notifyUI({ type: 'chapter:changed', chapterId });
   const wordCount = content.replace(/\s+/g, '').length;
   return {
     title: `chapter_write: ${chapterId}`,
-    output: `Wrote chapter ${chapterId} (${wordCount} chars)`,
+    output: `Wrote chapter ${chapterId} (${wordCount} chars). Chapter saved — proceed to the next chapter.`,
     metadata: { wordCount },
   };
 };

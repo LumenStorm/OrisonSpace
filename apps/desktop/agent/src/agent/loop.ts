@@ -48,7 +48,22 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
     result.push(assistantMsg);
     onMessage?.(assistantMsg);
 
-    if (!response.toolCalls?.length || response.finishReason === 'stop') {
+    if (!response.toolCalls?.length) {
+      if (response.finishReason === 'length') {
+        // Output truncated — inject continuation prompt to keep going
+        const contMsg: SessionMessage = {
+          id: randomUUID(),
+          role: 'user',
+          content: 'Continue from where you left off. Execute the next step using the appropriate tool.',
+          createdAt: Date.now(),
+        };
+        result.push(contMsg);
+        onMessage?.(contMsg);
+        continue;
+      }
+      break;
+    }
+    if (response.finishReason === 'stop') {
       break;
     }
 

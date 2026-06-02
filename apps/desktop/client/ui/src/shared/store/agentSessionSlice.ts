@@ -98,6 +98,13 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
 
     const sid = sessionId;
     const mode = state.agentMode;
+
+    // Clean up previous stream listener to prevent duplication
+    if (activeAbort) {
+      activeAbort.cleanup();
+      activeAbort = null;
+    }
+
     const { cleanup } = streamAgentMessage(sid, messageContent, (event: AgentStreamEvent) => {
       switch (event.type) {
         case 'assistant':
@@ -182,9 +189,17 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
           break;
         }
         case 'done':
+          if (activeAbort) {
+            activeAbort.cleanup();
+            activeAbort = null;
+          }
           set({ agentLoading: false });
           break;
         case 'error':
+          if (activeAbort) {
+            activeAbort.cleanup();
+            activeAbort = null;
+          }
           set({ agentError: event.data.message, agentLoading: false });
           break;
       }

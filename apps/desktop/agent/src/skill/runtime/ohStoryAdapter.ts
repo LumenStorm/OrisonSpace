@@ -12,6 +12,8 @@ const ROUTABLE_SKILLS = new Set([
   'story-short-analyze',
   'story-deslop',
   'story-review',
+  'story-import',
+  'story-cover',
 ]);
 
 const SKILLS_WITH_WIZARD = new Set(['story-long-write', 'story-short-write']);
@@ -19,9 +21,17 @@ const SKILLS_WITH_WIZARD = new Set(['story-long-write', 'story-short-write']);
 const ROUTER_SKILL = 'story';
 const ROUTER_PROMPT_PREFIX = '__orison_oh_story_router__';
 
+const BLOCKED_SKILLS = new Set([
+  'story-setup',
+  'story-long-scan',
+  'story-short-scan',
+  'browser-cdp',
+]);
+
 export async function loadOhStoryCompatibleSkill(skillDir: string): Promise<NormalizedSkill | null> {
   if (!existsSync(path.join(skillDir, 'SKILL.md'))) return null;
   const skill = await loadDirectorySkill(skillDir);
+  if (BLOCKED_SKILLS.has(skill.name)) return null;
   if (!ROUTABLE_SKILLS.has(skill.name)) return null;
   const shouldAdaptCompiledPlan = isOhStorySkillDirectory(skillDir);
 
@@ -62,7 +72,55 @@ function buildExecutionPrompt(originalPrompt: string, skillName: string): string
   return [
     `You are executing the adapted external skill "${skillName}".`,
     'Follow the external story-skill guidance below as a creative writing assistant inside the Orison runtime.',
-    'If the external skill mentions unsupported Claude-specific primitives, reinterpret them into direct assistant behavior instead of asking for unavailable platform actions.',
+    '',
+    '## Runtime Adaptation Rules',
+    '',
+    '### Tool Mapping (MUST follow)',
+    '- To write chapters: use `chapter_write` tool (NOT write_file to 正文/ directory)',
+    '- To read previous chapters: use `chapter_read` tool',
+    '- To list chapters: use `chapter_list` tool',
+    '- To update outline: use `outline_update` tool (NOT write_file to 大纲/ directory)',
+    '- To read outline: use `outline_read` tool',
+    '- To write settings/worldbuilding: use `write_file` with hierarchical subdirectory structure',
+    '- To read settings: use `read_file` (check project file tree for actual paths)',
+    '- To search content across files (grep/find替代): use `search` tool',
+    '- To verify file exists after writing: use `list_files` on the target directory',
+    '- Git operations: use `git_diff`, `git_status`, `git_log`, `git_commit` tools directly',
+    '',
+    '### Directory Mapping',
+    '- If project.json has "directories" config, use those names instead of defaults.',
+    '- Skill says `正文/` → use chapter_write/chapter_read APIs instead',
+    '- Skill says `设定/` or `设定/角色/` → use actual settings directory from project file tree (e.g., `设定集/`)',
+    '- Skill says `大纲/大纲.md` → use outline_update API for main outline',
+    '- Skill says `大纲/细纲_第XXX章.md` or `大纲/卷纲_*.md` → use write_file (these are supplementary files)',
+    '- Skill says `追踪/` → use write_file to 追踪/ directory (tracking files)',
+    '',
+    '### Agent References (no sub-agents available)',
+    '- When skill says "spawn Agent(story-explorer...)" → perform the context loading yourself inline',
+    '- When skill says "spawn Agent(story-architect...)" → perform the analysis yourself inline',
+    '- When skill says "spawn Agent(character-designer...)" → design characters yourself inline',
+    '- When skill says "spawn Agent(story-researcher...)" → use your knowledge directly',
+    '- Do NOT mention agents to the user or ask them to spawn agents',
+    '',
+    '### Multi-agent Review Degradation (story-review)',
+    '- When skill requires parallel multi-perspective review: perform reviews SEQUENTIALLY',
+    '  from each perspective (consistency → character → narrative → style), keeping analysis separate.',
+    '- For cascade/cross-chapter checks: use `chapter_list` to enumerate, then `chapter_read` to',
+    '  read relevant chapters, and `search` tool to find cross-references and contradictions.',
+    '- For diff-based review: use `git_diff` tool to see recent changes.',
+    '',
+    '### Unsupported Features (skip silently)',
+    '- Bash/shell commands (wc, grep, curl) → estimate word count from string length, use `search` tool for grep',
+    '- Hooks (session-start, pre-compact, etc.) → not available, skip',
+    '- Browser/CDP operations → not available, skip',
+    '- TodoWrite/TodoRead → not available, skip',
+    '',
+    '### Settings File Structure (MUST follow)',
+    '- Use hierarchical subdirectories. ONE focused topic per file, under 150 lines.',
+    '  Example: 设定集/角色/萧锋.md, 设定集/世界观/天下大势.md, 设定集/系统/核心机制.md',
+    '- Before writing chapters, READ relevant settings files from the project file tree.',
+    '',
+    '---',
     '',
     originalPrompt.trim(),
   ].join('\n');

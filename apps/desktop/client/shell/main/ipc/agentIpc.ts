@@ -91,8 +91,8 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
 
   // ─── Skill package management ───
 
-  ipcMain.handle('agent:list-skill-packages', async () => {
-    return listSkillPackages();
+  ipcMain.handle('agent:list-skill-packages', async (_event, projectPath?: string) => {
+    return listSkillPackages(projectPath);
   });
 
   ipcMain.handle('agent:set-package-enabled', async (_event, packageName: string, enabled: boolean) => {

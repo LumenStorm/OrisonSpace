@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession } from '../agent/session';
 import { listSessions, persistContinuation, loadContinuations, loadContinuationById, overwriteMessagesFile, persistSession } from '../agent/persistence';
@@ -206,7 +206,10 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       if (depth > MAX_SPAWN_DEPTH) {
         throw new SpawnDepthExceededError(depth);
       }
-      const content = context.input ? `${prompt}\n\nUser request:\n${context.input}` : prompt;
+      const tree = await getProjectTree(session.projectPath);
+      const content = context.input
+        ? `${prompt}\n\nProject file structure:\n${tree}\n\nUser request:\n${context.input}`
+        : `${prompt}\n\nProject file structure:\n${tree}`;
       const systemPrompt = await buildRuntimeSystemPrompt(session, externalSkillRoots);
       const childOnMessage = makeChildOnMessage('skill', skill.name, session.id, depth, context.emitChildEvent);
       const availableTools = context.suppressAllTools
@@ -841,12 +844,37 @@ async function buildRuntimeSystemPrompt(session: SessionState, extraSkillRoots: 
     skillsSummary = lines.join('\n').trimEnd();
   }
 
+  let projectMeta = `Project path: ${session.projectPath}`;
+  try {
+    const metaRaw = await readFile(path.join(session.projectPath, 'project.json'), 'utf-8');
+    projectMeta += `\nProject config:\n${metaRaw}`;
+  } catch { /* no project.json */ }
+
   return buildSystemPrompt({
     orisonPrompt: DEFAULT_ORISON_PROMPT,
-    projectMeta: `Project path: ${session.projectPath}`,
+    projectMeta,
     skillsSummary,
     toolDescriptions: registry.all().map((tool) => `- ${tool.id}: ${tool.description}`).join('\n'),
   });
+}
+
+async function getProjectTree(projectPath: string, maxDepth = 2): Promise<string> {
+  const lines: string[] = [];
+  async function walk(dir: string, prefix: string, depth: number) {
+    if (depth > maxDepth) return;
+    try {
+      const entries = await readdir(dir, { withFileTypes: true });
+      const sorted = entries.filter(e => !e.name.startsWith('.')).sort((a, b) => a.name.localeCompare(b.name));
+      for (const entry of sorted) {
+        lines.push(`${prefix}${entry.isDirectory() ? entry.name + '/' : entry.name}`);
+        if (entry.isDirectory()) {
+          await walk(path.join(dir, entry.name), prefix + '  ', depth + 1);
+        }
+      }
+    } catch { /* dir unreadable */ }
+  }
+  await walk(projectPath, '', 0);
+  return lines.slice(0, 80).join('\n');
 }
 
 export function isSessionNotFoundError(error: unknown): boolean {
