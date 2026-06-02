@@ -311,6 +311,7 @@
   color: var(--on-surface-variant);
   cursor: pointer;
   flex-shrink: 0;
+  margin-right: -1px;
 }
 
 .agent-side-tab:hover {
@@ -322,6 +323,7 @@
   background: var(--accent-soft);
   color: var(--accent-strong);
   border-color: var(--accent);
+  margin-right: 0;
 }
 
 .agent-side-tab .material-symbols-outlined {

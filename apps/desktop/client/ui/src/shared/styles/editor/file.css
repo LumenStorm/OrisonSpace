@@ -113,7 +113,7 @@
 
 .file-tab-dirty {
   color: var(--accent);
-  font-size: 0.65rem;
+  font-size: 0.45rem;
   line-height: 1;
 }
 

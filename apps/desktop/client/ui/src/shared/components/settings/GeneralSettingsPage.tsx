@@ -6,10 +6,6 @@ type Props = {
   setTheme: (theme: ThemeSetting) => void;
   locale: LocaleSetting;
   setLocale: (locale: LocaleSetting) => void;
-  autoApplyPatches: boolean;
-  setAutoApplyPatches: (value: boolean) => void;
-  updateManifestUrl: string;
-  setUpdateManifestUrl: (url: string) => void;
 };
 
 export function GeneralSettingsPage({
@@ -18,10 +14,6 @@ export function GeneralSettingsPage({
   setTheme,
   locale,
   setLocale,
-  autoApplyPatches,
-  setAutoApplyPatches,
-  updateManifestUrl,
-  setUpdateManifestUrl,
 }: Props) {
   return (
     <div className="settings-page">
@@ -61,35 +53,6 @@ export function GeneralSettingsPage({
         </div>
       </div>
 
-      <div className="sidebar-settings-divider" />
-
-      <div className="sidebar-settings-row">
-        <label className="sidebar-settings-toggle-row">
-          <input
-            type="checkbox"
-            className="sidebar-settings-checkbox"
-            checked={autoApplyPatches}
-            onChange={(e) => setAutoApplyPatches(e.target.checked)}
-          />
-          <span className="sidebar-settings-label">{t('settings.autoApply')}</span>
-        </label>
-        <span className="sidebar-settings-hint">{t('settings.autoApplyDesc')}</span>
-      </div>
-
-      <div className="sidebar-settings-divider" />
-
-      <label className="sidebar-settings-input-row">
-        <span className="sidebar-settings-input-label">{t('settings.updateManifestUrl')}</span>
-        <input
-          type="url"
-          className="sidebar-settings-input"
-          placeholder="https://example.com/orison/latest.json"
-          value={updateManifestUrl}
-          onChange={(e) => setUpdateManifestUrl(e.target.value)}
-          spellCheck={false}
-        />
-      </label>
-      <span className="sidebar-settings-hint">{t('settings.updateManifestHint')}</span>
     </div>
   );
 }

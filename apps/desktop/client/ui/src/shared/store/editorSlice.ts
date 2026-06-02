@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { normalizePath } from '../utils/paths';
 
 export type Chapter = {
   id: string;
@@ -82,7 +83,7 @@ export const createEditorSlice: StateCreator<
 
     // Create file and open in tabs
     if (state.currentProject?.path) {
-      const chapterDir = `${state.currentProject.path}/chapters`;
+      const chapterDir = normalizePath(`${state.currentProject.path}/chapters`);
       const filePath = `${chapterDir}/${filename}`;
       await window.orisonDesktop?.createEntry(chapterDir, true);
       await window.orisonDesktop?.writeFile(filePath, '');

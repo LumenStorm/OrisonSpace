@@ -191,6 +191,7 @@ export type OrisonDesktopApi = {
   readFile(fullPath: string): Promise<string | null>;
   readFileBinary(fullPath: string): Promise<BinaryFilePayload | null>;
   writeFile(fullPath: string, content: string): Promise<boolean>;
+  wordCount(projectDir: string): Promise<number>;
   pathExists(fullPath: string): Promise<boolean>;
   saveBase64Image(projectDir: string, input: SaveBase64ImageInput): Promise<SavedImageFile>;
   moveProjectFile(projectDir: string, fromRelativePath: string, toRelativePath: string): Promise<string>;

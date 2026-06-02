@@ -3,6 +3,7 @@ import { useAppStore } from '../../shared/store/appStore';
 import { useToastStore } from '../../shared/store/toastStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { normalizePath } from '../../shared/utils/paths';
 import { NewProjectDialog } from '../../shared/components/NewProjectDialog';
 import { WindowControls, detectIsMac } from '../../shared/components/WindowControls';
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
@@ -22,7 +23,7 @@ export function TopBar() {
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
-    splitDirection, setSplit, showMinimap, toggleMinimap,
+    splitDirection, setSplit, showMinimap, toggleMinimap, refreshWordCount,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     closeProject: s.closeProject,
@@ -48,6 +49,7 @@ export function TopBar() {
     setSplit: s.setSplit,
     showMinimap: s.showMinimap,
     toggleMinimap: s.toggleMinimap,
+    refreshWordCount: s.refreshWordCount,
   })));
   const showToast = useToastStore((s) => s.showToast);
   const undoLen = useAppStore((s) => s.undoStack.length);
@@ -63,11 +65,29 @@ export function TopBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
-    await saveProject();
-    await saveChaptersToProject();
     await saveAllOpenFiles();
+    await saveProject();
+    await saveChaptersToProject().catch(() => {});
+    // Sync word counts from saved files into novelChapters for overview
+    const state = useAppStore.getState();
+    const projectPath = state.currentProject?.path;
+    if (projectPath && state.novelChapters.length > 0) {
+      const base = normalizePath(projectPath);
+      const updated = state.novelChapters.map((ch) => ({
+        ...ch,
+        sections: ch.sections.map((sec) => {
+          const fullPath = `${base}/${sec.contentFile}`;
+          const file = state.openFiles.find((f) => normalizePath(f.path) === fullPath);
+          if (!file) return sec;
+          const wc = file.content.replace(/\s/g, '').length;
+          return { ...sec, wordCount: wc };
+        }),
+      }));
+      state.setNovelChapters(updated);
+    }
+    await refreshWordCount();
     showToast(t('topbar.saved'));
-  }, [saveProject, saveChaptersToProject, saveAllOpenFiles, showToast, t]);
+  }, [saveProject, saveChaptersToProject, saveAllOpenFiles, refreshWordCount, showToast, t]);
 
   const handleUndo = useCallback(() => undo(), [undo]);
   const handleRedo = useCallback(() => redo(), [redo]);

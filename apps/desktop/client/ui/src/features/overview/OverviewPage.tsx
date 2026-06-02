@@ -62,9 +62,10 @@ export function OverviewPage() {
 
   // Stats
   const totalChapters = chapters.length;
-  const totalWords = chapters.reduce(
-    (sum, ch) => sum + ch.sections.reduce((s2, sec) => s2 + (sec.wordCount ?? 0), 0), 0,
-  );
+  const projectWordCount = useAppStore((s) => s.projectWordCount);
+  const refreshWordCount = useAppStore((s) => s.refreshWordCount);
+  useEffect(() => { refreshWordCount(); }, [refreshWordCount]);
+  const totalWords = projectWordCount;
   const characterCount = assetCards?.filter((c) => c.type === 'character').length ?? 0;
   const locationCount = worldSetting?.locations?.length ?? 0;
 

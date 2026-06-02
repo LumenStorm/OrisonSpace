@@ -58,6 +58,7 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
             : [];
           current.setNovelChapters(chapters);
           useAppStore.setState({ projectDocumentHydrated: true });
+          current.refreshWordCount();
         }).catch(() => {
           if (useAppStore.getState().currentProject?.path === project.path) {
             useAppStore.setState({ projectDocumentHydrated: true });

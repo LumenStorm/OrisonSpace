@@ -226,6 +226,29 @@ export function registerProjectIpc() {
     }
   });
 
+  ipcMain.handle('project:word-count', async (_, projectDir: string) => {
+    assertSafePath(projectDir);
+    try {
+      const entries = readDirectoryRecursive(projectDir, projectDir, 10);
+      let total = 0;
+      const countIn = (list: typeof entries) => {
+        for (const e of list) {
+          if (e.isDir && e.children) { countIn(e.children); continue; }
+          if (!/\.(md|txt)$/i.test(e.name)) continue;
+          const fullPath = path.join(projectDir, e.path.replace(/^\//, ''));
+          try {
+            const text = readFileSync(fullPath, 'utf-8').trim();
+            if (text) total += text.replace(/\s/g, '').length;
+          } catch { /* skip unreadable */ }
+        }
+      };
+      countIn(entries);
+      return total;
+    } catch {
+      return 0;
+    }
+  });
+
   /* ── Local project registration (SQLite) ── */
   ipcMain.handle('project:ensure-registration', async (_, input: { name: string; type: 'novel' | 'script'; localFingerprint: string }) => {
     const record = ensureProject(input);

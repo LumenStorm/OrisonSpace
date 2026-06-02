@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { SideNav } from '../../features/side-nav/SideNav';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
+import { Tooltip } from '../../shared/components/Tooltip';
 import { useAppStore } from '../../shared/store/appStore';
 import { useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
 import { ICON_RAIL_WIDTH } from '../../shared/constants';
@@ -102,16 +103,18 @@ export function WorkspaceLayout() {
               {renderMainContent()}
             </Suspense>
           </div>
-          <button
-            type="button"
-            className={`agent-side-tab${agentPanelOpen ? ' is-open' : ''}`}
-            onClick={toggleAgentPanel}
-            aria-label="Agent"
-          >
-            <span className="material-symbols-outlined">
-              {agentPanelOpen ? 'chevron_right' : 'chevron_left'}
-            </span>
-          </button>
+          <Tooltip label="Agent" placement="left">
+            <button
+              type="button"
+              className={`agent-side-tab${agentPanelOpen ? ' is-open' : ''}`}
+              onClick={toggleAgentPanel}
+              aria-label="Agent"
+            >
+              <span className="material-symbols-outlined">
+                {agentPanelOpen ? 'chevron_right' : 'chevron_left'}
+              </span>
+            </button>
+          </Tooltip>
           {agentPanelOpen && (
             <>
               <ResizeHandle onResize={handleAgentResize} />

@@ -210,7 +210,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     if (file.kind === 'image') return true;
     try {
       const ok = await window.orisonDesktop?.writeFile(file.path, file.content);
-      if (!ok) return false;
+      if (ok === false) return false;
       set((s) => ({
         openFiles: s.openFiles.map((f) =>
           f.path === path ? { ...f, savedContent: f.content } : f,

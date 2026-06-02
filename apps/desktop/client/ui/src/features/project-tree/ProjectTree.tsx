@@ -5,6 +5,7 @@ import { mockFileContents } from '../../shared/data/mockFileContents';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useAppStore } from '../../shared/store/appStore';
 import { isImageFileName } from '../../shared/utils/fileType';
+import { normalizePath } from '../../shared/utils/paths';
 import { FileTreeNode } from './FileTreeNode';
 import type { CreatingType, CtxState, FileEntry } from './types';
 import { buildInitialTree, findNode, insertChild, removeNode, renameNode, updateChildren } from './treeUtils';
@@ -36,12 +37,23 @@ export function ProjectTree() {
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [creatingType, setCreatingType] = useState<CreatingType>(null);
 
+  const projectPath = currentProject?.path;
+
   const dirtyPaths = useMemo(
-    () => new Set(openFiles.filter((file) => file.content !== file.savedContent).map((file) => file.path)),
-    [openFiles],
+    () => {
+      const base = projectPath ? normalizePath(projectPath) : '';
+      return new Set(
+        openFiles
+          .filter((file) => file.content !== file.savedContent)
+          .map((file) => {
+            const np = normalizePath(file.path);
+            return base && np.startsWith(base) ? np.slice(base.length) : np;
+          }),
+      );
+    },
+    [openFiles, projectPath],
   );
 
-  const projectPath = currentProject?.path;
   useEffect(() => {
     if (!currentProject) return;
     let cancelled = false;
@@ -104,27 +116,27 @@ export function ProjectTree() {
       return;
     }
 
-    const fullPath = `${projectPath}${entry.path}`;
+    const fullPath = normalizePath(`${projectPath}${entry.path}`);
     if (isImageFileName(entry.name)) {
       try {
         const payload = await window.orisonDesktop?.readFileBinary?.(fullPath);
         if (payload) {
           const dataUrl = `data:${payload.mimeType};base64,${payload.base64}`;
-          openFile(entry.path, entry.name, '', { kind: 'image', dataUrl });
+          openFile(fullPath, entry.name, '', { kind: 'image', dataUrl });
           return;
         }
       } catch {
         // Fall through to placeholder text below.
       }
-      openFile(entry.path, entry.name, '', { kind: 'image' });
+      openFile(fullPath, entry.name, '', { kind: 'image' });
       return;
     }
 
     try {
       const content = await window.orisonDesktop?.readFile(fullPath);
-      openFile(entry.path, entry.name, content ?? '');
+      openFile(fullPath, entry.name, content ?? '');
     } catch {
-      openFile(entry.path, entry.name, '');
+      openFile(fullPath, entry.name, '');
     }
   }, [openFile, projectPath]);
 

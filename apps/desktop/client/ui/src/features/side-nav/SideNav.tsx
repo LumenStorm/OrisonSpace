@@ -30,6 +30,7 @@ export function SideNav() {
     resolvedLocale,
     activeSidebarPanel, setActiveSidebarPanel,
     mainView,
+    agentPanelOpen, toggleAgentPanel,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     setActivePage: s.setActivePage,
@@ -37,6 +38,8 @@ export function SideNav() {
     activeSidebarPanel: s.activeSidebarPanel,
     setActiveSidebarPanel: s.setActiveSidebarPanel,
     mainView: s.mainView,
+    agentPanelOpen: s.agentPanelOpen,
+    toggleAgentPanel: s.toggleAgentPanel,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -102,6 +105,20 @@ export function SideNav() {
           {productionItems.map((item) => (
             <NavButton key={item.id} item={item} active={isPageActive(item.id)} onClick={() => handlePage(item.id)} t={t} />
           ))}
+
+          <div className="side-nav-separator" />
+
+          {/* --- Agent panel toggle --- */}
+          <Tooltip label="Agent" placement="right">
+            <button
+              type="button"
+              className={`icon-rail-btn${agentPanelOpen ? ' icon-rail-btnActive' : ''}`}
+              onClick={toggleAgentPanel}
+              aria-label="Agent"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">assistant</span>
+            </button>
+          </Tooltip>
         </div>
 
         <div className="icon-rail-bottom">
