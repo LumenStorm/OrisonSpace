@@ -1,16 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { z } from 'zod';
-import type { outlineV2Schema } from '@orison/shared-contracts';
+import type { outlineV2Schema, outlinePhaseSchema } from '@orison/shared-contracts';
 import { TiptapEditor } from './TiptapEditor';
 import { Skeleton } from '../../shared/components/Skeleton';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 
 type OutlineV2 = z.infer<typeof outlineV2Schema>;
+type OutlinePhase = z.infer<typeof outlinePhaseSchema>;
 
 const DEBOUNCE_MS = 500;
 
-function useDragReorder(items: string[], setItems: (items: string[]) => void, onEdit: () => void) {
+function genId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function useDragReorder<T>(items: T[], setItems: (items: T[]) => void, onEdit: () => void) {
   const dragIdx = useRef<number | null>(null);
 
   const onDragStart = (i: number) => (e: React.DragEvent) => {
@@ -41,15 +46,27 @@ export function OutlineEditor() {
   const projectDocumentHydrated = useAppStore((s) => s.projectDocumentHydrated);
   const updateField = useAppStore((s) => s.updateField);
 
+  // Top-level fields
+  const [storyType, setStoryType] = useState('');
+  const [writingStyle, setWritingStyle] = useState('');
+  const [mainGoal, setMainGoal] = useState('');
   const [centralConflict, setCentralConflict] = useState('');
   const [endingDirection, setEndingDirection] = useState('');
-  const [turningPoints, setTurningPoints] = useState<string[]>([]);
-  const [constraints, setConstraints] = useState<string[]>([]);
+
+  // Phases
+  const [phases, setPhases] = useState<OutlinePhase[]>([]);
+  const [phaseCollapsed, setPhaseCollapsed] = useState<Record<string, boolean>>({});
+
+  // Auxiliary fields
   const [characters, setCharacters] = useState('');
   const [growthCurve, setGrowthCurve] = useState('');
   const [pacingCurveText, setPacingCurveText] = useState('');
-
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [turningPoints, setTurningPoints] = useState<string[]>([]);
+  const [constraints, setConstraints] = useState<string[]>([]);
+  const [auxCollapsed, setAuxCollapsed] = useState<Record<string, boolean>>({
+    characters: true, growthCurve: true, pacingCurveText: true,
+    turningPoints: true, constraints: true,
+  });
 
   const syncingRef = useRef(false);
   const userEditedRef = useRef(false);
@@ -58,208 +75,243 @@ export function OutlineEditor() {
   useEffect(() => {
     syncingRef.current = true;
     userEditedRef.current = false;
-    if (!storeOutline) {
-      syncingRef.current = false;
-      return;
-    }
+    if (!storeOutline) { syncingRef.current = false; return; }
+    setStoryType(storeOutline.story_type ?? '');
+    setWritingStyle(storeOutline.writing_style ?? '');
+    setMainGoal(storeOutline.main_goal ?? '');
     setCentralConflict(storeOutline.central_conflict ?? '');
     setEndingDirection(storeOutline.ending_direction ?? '');
-    setTurningPoints(storeOutline.major_turning_points ?? []);
-    setConstraints(storeOutline.constraints ?? []);
+    setPhases(storeOutline.phases ?? []);
     setCharacters(storeOutline.characters ?? '');
     setGrowthCurve(storeOutline.growth_curve ?? '');
     setPacingCurveText(storeOutline.pacing_curve_text ?? '');
+    setTurningPoints(storeOutline.major_turning_points ?? []);
+    setConstraints(storeOutline.constraints ?? []);
     requestAnimationFrame(() => { syncingRef.current = false; });
   }, [storeOutline]);
 
   const persist = useCallback(() => {
-    if (syncingRef.current) return;
-    if (!projectDocumentHydrated) return;
-    if (!userEditedRef.current) return;
+    if (syncingRef.current || !projectDocumentHydrated || !userEditedRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const data: OutlineV2 = {
+      updateField('outline', {
+        story_type: storyType || undefined,
+        writing_style: writingStyle || undefined,
+        main_goal: mainGoal || undefined,
         central_conflict: centralConflict || undefined,
-        major_turning_points: turningPoints.filter(Boolean),
         ending_direction: endingDirection || undefined,
-        constraints: constraints.filter(Boolean),
+        phases,
         characters: characters || undefined,
         growth_curve: growthCurve || undefined,
         pacing_curve_text: pacingCurveText || undefined,
-      };
-      updateField('outline', data);
+        major_turning_points: turningPoints,
+        constraints,
+      } satisfies OutlineV2);
     }, DEBOUNCE_MS);
-  }, [centralConflict, endingDirection, turningPoints, constraints, characters, growthCurve, pacingCurveText, updateField, projectDocumentHydrated]);
+  }, [storyType, writingStyle, mainGoal, centralConflict, endingDirection, phases, characters, growthCurve, pacingCurveText, turningPoints, constraints, projectDocumentHydrated, updateField]);
 
   useEffect(() => {
     persist();
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [persist]);
 
-  const markEdited = () => {
-    userEditedRef.current = true;
+  const markEdited = () => { userEditedRef.current = true; };
+
+  if (!projectDocumentHydrated) return <Skeleton />;
+
+  // Phase helpers
+  const addPhase = () => {
+    markEdited();
+    setPhases([...phases, { id: genId(), title: t('outline.newPhase') }]);
   };
 
-  const addTurningPoint = () => setTurningPoints([...turningPoints, '']);
-  const updateTurningPoint = (i: number, v: string) => {
-    const next = [...turningPoints];
-    next[i] = v;
-    setTurningPoints(next);
+  const updatePhase = (id: string, patch: Partial<OutlinePhase>) => {
+    markEdited();
+    setPhases(phases.map((p) => p.id === id ? { ...p, ...patch } : p));
   };
-  const removeTurningPoint = (i: number) => setTurningPoints(turningPoints.filter((_, idx) => idx !== i));
 
-  const addConstraint = () => setConstraints([...constraints, '']);
-  const updateConstraint = (i: number, v: string) => {
-    const next = [...constraints];
-    next[i] = v;
-    setConstraints(next);
+  const removePhase = (id: string) => {
+    markEdited();
+    setPhases(phases.filter((p) => p.id !== id));
   };
-  const removeConstraint = (i: number) => setConstraints(constraints.filter((_, idx) => idx !== i));
 
+  const togglePhaseCollapse = (id: string) => {
+    setPhaseCollapsed((c) => ({ ...c, [id]: !c[id] }));
+  };
+
+  // Turning points / constraints helpers
+  const addTurningPoint = () => { markEdited(); setTurningPoints([...turningPoints, '']); };
+  const updateTurningPoint = (i: number, v: string) => { markEdited(); setTurningPoints(turningPoints.map((tp, idx) => idx === i ? v : tp)); };
+  const removeTurningPoint = (i: number) => { markEdited(); setTurningPoints(turningPoints.filter((_, idx) => idx !== i)); };
+
+  const addConstraint = () => { markEdited(); setConstraints([...constraints, '']); };
+  const updateConstraint = (i: number, v: string) => { markEdited(); setConstraints(constraints.map((c, idx) => idx === i ? v : c)); };
+  const removeConstraint = (i: number) => { markEdited(); setConstraints(constraints.filter((_, idx) => idx !== i)); };
+
+  const phaseDrag = useDragReorder(phases, setPhases, markEdited);
   const tpDrag = useDragReorder(turningPoints, setTurningPoints, markEdited);
   const cDrag = useDragReorder(constraints, setConstraints, markEdited);
 
-  const toggle = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  if (!projectDocumentHydrated) {
-    return (
-      <div className="outline-editor">
-        <div className="outline-fields" style={{ opacity: 0.4, pointerEvents: 'none' }}>
-          <Skeleton height="2rem" />
-          <Skeleton height="2rem" />
-          <Skeleton height="2rem" />
-        </div>
-      </div>
-    );
-  }
+  const toggleAux = (key: string) => setAuxCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
   return (
     <div className="outline-editor">
-      <div className="outline-fields">
-        {/* Characters */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('characters')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['characters'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.characters')}</span>
+      {/* ── Top Section: Core Settings ── */}
+      <section className="outline-top-section">
+        <div className="outline-style-grid">
+          <div className="outline-style-field">
+            <label className="outline-style-label">{t('outline.storyType')}</label>
+            <input className="outline-style-input" value={storyType} onChange={(e) => { markEdited(); setStoryType(e.target.value); }} placeholder={t('outline.storyTypePlaceholder')} />
           </div>
-          {!collapsed['characters'] && (
-            <div className="outline-act-body">
-              <TiptapEditor
-                content={characters}
-                onChange={(v) => { markEdited(); setCharacters(v); }}
-                placeholder={t('outline.charactersPlaceholder')}
+          <div className="outline-style-field">
+            <label className="outline-style-label">{t('outline.writingStyle')}</label>
+            <input className="outline-style-input" value={writingStyle} onChange={(e) => { markEdited(); setWritingStyle(e.target.value); }} placeholder={t('outline.writingStylePlaceholder')} />
+          </div>
+        </div>
+
+        <div className="outline-field">
+          <label className="outline-field-label">{t('outline.centralConflict')}</label>
+          <textarea className="outline-textarea" value={centralConflict} onChange={(e) => { markEdited(); setCentralConflict(e.target.value); }} placeholder={t('outline.centralConflictPlaceholder')} rows={2} />
+        </div>
+
+        <div className="outline-field">
+          <label className="outline-field-label">{t('outline.mainGoal')}</label>
+          <textarea className="outline-textarea" value={mainGoal} onChange={(e) => { markEdited(); setMainGoal(e.target.value); }} placeholder={t('outline.mainGoalPlaceholder')} rows={2} />
+        </div>
+
+        <div className="outline-field">
+          <label className="outline-field-label">{t('outline.endingDirection')}</label>
+          <textarea className="outline-textarea" value={endingDirection} onChange={(e) => { markEdited(); setEndingDirection(e.target.value); }} placeholder={t('outline.endingDirectionPlaceholder')} rows={2} />
+        </div>
+      </section>
+
+      {/* ── Middle Section: Phases ── */}
+      <section className="outline-phases-section">
+        <div className="outline-section-header">
+          <h3 className="outline-section-title">{t('outline.phases')}</h3>
+          <button type="button" className="outline-add-btn" onClick={addPhase}>
+            <span className="material-symbols-outlined" aria-hidden="true">add</span>
+            {t('outline.addPhase')}
+          </button>
+        </div>
+
+        {phases.map((phase, i) => (
+          <div
+            key={phase.id}
+            className="outline-phase-card"
+            draggable
+            onDragStart={phaseDrag.onDragStart(i)}
+            onDragOver={phaseDrag.onDragOver(i)}
+            onDragEnd={phaseDrag.onDragEnd}
+          >
+            <div className="outline-phase-card-header">
+              <span className="material-symbols-outlined outline-drag-handle">drag_indicator</span>
+              <input
+                className="outline-phase-title-input"
+                value={phase.title}
+                onChange={(e) => updatePhase(phase.id, { title: e.target.value })}
+                placeholder={t('outline.phaseTitle')}
               />
+              <button type="button" className="outline-collapse-btn" onClick={() => togglePhaseCollapse(phase.id)}>
+                <span className="material-symbols-outlined">{phaseCollapsed[phase.id] ? 'expand_more' : 'expand_less'}</span>
+              </button>
+              <button type="button" className="outline-remove-btn" onClick={() => removePhase(phase.id)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {!phaseCollapsed[phase.id] && (
+              <div className="outline-phase-card-body">
+                <div className="outline-phase-field">
+                  <label className="outline-phase-label">{t('outline.phaseGoal')}</label>
+                  <input className="outline-phase-input" value={phase.goal ?? ''} onChange={(e) => updatePhase(phase.id, { goal: e.target.value })} />
+                </div>
+                <div className="outline-phase-field">
+                  <label className="outline-phase-label">{t('outline.phaseAntagonist')}</label>
+                  <input className="outline-phase-input" value={phase.antagonist ?? ''} onChange={(e) => updatePhase(phase.id, { antagonist: e.target.value })} />
+                </div>
+                <div className="outline-phase-field">
+                  <label className="outline-phase-label">{t('outline.phaseClimax')}</label>
+                  <input className="outline-phase-input" value={phase.climax ?? ''} onChange={(e) => updatePhase(phase.id, { climax: e.target.value })} />
+                </div>
+                <div className="outline-phase-field">
+                  <label className="outline-phase-label">{t('outline.phaseHook')}</label>
+                  <input className="outline-phase-input" value={phase.hook ?? ''} onChange={(e) => updatePhase(phase.id, { hook: e.target.value })} />
+                </div>
+                <div className="outline-phase-field">
+                  <label className="outline-phase-label">{t('outline.estimatedChapters')}</label>
+                  <input className="outline-phase-input" type="number" min={0} value={phase.estimated_chapters ?? ''} onChange={(e) => updatePhase(phase.id, { estimated_chapters: e.target.value ? Number(e.target.value) : undefined })} />
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {phases.length === 0 && (
+          <div className="outline-empty-hint">{t('outline.noPhasesHint')}</div>
+        )}
+      </section>
+
+      {/* ── Bottom Section: Auxiliary Settings ── */}
+      <section className="outline-auxiliary-section">
+        <h3 className="outline-section-title">{t('outline.auxiliary')}</h3>
+
+        {/* Characters */}
+        <div className="outline-act">
+          <div className="outline-act-header" onClick={() => toggleAux('characters')}>
+            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.characters ? 'chevron_right' : 'expand_more'}</span>
+            <span className="outline-act-title">{t('outline.characters')}</span>
+          </div>
+          {!auxCollapsed.characters && (
+            <div className="outline-act-body">
+              <TiptapEditor content={characters} placeholder={t('outline.charactersPlaceholder')} onChange={(v) => { markEdited(); setCharacters(v); }} format="markdown" />
             </div>
           )}
         </div>
 
         {/* Growth Curve */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('growth')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['growth'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.growthCurve')}</span>
+        <div className="outline-act">
+          <div className="outline-act-header" onClick={() => toggleAux('growthCurve')}>
+            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.growthCurve ? 'chevron_right' : 'expand_more'}</span>
+            <span className="outline-act-title">{t('outline.growthCurve')}</span>
           </div>
-          {!collapsed['growth'] && (
+          {!auxCollapsed.growthCurve && (
             <div className="outline-act-body">
-              <TiptapEditor
-                content={growthCurve}
-                onChange={(v) => { markEdited(); setGrowthCurve(v); }}
-                placeholder={t('outline.growthCurvePlaceholder')}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Central Conflict */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('conflict')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['conflict'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.centralConflict')}</span>
-          </div>
-          {!collapsed['conflict'] && (
-            <div className="outline-act-body">
-              <TiptapEditor
-                content={centralConflict}
-                onChange={(v) => { markEdited(); setCentralConflict(v); }}
-                placeholder={t('outline.centralConflictPlaceholder')}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Ending Direction */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('ending')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['ending'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.endingDirection')}</span>
-          </div>
-          {!collapsed['ending'] && (
-            <div className="outline-act-body">
-              <TiptapEditor
-                content={endingDirection}
-                onChange={(v) => { markEdited(); setEndingDirection(v); }}
-                placeholder={t('outline.endingDirectionPlaceholder')}
-              />
+              <TiptapEditor content={growthCurve} placeholder={t('outline.growthCurvePlaceholder')} onChange={(v) => { markEdited(); setGrowthCurve(v); }} format="markdown" />
             </div>
           )}
         </div>
 
         {/* Pacing Curve */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('pacing')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['pacing'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.pacingCurve')}</span>
+        <div className="outline-act">
+          <div className="outline-act-header" onClick={() => toggleAux('pacingCurveText')}>
+            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.pacingCurveText ? 'chevron_right' : 'expand_more'}</span>
+            <span className="outline-act-title">{t('outline.pacingCurve')}</span>
           </div>
-          {!collapsed['pacing'] && (
+          {!auxCollapsed.pacingCurveText && (
             <div className="outline-act-body">
-              <TiptapEditor
-                content={pacingCurveText}
-                onChange={(v) => { markEdited(); setPacingCurveText(v); }}
-                placeholder={t('outline.pacingCurvePlaceholder')}
-              />
+              <TiptapEditor content={pacingCurveText} placeholder={t('outline.pacingCurvePlaceholder')} onChange={(v) => { markEdited(); setPacingCurveText(v); }} format="markdown" />
             </div>
           )}
         </div>
 
-        {/* Turning Points — draggable */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('tp')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['tp'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.turningPoints')}</span>
-            <button type="button" className="outline-add-btn" onClick={(e) => {
-              e.stopPropagation();
-              markEdited();
-              addTurningPoint();
-            }}>
-              <span className="material-symbols-outlined" aria-hidden="true">add</span>
+        {/* Turning Points */}
+        <div className="outline-act">
+          <div className="outline-act-header" onClick={() => toggleAux('turningPoints')}>
+            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.turningPoints ? 'chevron_right' : 'expand_more'}</span>
+            <span className="outline-act-title">{t('outline.turningPoints')}</span>
+            <button type="button" className="outline-add-inline-btn" onClick={(e) => { e.stopPropagation(); addTurningPoint(); }}>
+              <span className="material-symbols-outlined">add</span>
             </button>
           </div>
-          {!collapsed['tp'] && (
+          {!auxCollapsed.turningPoints && (
             <div className="outline-act-body">
               {turningPoints.map((tp, i) => (
-                <div
-                  key={i}
-                  className="outline-list-item"
-                  draggable
-                  onDragStart={tpDrag.onDragStart(i)}
-                  onDragOver={tpDrag.onDragOver(i)}
-                  onDragEnd={tpDrag.onDragEnd}
-                >
+                <div key={i} className="outline-list-item" draggable onDragStart={tpDrag.onDragStart(i)} onDragOver={tpDrag.onDragOver(i)} onDragEnd={tpDrag.onDragEnd}>
                   <span className="material-symbols-outlined outline-drag-handle">drag_indicator</span>
-                  <input
-                    className="outline-list-input"
-                    placeholder={t('outline.turningPointPlaceholder')}
-                    value={tp}
-                    onChange={(e) => {
-                      markEdited();
-                      updateTurningPoint(i, e.target.value);
-                    }}
-                  />
-                  <button type="button" className="outline-remove-btn" onClick={() => {
-                    markEdited();
-                    removeTurningPoint(i);
-                  }}>
-                    <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                  <input className="outline-list-input" value={tp} onChange={(e) => updateTurningPoint(i, e.target.value)} placeholder={t('outline.turningPointPlaceholder')} />
+                  <button type="button" className="outline-remove-btn" onClick={() => removeTurningPoint(i)}>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
               ))}
@@ -267,52 +319,30 @@ export function OutlineEditor() {
           )}
         </div>
 
-        {/* Constraints — draggable */}
-        <div className="outline-act-card">
-          <div className="outline-act-header" onClick={() => toggle('constraints')}>
-            <span className={`material-symbols-outlined outline-act-toggle ${collapsed['constraints'] ? '' : 'is-open'}`}>chevron_right</span>
-            <span className="outline-act-title-input">{t('outline.constraints')}</span>
-            <button type="button" className="outline-add-btn" onClick={(e) => {
-              e.stopPropagation();
-              markEdited();
-              addConstraint();
-            }}>
-              <span className="material-symbols-outlined" aria-hidden="true">add</span>
+        {/* Constraints */}
+        <div className="outline-act">
+          <div className="outline-act-header" onClick={() => toggleAux('constraints')}>
+            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.constraints ? 'chevron_right' : 'expand_more'}</span>
+            <span className="outline-act-title">{t('outline.constraints')}</span>
+            <button type="button" className="outline-add-inline-btn" onClick={(e) => { e.stopPropagation(); addConstraint(); }}>
+              <span className="material-symbols-outlined">add</span>
             </button>
           </div>
-          {!collapsed['constraints'] && (
+          {!auxCollapsed.constraints && (
             <div className="outline-act-body">
               {constraints.map((c, i) => (
-                <div
-                  key={i}
-                  className="outline-list-item"
-                  draggable
-                  onDragStart={cDrag.onDragStart(i)}
-                  onDragOver={cDrag.onDragOver(i)}
-                  onDragEnd={cDrag.onDragEnd}
-                >
+                <div key={i} className="outline-list-item" draggable onDragStart={cDrag.onDragStart(i)} onDragOver={cDrag.onDragOver(i)} onDragEnd={cDrag.onDragEnd}>
                   <span className="material-symbols-outlined outline-drag-handle">drag_indicator</span>
-                  <input
-                    className="outline-list-input"
-                    placeholder={t('outline.constraintPlaceholder')}
-                    value={c}
-                    onChange={(e) => {
-                      markEdited();
-                      updateConstraint(i, e.target.value);
-                    }}
-                  />
-                  <button type="button" className="outline-remove-btn" onClick={() => {
-                    markEdited();
-                    removeConstraint(i);
-                  }}>
-                    <span className="material-symbols-outlined" aria-hidden="true">close</span>
+                  <input className="outline-list-input" value={c} onChange={(e) => updateConstraint(i, e.target.value)} placeholder={t('outline.constraintPlaceholder')} />
+                  <button type="button" className="outline-remove-btn" onClick={() => removeConstraint(i)}>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

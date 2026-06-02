@@ -1,24 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
 import yaml from 'js-yaml';
 
-/* ── 自动扫描 i18n/*.yaml（eager = 同步加载，消除首帧闪烁） ── */
-const yamlModules = import.meta.glob('./*.yaml', { query: '?raw', import: 'default', eager: true }) as unknown as Record<string, string>;
+/* ── 扫描 i18n/<locale>/*.yaml（eager = 同步加载） ── */
+const yamlModules = import.meta.glob('./*/*.yaml', { query: '?raw', import: 'default', eager: true }) as unknown as Record<string, string>;
 
-function localeFromPath(p: string): string {
-  return p.replace(/^.*\//, '').replace(/\.yaml$/, '');
+function parseLocaleFromPath(p: string): string {
+  // path like ./zh-CN/agent.yaml → "zh-CN"
+  const parts = p.split('/');
+  return parts[parts.length - 2];
 }
 
 /** 可用 locale 列表（由文件系统驱动） */
-export const availableLocales = Object.keys(yamlModules).map(localeFromPath);
+export const availableLocales = [...new Set(Object.keys(yamlModules).map(parseLocaleFromPath))];
 
 type Messages = Record<string, unknown>;
 const cache = new Map<string, Messages>();
 
-// 同步解析所有 yaml 并填充 cache
+// 同步解析并按 locale 合并
 for (const [path, raw] of Object.entries(yamlModules)) {
-  const locale = localeFromPath(path);
+  const locale = parseLocaleFromPath(path);
   const obj = yaml.load(raw) as Messages;
-  cache.set(locale, obj);
+  const existing = cache.get(locale) ?? {};
+  cache.set(locale, { ...existing, ...obj });
 }
 
 function getMessages(locale: string): Messages | null {

@@ -68,9 +68,25 @@ export const worldSettingSchema = z.object({
   open_questions: z.array(z.string()).default([])
 });
 
+// ── Outline Phase ──
+
+export const outlinePhaseSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  goal: z.string().optional(),
+  antagonist: z.string().optional(),
+  climax: z.string().optional(),
+  hook: z.string().optional(),
+  estimated_chapters: z.number().int().nonnegative().optional(),
+});
+
 // ── Outline V2 总大纲 ──
 
 export const outlineV2Schema = z.object({
+  story_type: z.string().optional(),
+  writing_style: z.string().optional(),
+  main_goal: z.string().optional(),
+  phases: z.array(outlinePhaseSchema).default([]),
   central_conflict: z.string().optional(),
   major_turning_points: z.array(z.string()).default([]),
   ending_direction: z.string().optional(),

@@ -586,3 +586,170 @@
 .patch-review-reject-btn:hover {
   background: var(--hover-overlay);
 }
+
+/* ── Outline Page (Phase Structure) ── */
+.outline-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem 2.5rem;
+  overflow-y: auto;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.outline-top-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.outline-section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+}
+
+.outline-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.outline-phases-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.outline-phase-card {
+  border: 1px solid var(--outline-variant);
+  border-left: 3px solid var(--accent);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.outline-phase-card:hover {
+  box-shadow: var(--shadow-soft);
+}
+
+.outline-phase-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--surface-container-low);
+}
+
+.outline-phase-title-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--on-surface);
+  outline: none;
+}
+
+.outline-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  padding: 0;
+}
+
+.outline-collapse-btn:hover {
+  background: var(--hover-overlay);
+}
+
+.outline-phase-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.outline-phase-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.outline-phase-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}
+
+.outline-phase-input {
+  width: 100%;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.3rem;
+  background: var(--surface-container-lowest);
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--on-surface);
+  padding: 0.35rem 0.5rem;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.outline-phase-input:focus {
+  border-color: var(--accent);
+}
+
+.outline-empty-hint {
+  font-size: 0.84rem;
+  color: var(--on-surface-variant);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.outline-phase-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-container-low);
+  cursor: pointer;
+  user-select: none;
+}
+
+.outline-phase-header:hover {
+  background: var(--hover-overlay);
+}
+
+.outline-phase-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.outline-phase-field-full {
+  grid-column: 1 / -1;
+}
+
+.outline-auxiliary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--outline-variant);
+}

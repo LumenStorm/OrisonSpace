@@ -538,22 +538,138 @@
 
 /* ── Overview Page ── */
 .overview-page {
-  max-width: 720px;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 1rem 0;
-}
-
-.overview-meta-form {
+  padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
+  gap: 2rem;
+  overflow-y: auto;
+}
+
+.overview-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.overview-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.overview-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .overview-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1rem;
+}
+
+.overview-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.overview-progress-bar-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-container-high);
+  overflow: hidden;
+}
+
+.overview-progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.overview-progress-label {
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+}
+
+.overview-progress-link {
+  border: 0;
+  background: 0;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.overview-progress-link:hover {
+  color: var(--accent-strong);
+}
+
+.overview-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.overview-bottom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.overview-bottom-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+}
+
+.overview-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.overview-recent-item {
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--on-surface);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.overview-recent-item:hover {
+  background: var(--hover-overlay);
+}
+
+.overview-world-summary {
+  font-size: 0.82rem;
+  color: var(--on-surface-variant);
+  line-height: 1.6;
+}
+
+.overview-world-summary p {
+  margin: 0.2rem 0;
 }
 
 .overview-card {
@@ -595,4 +711,5 @@
   color: var(--on-surface-variant);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
 }

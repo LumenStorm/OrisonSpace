@@ -1,11 +1,10 @@
 import { lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { SideNav } from '../../features/side-nav/SideNav';
-import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { useAppStore } from '../../shared/store/appStore';
-import { useBottomPanelResize, useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
+import { useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
 import { ICON_RAIL_WIDTH } from '../../shared/constants';
 import { StatusBar } from '../../features/status-bar/StatusBar';
 
@@ -28,9 +27,8 @@ export function WorkspaceLayout() {
     activePage,
     projectTreeOpen, projectTreeWidth,
     activeSidebarPanel,
-    bottomPanelOpen, bottomPanelHeight,
-    toggleBottomPanel,
     agentPanelOpen, agentPanelWidth,
+    toggleAgentPanel,
     hasOpenFiles,
     mainView,
     splitDirection, splitFilePath,
@@ -39,11 +37,9 @@ export function WorkspaceLayout() {
     projectTreeOpen: s.projectTreeOpen,
     projectTreeWidth: s.projectTreeWidth,
     activeSidebarPanel: s.activeSidebarPanel,
-    bottomPanelOpen: s.bottomPanelOpen,
-    bottomPanelHeight: s.bottomPanelHeight,
-    toggleBottomPanel: s.toggleBottomPanel,
     agentPanelOpen: s.agentPanelOpen,
     agentPanelWidth: s.agentPanelWidth,
+    toggleAgentPanel: s.toggleAgentPanel,
     hasOpenFiles: s.openFiles.length > 0,
     mainView: s.mainView,
     splitDirection: s.splitDirection,
@@ -51,7 +47,6 @@ export function WorkspaceLayout() {
   })));
 
   const handleTreeResize = useProjectTreeResize();
-  const handleBottomResize = useBottomPanelResize();
   const handleAgentResize = useAgentPanelResize();
 
   const treeCols = projectTreeOpen
@@ -77,7 +72,7 @@ export function WorkspaceLayout() {
 
     // Page view
     switch (activePage) {
-      case 'overview': return <div className="workspace-panel-content"><OverviewPage /></div>;
+      case 'overview': return <div className="workspace-content workspace-content--flush"><OverviewPage /></div>;
       case 'outline': return <div className="workspace-content workspace-content--flush"><OutlineEditor /></div>;
       case 'novel':
       case 'script': return <div className="workspace-content workspace-content--flush"><ScriptEditorPage /></div>;
@@ -106,14 +101,17 @@ export function WorkspaceLayout() {
             <Suspense fallback={null}>
               {renderMainContent()}
             </Suspense>
-            <ResizeHandle direction="vertical" onResize={handleBottomResize} style={{ display: bottomPanelOpen ? undefined : 'none' }} />
-            <div
-              className={`workspace-bottom-wrapper${bottomPanelOpen ? ' is-open' : ''}`}
-              style={{ height: bottomPanelOpen ? bottomPanelHeight : 0 }}
-            >
-              <BottomPanel />
-            </div>
           </div>
+          <button
+            type="button"
+            className={`agent-side-tab${agentPanelOpen ? ' is-open' : ''}`}
+            onClick={toggleAgentPanel}
+            aria-label="Agent"
+          >
+            <span className="material-symbols-outlined">
+              {agentPanelOpen ? 'chevron_right' : 'chevron_left'}
+            </span>
+          </button>
           {agentPanelOpen && (
             <>
               <ResizeHandle onResize={handleAgentResize} />
@@ -125,16 +123,6 @@ export function WorkspaceLayout() {
         </div>
       </div>
       <StatusBar />
-      {!bottomPanelOpen && (
-        <button
-          type="button"
-          className="bottom-panel-expand-btn"
-          aria-label="Open panel"
-          onClick={toggleBottomPanel}
-        >
-          <span className="material-symbols-outlined">expand_less</span>
-        </button>
-      )}
     </div>
   );
 }

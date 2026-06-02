@@ -296,6 +296,38 @@
   font-size: 16px;
 }
 
+/* ── Agent Side Tab ── */
+.agent-side-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 48px;
+  align-self: center;
+  border: 1px solid var(--outline-variant);
+  border-right: 0;
+  border-radius: 4px 0 0 4px;
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.agent-side-tab:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.agent-side-tab.is-open {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: var(--accent);
+}
+
+.agent-side-tab .material-symbols-outlined {
+  font-size: 14px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 720px) {
   .project-tree-panel,

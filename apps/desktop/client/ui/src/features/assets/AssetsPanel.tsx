@@ -162,9 +162,8 @@ export function AssetsPanel() {
 
   const toggleGroupFilter = (group: string) => {
     setActiveGroups((prev) => {
-      const next = new Set(prev);
-      next.has(group) ? next.delete(group) : next.add(group);
-      return next;
+      if (prev.has(group)) return new Set();
+      return new Set([group]);
     });
   };
 

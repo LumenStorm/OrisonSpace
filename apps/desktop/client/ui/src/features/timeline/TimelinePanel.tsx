@@ -97,6 +97,7 @@ function computeGraph(commits: GitCommitEntry[]): GraphNode[] {
 const COL_WIDTH = 18;
 const NODE_RADIUS = 6;
 const ROW_HEIGHT = 52;
+const BRANCH_COLORS = ['var(--accent)', '#4a86c5', '#b07a3d', '#c44444', '#4caf50', '#9c27b0'];
 
 export function TimelinePanel() {
   const { currentProject, locale } = useAppStore(
@@ -122,6 +123,7 @@ export function TimelinePanel() {
 
   const [showCreateBranch, setShowCreateBranch] = useState<string | null>(null);
   const [branchName, setBranchName] = useState('');
+  const [hoveredCol, setHoveredCol] = useState<number | null>(null);
 
   const projectDir = currentProject?.path ?? null;
 
@@ -218,6 +220,14 @@ export function TimelinePanel() {
         >
           <span className="material-symbols-outlined">add_circle</span>
         </button>
+        <button
+          type="button"
+          className="timeline-action-btn"
+          disabled
+          title={t('timeline.expandFull') || '即将推出'}
+        >
+          <span className="material-symbols-outlined">open_in_full</span>
+        </button>
       </div>
 
       {/* Create node form */}
@@ -280,10 +290,14 @@ export function TimelinePanel() {
 
       {/* Commit graph list */}
       <div className="timeline-list">
-        {graph.map((node, idx) => (
+        {graph.map((node, idx) => {
+          const isDimmed = hoveredCol !== null && hoveredCol !== node.col;
+          return (
           <div
             key={node.commit.oid}
-            className={`timeline-commit${selectedOid === node.commit.oid ? ' is-selected' : ''}`}
+            className={`timeline-commit${selectedOid === node.commit.oid ? ' is-selected' : ''}${isDimmed ? ' is-dimmed' : ''}`}
+            onMouseEnter={() => setHoveredCol(node.col)}
+            onMouseLeave={() => setHoveredCol(null)}
           >
             {/* SVG graph rail */}
             <svg
@@ -296,21 +310,23 @@ export function TimelinePanel() {
                 const x1 = line.fromCol * COL_WIDTH + COL_WIDTH / 2;
                 const x2 = line.toCol * COL_WIDTH + COL_WIDTH / 2;
                 const midY = ROW_HEIGHT / 2;
+                const color = BRANCH_COLORS[line.fromCol % BRANCH_COLORS.length];
                 if (line.type === 'straight') {
                   return (
                     <line
                       key={li}
                       x1={x1} y1={0} x2={x2} y2={ROW_HEIGHT}
                       className="timeline-graph-line"
+                      stroke={color}
                     />
                   );
                 }
-                // merge/fork: curve from parent column to this node
                 return (
                   <path
                     key={li}
                     d={`M${x1},${ROW_HEIGHT} C${x1},${midY} ${x2},${midY} ${x2},${midY}`}
                     className="timeline-graph-line timeline-graph-merge"
+                    stroke={color}
                   />
                 );
               })}
@@ -320,6 +336,7 @@ export function TimelinePanel() {
                 cy={ROW_HEIGHT / 2}
                 r={NODE_RADIUS}
                 className="timeline-graph-node"
+                fill={BRANCH_COLORS[node.col % BRANCH_COLORS.length]}
               />
             </svg>
 
@@ -346,7 +363,8 @@ export function TimelinePanel() {
               <span className="material-symbols-outlined">fork_right</span>
             </button>
           </div>
-        ))}
+          );
+        })}
         {commits.length === 0 && (
           <div className="timeline-empty">{t('timeline.noCommits')}</div>
         )}

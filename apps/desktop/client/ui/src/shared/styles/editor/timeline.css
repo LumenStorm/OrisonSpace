@@ -156,23 +156,32 @@
 }
 
 .timeline-graph-line {
-  stroke: var(--outline-variant);
   stroke-width: 1.5;
   fill: none;
+  transition: opacity 0.15s;
 }
 
 .timeline-graph-merge {
-  stroke: var(--accent);
-}
-
-.timeline-graph-node {
-  fill: var(--accent);
-  stroke: var(--surface-container-lowest);
   stroke-width: 1.5;
 }
 
+.timeline-graph-node {
+  stroke: var(--surface-container-lowest);
+  stroke-width: 1.5;
+  transition: opacity 0.15s;
+}
+
 .timeline-commit.is-selected .timeline-graph-node {
-  fill: var(--accent-strong);
+  stroke-width: 2.5;
+}
+
+.timeline-commit.is-dimmed .timeline-graph-line,
+.timeline-commit.is-dimmed .timeline-graph-node {
+  opacity: 0.3;
+}
+
+.timeline-commit.is-dimmed .timeline-commit-main {
+  opacity: 0.5;
 }
 
 .timeline-commit-main {

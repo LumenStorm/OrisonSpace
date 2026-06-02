@@ -11,7 +11,6 @@ export const scriptItem: PageNavItem = { id: 'script', icon: 'description', i18n
 
 /** Group 2: Production tools */
 export const productionItems: PageNavItem[] = [
-  { id: 'storyboard', icon: 'view_quilt', i18nKey: 'nav.storyboard' },
   { id: 'image_gen', icon: 'image', i18nKey: 'nav.imageGen' },
   { id: 'video', icon: 'movie_filter', i18nKey: 'nav.video' },
 ];

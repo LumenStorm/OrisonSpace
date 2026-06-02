@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { Tooltip } from '../../shared/components/Tooltip';
 import {
-  overviewItem, outlineItem, assetsItem, novelItem, scriptItem,
+  overviewItem, outlineItem, assetsItem,
   productionItems, type PageNavItem,
 } from './navItems';
 
@@ -27,24 +27,19 @@ function NavButton({ item, active, onClick, t }: { item: PageNavItem; active: bo
 export function SideNav() {
   const {
     activePage, setActivePage,
-    currentProject, resolvedLocale,
-    toggleAgentPanel, agentPanelOpen,
+    resolvedLocale,
     activeSidebarPanel, setActiveSidebarPanel,
     mainView,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     setActivePage: s.setActivePage,
-    currentProject: s.currentProject,
     resolvedLocale: s.resolvedLocale,
-    toggleAgentPanel: s.toggleAgentPanel,
-    agentPanelOpen: s.agentPanelOpen,
     activeSidebarPanel: s.activeSidebarPanel,
     setActiveSidebarPanel: s.setActiveSidebarPanel,
     mainView: s.mainView,
   })));
 
   const { t } = useI18n(resolvedLocale);
-  const contentItem = currentProject?.type === 'script' ? scriptItem : novelItem;
 
   const [showSettings, setShowSettings] = useState(false);
 
@@ -100,7 +95,6 @@ export function SideNav() {
           <NavButton item={overviewItem} active={isPageActive('overview')} onClick={() => handlePage('overview')} t={t} />
           <NavButton item={outlineItem} active={isPageActive('outline')} onClick={() => handlePage('outline')} t={t} />
           <NavButton item={assetsItem} active={isPageActive('assets')} onClick={() => handlePage('assets')} t={t} />
-          <NavButton item={contentItem} active={isPageActive(contentItem.id)} onClick={() => handlePage(contentItem.id)} t={t} />
 
           <div className="side-nav-separator" />
 
@@ -108,20 +102,6 @@ export function SideNav() {
           {productionItems.map((item) => (
             <NavButton key={item.id} item={item} active={isPageActive(item.id)} onClick={() => handlePage(item.id)} t={t} />
           ))}
-
-          <div className="side-nav-separator" />
-
-          {/* --- Agent --- */}
-          <Tooltip label="Agent" placement="right">
-            <button
-              type="button"
-              className={`icon-rail-btn${agentPanelOpen ? ' icon-rail-btnActive' : ''}`}
-              onClick={toggleAgentPanel}
-              aria-label="Agent"
-            >
-              <span className="material-symbols-outlined" aria-hidden="true">smart_toy</span>
-            </button>
-          </Tooltip>
         </div>
 
         <div className="icon-rail-bottom">

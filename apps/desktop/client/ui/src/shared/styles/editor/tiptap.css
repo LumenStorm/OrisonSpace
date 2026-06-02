@@ -344,6 +344,32 @@
   font-size: 16px;
 }
 
+.outline-add-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  margin-left: auto;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.outline-add-inline-btn:hover {
+  opacity: 1;
+  background: var(--hover-overlay);
+}
+
+.outline-add-inline-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
 /* ── Acts ── */
 .outline-acts {
   display: flex;
@@ -368,24 +394,27 @@
 .outline-add-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 0.25rem;
+  gap: 0.25rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.35rem;
   background: transparent;
   color: var(--on-surface-variant);
+  font: inherit;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: background 0.12s;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
 }
 
 .outline-add-btn:hover {
   background: var(--hover-overlay);
+  border-color: var(--accent);
   color: var(--on-surface);
 }
 
 .outline-add-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .outline-act-card {
@@ -407,6 +436,18 @@
 
 .outline-act-header:hover {
   background: var(--hover-overlay);
+}
+
+.outline-act-chevron {
+  font-size: 18px;
+  color: var(--on-surface-variant);
+}
+
+.outline-act-title {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--on-surface);
 }
 
 .outline-act-toggle {

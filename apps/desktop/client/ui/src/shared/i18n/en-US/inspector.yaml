@@ -1,0 +1,127 @@
+inspector:
+  title: "Inspector"
+  parameters: "{module} Parameters"
+  aspectRatio: "Aspect Ratio"
+  generateWithAI: "Generate with AI"
+  outline:
+    visualStyle: "Visual Style"
+    narrativeStyle: "Narrative Style"
+    pacing: "Pacing"
+    tone: "Tone"
+    rewrite: "Rewrite Outline"
+    prompt: "Describe how to refine the story outline..."
+    options:
+      visualStyle:
+        - "Cinematic"
+        - "Anime"
+        - "Watercolor"
+        - "Noir"
+        - "Realistic"
+      narrativeStyle:
+        - "Linear"
+        - "Non-linear"
+        - "Episodic"
+        - "Parallel"
+      pacing:
+        - "Slow burn"
+        - "Fast-paced"
+        - "Rhythmic"
+        - "Gradual"
+      tone:
+        - "Dark"
+        - "Light"
+        - "Suspenseful"
+        - "Comedic"
+        - "Dramatic"
+  script:
+    sceneType: "Scene Type"
+    timeOfDay: "Time of Day"
+    dialogueStyle: "Dialogue Style"
+    format: "Format"
+    rewrite: "Rewrite Scene"
+    prompt: "Describe dialogue or scene adjustments..."
+    options:
+      sceneType:
+        - "Interior"
+        - "Exterior"
+        - "INT/EXT"
+      timeOfDay:
+        - "Day"
+        - "Night"
+        - "Dawn"
+        - "Dusk"
+        - "Continuous"
+      dialogueStyle:
+        - "Natural"
+        - "Formal"
+        - "Poetic"
+        - "Minimal"
+      format:
+        - "Screenplay"
+        - "Novel"
+        - "Stage Play"
+  storyboard:
+    cameraLens: "Camera Lens"
+    lightingMood: "Lighting Mood"
+    shotType: "Shot Type"
+    rewrite: "Render Frame"
+    prompt: "Describe the frame details to refine the image..."
+    options:
+      cameraLens:
+        - "24mm Wide"
+        - "35mm Standard"
+        - "50mm Portrait"
+        - "85mm Telephoto"
+      lightingMood:
+        - "Natural"
+        - "High Key"
+        - "Low Key"
+        - "Neon"
+        - "Golden Hour"
+      shotType:
+        - "Wide"
+        - "Medium"
+        - "Close-up"
+        - "Extreme Close-up"
+        - "Over-the-shoulder"
+  video:
+    resolution: "Resolution"
+    frameRate: "Frame Rate"
+    outputFormat: "Output Format"
+    rewrite: "Generate Video"
+    prompt: "Describe video generation parameters..."
+    options:
+      resolution:
+        - "1080p"
+        - "2K"
+        - "4K"
+      frameRate:
+        - "24fps"
+        - "30fps"
+        - "60fps"
+      outputFormat:
+        - "MP4"
+        - "MOV"
+        - "WebM"
+fileEditor:
+  readOnly: "This file type is not editable"
+  unsaved: "Unsaved"
+  confirmCloseTitle: "Unsaved changes"
+  confirmCloseDesc: "{name} has unsaved changes. Save before closing?"
+  cancel: "Cancel"
+  dontSave: "Don't save"
+  save: "Save"
+  close: "Close"
+  closeOthers: "Close others"
+  closeToRight: "Close to the right"
+  reopenClosed: "Reopen closed editor"
+  copyPath: "Copy path"
+  showInExplorer: "Reveal in file manager"
+  pin: "Pin tab"
+  unpin: "Unpin tab"
+  splitRight: "Split Right"
+  splitDown: "Split Down"
+  splitOutline: "Split Outline"
+  toggleMinimap: "Toggle Minimap"
+  closeSplit: "Close Split"
+  minimap: "Minimap"
