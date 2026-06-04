@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { SideNav } from '../../features/side-nav/SideNav';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
+import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { Tooltip } from '../../shared/components/Tooltip';
 import { useAppStore } from '../../shared/store/appStore';
@@ -33,6 +34,7 @@ export function WorkspaceLayout() {
     hasOpenFiles,
     mainView,
     splitDirection, splitFilePath,
+    bottomPanelOpen,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     projectTreeOpen: s.projectTreeOpen,
@@ -45,6 +47,7 @@ export function WorkspaceLayout() {
     mainView: s.mainView,
     splitDirection: s.splitDirection,
     splitFilePath: s.splitFilePath,
+    bottomPanelOpen: s.bottomPanelOpen,
   })));
 
   const handleTreeResize = useProjectTreeResize();
@@ -102,6 +105,7 @@ export function WorkspaceLayout() {
             <Suspense fallback={null}>
               {renderMainContent()}
             </Suspense>
+            {bottomPanelOpen && <BottomPanel />}
           </div>
           <Tooltip label="Agent" placement="left">
             <button

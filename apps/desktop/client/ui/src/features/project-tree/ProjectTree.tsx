@@ -11,12 +11,13 @@ import type { CreatingType, CtxState, FileEntry } from './types';
 import { buildInitialTree, findNode, insertChild, removeNode, renameNode, updateChildren } from './treeUtils';
 
 export function ProjectTree() {
-  const { currentProject, resolvedLocale, openFile, openFiles } = useAppStore(
+  const { currentProject, resolvedLocale, openFile, openFiles, renameOpenFile } = useAppStore(
     useShallow((state) => ({
       currentProject: state.currentProject,
       resolvedLocale: state.resolvedLocale,
       openFile: state.openFile,
       openFiles: state.openFiles,
+      renameOpenFile: state.renameOpenFile,
     })),
   );
   const activeFilePath = useAppStore((state) => state.activeFilePath);
@@ -76,6 +77,22 @@ export function ProjectTree() {
     void loadTree();
     return () => { cancelled = true; };
   }, [currentProject, projectPath]);
+
+  useEffect(() => {
+    if (!projectPath || !currentProject) return;
+    const handler = (e: Event) => {
+      const { type } = (e as CustomEvent).detail ?? {};
+      if (type === 'file:changed' || type === 'image:created') {
+        window.orisonDesktop?.readDirectory?.(projectPath, 3).then((entries) => {
+          if (entries?.length) {
+            setFileTree([{ name: currentProject.name, path: '/', isDir: true, children: entries }]);
+          }
+        });
+      }
+    };
+    window.addEventListener('orison:tool-event', handler);
+    return () => window.removeEventListener('orison:tool-event', handler);
+  }, [projectPath, currentProject]);
 
   const loadChildrenIfNeeded = useCallback(async (entry: FileEntry) => {
     if (!projectPath || !entry.isDir || (entry.children && entry.children.length > 0)) return;
@@ -232,14 +249,16 @@ export function ProjectTree() {
 
   const handleRenameConfirm = useCallback(async (oldPath: string, newName: string) => {
     if (projectPath) {
-      const oldFull = `${projectPath}${oldPath}`;
+      const oldFull = normalizePath(`${projectPath}${oldPath}`);
       const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
       const newRelative = parentDir === '/' ? `/${newName}` : `${parentDir}/${newName}`;
-      await window.orisonDesktop?.renameEntry(oldFull, `${projectPath}${newRelative}`);
+      const newFull = normalizePath(`${projectPath}${newRelative}`);
+      await window.orisonDesktop?.renameEntry(oldFull, newFull);
+      renameOpenFile(oldFull, newFull, newName);
     }
     setFileTree((prev) => prev ? renameNode(prev, oldPath, newName) : prev);
     setRenamingPath(null);
-  }, [projectPath]);
+  }, [projectPath, renameOpenFile]);
 
   const handleCreateConfirm = useCallback(async (name: string) => {
     if (!creatingIn || !creatingType) return;

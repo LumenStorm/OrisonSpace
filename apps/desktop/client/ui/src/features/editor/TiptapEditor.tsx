@@ -51,7 +51,6 @@ export function TiptapEditor({
   const initialHtml = format === 'markdown' ? markdownToHtml(content) : content;
   const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
-
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -84,14 +83,6 @@ export function TiptapEditor({
     if (!editor) return;
     if (editable !== editor.isEditable) editor.setEditable(editable);
   }, [editor, editable]);
-
-  useEffect(() => {
-    if (!editor || editor.isFocused) return;
-    const newHtml = format === 'markdown' ? markdownToHtml(content) : content;
-    if (editor.getHTML() !== newHtml) {
-      editor.commands.setContent(newHtml, { emitUpdate: false });
-    }
-  }, [editor, content, format]);
 
   const findAdapter: FindReplaceAdapter = useMemo(() => {
     if (!editor) return { getText: () => '', highlight: () => {}, replaceOne: () => {}, replaceAll: () => {} };

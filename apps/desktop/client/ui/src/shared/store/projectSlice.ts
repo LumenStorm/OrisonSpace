@@ -22,26 +22,36 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
       projectWordCount: 0,
     });
   },
-  closeProject: () => set({
-    currentProject: null,
-    projectDocumentHydrated: false,
-    projectWordCount: 0,
-  }),
+  closeProject: () => {
+    const state = get() as any;
+    if (state.hasDirtyFiles?.()) {
+      state.saveAllOpenFiles?.();
+    }
+    set({
+      currentProject: null,
+      projectDocumentHydrated: false,
+      projectWordCount: 0,
+    });
+  },
   async saveProject() {
     const project = get().currentProject;
     if (!project?.path) return;
+    const meta = {
+      name: project.name,
+      type: project.type,
+      logline: project.logline ?? null,
+      synopsis: project.synopsis ?? null,
+      genre: project.genre ?? null,
+      theme: project.theme ?? null,
+      writing_style: project.writingStyle ?? null,
+      tone: project.tone ?? null,
+      coverImage: project.coverImage ?? null,
+    };
     if (window.orisonDesktop?.saveProjectMeta) {
-      await window.orisonDesktop.saveProjectMeta(project.path, {
-        name: project.name,
-        type: project.type,
-        logline: project.logline ?? null,
-        synopsis: project.synopsis ?? null,
-        genre: project.genre ?? null,
-        theme: project.theme ?? null,
-        writing_style: project.writingStyle ?? null,
-        tone: project.tone ?? null,
-        coverImage: project.coverImage ?? null,
-      });
+      await window.orisonDesktop.saveProjectMeta(project.path, meta);
+    }
+    if (window.orisonDesktop?.syncProjectMeta) {
+      await window.orisonDesktop.syncProjectMeta(project.path, meta);
     }
   },
   async refreshWordCount() {

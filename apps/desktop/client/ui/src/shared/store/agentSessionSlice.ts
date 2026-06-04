@@ -251,7 +251,8 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     activeAbort = null;
     set({ agentLoading: true, agentError: null });
     try {
-      const session = await fetchAgentSession(sessionId);
+      const projectPath = get().currentProject?.path;
+      const session = await fetchAgentSession(sessionId, projectPath ?? undefined);
       if (!session) throw new Error('Session not found');
       set({
         agentSessionId: sessionId,

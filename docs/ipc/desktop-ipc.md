@@ -10,8 +10,8 @@
 
 实现位置：
 
-- preload：`apps/desktop/shell/preload/index.ts`
-- 主进程 handler：`apps/desktop/shell/main/ipc/*.ts`
+- preload：`apps/desktop/client/shell/preload/index.ts`
+- 主进程 handler：`apps/desktop/client/shell/main/ipc/*.ts`
 
 ## 通道分组
 
@@ -36,6 +36,11 @@
 | `project:save-base64-image` | renderer -> main | invoke | 保存 base64 图片到项目目录 |
 | `project:move-file` | renderer -> main | invoke | 移动项目内文件 |
 | `project:delete-file` | renderer -> main | invoke | 删除项目内文件 |
+| `project:load-document` | renderer -> main | invoke | 加载项目文档（project.yaml 完整结构） |
+| `project:sync-meta` | renderer -> main | invoke | 同步项目元信息到 project.yaml |
+| `project:sync-chapters-meta` | renderer -> main | invoke | 批量同步章节元数据 |
+| `project:word-count` | renderer -> main | invoke | 统计项目字数 |
+| `project:ensure-registration` | renderer -> main | invoke | 确保项目已注册到 SQLite |
 
 `project:save-base64-image` 只允许写入 `temp/images/generation` 或 `assets/images`。
 
@@ -106,6 +111,12 @@
 | `log:open-dir` | renderer -> main | invoke | 打开日志目录 |
 | `log:write` | renderer -> main | invoke | 写入一条日志 |
 
+### 工具通知通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `tool:event` | main -> renderer | event | 工具执行后推送状态变更（file:changed / chapter:changed / outline:changed / image:created / git:changed / memory:changed） |
+
 ### Git 通道
 
 | 通道 | 方向 | 类型 | 说明 |
@@ -158,6 +169,9 @@ type GitFileDiff = {
 | `agent:list-continuations` | renderer -> main | invoke | 列出会话 continuations |
 | `agent:restore-continuation` | renderer -> main | invoke | 恢复 continuation |
 | `agent:abort-run` | renderer -> main | invoke | 中止当前执行 |
+| `agent:list-skill-packages` | renderer -> main | invoke | 列出 skill 包及启用状态 |
+| `agent:set-package-enabled` | renderer -> main | invoke | 启用/禁用 skill 包 |
+| `agent:set-skill-enabled` | renderer -> main | invoke | 启用/禁用单个 skill |
 
 ---
 
@@ -171,6 +185,9 @@ window.orisonDesktop = {
   copyCoverImage,
   saveProjectMeta,
   loadProjectMeta,
+  loadDocument,
+  syncMeta,
+  syncChaptersMeta,
   getLocale,
   minimize,
   maximize,
@@ -195,9 +212,11 @@ window.orisonDesktop = {
   readFile,
   readFileBinary,
   writeFile,
+  pathExists,
   saveBase64Image,
   moveProjectFile,
   deleteProjectFile,
+  wordCount,
   ensureProjectRegistration,
   // Task persistence (SQLite)
   listTasks,
@@ -227,12 +246,16 @@ window.orisonDesktop = {
   deleteAgentSession,
   streamAgentMessage,
   onAgentStreamEvent,
+  onToolEvent,
   resolveAgentConfirmation,
   listAgentSkills,
   executeAgentSkill,
   listAgentContinuations,
   restoreAgentContinuation,
   abortAgentRun,
+  listSkillPackages,
+  setPackageEnabled,
+  setSkillEnabled,
 }
 ```
 
@@ -249,7 +272,7 @@ type ModelConfig = {
     apiKey: string
     models: Array<{
       id: string
-      capability: 'text' | 'image'
+      capability: 'text' | 'image' | 'video'
       alias: string
       enabled: boolean
     }>
@@ -329,16 +352,16 @@ type RunStorySyncResult = {
 
 | 文件 | 责任 |
 |---|---|
-| `apps/desktop/shell/main/ipc/projectIpc.ts` | 项目与文件操作 |
-| `apps/desktop/shell/main/ipc/windowIpc.ts` | 窗口与系统操作 |
-| `apps/desktop/shell/main/ipc/configIpc.ts` | 模型配置与用户偏好 |
-| `apps/desktop/shell/main/ipc/modelProviderIpc.ts` | provider 模型列表刷新 |
-| `apps/desktop/shell/main/ipc/modelGatewayIpc.ts` | 文本 / 图片生成 |
-| `apps/desktop/shell/main/ipc/taskIpc.ts` | 后台任务持久化（SQLite CRUD） |
-| `apps/desktop/shell/main/ipc/storySyncIpc.ts` | story-sync 入口 |
-| `apps/desktop/shell/main/ipc/fieldSyncIpc.ts` | 创作字段同步 |
-| `apps/desktop/shell/main/ipc/pathGuard.ts` | 路径安全辅助 |
-| `apps/desktop/shell/main/storySync/runStorySync.ts` | story-sync 执行逻辑 |
+| `apps/desktop/client/shell/main/ipc/projectIpc.ts` | 项目与文件操作 |
+| `apps/desktop/client/shell/main/ipc/windowIpc.ts` | 窗口与系统操作 |
+| `apps/desktop/client/shell/main/ipc/configIpc.ts` | 模型配置与用户偏好 |
+| `apps/desktop/client/shell/main/ipc/modelProviderIpc.ts` | provider 模型列表刷新 |
+| `apps/desktop/client/shell/main/ipc/modelGatewayIpc.ts` | 文本 / 图片生成 |
+| `apps/desktop/client/shell/main/ipc/taskIpc.ts` | 后台任务持久化（SQLite CRUD） |
+| `apps/desktop/client/shell/main/ipc/storySyncIpc.ts` | story-sync 入口 |
+| `apps/desktop/client/shell/main/ipc/fieldSyncIpc.ts` | 创作字段同步 |
+| `apps/desktop/client/shell/main/ipc/pathGuard.ts` | 路径安全辅助 |
+| `apps/desktop/client/shell/main/storySync/runStorySync.ts` | story-sync 执行逻辑 |
 
 ---
 

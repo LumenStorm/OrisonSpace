@@ -10,9 +10,6 @@ export function StatusBar() {
     openFiles,
     resolvedLocale,
     activePage,
-    cursorLine,
-    cursorCol,
-    wordCount,
   } = useAppStore(useShallow((s) => ({
     agentLoading: s.agentLoading,
     agentSessionId: s.agentSessionId,
@@ -20,9 +17,6 @@ export function StatusBar() {
     openFiles: s.openFiles,
     resolvedLocale: s.resolvedLocale,
     activePage: s.activePage,
-    cursorLine: s.cursorLine,
-    cursorCol: s.cursorCol,
-    wordCount: s.wordCount,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -38,20 +32,6 @@ export function StatusBar() {
   return (
     <div className="status-bar">
       <div className="status-bar-left">
-        {activeFile && (
-          <>
-            {cursorLine > 0 && (
-              <span className="status-bar-item">
-                Ln {cursorLine}, Col {cursorCol}
-              </span>
-            )}
-            {wordCount > 0 && (
-              <span className="status-bar-item">
-                {wordCount.toLocaleString()} {t('statusBar.words')}
-              </span>
-            )}
-          </>
-        )}
         {!activeFile && (
           <span className="status-bar-item status-bar-page">{activePage}</span>
         )}

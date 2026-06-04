@@ -26,10 +26,10 @@
 | 新建项目卡片 | 打开 `NewProjectDialog` |
 | 打开项目卡片 | 调用系统目录选择器 |
 | 最近项目卡片 | 打开已有项目 |
-| 刷新按钮 | 检测最近项目目录是否存在，并同步 `project.json` 中的名称、类型、封面和 projectId |
+| 刷新按钮 | 检测最近项目目录是否存在，并同步 `project.yaml` 中的名称、类型、封面和 projectId |
 | 空状态 | 没有最近项目时显示引导区 |
 
-项目页进入时会自动刷新一次最近项目列表。若项目目录已不存在，直接从最近项目列表移除；若本地 `project.json` 已修改，则同步更新卡片信息。
+项目页进入时会自动刷新一次最近项目列表。若项目目录已不存在，直接从最近项目列表移除；若本地 `project.yaml` 已修改，则同步更新卡片信息。
 
 ## 4. 工作区总布局
 
@@ -72,15 +72,14 @@ Icon Rail 分为 top section 和 bottom section：
 | `search` | 搜索 | 切换左侧面板为 SearchPanel |
 | `history` | 时间线 | 切换左侧面板为 TimelinePanel（铁路图展示 git 提交 DAG） |
 | ─── 分隔线 ─── | | |
-| `dashboard` | 总览 | `setOverlayPage('overview')` |
-| `auto_stories` | 大纲 | `setOverlayPage('outline')` |
-| `perm_media` | 资产库 | `setOverlayPage('assets')` |
-| `menu_book` / `description` | 小说/剧本 | `setActivePage('novel'/'script')` |
+| `dashboard` | 总览 | `setActivePage('overview')` |
+| `auto_stories` | 大纲 | `setActivePage('outline')` |
+| `perm_media` | 资产库 | `setActivePage('assets')` |
 | ─── 分隔线 ─── | | |
-| `view_quilt` | 分镜 | `setActivePage('storyboard')` |
 | `image` | 图片生成 | `setActivePage('image_gen')` |
+| `movie_filter` | 视频 | `setActivePage('video')` |
 | ─── 分隔线 ─── | | |
-| `smart_toy` | Agent | toggle 右侧 Agent Panel |
+| `assistant` | Agent | toggle 右侧 Agent Panel |
 
 #### Bottom section
 
@@ -95,14 +94,13 @@ Icon Rail 分为 top section 和 bottom section：
 工作区使用统一的 `ActivePage` 类型控制中间内容区：
 
 ```ts
-type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'assets';
+type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets';
 type SidebarPanel = 'explorer' | 'search' | 'timeline';
 ```
 
 渲染逻辑（`WorkspaceLayout`）：
 1. 如果有打开的文件 Tab → 显示 FileTabBar + FileEditor（文件编辑模式），支持 SplitFileEditor 分屏
 2. 否则 → 按 `activePage` 渲染对应页面组件
-3. `overlayPage` 浮层可在文件编辑模式下叠加显示 overview / outline / assets
 
 默认进入工作区时 `activePage` 为 `overview`。
 
@@ -115,6 +113,7 @@ type SidebarPanel = 'explorer' | 'search' | 'timeline';
 | `novel` / `script` | `ScriptEditorPage` | 小说/剧本编辑器 + creative fields |
 | `storyboard` | `StoryboardCanvas` | 分镜面板 |
 | `image_gen` | `ImageGenEditor` | 图片生成面板 |
+| `video` | `VideoEditor` | 视频编辑面板 |
 | `assets` | `AssetsPanel` | 资产库面板 |
 
 左侧面板组件：
@@ -274,12 +273,11 @@ BottomPanel 当前包含：
 - 模型设置页交互状态已收口，不再混乱地依赖隐式条件
 - 模型生成走 desktop main，不走 server generation route
 - story-sync 已变为桌面本地执行 + agent 二次校验
-- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`（小说/剧本/分镜/图片）或 `setOverlayPage`（总览/大纲/资产）
+- 侧边栏统一为 `ActivePage` 模型，所有页面按钮调用 `setActivePage`
 - timeline 作为左侧面板（`SidebarPanel`），通过 `setActiveSidebarPanel('timeline')` 切换
 - 底部面板只保留 output / tasks 两个 tab
 - 资产库（assets）已作为独立页面加入侧边栏
 - 文件编辑支持 SplitFileEditor 分屏
-- `overlayPage` 机制允许在文件编辑模式下浮层查看 overview / outline / assets
 - 底部 StatusBar 常驻显示
 
 ## 10. 样式组织约定

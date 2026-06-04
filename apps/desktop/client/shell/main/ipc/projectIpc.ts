@@ -96,6 +96,44 @@ export function registerProjectIpc() {
     }
   });
 
+  ipcMain.handle('project:sync-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
+    assertSafePath(projectDir);
+    try {
+      const { loadProject, saveProject } = await import('../../../../local-bff/index');
+      const doc = loadProject(projectDir);
+      if (!doc) return;
+      const next = structuredClone(doc) as Record<string, any>;
+      if (meta.name) next.meta.name = meta.name;
+      if (meta.logline !== undefined) next.meta.logline = meta.logline || undefined;
+      if (meta.synopsis !== undefined) next.meta.synopsis = meta.synopsis || undefined;
+      if (meta.genre !== undefined) next.meta.genre = meta.genre || undefined;
+      if (meta.theme !== undefined) next.meta.theme = meta.theme || undefined;
+      if (meta.writing_style !== undefined) next.meta.writing_style = meta.writing_style || undefined;
+      if (meta.tone !== undefined) next.meta.tone = meta.tone || undefined;
+      next.meta.updated_at = new Date().toISOString();
+      next.meta.version = (next.meta.version ?? 0) + 1;
+      saveProject(projectDir, next as any);
+    } catch { /* ignore if project.yaml doesn't exist yet */ }
+  });
+
+  ipcMain.handle('project:sync-chapters-meta', async (_, projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) => {
+    assertSafePath(projectDir);
+    try {
+      const { loadProject, saveProject } = await import('../../../../local-bff/index');
+      const doc = loadProject(projectDir);
+      if (!doc) return;
+      const next = structuredClone(doc) as Record<string, any>;
+      if (!next.novel) next.novel = { chapters: [] };
+      next.novel.chapters = chapters.map((ch) => {
+        const existing = (next.novel.chapters ?? []).find((e: any) => e.id === ch.id);
+        return { ...existing, ...ch };
+      });
+      next.meta.version = (next.meta.version ?? 0) + 1;
+      next.meta.updated_at = new Date().toISOString();
+      saveProject(projectDir, next as any);
+    } catch { /* ignore */ }
+  });
+
   ipcMain.handle('project:read-directory', async (_, projectDir: string, maxDepth = 5) => {
     assertSafePath(projectDir);
     if (!existsSync(projectDir)) return [];

@@ -422,5 +422,5 @@ Private
 
 - [docs/agent.md](docs/agent.md)
 - [docs/agent-panel-ui.md](docs/agent-panel-ui.md)
-- [docs/superpowers/specs/2026-05-14-creative-agent-runtime-design.md](docs/superpowers/specs/2026-05-14-creative-agent-runtime-design.md)
-- [docs/superpowers/plans/2026-05-14-creative-agent-runtime-plan.md](docs/superpowers/plans/2026-05-14-creative-agent-runtime-plan.md)
+- [docs/internal/archive/superpowers/specs/2026-05-14-creative-agent-runtime-design.md](docs/internal/archive/superpowers/specs/2026-05-14-creative-agent-runtime-design.md)
+- [docs/internal/archive/superpowers/plans/2026-05-14-creative-agent-runtime-plan.md](docs/internal/archive/superpowers/plans/2026-05-14-creative-agent-runtime-plan.md)

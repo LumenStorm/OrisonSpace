@@ -164,6 +164,8 @@ export type OrisonDesktopApi = {
   pickCoverImage(): Promise<string | null>;
   copyCoverImage(src: string, projectDir: string): Promise<string>;
   saveProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
+  syncProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
+  syncChaptersMeta(projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>): Promise<void>;
   loadProjectMeta(projectDir: string): Promise<Record<string, unknown> | null>;
   getLocale(): string;
   minimize(): void;
@@ -249,6 +251,9 @@ export type OrisonDesktopApi = {
   startAutoMode(input: { projectPath: string; mode?: string; chapterIds?: string[]; plotSummary?: string; modelRuntime?: unknown }): Promise<NovelAutoModeState>;
   performAutoModeAction(autoModeId: string, action: string): Promise<NovelAutoModeState>;
   getAutoModeState(autoModeId: string): Promise<NovelAutoModeState | null>;
+  // Window lifecycle
+  onBeforeClose(callback: () => void): () => void;
+  confirmClose(): void;
 };
 
 export type FileTreeEntry = {

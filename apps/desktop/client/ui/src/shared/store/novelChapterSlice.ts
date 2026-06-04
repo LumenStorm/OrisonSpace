@@ -104,6 +104,18 @@ function errorKeyFromAutoStart(error: unknown): string {
   return error instanceof Error ? error.message : AUTO_UNKNOWN_KEY;
 }
 
+function persistChaptersMeta(chapters: NovelChapterMeta[], projectPath?: string) {
+  if (!projectPath || !window.orisonDesktop?.syncChaptersMeta) return;
+  window.orisonDesktop.syncChaptersMeta(projectPath, chapters.map((ch) => ({
+    id: ch.id,
+    title: ch.title,
+    sort_order: ch.sortOrder,
+    status: ch.status,
+    summary: ch.summary,
+    summary_source: ch.summarySource,
+  })));
+}
+
 export const createNovelChapterSlice: StateCreator<
   NovelChapterSlice & { currentProject: { path?: string } | null; modelConfig: ModelConfig },
   [],
@@ -111,8 +123,11 @@ export const createNovelChapterSlice: StateCreator<
   NovelChapterSlice
 > = (set, get) => ({
   novelChapters: [],
-  setNovelChapters: (chapters) =>
-    set({ novelChapters: [...chapters].sort((a, b) => a.sortOrder - b.sortOrder) }),
+  setNovelChapters: (chapters) => {
+    const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+    set({ novelChapters: sorted });
+    persistChaptersMeta(sorted, get().currentProject?.path);
+  },
 
   activeChapterId: null,
   selectChapter: (chapterId) => {
@@ -196,6 +211,7 @@ export const createNovelChapterSlice: StateCreator<
         chapterCandidate: null,
         chapterCandidateStatus: 'accepted',
       });
+      persistChaptersMeta(updated, project.path);
     } catch (error) {
       set({
         chapterCandidateStatus: 'failed',

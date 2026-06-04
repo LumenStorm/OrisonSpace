@@ -21,8 +21,6 @@
 │      │ Timeline │  ─── 或 ───              │                        │
 │      │ (互斥)   │  ActivePage 页面视图      │                        │
 │      │          │  (无文件 Tab 时)          │                        │
-│      │          │  ─── 叠加 ───            │                        │
-│      │          │  OverlayPage 浮层         │                        │
 ├──────┴──────────┴──────────────────────────┴────────────────────────┤
 │                          StatusBar                                   │
 └─────────────────────────────────────────────────────────────────────┘
@@ -46,10 +44,9 @@ App
         │   ├── SearchBtn (搜索，切换左侧面板)
         │   ├── TimelineBtn (时间线，切换左侧面板)
         │   ├── ─── 分隔线 ───
-        │   ├── NavButton[] (overview/outline/assets — setOverlayPage)
-        │   ├── NavButton (novel|script — setActivePage)
+        │   ├── NavButton[] (overview/outline/assets — setActivePage)
         │   ├── ─── 分隔线 ───
-        │   ├── NavButton[] (storyboard/image_gen — setActivePage)
+        │   ├── NavButton[] (image_gen/video — setActivePage)
         │   ├── ─── 分隔线 ───
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
         │   └── SettingsBtn
@@ -68,11 +65,8 @@ App
         │   │   ├── ScriptEditorPage (activePage='novel'|'script')
         │   │   ├── StoryboardCanvas (activePage='storyboard')
         │   │   ├── ImageGenEditor (activePage='image_gen')
+        │   │   ├── VideoEditor (activePage='video')
         │   │   └── AssetsPanel (activePage='assets')
-        │   ├── [OverlayPage 浮层: overlayPage 非 null 时叠加显示]
-        │   │   ├── OverviewPage (overlayPage='overview')
-        │   │   ├── OutlineEditor (overlayPage='outline')
-        │   │   └── AssetsPanel (overlayPage='assets')
         │   ├── ResizeHandle (vertical, 底部面板)
         │   └── BottomPanel (可折叠)
         │       ├── Tab: Output
@@ -158,8 +152,6 @@ workspace-shell
 │       │   │   └── workspace-content → FileEditor + SplitFileEditor
 │       │   ├── [页面模式: hasOpenFiles = false]
 │       │   │   └── workspace-panel-content → 按 activePage 渲染对应组件
-│       │   ├── [OverlayPage 浮层: overlayPage 非 null 时]
-│       │   │   └── workspace-overlay → overview / outline / assets
 │       │   ├── ResizeHandle (vertical)
 │       │   └── workspace-bottom-wrapper → BottomPanel
 │       └── AgentPanel (可调宽度, 全高)
@@ -169,7 +161,6 @@ workspace-shell
 渲染逻辑：
 1. 如果 `hasOpenFiles` 为 true → 显示 FileTabBar + FileEditor（+ 可选 SplitFileEditor）
 2. 否则按 `activePage` switch 渲染对应页面组件
-3. `overlayPage` 非 null 时，在 workspace-main 上叠加浮层显示 overview / outline / assets
 
 底部面板始终可用（所有模式下都可展开）。底部展开按钮在面板关闭时显示。
 

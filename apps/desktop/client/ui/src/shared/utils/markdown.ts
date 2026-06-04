@@ -21,7 +21,7 @@ turndown.addRule('strikethrough', {
 
 export function markdownToHtml(markdown: string): string {
   if (!markdown) return '';
-  return marked.parse(markdown, { async: false }) as string;
+  return (marked.parse(markdown, { async: false }) as string).trimEnd();
 }
 
 export function htmlToMarkdown(html: string): string {

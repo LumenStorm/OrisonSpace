@@ -1,8 +1,12 @@
 import type { StateCreator } from 'zustand';
+import { htmlToMarkdown, markdownToHtml } from '../utils/markdown';
+
+let tabIdCounter = 0;
 
 export type FileTabKind = 'text' | 'image';
 
 export type FileTab = {
+  id: string;
   path: string;
   name: string;
   content: string;
@@ -20,6 +24,12 @@ export type RecentlyClosedTab = {
 
 const RECENTLY_CLOSED_LIMIT = 10;
 
+export type PendingBulkClose = {
+  dirtyPaths: string[];
+  action: 'all' | 'other' | 'right';
+  keepPath?: string;
+};
+
 export type FileTabsSlice = {
   openFiles: FileTab[];
   activeFilePath: string | null;
@@ -27,6 +37,8 @@ export type FileTabsSlice = {
   pinnedPaths: Set<string>;
   /** Path of a file waiting on a "save before close?" confirmation. */
   pendingCloseConfirm: string | null;
+  /** Bulk close operation waiting on dirty-file confirmation. */
+  pendingBulkClose: PendingBulkClose | null;
   openFile: (path: string, name: string, content: string, options?: { kind?: FileTabKind; dataUrl?: string }) => void;
   closeFile: (path: string) => void;
   /** Close `path` if clean, otherwise set `pendingCloseConfirm` for UI to handle. */
@@ -35,11 +47,16 @@ export type FileTabsSlice = {
   closeOtherFiles: (keepPath: string) => void;
   closeFilesToRight: (anchorPath: string) => void;
   closeAllFiles: () => void;
+  confirmBulkClose: (save: boolean) => Promise<void>;
+  cancelBulkClose: () => void;
   reopenLastClosedFile: () => Promise<void>;
   cycleActiveFile: (direction: 1 | -1) => void;
   updateFileContent: (path: string, content: string) => void;
+  renameOpenFile: (oldPath: string, newPath: string, newName: string) => void;
   saveFile: (path: string) => Promise<boolean>;
   saveAllOpenFiles: () => Promise<void>;
+  reloadFile: (path: string) => Promise<void>;
+  hasDirtyFiles: () => boolean;
   togglePinTab: (path: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
 };
@@ -61,6 +78,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   recentlyClosed: [],
   pinnedPaths: new Set(),
   pendingCloseConfirm: null,
+  pendingBulkClose: null,
 
   openFile: (path, name, content, options) => {
     const state = get();
@@ -69,11 +87,14 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       (set as any)({ activeFilePath: path, recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path), mainView: 'files' });
       return;
     }
+    const isMd = name.endsWith('.md');
+    const normalized = isMd ? htmlToMarkdown(markdownToHtml(content)) : content;
     const tab: FileTab = {
+      id: `tab-${++tabIdCounter}`,
       path,
       name,
-      content,
-      savedContent: content,
+      content: normalized,
+      savedContent: normalized,
       kind: options?.kind ?? 'text',
       dataUrl: options?.dataUrl,
     };
@@ -128,6 +149,11 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   closeOtherFiles: (keepPath) => {
     const state = get();
     const closing = state.openFiles.filter((f) => f.path !== keepPath);
+    const dirty = closing.filter((f) => f.kind === 'text' && f.content !== f.savedContent);
+    if (dirty.length > 0) {
+      set({ pendingBulkClose: { dirtyPaths: dirty.map((f) => f.path), action: 'other', keepPath } });
+      return;
+    }
     const keep = state.openFiles.find((f) => f.path === keepPath);
     if (!keep) return;
     let recentlyClosed = state.recentlyClosed;
@@ -147,6 +173,11 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     if (idx === -1) return;
     const remaining = state.openFiles.slice(0, idx + 1);
     const closing = state.openFiles.slice(idx + 1);
+    const dirty = closing.filter((f) => f.kind === 'text' && f.content !== f.savedContent);
+    if (dirty.length > 0) {
+      set({ pendingBulkClose: { dirtyPaths: dirty.map((f) => f.path), action: 'right', keepPath: anchorPath } });
+      return;
+    }
     let recentlyClosed = state.recentlyClosed;
     for (const tab of closing) {
       recentlyClosed = rememberClosedTab(recentlyClosed, tab);
@@ -160,12 +191,62 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
 
   closeAllFiles: () => {
     const state = get();
+    const dirty = state.openFiles.filter((f) => f.kind === 'text' && f.content !== f.savedContent);
+    if (dirty.length > 0) {
+      set({ pendingBulkClose: { dirtyPaths: dirty.map((f) => f.path), action: 'all' } });
+      return;
+    }
     let recentlyClosed = state.recentlyClosed;
     for (const tab of state.openFiles) {
       recentlyClosed = rememberClosedTab(recentlyClosed, tab);
     }
     set({ openFiles: [], activeFilePath: null, recentlyClosed });
   },
+
+  async confirmBulkClose(save) {
+    const bulk = get().pendingBulkClose;
+    if (!bulk) return;
+    if (save) {
+      await Promise.all(bulk.dirtyPaths.map((p) => get().saveFile(p)));
+    }
+    set({ pendingBulkClose: null });
+    // Re-execute the close operation (now all dirty files are saved or discardable)
+    if (bulk.action === 'all') {
+      const state = get();
+      let recentlyClosed = state.recentlyClosed;
+      for (const tab of state.openFiles) {
+        recentlyClosed = rememberClosedTab(recentlyClosed, tab);
+      }
+      set({ openFiles: [], activeFilePath: null, recentlyClosed });
+    } else if (bulk.action === 'other' && bulk.keepPath) {
+      const state = get();
+      const keep = state.openFiles.find((f) => f.path === bulk.keepPath);
+      if (keep) {
+        let recentlyClosed = state.recentlyClosed;
+        for (const tab of state.openFiles.filter((f) => f.path !== bulk.keepPath)) {
+          recentlyClosed = rememberClosedTab(recentlyClosed, tab);
+        }
+        set({ openFiles: [keep], activeFilePath: bulk.keepPath, recentlyClosed });
+      }
+    } else if (bulk.action === 'right' && bulk.keepPath) {
+      const state = get();
+      const idx = state.openFiles.findIndex((f) => f.path === bulk.keepPath);
+      if (idx !== -1) {
+        const remaining = state.openFiles.slice(0, idx + 1);
+        let recentlyClosed = state.recentlyClosed;
+        for (const tab of state.openFiles.slice(idx + 1)) {
+          recentlyClosed = rememberClosedTab(recentlyClosed, tab);
+        }
+        let nextActive = state.activeFilePath;
+        if (nextActive && !remaining.some((f) => f.path === nextActive)) {
+          nextActive = bulk.keepPath;
+        }
+        set({ openFiles: remaining, activeFilePath: nextActive, recentlyClosed });
+      }
+    }
+  },
+
+  cancelBulkClose: () => set({ pendingBulkClose: null }),
 
   reopenLastClosedFile: async () => {
     const state = get();
@@ -203,6 +284,24 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     }));
   },
 
+  renameOpenFile: (oldPath, newPath, newName) => {
+    const state = get();
+    const hasTab = state.openFiles.some((f) => f.path === oldPath);
+    if (!hasTab) return;
+    const nextPinned = new Set(state.pinnedPaths);
+    if (nextPinned.has(oldPath)) {
+      nextPinned.delete(oldPath);
+      nextPinned.add(newPath);
+    }
+    set({
+      openFiles: state.openFiles.map((f) =>
+        f.path === oldPath ? { ...f, path: newPath, name: newName } : f,
+      ),
+      activeFilePath: state.activeFilePath === oldPath ? newPath : state.activeFilePath,
+      pinnedPaths: nextPinned,
+    });
+  },
+
   saveFile: async (path) => {
     const state = get();
     const file = state.openFiles.find((f) => f.path === path);
@@ -228,6 +327,24 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     );
     await Promise.all(dirty.map((f) => get().saveFile(f.path)));
   },
+
+  async reloadFile(path) {
+    const tab = get().openFiles.find((f) => f.path === path);
+    if (!tab || tab.kind !== 'text') return;
+    try {
+      const raw = await window.orisonDesktop?.readFile(path);
+      if (typeof raw !== 'string') return;
+      const isMd = tab.name.endsWith('.md');
+      const content = isMd ? htmlToMarkdown(markdownToHtml(raw)) : raw;
+      set((s) => ({
+        openFiles: s.openFiles.map((f) =>
+          f.path === path ? { ...f, content, savedContent: content } : f,
+        ),
+      }));
+    } catch { /* ignore read errors */ }
+  },
+
+  hasDirtyFiles: () => get().openFiles.some((f) => f.kind === 'text' && f.content !== f.savedContent),
 
   togglePinTab: (path) => {
     const state = get();

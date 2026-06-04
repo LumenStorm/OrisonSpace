@@ -112,7 +112,28 @@ export function OutlineEditor() {
 
   useEffect(() => {
     persist();
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = undefined;
+      }
+      // Flush pending edit on unmount
+      if (userEditedRef.current && projectDocumentHydrated) {
+        updateField('outline', {
+          story_type: storyType || undefined,
+          writing_style: writingStyle || undefined,
+          main_goal: mainGoal || undefined,
+          central_conflict: centralConflict || undefined,
+          ending_direction: endingDirection || undefined,
+          phases,
+          characters: characters || undefined,
+          growth_curve: growthCurve || undefined,
+          pacing_curve_text: pacingCurveText || undefined,
+          major_turning_points: turningPoints,
+          constraints,
+        } satisfies OutlineV2);
+      }
+    };
   }, [persist]);
 
   const markEdited = () => { userEditedRef.current = true; };

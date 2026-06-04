@@ -24,16 +24,26 @@
   - `widgets/layout/WorkspaceLayout.tsx`
   - `widgets/projects/*`
 - `src/features/<domain>/*` 拥有具体产品域，例如：
+  - agent-panel
+  - assets
+  - auto-mode
+  - bottom-panel
+  - command-palette
+  - creative
   - editor
+  - inspector
+  - memory
+  - model-settings
+  - notifications
+  - novel-workbench
+  - orchestration
   - overview
   - project-tree
-  - orchestration
-  - novel workbench
-  - memory
-  - auto mode
-  - command-palette
+  - search-panel
+  - side-nav
+  - status-bar
+  - tasks
   - timeline
-  - bottom-panel
   - top-bar
 - 一个 feature 的入口组件应主要负责：
   - 状态选择
@@ -50,9 +60,7 @@
 - store 采用 slice 化组织：
   - `appStore.ts` 只组合 slice
   - 每个 slice 自己维护状态与状态迁移
-- 当前鉴权启动逻辑已经收口到 `authSlice.bootstrapAuth()`：
-  - `App` 不直接负责 session 校验细节
-  - `App` 只消费 `authStatus`
+- 桌面端为纯本地应用，无需登录，启动后直接进入项目页
 - 用户可见文案统一走 `t()`，禁止新增硬编码显示文本
 
 ### 样式文件组织
@@ -82,7 +90,7 @@
   - `assets/images`
 - 新项目默认根目录：`~/Documents/OrisonSpace`
 - 用户主动选择的项目目录和封面图路径，会在当前 Electron 会话里注册为允许根
-- 后台任务通过 `task:*` IPC 通道持久化到本地 SQLite（`~/.orison/tasks.db`）
+- 后台任务通过 `task:*` IPC 通道持久化到本地 SQLite（`~/.orison/data/projects.db`）
 - 渲染层 `backgroundTasksSlice` 负责任务生命周期管理与重启恢复
 
 ## 模型配置与桌面模型网关
@@ -99,10 +107,10 @@
   - `alias`（由 model-registry 推断）
   - `enabled`
 - 生成请求使用 `ModelRef`：`{ keyId, modelId }`
-- `apps/desktop/shell/main/ipc/modelProviderIpc.ts`
+- `apps/desktop/client/shell/main/ipc/modelProviderIpc.ts`
   - 负责 `model:list-remote-models`
   - 只负责列模型，不负责生成
-- `apps/desktop/shell/main/ipc/modelGatewayIpc.ts`
+- `apps/desktop/client/shell/main/ipc/modelGatewayIpc.ts`
   - 负责 `model:generate-text`
   - 负责 `model:generate-image`
   - 是唯一会解密模型 `apiKey` 并调用 provider 的主进程入口

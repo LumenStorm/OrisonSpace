@@ -32,6 +32,10 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:copy-cover-image', src, projectDir) as Promise<string>,
   saveProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:save-meta', projectDir, meta) as Promise<void>,
+  syncProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
+    ipcRenderer.invoke('project:sync-meta', projectDir, meta) as Promise<void>,
+  syncChaptersMeta: (projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) =>
+    ipcRenderer.invoke('project:sync-chapters-meta', projectDir, chapters) as Promise<void>,
   loadProjectMeta: (projectDir: string) =>
     ipcRenderer.invoke('project:load-meta', projectDir) as Promise<Record<string, unknown> | null>,
   getLocale: () => navigator.language,
@@ -180,6 +184,12 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('orchestration:auto-mode-action', autoModeId, action),
   getAutoModeState: (autoModeId: string) =>
     ipcRenderer.invoke('orchestration:auto-mode-get', autoModeId),
+  // Window lifecycle
+  onBeforeClose: (callback: () => void) => {
+    ipcRenderer.on('app:before-close', () => callback());
+    return () => { ipcRenderer.removeAllListeners('app:before-close'); };
+  },
+  confirmClose: () => ipcRenderer.send('app:close-confirmed'),
 } satisfies OrisonDesktopApi;
 
 contextBridge.exposeInMainWorld('orisonDesktop', exposedDesktopApi);

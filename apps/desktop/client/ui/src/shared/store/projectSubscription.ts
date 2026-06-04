@@ -27,6 +27,17 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
     }
 
     if (project && project !== prev) {
+      useAppStore.setState({
+        creativeFields: {},
+        fieldMetadata: {},
+        novelChapters: [],
+        activeChapterId: null,
+        chapterCandidate: null,
+        chapterCandidateStatus: 'idle',
+        chapterCandidateError: null,
+        projectDocumentHydrated: false,
+      } as any);
+
       state.addRecentProject(project);
       state.loadBgTasks();
 

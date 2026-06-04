@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, session } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, session } from 'electron';
 import path from 'node:path';
 import { getLogger, installGlobalErrorHandlers } from './logger';
 import { registerProjectIpc } from './ipc/projectIpc';
@@ -84,6 +84,18 @@ function createWindow() {
     if ((input.control || input.meta) && passthroughKeys.has(input.key)) {
       event.preventDefault();
     }
+  });
+
+  // Guard window close — ask renderer to check for unsaved files
+  let forceClose = false;
+  mainWindow.on('close', (e) => {
+    if (forceClose) return;
+    e.preventDefault();
+    mainWindow.webContents.send('app:before-close');
+  });
+  ipcMain.on('app:close-confirmed', () => {
+    forceClose = true;
+    mainWindow.close();
   });
 
   if (process.env.ELECTRON_RENDERER_URL) {

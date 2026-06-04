@@ -7,6 +7,7 @@ import { CommandPalette } from '../features/command-palette/CommandPalette';
 import { Toast } from '../shared/components/Toast';
 import { ConfirmDialog } from '../shared/components/ConfirmDialog';
 import { useToolEvents } from '../shared/hooks/useToolEvents';
+import { useCloseGuard } from '../shared/hooks/useCloseGuard';
 
 export function App() {
   const currentProject = useAppStore((s) => s.currentProject);
@@ -15,6 +16,7 @@ export function App() {
   const loadAppVersion = useAppStore((s) => s.loadAppVersion);
 
   useToolEvents();
+  useCloseGuard();
 
   useEffect(() => {
     void loadUserPreferences();

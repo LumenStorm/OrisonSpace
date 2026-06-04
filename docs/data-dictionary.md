@@ -100,8 +100,8 @@
 | `target_id` | TEXT | 可空 | 目标实体 ID |
 | `task_type` | TEXT | NOT NULL | 任务类型（如 `image_gen`） |
 | `name` | TEXT | NOT NULL | 任务显示名 |
-| `description` | TEXT | NOT NULL DEFAULT '' | 描述 |
-| `input_text` | TEXT | NOT NULL DEFAULT '' | 输入文本 |
+| `description` | TEXT | NOT NULL | 描述 |
+| `input_text` | TEXT | NOT NULL | 输入文本 |
 | `status` | TEXT | NOT NULL | queued/running/completed/failed |
 | `output_type` | TEXT | 可空 | 输出类型 |
 | `output_payload` | TEXT | 可空 | JSON 序列化的输出 |
