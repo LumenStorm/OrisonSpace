@@ -11,6 +11,7 @@ import { getLogger } from '../logger';
 import { readFileHandler, writeFileHandler, listFilesHandler, searchHandler } from './toolHandlers/fileHandlers';
 import { chapterListHandler, chapterReadHandler, chapterWriteHandler, rewritePassageHandler } from './toolHandlers/chapterHandlers';
 import { outlineReadHandler, outlineUpdateHandler } from './toolHandlers/outlineHandlers';
+import { overviewUpdateHandler } from './toolHandlers/overviewHandlers';
 import { generateImageHandler, editImageHandler } from './toolHandlers/imageHandlers';
 import { gitStatusHandler, gitLogHandler, gitCommitHandler, gitDiffHandler } from './toolHandlers/gitHandlers';
 import { projectMetaHandler, memoryQueryHandler, memoryUpdateHandler, skillHandler } from './toolHandlers/projectHandlers';
@@ -64,6 +65,9 @@ register('rewrite_passage', rewritePassageHandler);
 // Outline
 register('outline_read', outlineReadHandler);
 register('outline_update', outlineUpdateHandler);
+
+// Overview
+register('overview_update', overviewUpdateHandler);
 
 // Image
 register('generate_image', generateImageHandler);

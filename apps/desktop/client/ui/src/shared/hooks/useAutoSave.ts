@@ -76,6 +76,8 @@ export function useAutoSave(): void {
           savedChaptersSig = chaptersSig;
           state.setLastSavedAt(Date.now());
           state.setSaveStatus('saved');
+          // Content landed on disk; keep the overview word count in sync.
+          void state.refreshWordCount();
         }
       } catch {
         state.setSaveStatus('error');

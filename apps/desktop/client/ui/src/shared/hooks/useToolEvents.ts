@@ -12,6 +12,17 @@ export function useToolEvents() {
     const api = (window as any).orisonDesktop;
     if (!api?.onToolEvent) return;
 
+    // Coalesce bursts of writes (e.g. auto-mode generating many chapters) into a
+    // single project-wide rescan instead of one full scan per file.
+    let wordCountTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleWordCountRefresh = () => {
+      if (wordCountTimer !== null) clearTimeout(wordCountTimer);
+      wordCountTimer = setTimeout(() => {
+        wordCountTimer = null;
+        void useAppStore.getState().refreshWordCount();
+      }, 400);
+    };
+
     const unsubscribe = api.onToolEvent((event: { type: string; [key: string]: unknown }) => {
       window.dispatchEvent(new CustomEvent('orison:tool-event', { detail: event }));
 
@@ -26,8 +37,17 @@ export function useToolEvents() {
           state.reloadFile(fullPath);
         }
       }
+
+      // Any on-disk content change can move the project word count; refresh the
+      // aggregate so the overview stays accurate even while it is mounted.
+      if (event.type === 'file:changed' || event.type === 'chapter:changed') {
+        scheduleWordCountRefresh();
+      }
     });
 
-    return unsubscribe;
+    return () => {
+      if (wordCountTimer !== null) clearTimeout(wordCountTimer);
+      unsubscribe();
+    };
   }, []);
 }

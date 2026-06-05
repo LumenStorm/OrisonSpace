@@ -163,6 +163,9 @@ export type OrisonDesktopApi = {
   createProjectDirectory(parentDir: string, name: string): Promise<string>;
   pickCoverImage(): Promise<string | null>;
   copyCoverImage(src: string, projectDir: string): Promise<string>;
+  importDocx(projectDir: string): Promise<string | null>;
+  docxToHtml(fullPath: string): Promise<string | null>;
+  docxToMarkdown(fullPath: string): Promise<string | null>;
   saveProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
   syncProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
   syncChaptersMeta(projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>): Promise<void>;

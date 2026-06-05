@@ -78,6 +78,8 @@ type Deps = AgentSessionSlice & {
   updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
   pendingDiffs: PendingDiff[];
   pendingToolConfirm: { callId: string; name: string; input: unknown } | null;
+  fieldMetadata: Record<string, { version: number } | undefined>;
+  setPendingPatch: (patch: import('@orison/shared-contracts').ProjectFieldPatch | null) => void;
 };
 
 export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSlice> = (set, get) => ({
@@ -187,6 +189,9 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
             const results = event.data.results as Array<{
               toolName?: string; toolId?: string; output?: string; metadata?: unknown;
             }>;
+            // Structured field patches (outline_update / overview_update) accumulate
+            // across this result batch, then surface once in the patch-review panel.
+            const fieldPatchEntries: import('@orison/shared-contracts').FieldPatchEntry[] = [];
             for (const result of results) {
               const toolId = result.toolName ?? result.toolId ?? '';
               if (!WRITE_TOOLS.includes(toolId)) continue;
@@ -196,10 +201,26 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                     type?: string;
                     fileName?: string; content?: string; chapterId?: string;
                     filePath?: string; replacement?: string; originalText?: string; originalQuote?: string;
+                    field?: string; action?: string; data?: unknown;
                     anchor?: import('../types/attachment').SelectionAnchor;
                   }
                 | undefined;
               if (!meta) continue;
+
+              // Structured field patch (outline / overview): route to the
+              // patch-review flow instead of applying or building a text diff.
+              if (meta.type === 'field_patch' && meta.field) {
+                const action = (meta.action === 'merge' || meta.action === 'delete') ? meta.action : 'set';
+                const currentVersion = get().fieldMetadata[meta.field]?.version ?? 0;
+                fieldPatchEntries.push({
+                  field: meta.field as import('@orison/shared-contracts').FieldPatchEntry['field'],
+                  action,
+                  data: meta.data,
+                  fieldVersion: currentVersion + 1,
+                  generatedBy: toolId,
+                });
+                continue;
+              }
 
               // Passage-level rewrite: never auto-apply blindly; build a passage diff.
               if (meta.type === 'passage') {
@@ -248,6 +269,16 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                   }));
                 }
               }
+            }
+
+            // Surface accumulated structured patches for review. Merge with any
+            // pending patch from a prior batch in this run so none are dropped.
+            if (fieldPatchEntries.length > 0) {
+              get().setPendingPatch({
+                runId: get().agentSessionId ?? randomUUID(),
+                createdAt: new Date().toISOString(),
+                patches: fieldPatchEntries,
+              });
             }
           }
           break;

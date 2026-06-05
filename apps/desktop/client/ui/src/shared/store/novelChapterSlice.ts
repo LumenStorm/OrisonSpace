@@ -212,6 +212,8 @@ export const createNovelChapterSlice: StateCreator<
         chapterCandidateStatus: 'accepted',
       });
       persistChaptersMeta(updated, project.path);
+      // Candidate markdown was written to disk; refresh the project word count.
+      void (get() as { refreshWordCount?: () => Promise<void> }).refreshWordCount?.();
     } catch (error) {
       set({
         chapterCandidateStatus: 'failed',

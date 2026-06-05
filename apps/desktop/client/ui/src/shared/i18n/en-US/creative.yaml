@@ -71,6 +71,7 @@ script:
 creative:
   empty: "No data yet"
   tabs:
+    overview: "Overview"
     creative_brief: "Brief"
     world_setting: "World"
     asset_cards: "Assets"

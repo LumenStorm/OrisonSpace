@@ -190,6 +190,10 @@ export function applyFieldPatches(
   };
 
   for (const patch of fieldPatch.patches) {
+    // 'overview' patches target project meta (json + yaml), persisted by the
+    // UI via syncProjectMeta — not a creative field in the project document.
+    if ((patch.field as string) === 'overview') continue;
+
     // 特殊处理：chapter_candidate 补丁需要写入 markdown + 更新章节元数据
     if ((patch.field as string) === 'chapter_candidate') {
       const data = patch.data as any;
@@ -223,11 +227,11 @@ export function applyFieldPatches(
       continue;
     }
 
-    const docKey = FIELD_TO_KEY[patch.field];
+    const docKey = FIELD_TO_KEY[patch.field as CreativeFieldKey];
     if (!docKey) continue;
 
     // 跳过 locked 字段
-    if (next.field_metadata?.[patch.field]?.locked) continue;
+    if (next.field_metadata?.[patch.field as CreativeFieldKey]?.locked) continue;
 
     switch (patch.action) {
       case 'set':
@@ -249,11 +253,11 @@ export function applyFieldPatches(
 
     // 更新 field_metadata
     if (!next.field_metadata) next.field_metadata = {};
-    next.field_metadata[patch.field] = {
+    next.field_metadata[patch.field as CreativeFieldKey] = {
       version: patch.fieldVersion,
       source: 'agent',
-      locked: next.field_metadata[patch.field]?.locked ?? false,
-      dependsOn: next.field_metadata[patch.field]?.dependsOn ?? [],
+      locked: next.field_metadata[patch.field as CreativeFieldKey]?.locked ?? false,
+      dependsOn: next.field_metadata[patch.field as CreativeFieldKey]?.dependsOn ?? [],
       stale: false
     };
   }

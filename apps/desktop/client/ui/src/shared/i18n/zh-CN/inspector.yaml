@@ -105,6 +105,9 @@ inspector:
         - "WebM"
 fileEditor:
   readOnly: "此文件类型暂不支持编辑"
+  convertToMd: "转为 Markdown"
+  docxConverted: "已转换为 {name}"
+  docxConvertFailed: "转换失败"
   unsaved: "未保存"
   confirmCloseTitle: "未保存的更改"
   confirmCloseDesc: "{name} 有未保存的更改，是否在关闭前保存？"

@@ -1,8 +1,9 @@
 import { useAppStore } from '../../shared/store/appStore';
-import { getFileExtension, isImageFileName } from '../../shared/utils/fileType';
+import { getFileExtension, isImageFileName, isDocxFileName } from '../../shared/utils/fileType';
 import { MarkdownEditor } from './file-editor/MarkdownEditor';
 import { CodeEditor } from './file-editor/CodeEditor';
 import { ImagePreview } from './file-editor/ImagePreview';
+import { DocxPreview } from './file-editor/DocxPreview';
 import { ReadOnlyPreview } from './file-editor/ReadOnlyPreview';
 
 export function FileEditor() {
@@ -14,6 +15,10 @@ export function FileEditor() {
 
   if (file.kind === 'image' || isImageFileName(file.name)) {
     return <ImagePreview file={file} />;
+  }
+
+  if (file.kind === 'docx' || isDocxFileName(file.name)) {
+    return <DocxPreview file={file} />;
   }
 
   const ext = getFileExtension(file.name);

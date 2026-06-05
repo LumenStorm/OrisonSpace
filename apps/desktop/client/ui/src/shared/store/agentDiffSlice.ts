@@ -37,7 +37,7 @@ export type PendingDiff = ChapterPendingDiff | PassagePendingDiff;
  * `content`. Single source of truth — consumed by both the session slice (which
  * builds the pending diff) and AgentMessageItem (which routes the render).
  */
-export const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update', 'rewrite_passage'];
+export const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update', 'overview_update', 'rewrite_passage'];
 
 /** A possible target location for an unresolved passage rewrite. */
 export type PassageCandidate = {

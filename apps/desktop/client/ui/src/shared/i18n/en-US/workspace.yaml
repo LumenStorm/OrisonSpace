@@ -11,6 +11,7 @@ topbar:
   newProject: "New Project"
   openProject: "Open Project"
   openFolder: "Open Folder"
+  importDocx: "Import Word (.docx)"
   closeFile: "Close File"
   saveAll: "Save All"
   closeAllFiles: "Close All Files"

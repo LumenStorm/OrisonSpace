@@ -105,6 +105,9 @@ inspector:
         - "WebM"
 fileEditor:
   readOnly: "This file type is not editable"
+  convertToMd: "Convert to Markdown"
+  docxConverted: "Converted to {name}"
+  docxConvertFailed: "Conversion failed"
   unsaved: "Unsaved"
   confirmCloseTitle: "Unsaved changes"
   confirmCloseDesc: "{name} has unsaved changes. Save before closing?"

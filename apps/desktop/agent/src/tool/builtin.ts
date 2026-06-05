@@ -129,15 +129,48 @@ export function registerBuiltinTools() {
 
   registry.register(remoteToolProxy({
     id: 'outline_read',
-    description: 'Read the project outline.',
+    description: 'Read the project outline (structured outline_v2 from project.yaml).',
     parameters: z.object({}),
   }));
 
   registry.register(remoteToolProxy({
     id: 'outline_update',
-    description: 'Update the project outline.',
+    description: 'Propose an update to the project outline. Does NOT apply directly — produces a patch for user review in the outline panel.',
     parameters: z.object({
-      content: z.string().describe('Full outline content in Markdown'),
+      outline: z.object({
+        story_type: z.string().optional().describe('Story type / genre framing'),
+        writing_style: z.string().optional(),
+        main_goal: z.string().optional().describe('Protagonist primary goal / dramatic question'),
+        phases: z.array(z.object({
+          id: z.string().describe('Stable phase id (e.g. "phase-1")'),
+          title: z.string(),
+          goal: z.string().optional(),
+          antagonist: z.string().optional(),
+          climax: z.string().optional(),
+          hook: z.string().optional(),
+          estimated_chapters: z.number().int().nonnegative().optional(),
+        })).optional().describe('Ordered story phases / acts'),
+        central_conflict: z.string().optional(),
+        major_turning_points: z.array(z.string()).optional(),
+        ending_direction: z.string().optional(),
+        constraints: z.array(z.string()).optional(),
+        characters: z.string().optional(),
+        growth_curve: z.string().optional(),
+        pacing_curve_text: z.string().optional(),
+      }).describe('Structured outline (outline_v2). Provide the full outline; it replaces the current one on accept.'),
+    }),
+  }));
+
+  registry.register(remoteToolProxy({
+    id: 'overview_update',
+    description: 'Propose an update to the project overview / metadata (title, logline, synopsis, genre, theme, tone). Does NOT apply directly — produces a patch for user review on the Overview page.',
+    parameters: z.object({
+      name: z.string().optional().describe('Project / story title'),
+      logline: z.string().optional().describe('One-sentence hook'),
+      synopsis: z.string().optional().describe('Short synopsis / blurb'),
+      genre: z.string().optional(),
+      theme: z.string().optional(),
+      tone: z.string().optional(),
     }),
   }));
 

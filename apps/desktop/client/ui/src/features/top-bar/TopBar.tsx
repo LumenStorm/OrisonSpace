@@ -23,7 +23,7 @@ export function TopBar() {
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
-    splitDirection, setSplit, showMinimap, toggleMinimap, refreshWordCount,
+    splitDirection, setSplit, showMinimap, toggleMinimap, refreshWordCount, openFile,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     closeProject: s.closeProject,
@@ -50,6 +50,7 @@ export function TopBar() {
     showMinimap: s.showMinimap,
     toggleMinimap: s.toggleMinimap,
     refreshWordCount: s.refreshWordCount,
+    openFile: s.openFile,
   })));
   const showToast = useToastStore((s) => s.showToast);
   const undoLen = useAppStore((s) => s.undoStack.length);
@@ -92,6 +93,22 @@ export function TopBar() {
   const handleUndo = useCallback(() => undo(), [undo]);
   const handleRedo = useCallback(() => redo(), [redo]);
 
+  const handleImportDocx = useCallback(async () => {
+    const projectPath = currentProject?.path;
+    if (!projectPath) return;
+    try {
+      const rel = await window.orisonDesktop?.importDocx(projectPath);
+      if (!rel) return;
+      const fullPath = normalizePath(`${projectPath}${rel}`);
+      const content = (await window.orisonDesktop?.readFile(fullPath)) ?? '';
+      const name = rel.split(/[\\/]/).pop() ?? rel;
+      openFile(fullPath, name, content, { kind: 'text' });
+      await refreshWordCount();
+    } catch {
+      showToast(t('fileEditor.docxConvertFailed'), 'error');
+    }
+  }, [currentProject, openFile, refreshWordCount, showToast, t]);
+
   const shortcuts = useMemo(() => ({
     's': handleSave,
     'z': handleUndo,
@@ -128,6 +145,7 @@ export function TopBar() {
     { type: 'action', label: t('topbar.newProject'), shortcut: `${modKey}N`, handler: () => setShowNewDialog(true) },
     { type: 'action', label: t('topbar.openProject'), shortcut: `${modKey}O`, handler: handleOpen },
     { type: 'action', label: t('topbar.openFolder'), handler: handleOpen },
+    { type: 'action', label: t('topbar.importDocx'), handler: () => { void handleImportDocx(); }, disabled: !hasSavePath },
     { type: 'action', label: t('topbar.save'), shortcut: `${modKey}S`, handler: handleSave, disabled: !hasSavePath },
     { type: 'action', label: t('topbar.saveAll'), shortcut: `${modKey}Shift+S`, handler: () => { void saveAllOpenFiles(); } },
     { type: 'action', label: t('topbar.export'), handler: () => setShowExport(true), disabled: !hasSavePath },

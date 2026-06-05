@@ -30,6 +30,12 @@ export const exposedDesktopApi = {
   pickCoverImage: () => ipcRenderer.invoke('project:pick-cover-image') as Promise<string | null>,
   copyCoverImage: (src: string, projectDir: string) =>
     ipcRenderer.invoke('project:copy-cover-image', src, projectDir) as Promise<string>,
+  importDocx: (projectDir: string) =>
+    ipcRenderer.invoke('project:import-docx', projectDir) as Promise<string | null>,
+  docxToHtml: (fullPath: string) =>
+    ipcRenderer.invoke('project:docx-to-html', fullPath) as Promise<string | null>,
+  docxToMarkdown: (fullPath: string) =>
+    ipcRenderer.invoke('project:docx-to-markdown', fullPath) as Promise<string | null>,
   saveProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:save-meta', projectDir, meta) as Promise<void>,
   syncProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>

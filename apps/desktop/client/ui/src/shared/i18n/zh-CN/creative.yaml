@@ -71,6 +71,7 @@ script:
 creative:
   empty: "暂无数据"
   tabs:
+    overview: "总览"
     creative_brief: "创作简报"
     world_setting: "世设"
     asset_cards: "资产卡"

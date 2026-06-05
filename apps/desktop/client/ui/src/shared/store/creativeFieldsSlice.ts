@@ -7,6 +7,7 @@ import type {
   projectDocumentSchema
 } from '@orison/shared-contracts';
 import { creativeFieldKeys } from '@orison/shared-contracts';
+import type { ProjectMeta } from './types';
 
 type FieldMetadata = z.infer<typeof fieldMetadataSchema>;
 type ProjectFieldPatch = z.infer<typeof projectFieldPatchSchema>;
@@ -37,7 +38,10 @@ const DEFAULT_METADATA: FieldMetadata = {
 };
 
 export const createCreativeFieldsSlice: StateCreator<
-  CreativeFieldsSlice & { currentProject: { path?: string } | null },
+  CreativeFieldsSlice & {
+    currentProject: ProjectMeta | null;
+    saveProject: () => Promise<void>;
+  },
   [],
   [],
   CreativeFieldsSlice
@@ -115,7 +119,7 @@ export const createCreativeFieldsSlice: StateCreator<
   },
 
   applySelectedPatches: () => {
-    const { pendingPatch, patchSelections, creativeFields, fieldMetadata } = get();
+    const { pendingPatch, patchSelections, creativeFields, fieldMetadata, currentProject } = get();
     if (!pendingPatch) return null;
 
     const selectedPatches = pendingPatch.patches.filter((p) => patchSelections[p.field]);
@@ -126,8 +130,17 @@ export const createCreativeFieldsSlice: StateCreator<
 
     const nextFields = { ...creativeFields };
     const nextMeta = { ...fieldMetadata };
+    let overviewData: Record<string, unknown> | null = null;
 
     for (const patch of selectedPatches) {
+      // 'overview' targets project meta (name/logline/synopsis…), not a
+      // creative field — persisted separately via saveProject below.
+      if (patch.field === 'overview') {
+        if (patch.action !== 'delete' && patch.data && typeof patch.data === 'object') {
+          overviewData = patch.data as Record<string, unknown>;
+        }
+        continue;
+      }
       const key = patch.field as CreativeFieldKey;
       if (patch.action === 'delete') {
         delete nextFields[key];
@@ -153,9 +166,47 @@ export const createCreativeFieldsSlice: StateCreator<
       creativeFields: nextFields,
       fieldMetadata: nextMeta,
       pendingPatch: null,
-      patchSelections: {}
+      patchSelections: {},
+      ...(overviewData && currentProject
+        ? { currentProject: mergeOverviewIntoProject(currentProject, overviewData) }
+        : {})
     });
+
+    // Persist to disk. Creative fields → fieldSyncBridge (project.yaml, with
+    // version/lock checks). Overview → saveProject (project.json + .yaml).
+    const path = currentProject?.path;
+    if (path && window.orisonDesktop?.syncField) {
+      for (const patch of selectedPatches) {
+        if (patch.field === 'overview' || patch.action === 'delete') continue;
+        window.orisonDesktop.syncField(path, patch.field as CreativeFieldKey, patch.data).catch(() => {});
+      }
+    }
+    if (overviewData) {
+      get().saveProject().catch(() => {});
+    }
 
     return appliedPatch;
   }
 });
+
+/**
+ * Map an agent overview patch (snake_case meta subset) onto the camelCased
+ * ProjectMeta the store holds. Only known fields are copied; unknown keys are
+ * ignored so a stray field can't corrupt project state.
+ */
+function mergeOverviewIntoProject(
+  project: ProjectMeta,
+  data: Record<string, unknown>
+): ProjectMeta {
+  const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+  return {
+    ...project,
+    name: str(data.name) ?? project.name,
+    logline: str(data.logline) ?? project.logline,
+    synopsis: str(data.synopsis) ?? project.synopsis,
+    genre: str(data.genre) ?? project.genre,
+    theme: str(data.theme) ?? project.theme,
+    writingStyle: str(data.writing_style) ?? project.writingStyle,
+    tone: str(data.tone) ?? project.tone
+  };
+}

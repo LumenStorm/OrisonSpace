@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand';
 
 let tabIdCounter = 0;
 
-export type FileTabKind = 'text' | 'image';
+export type FileTabKind = 'text' | 'image' | 'docx';
 
 export type FileTab = {
   id: string;
@@ -254,7 +254,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const last = state.recentlyClosed[0];
     if (!last) return;
     const rest = state.recentlyClosed.slice(1);
-    if (last.kind === 'image') {
+    if (last.kind === 'image' || last.kind === 'docx') {
       set({ recentlyClosed: rest });
       return;
     }

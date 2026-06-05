@@ -5,6 +5,7 @@ import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 import { atomicWriteFileSync } from '../fs/atomicWrite';
 import { decodeFileToUtf8 } from '../fs/decodeText';
+import { notifyUI } from './toolNotify';
 import { ensureProject } from '../db/projectRepository';
 import {
   ALLOWED_IMAGE_DIRS,
@@ -39,6 +40,54 @@ export function registerProjectIpc() {
       ]
     });
     return result.canceled ? null : allowPath(result.filePaths[0]);
+  });
+
+  /* ── docx import / conversion ── */
+
+  ipcMain.handle('project:import-docx', async (_, projectDir: string) => {
+    assertSafePath(projectDir);
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Word', extensions: ['docx'] }]
+    });
+    if (result.canceled || !result.filePaths[0]) return null;
+    const src = result.filePaths[0];
+    const markdown = await convertDocxToMarkdown(src);
+    const baseName = path.basename(src, path.extname(src));
+    const dest = uniqueMarkdownPath(projectDir, baseName);
+    assertWithinProject(projectDir, dest);
+    atomicWriteFileSync(dest, markdown, 'utf-8');
+    const rel = '/' + path.relative(projectDir, dest).split(path.sep).join('/');
+    notifyUI({ type: 'file:changed', path: rel });
+    return rel;
+  });
+
+  ipcMain.handle('project:docx-to-html', async (_, fullPath: string) => {
+    assertSafePath(fullPath);
+    if (!existsSync(fullPath) || path.extname(fullPath).toLowerCase() !== '.docx') return null;
+    try {
+      const mammothMod = await import('mammoth');
+      const mammoth = (mammothMod as { default?: unknown }).default ?? mammothMod;
+      const { value } = await (mammoth as {
+        convertToHtml: (i: { buffer: Buffer }) => Promise<{ value: string }>;
+      }).convertToHtml({ buffer: readFileSync(fullPath) });
+      return value;
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle('project:docx-to-markdown', async (_, fullPath: string) => {
+    assertSafePath(fullPath);
+    if (!existsSync(fullPath) || path.extname(fullPath).toLowerCase() !== '.docx') return null;
+    const markdown = await convertDocxToMarkdown(fullPath);
+    const dir = path.dirname(fullPath);
+    const baseName = path.basename(fullPath, path.extname(fullPath));
+    const dest = uniqueMarkdownPath(dir, baseName);
+    assertSafePath(dest);
+    atomicWriteFileSync(dest, markdown, 'utf-8');
+    notifyUI({ type: 'file:changed', path: dest });
+    return dest;
   });
 
   /* ── Project-scoped file operations (all paths validated) ── */
@@ -284,7 +333,10 @@ export function registerProjectIpc() {
           if (!/\.(md|txt)$/i.test(e.name)) continue;
           const fullPath = path.join(projectDir, e.path.replace(/^\//, ''));
           try {
-            const text = readFileSync(fullPath, 'utf-8').trim();
+            // Decode with encoding detection (UTF-8 / BOM / UTF-16 / GBK) so the
+            // count matches what the editor shows. Chinese .txt files are often
+            // GBK on Windows; a blind utf-8 read produces mojibake → wrong count.
+            const text = decodeFileToUtf8(readFileSync(fullPath)).trim();
             if (text) total += text.replace(/\s/g, '').length;
           } catch { /* skip unreadable */ }
         }
@@ -301,4 +353,36 @@ export function registerProjectIpc() {
     const record = ensureProject(input);
     return { projectId: record.projectId, name: record.name, type: record.type };
   });
+}
+
+/**
+ * Convert a .docx file to Markdown. mammoth extracts the document body as HTML
+ * (headings, bold/italic, lists, basic tables), then turndown maps it to
+ * Markdown. Complex formatting (comments, advanced styles) is intentionally
+ * dropped — prose-first conversion for a writing tool.
+ */
+async function convertDocxToMarkdown(fullPath: string): Promise<string> {
+  const mammothMod = await import('mammoth');
+  const mammoth = (mammothMod as { default?: unknown }).default ?? mammothMod;
+  const { value: html } = await (mammoth as {
+    convertToHtml: (i: { buffer: Buffer }) => Promise<{ value: string }>;
+  }).convertToHtml({ buffer: readFileSync(fullPath) });
+
+  const TurndownService = (await import('turndown')).default;
+  const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+  return turndown.turndown(html);
+}
+
+/**
+ * Build a non-colliding `<base>.md` path within `dir`, appending `-1`, `-2`, …
+ * if a file already exists.
+ */
+function uniqueMarkdownPath(dir: string, baseName: string): string {
+  let candidate = path.join(dir, `${baseName}.md`);
+  let i = 1;
+  while (existsSync(candidate)) {
+    candidate = path.join(dir, `${baseName}-${i}.md`);
+    i++;
+  }
+  return candidate;
 }

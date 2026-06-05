@@ -11,6 +11,7 @@ topbar:
   newProject: "新建项目"
   openProject: "打开项目"
   openFolder: "打开文件夹"
+  importDocx: "导入 Word (.docx)"
   closeFile: "关闭文件"
   saveAll: "全部保存"
   closeAllFiles: "关闭所有文件"

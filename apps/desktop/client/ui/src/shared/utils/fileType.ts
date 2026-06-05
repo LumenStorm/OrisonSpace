@@ -9,3 +9,7 @@ export function getFileExtension(name: string): string {
 export function isImageFileName(name: string): boolean {
   return IMAGE_EXTENSIONS.has(getFileExtension(name));
 }
+
+export function isDocxFileName(name: string): boolean {
+  return getFileExtension(name) === 'docx';
+}

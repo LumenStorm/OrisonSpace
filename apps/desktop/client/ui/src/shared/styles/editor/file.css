@@ -371,6 +371,97 @@
   background: var(--surface-container-lowest);
 }
 
+/* ── File Editor: docx preview ── */
+.file-editor-docx {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface);
+}
+
+/* Toolbar row mirrors the MarkdownEditor heading toolbar (same height /
+   surface / divider) so the convert action lines up with H1/H2. */
+.docx-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.35rem 2.5rem;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-container-low);
+}
+
+.docx-preview-name {
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docx-preview-convert {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.75rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background 0.12s, color 0.12s;
+}
+
+.docx-preview-convert:hover:not(:disabled) {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
+.docx-preview-convert:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.docx-preview-convert .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.docx-preview-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 2.5rem;
+}
+
+.docx-preview-content {
+  width: 100%;
+  max-width: 760px;
+  line-height: 1.7;
+  color: var(--on-surface);
+}
+
+.docx-preview-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.docx-preview-content table {
+  border-collapse: collapse;
+}
+
+.docx-preview-content td,
+.docx-preview-content th {
+  border: 1px solid var(--outline-variant);
+  padding: 0.3rem 0.6rem;
+}
+
 /* ── Find / Replace Bar ── */
 .find-replace-bar {
   position: absolute;

@@ -4,7 +4,7 @@ import { ContextMenu, type ContextMenuItem } from '../../shared/components/Conte
 import { mockFileContents } from '../../shared/data/mockFileContents';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useAppStore } from '../../shared/store/appStore';
-import { isImageFileName } from '../../shared/utils/fileType';
+import { isImageFileName, isDocxFileName } from '../../shared/utils/fileType';
 import { normalizePath } from '../../shared/utils/paths';
 import { FileTreeNode } from './FileTreeNode';
 import type { CreatingType, CtxState, FileEntry } from './types';
@@ -146,6 +146,16 @@ export function ProjectTree() {
         // Fall through to placeholder text below.
       }
       openFile(fullPath, entry.name, '', { kind: 'image' });
+      return;
+    }
+
+    if (isDocxFileName(entry.name)) {
+      try {
+        const html = await window.orisonDesktop?.docxToHtml(fullPath);
+        openFile(fullPath, entry.name, html ?? '', { kind: 'docx' });
+      } catch {
+        openFile(fullPath, entry.name, '', { kind: 'docx' });
+      }
       return;
     }
 
