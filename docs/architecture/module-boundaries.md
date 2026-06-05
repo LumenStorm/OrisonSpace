@@ -1,12 +1,12 @@
 # 模块边界与拆分规则
 
-> 状态：当前生效中的架构规则文档。只要 UI、桌面 IPC、服务端职责或存储边界发生变化，就要同步更新这里。
+> 状态：当前生效中的架构规则文档。只要 UI、桌面 IPC、库（agent / model-protocols）职责或存储边界发生变化，就要同步更新这里。
 
 ## 目标
 
 - 让页面、功能模块、服务层、模型协议层都能独立理解
 - 让 UI 文件专注于渲染与交互，不混入文件系统、provider 协议或复杂 payload 拼装
-- 让后端和桌面主进程的边界稳定，便于替换实现而不破坏契约
+- 让桌面主进程与渲染层、库（agent / model-protocols）之间的边界稳定，便于替换实现而不破坏契约
 - 优先强调明确的模块所有权，而不是继续堆大型混合文件
 
 ## 桌面 UI
@@ -103,7 +103,7 @@
   - `apiKey`
 - 每个 key 下的 `models[]` 表示发现的模型条目：
   - `id`
-  - `capability`（text/image，由 model-registry 推断）
+  - `capability`（text/image/video，由 model-registry 推断）
   - `alias`（由 model-registry 推断）
   - `enabled`
 - 生成请求使用 `ModelRef`：`{ keyId, modelId }`
@@ -113,6 +113,7 @@
 - `apps/desktop/client/shell/main/ipc/modelGatewayIpc.ts`
   - 负责 `model:generate-text`
   - 负责 `model:generate-image`
+  - 负责 `model:generate-video`
   - 是唯一会解密模型 `apiKey` 并调用 provider 的主进程入口
 - 渲染层永远拿不到真实 `apiKey`
 - agent 不持有 provider `apiKey`
@@ -178,16 +179,15 @@
   - `baseUrl` 支持带或不带 `/v1` 后缀（内部通过 `normalizeBaseUrl` 统一补齐）
   - 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
   - 返回 `RemoteModel[]`（id + capability + alias），能力由 `model-registry` 推断
-- `generateText / generateImage`
-  - 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）
+- `generateText / generateImage / generateVideo`
+  - text/image 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）；video 走对应模型的生成端点
   - text 生成使用 `@ai-sdk/openai` 的 `.chat()` 方法强制 Chat Completions API（兼容第三方 OpenAI 兼容端点，避免 Responses API）
   - system 消息从 messages 数组中提取，通过 AI SDK 的 `system` 参数传递
   - `baseUrl` 同样兼容带或不带 `/v1`
   - 接收 `ResolvedModel`（含 baseUrl、apiKey、modelId、capability）
 - image adapter 支持 `image`、`mask` 字段用于图像编辑
 - 渲染层支持上传参考图进入编辑模式，自动切换到 `/images/edits` 端点并强制 n=1
-- server 不允许 import 这个包
-- 桌面主进程才是它的调用方
+- 该包只应被桌面主进程调用（渲染层不直接 import，agent 也不直接请求第三方模型）
 
 ## 文档同步规则
 
@@ -195,7 +195,6 @@
   - 架构边界
   - 存储位置
   - IPC surface
-  - 服务端 API
   - 模型配置结构
-  - 启动鉴权行为
+  - 启动行为
 - 根目录文档与 `docs/` 中对应参考文档都要一起更新

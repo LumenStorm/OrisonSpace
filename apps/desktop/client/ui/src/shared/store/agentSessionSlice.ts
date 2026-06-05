@@ -1,8 +1,9 @@
 import type { StateCreator } from 'zustand';
 import type { ModelRef } from '@orison/shared-contracts';
 import type { AgentMode } from './types';
-import type { Attachment } from '../types/attachment';
+import type { Attachment, SelectionAnchor } from '../types/attachment';
 import type { PendingDiff } from './agentDiffSlice';
+import { WRITE_TOOLS } from './agentDiffSlice';
 import {
   createAgentSession,
   fetchAgentSession,
@@ -17,9 +18,31 @@ import { randomUUID } from '../util/id';
 
 export type { AgentMessage, AgentSessionMeta };
 
-// Tools whose output produces an editable diff. `rewrite_passage` carries
-// passage-level metadata; the others carry whole-chapter `content`.
-const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update', 'rewrite_passage'];
+/**
+ * The runtime echoes passage metadata without the original `SelectionAnchor`
+ * (the anchor is UI-captured and never round-trips through the LLM tool call).
+ * Recover it from the session's sent selection references so passage relocation
+ * can use prefix/suffix context to disambiguate duplicate matches. Most recent
+ * matching selection wins. Match on the exact quote, scoped to the same source.
+ */
+function recoverAnchor(
+  messages: AgentMessage[],
+  originalText: string,
+  chapterId: string | undefined,
+  filePath: string | undefined,
+): SelectionAnchor | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const refs = messages[i].references;
+    if (!refs) continue;
+    for (const ref of refs) {
+      if (ref.type !== 'selection') continue;
+      const sameSource = chapterId ? ref.chapterId === chapterId : filePath ? ref.filePath === filePath : true;
+      if (!sameSource) continue;
+      if (ref.anchor.quote === originalText || ref.text === originalText) return ref.anchor;
+    }
+  }
+  return undefined;
+}
 
 let activeAbort: { cleanup: () => void; sessionId: string } | null = null;
 
@@ -183,6 +206,9 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                 const sourceType: 'chapter' | 'file' = meta.chapterId ? 'chapter' : 'file';
                 const originalText = meta.originalText ?? meta.originalQuote ?? meta.anchor?.quote ?? '';
                 if (!originalText || meta.replacement == null) continue;
+                // Backfill the anchor from the sent selection when the runtime omits it,
+                // so passage relocation can disambiguate duplicate matches.
+                const anchor = meta.anchor ?? recoverAnchor(get().agentMessages, originalText, meta.chapterId, meta.filePath);
                 set((s) => ({
                   pendingDiffs: [...s.pendingDiffs, {
                     kind: 'passage',
@@ -193,7 +219,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                     filePath: meta.filePath,
                     originalText,
                     replacement: meta.replacement!,
-                    anchor: meta.anchor,
+                    anchor,
                   }],
                 }));
                 continue;

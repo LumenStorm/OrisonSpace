@@ -5,6 +5,7 @@ import { useI18n } from '../../shared/i18n/useI18n';
 import type { AgentMode } from '../../shared/store/types';
 import type { Attachment } from '../../shared/types/attachment';
 import { AgentConfirmCard } from './AgentConfirmCard';
+import { AgentPassageResolveCard } from './AgentPassageResolveCard';
 
 const MODE_KEYS: { value: AgentMode; i18nKey: string }[] = [
   { value: 'readonly', i18nKey: 'agent.modeReadonly' },
@@ -20,6 +21,7 @@ export function AgentInput() {
     modelConfig, pendingToolConfirm, resolvedLocale,
     chapters, openFiles,
     pendingAttachments, addAttachment, removeAttachment,
+    pendingPassageResolve,
   } = useAppStore(useShallow((s) => ({
     sendAgentMessage: s.sendAgentMessage,
     cancelAgent: s.cancelAgent,
@@ -36,6 +38,7 @@ export function AgentInput() {
     pendingAttachments: s.pendingAttachments,
     addAttachment: s.addAttachment,
     removeAttachment: s.removeAttachment,
+    pendingPassageResolve: s.pendingPassageResolve,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -96,6 +99,7 @@ export function AgentInput() {
   return (
     <div className="agent-input-area">
       {pendingToolConfirm && <AgentConfirmCard />}
+      {pendingPassageResolve && <AgentPassageResolveCard />}
 
       {pendingAttachments.length > 0 && (
         <div className="agent-input-attachments">

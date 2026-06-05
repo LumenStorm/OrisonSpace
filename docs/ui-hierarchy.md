@@ -31,13 +31,14 @@
 ```
 App
 ├── ProjectsPage
-│   ├── ProjectHeader
-│   ├── ProjectGrid (RecentProjectCard[])
+│   ├── ProjectCard[] (已有项目卡片)
+│   ├── ProjectsEmptyState (无项目时)
 │   └── NewProjectDialog
 └── WorkspacePage
     └── WorkspaceLayout
         ├── TopBar
-        │   ├── MenuBar (文件/编辑/视图/帮助)
+        │   ├── MenuDropdown (文件/编辑/视图/帮助 内联菜单栏)
+        │   ├── NotificationCenter
         │   └── WindowControls (最小化/最大化/关闭)
         ├── SideNav (Icon Rail)
         │   ├── ExplorerBtn (资源管理器，切换左侧面板)
@@ -67,37 +68,35 @@ App
         │   │   ├── ImageGenEditor (activePage='image_gen')
         │   │   ├── VideoEditor (activePage='video')
         │   │   └── AssetsPanel (activePage='assets')
-        │   ├── ResizeHandle (vertical, 底部面板)
-        │   └── BottomPanel (可折叠)
+        │   └── BottomPanel (可折叠，条件渲染 bottomPanelOpen)
         │       ├── Tab: Output
         │       └── Tab: Tasks
-        ├── AgentPanel (可折叠，全高)
+        ├── ResizeHandle (Agent Panel 宽度调整)
+        ├── AgentPanel (可折叠，全高，chat/history/settings 三视图)
         │   ├── AgentPanel header
         │   │   ├── Title ("Agent")
+        │   │   ├── Settings btn
         │   │   ├── NewConversation btn
         │   │   └── History btn
-        │   ├── AgentMessages (消息流，auto-scroll)
-        │   │   ├── AgentMessageItem (role=user)
-        │   │   ├── AgentMessageItem (role=assistant)
-        │   │   │   └── AgentToolCallBadge[]
-        │   │   └── AgentMessageItem (role=tool)
-        │   │       ├── AgentToolCard (普通 tool 结果)
-        │   │       └── DiffCard (写入类 tool 结果)
-        │   │           ├── Header (fileName + status)
-        │   │           ├── Body (diff preview)
-        │   │           └── Actions (Accept / Reject)
-        │   ├── AgentConfirmCard (pendingToolConfirm 时显示)
-        │   ├── AgentSkillsPanel (skill 列表 + 刷新)
-        │   ├── AgentContinuationCard (最新 continuation 恢复/重跑)
-        │   ├── AgentWorkbenchCard (已恢复 continuation 的 workbench)
-        │   ├── AgentInput
-        │   │   ├── Toolbar
-        │   │   │   ├── Model select (下拉框)
-        │   │   │   └── Mode select (下拉框: Read/Suggest/Auto)
-        │   │   ├── Textarea (消息输入)
-        │   │   └── Send/Stop btn
-        │   └── AgentHistory (历史列表 overlay)
-        │       └── HistoryItem[] (title + date + messageCount + delete)
+        │   ├── [view='settings'] AgentSettings (skill 包启用/停用)
+        │   ├── [view='history'] AgentHistory (历史列表)
+        │   │   └── HistoryItem[] (title + date + messageCount + delete)
+        │   └── [view='chat']
+        │       ├── AgentMessages (消息流，auto-scroll)
+        │       │   ├── AgentMessageItem (role=user，含 references 引用卡)
+        │       │   ├── AgentMessageItem (role=assistant)
+        │       │   └── AgentMessageItem (role=tool)
+        │       │       ├── AgentToolCard (普通 tool 结果，图像读 metadata.paths)
+        │       │       └── DiffCard (写入类 tool 结果: chapter/passage)
+        │       │           ├── Header (fileName + status)
+        │       │           ├── Body (diff preview / SideBySideDiff)
+        │       │           └── Actions (Accept / Reject)
+        │       └── AgentInput
+        │           ├── [pendingToolConfirm] AgentConfirmCard
+        │           ├── [pendingPassageResolve] AgentPassageResolveCard
+        │           ├── Toolbar (Model select + Mode select)
+        │           ├── Textarea (消息输入)
+        │           └── Send/Stop btn
         └── StatusBar (底部状态栏，常驻)
 ```
 
@@ -106,6 +105,7 @@ App
 | 组件名 | 文件路径 | 职责 |
 |--------|----------|------|
 | `TopBar` | `features/top-bar/TopBar.tsx` | 自定义标题栏 + 菜单 + 窗口控制 |
+| `MenuDropdown` | `features/top-bar/MenuDropdown.tsx` | 菜单栏下拉项 |
 | `SideNav` | `features/side-nav/SideNav.tsx` | 左侧图标导航栏 |
 | `ProjectTree` | `features/project-tree/ProjectTree.tsx` | 项目文件树 |
 | `SearchPanel` | `features/search-panel/SearchPanel.tsx` | 搜索面板（与 ProjectTree 互斥） |
@@ -128,7 +128,10 @@ App
 | `AgentMessageItem` | `features/agent-panel/AgentMessageItem.tsx` | 单条消息渲染 |
 | `AgentToolCard` | `features/agent-panel/AgentToolCard.tsx` | Tool 结果折叠卡片 |
 | `DiffCard` | `features/agent-panel/DiffCard.tsx` | 写入类 diff 预览 + Accept/Reject |
-| `AgentConfirmCard` | `features/agent-panel/AgentConfirmCard.tsx` | Tool 执行确认卡片 |
+| `AgentConfirmCard` | `features/agent-panel/AgentConfirmCard.tsx` | Tool 执行确认卡片（AgentInput 上方） |
+| `AgentPassageResolveCard` | `features/agent-panel/AgentPassageResolveCard.tsx` | 选段改写候选定位确认卡（AgentInput 上方） |
+| `AgentSettings` | `features/agent-panel/AgentSettings.tsx` | 设置视图（skill 包启用/停用） |
+| `SideBySideDiff` | `features/agent-panel/SideBySideDiff.tsx` | 并排 diff 视图 |
 | `AgentInput` | `features/agent-panel/AgentInput.tsx` | 输入区 + 工具栏 |
 | `AgentHistory` | `features/agent-panel/AgentHistory.tsx` | 历史对话列表 |
 | `StatusBar` | `features/status-bar/StatusBar.tsx` | 底部状态栏 |
@@ -152,8 +155,8 @@ workspace-shell
 │       │   │   └── workspace-content → FileEditor + SplitFileEditor
 │       │   ├── [页面模式: hasOpenFiles = false]
 │       │   │   └── workspace-panel-content → 按 activePage 渲染对应组件
-│       │   ├── ResizeHandle (vertical)
-│       │   └── workspace-bottom-wrapper → BottomPanel
+│       │   └── BottomPanel (条件渲染 bottomPanelOpen)
+│       ├── ResizeHandle (Agent Panel 宽度)
 │       └── AgentPanel (可调宽度, 全高)
 └── StatusBar
 ```

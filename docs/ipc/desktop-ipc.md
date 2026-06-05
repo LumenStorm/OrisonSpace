@@ -54,6 +54,8 @@
 | `window:is-maximized` | renderer -> main | invoke | 查询当前是否最大化 |
 | `shell:show-item-in-folder` | renderer -> main | send | 在系统文件管理器中定位文件 |
 | `shell:open-path` | renderer -> main | send | 用系统默认方式打开路径 |
+| `app:before-close` | main -> renderer | event | 窗口即将关闭，渲染层执行未保存守卫 |
+| `app:close-confirmed` | renderer -> main | send | 渲染层确认可以关闭 |
 
 ### 配置通道
 
@@ -71,6 +73,7 @@
 | `model:list-remote-models` | renderer -> main | invoke | 请求远端模型列表 |
 | `model:generate-text` | renderer -> main | invoke | 文本生成 |
 | `model:generate-image` | renderer -> main | invoke | 图片生成 |
+| `model:generate-video` | renderer -> main | invoke | 视频生成 |
 | `storySync:run` | renderer -> main | invoke | 本地执行 story-sync 提取 |
 
 ### 任务持久化通道
@@ -130,6 +133,18 @@
 | `git:current-branch` | renderer -> main | invoke | 获取当前分支名 |
 | `git:create-branch` | renderer -> main | invoke | 从指定 OID 创建新分支 |
 | `git:checkout-branch` | renderer -> main | invoke | 切换分支，完成后广播 `git:changed` |
+| `git:status-count` | renderer -> main | invoke | 返回工作区变更文件计数（状态栏角标用） |
+
+### Orchestration / Auto Mode 通道
+
+| 通道 | 方向 | 类型 | 说明 |
+|---|---|---|---|
+| `orchestration:start-run` | renderer -> main | invoke | 启动一次编排 run |
+| `orchestration:get-run` | renderer -> main | invoke | 查询 run 状态 |
+| `orchestration:action` | renderer -> main | invoke | 对 run 执行操作（继续/取消等） |
+| `orchestration:auto-mode-start` | renderer -> main | invoke | 启动全自动模式 |
+| `orchestration:auto-mode-action` | renderer -> main | invoke | 对 auto mode 执行操作 |
+| `orchestration:auto-mode-get` | renderer -> main | invoke | 查询 auto mode 状态 |
 
 `git:log` 返回类型：
 
@@ -185,8 +200,8 @@ window.orisonDesktop = {
   copyCoverImage,
   saveProjectMeta,
   loadProjectMeta,
-  loadDocument,
-  syncMeta,
+  loadProjectDocument,
+  syncProjectMeta,
   syncChaptersMeta,
   getLocale,
   minimize,
@@ -200,6 +215,7 @@ window.orisonDesktop = {
   listRemoteModels,
   generateText,
   generateImage,
+  generateVideo,
   runStorySync,
   loadUserPreferences,
   saveUserPreferences,
@@ -223,6 +239,11 @@ window.orisonDesktop = {
   upsertTask,
   updateTaskStatus,
   deleteTask,
+  // Asset persistence (SQLite)
+  listAssets,
+  upsertAsset,
+  updateAsset,
+  deleteAsset,
   // Logging
   openLogsDir,
   writeLog,
@@ -239,6 +260,14 @@ window.orisonDesktop = {
   gitCurrentBranch,
   gitCreateBranch,
   gitCheckoutBranch,
+  gitStatusCount,
+  // Orchestration / Auto Mode
+  startOrchestrationRun,
+  getOrchestrationRun,
+  performOrchestrationAction,
+  startAutoMode,
+  performAutoModeAction,
+  getAutoModeState,
   // Agent
   createAgentSession,
   getAgentSession,
@@ -256,6 +285,9 @@ window.orisonDesktop = {
   listSkillPackages,
   setPackageEnabled,
   setSkillEnabled,
+  // Window close guard
+  onBeforeClose,
+  confirmClose,
 }
 ```
 

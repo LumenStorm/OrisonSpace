@@ -10,7 +10,7 @@ AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构�
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │  Model Gateway (IPC)                            │    │
-│  │  model:generate-text / generate-image            │    │
+│  │  model:generate-text / -image / -video           │    │
 │  └─────────────────────────────────────────────────┘    │
 │         ▲                                               │
 │         │ injected via setGenerateTextFn()               │
@@ -130,6 +130,7 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 | `chapter_list` | 列出所有章节（标题、字数） |
 | `chapter_read` | 读取指定章节全文 |
 | `chapter_write` | 写入/更新章节 |
+| `rewrite_passage` | 改写章节/文件中的某个选段（不落盘，返回 passage diff 供前端定位回写） |
 | `outline_read` | 读取大纲文件 |
 | `outline_update` | 更新大纲 |
 
@@ -181,7 +182,7 @@ User Message
                     ▼                      ▼
             ┌──────────────┐      ┌──────────────┐
             │ Execute Tools│      │ Return Final │
-            │ (parallel)   │      │ Response     │
+            │ (sequential) │      │ Response     │
             └──────┬───────┘      └──────────────┘
                    │
                    ▼
@@ -191,10 +192,10 @@ User Message
             └──────────────┘
 ```
 
-- 最大 50 步循环（防止无限 loop）
+- 主对话 loop 上限 30 步；skill / spawn_agent 子 loop 上限 50 步（`maxSteps` 默认值，防止无限 loop）
 - 支持 AbortSignal 中断（基于 TCP socket close 事件，而非 request body close）
-- Tool 执行结果自动追加到消息历史
-- 上下文超长时自动压缩（compaction）
+- 同一轮内的多个 tool call 按顺序依次 `await` 执行（非并行），结果按序追加到消息历史
+- 单轮 LLM 输出被 `length` 截断时自动注入续写提示继续下一步
 - **abort 信号会沿调用链下传** — 外层 SSE 取消时,工具内部派出的 `runChildAgent` / skill 子 runLoop 会立刻收到同一个 abort 信号
 - **嵌套深度上限 `MAX_SPAWN_DEPTH = 5`** — `spawn_agent` 与 skill 嵌套深度每层 +1,超过会抛 `SpawnDepthExceededError`,防止 A→B→A 无限互调耗光预算
 
@@ -328,14 +329,13 @@ Agent 针对 Orison 小说写作项目的特殊适配：
 Agent Panel 作为工作区右侧独立面板（全高，不受 Bottom Panel 截断）：
 
 - 右侧面板展示对话流（`AgentMessages` + `AgentMessageItem`）
-- Tool 调用显示为可折叠的执行卡片（`AgentToolCard`）
-- 写入类 tool 在 suggest 模式下显示 DiffCard（Accept/Reject）
-- 图像结果内联预览（`AgentImageResult`）
+- Tool 调用显示为可折叠的执行卡片（`AgentToolCard`），图像结果由该卡片读取 `metadata.paths` 内联预览
+- 写入类 tool 在 suggest 模式下显示 DiffCard（Accept/Reject），选段改写额外提供 `SideBySideDiff` 与 `AgentPassageResolveCard`（候选定位确认）
 - 支持中断/重试（`cancelAgent`）
 - 消息通过 IPC stream 事件实时推送
 - 三档权限模式：Read / Suggest / Auto（前端控制，后端无感知）
-- 发送时自动附加当前编辑章节上下文
-- 所有文本已 i18n 化（`agent.*` 命名空间）
+- 发送时自动附加当前编辑章节上下文，并以结构化 attachment 传递选段引用
+- 所有文本已 i18n 化（`agent.*` 命名空间，键在 `shared/i18n/<locale>/agent.yaml`）
 
 详见 [Agent Panel UI 文档](agent-panel-ui.md) 和 [UI 层级结构](ui-hierarchy.md)。
 ## 当前实现状态（2026-05-25）

@@ -191,6 +191,7 @@ models:
 theme: system
 locale: system
 autoApplyPatches: true
+updateManifestUrl: ""   # 可选，自定义更新清单地址；不在默认值中
 ```
 
 ## 6. 鉴权会话数据

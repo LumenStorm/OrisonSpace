@@ -66,6 +66,10 @@ themes/
 | `error` | 错误/危险（删除按钮、错误文字） |
 | `error-bg` | 错误提示条底色 |
 | `success` | 成功状态 |
+| `warning` | 警告状态文字/图标 |
+| `warning-bg` | 警告提示条底色 |
+| `info` | 信息状态文字/图标 |
+| `info-bg` | 信息提示条底色 |
 | `notice-bg` | 信息提示条底色 |
 
 ### 边框
