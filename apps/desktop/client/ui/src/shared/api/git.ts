@@ -33,3 +33,7 @@ export async function gitCheckoutBranch(projectDir: string, branch: string): Pro
 export async function gitCreateBranch(projectDir: string, name: string, startOid: string): Promise<void> {
   await api?.gitCreateBranch(projectDir, name, startOid);
 }
+
+export async function gitStatusCount(projectDir: string): Promise<number> {
+  return (await api?.gitStatusCount(projectDir)) ?? 0;
+}

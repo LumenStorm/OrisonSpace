@@ -166,6 +166,16 @@ async function checkoutBranch(dir: string, name: string): Promise<void> {
   notifyGitChanged();
 }
 
+async function statusCount(dir: string): Promise<number> {
+  const root = await getGitRoot(dir);
+  const matrix = await git.statusMatrix({ fs, dir: root });
+  let count = 0;
+  for (const [, head, workdir, stage] of matrix) {
+    if (head !== 1 || workdir !== 1 || stage !== 1) count++;
+  }
+  return count;
+}
+
 export function registerGitIpc() {
   const logger = getLogger();
 
@@ -256,6 +266,16 @@ export function registerGitIpc() {
     } catch (err) {
       logger.warn({ dir, name, err }, 'git:checkout-branch failed');
       throw err;
+    }
+  });
+
+  ipcMain.handle('git:status-count', async (_e, dir: string) => {
+    try {
+      assertSafePath(dir);
+      return await statusCount(dir);
+    } catch (err) {
+      logger.warn({ dir, err }, 'git:status-count failed');
+      return 0;
     }
   });
 }

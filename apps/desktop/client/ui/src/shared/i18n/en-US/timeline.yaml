@@ -14,3 +14,5 @@ timeline:
   createBranch: "Start new branch from here"
   createBranchFrom: "Branch from here"
   expandFull: "Expand full canvas (coming soon)"
+  restoreVersion: "Restore to this version"
+  dirtyWarning: "You have unsaved changes. Please save a version before switching branches."

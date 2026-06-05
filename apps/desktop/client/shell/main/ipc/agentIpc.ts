@@ -107,7 +107,7 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
 
   // ─── Streaming handler ───
 
-  ipcMain.handle('agent:stream-message', async (_event, input: { sessionId: string; content: string }) => {
+  ipcMain.handle('agent:stream-message', async (_event, input: { sessionId: string; content: string; attachments?: unknown[] }) => {
     const abortController = new AbortController();
 
     // Store abort controller so it can be cancelled via agent:abort-run
@@ -123,6 +123,7 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
       await runtime.streamMessage({
         sessionId: input.sessionId,
         content: input.content,
+        attachments: input.attachments as Parameters<typeof runtime.streamMessage>[0]['attachments'],
         abortSignal: abortController.signal,
         sendEvent,
       });

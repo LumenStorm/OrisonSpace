@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 import { atomicWriteFileSync } from '../fs/atomicWrite';
+import { decodeFileToUtf8 } from '../fs/decodeText';
 import { ensureProject } from '../db/projectRepository';
 import {
   ALLOWED_IMAGE_DIRS,
@@ -188,7 +189,11 @@ export function registerProjectIpc() {
     assertSafePath(fullPath);
     try {
       if (!existsSync(fullPath)) return null;
-      return readFileSync(fullPath, 'utf-8');
+      // Read raw bytes and detect encoding (UTF-8 / UTF-8-BOM / UTF-16 / GBK).
+      // Chinese .txt files are often saved as GBK on Windows; a blind utf-8
+      // read would produce mojibake. Newlines are normalized to LF here.
+      const buffer = readFileSync(fullPath);
+      return decodeFileToUtf8(buffer);
     } catch {
       return null;
     }
@@ -214,6 +219,10 @@ export function registerProjectIpc() {
     try {
       const dir = path.dirname(fullPath);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      // Always write UTF-8 (no BOM). Combined with read-side LF normalization
+      // this gives a stable LF + UTF-8 round-trip. We intentionally do not
+      // restore the original encoding/newlines (e.g. GBK or CRLF): normalizing
+      // to LF + UTF-8 is the accepted canonical form for the editor.
       atomicWriteFileSync(fullPath, content, 'utf-8');
       return true;
     } catch {

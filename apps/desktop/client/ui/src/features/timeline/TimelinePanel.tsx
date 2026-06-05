@@ -5,7 +5,7 @@ import { useI18n } from '../../shared/i18n/useI18n';
 import type { GitCommitEntry, GitFileDiff } from '@orison/shared-contracts';
 import {
   gitIsRepo, gitLog, gitListBranches, gitCurrentBranch,
-  gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch,
+  gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch, gitStatusCount,
 } from '../../shared/api/git';
 
 function formatRelativeTime(timestamp: number): string {
@@ -186,8 +186,24 @@ export function TimelinePanel() {
 
   const handleCheckout = useCallback(async (name: string) => {
     if (!projectDir) return;
+    const dirty = await gitStatusCount(projectDir);
+    if (dirty > 0) {
+      if (!window.confirm(t('timeline.dirtyWarning'))) return;
+    }
     await gitCheckoutBranch(projectDir, name);
-  }, [projectDir]);
+  }, [projectDir, t]);
+
+  const handleRestoreVersion = useCallback(async (oid: string) => {
+    if (!projectDir) return;
+    const dirty = await gitStatusCount(projectDir);
+    if (dirty > 0) {
+      if (!window.confirm(t('timeline.dirtyWarning'))) return;
+    }
+    const name = `restore-${oid.slice(0, 7)}-${Date.now()}`;
+    await gitCreateBranch(projectDir, name, oid);
+    await gitCheckoutBranch(projectDir, name);
+    await refresh();
+  }, [projectDir, t, refresh]);
 
   if (!projectDir) {
     return <div className="timeline-empty">{t('timeline.noProject')}</div>;
@@ -353,6 +369,14 @@ export function TimelinePanel() {
               <span className="timeline-commit-meta">
                 {formatRelativeTime(node.commit.timestamp)}
               </span>
+            </button>
+            <button
+              type="button"
+              className="timeline-branch-btn"
+              title={t('timeline.restoreVersion')}
+              onClick={() => { void handleRestoreVersion(node.commit.oid); }}
+            >
+              <span className="material-symbols-outlined">history</span>
             </button>
             <button
               type="button"

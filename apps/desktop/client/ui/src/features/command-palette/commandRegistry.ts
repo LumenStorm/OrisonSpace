@@ -24,6 +24,7 @@ export function buildCommandRegistry(actions: {
   closeFile: () => void;
   reopenClosed: () => void;
   exportProject?: () => void;
+  saveVersion?: () => void;
 }): CommandEntry[] {
   const { t } = actions;
   const cmds: CommandEntry[] = [
@@ -40,6 +41,9 @@ export function buildCommandRegistry(actions: {
   ];
   if (actions.exportProject) {
     cmds.push({ id: 'export', label: t('topbar.export'), icon: 'download', handler: actions.exportProject });
+  }
+  if (actions.saveVersion) {
+    cmds.push({ id: 'saveVersion', label: t('statusBar.saveVersion'), icon: 'commit', handler: actions.saveVersion });
   }
   return cmds;
 }

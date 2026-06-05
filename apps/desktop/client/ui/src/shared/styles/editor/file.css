@@ -211,6 +211,7 @@
   background: var(--active-indicator);
 }
 
+
 /* ── Editor Status Bar ── */
 .editor-status-bar {
   display: flex;

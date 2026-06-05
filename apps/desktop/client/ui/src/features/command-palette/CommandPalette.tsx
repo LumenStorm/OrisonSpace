@@ -42,6 +42,13 @@ export function CommandPalette() {
         if (active) state.requestCloseFile(active);
       },
       reopenClosed: () => { void state.reopenLastClosedFile(); },
+      saveVersion: state.currentProject?.path ? () => {
+        const dir = state.currentProject!.path;
+        const msg = window.prompt(t('timeline.nodeMessage'));
+        if (msg?.trim()) {
+          void window.orisonDesktop?.gitCreateNode(dir, msg.trim());
+        }
+      } : undefined,
     });
   }, [open, t]);
 

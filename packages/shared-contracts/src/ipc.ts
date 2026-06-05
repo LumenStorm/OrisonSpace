@@ -225,13 +225,14 @@ export type OrisonDesktopApi = {
   gitCurrentBranch(dir: string): Promise<string>;
   gitCreateBranch(dir: string, name: string, fromOid?: string): Promise<void>;
   gitCheckoutBranch(dir: string, name: string): Promise<void>;
+  gitStatusCount(dir: string): Promise<number>;
   onToolEvent(callback: (data: { type: string; [key: string]: unknown }) => void): () => void;
   // Agent
   createAgentSession(input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
   getAgentSession(id: string, projectPath?: string): Promise<unknown>;
   listAgentSessions(projectPath?: string): Promise<unknown>;
   deleteAgentSession(id: string): Promise<boolean>;
-  streamAgentMessage(input: { sessionId: string; content: string }): Promise<{ status: string; message?: string }>;
+  streamAgentMessage(input: { sessionId: string; content: string; attachments?: unknown[] }): Promise<{ status: string; message?: string }>;
   onAgentStreamEvent(callback: (event: { type: string; data: unknown }) => void): () => void;
   resolveAgentConfirmation(sessionId: string, callId: string, approved: boolean): Promise<unknown>;
   listAgentSkills(projectPath: string): Promise<unknown>;

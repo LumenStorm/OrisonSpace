@@ -1,6 +1,8 @@
 import type { StateCreator } from 'zustand';
 import type { ModelRef } from '@orison/shared-contracts';
 import type { AgentMode } from './types';
+import type { Attachment } from '../types/attachment';
+import type { PendingDiff } from './agentDiffSlice';
 import {
   createAgentSession,
   fetchAgentSession,
@@ -15,7 +17,9 @@ import { randomUUID } from '../util/id';
 
 export type { AgentMessage, AgentSessionMeta };
 
-const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update'];
+// Tools whose output produces an editable diff. `rewrite_passage` carries
+// passage-level metadata; the others carry whole-chapter `content`.
+const WRITE_TOOLS = ['chapter_write', 'write_file', 'outline_update', 'rewrite_passage'];
 
 let activeAbort: { cleanup: () => void; sessionId: string } | null = null;
 
@@ -33,6 +37,11 @@ export type AgentSessionSlice = {
   cancelAgent: () => void;
   newAgentSession: () => Promise<void>;
 
+  pendingAttachments: Attachment[];
+  addAttachment: (attachment: Attachment) => void;
+  removeAttachment: (id: string) => void;
+  clearAttachments: () => void;
+
   agentSessions: AgentSessionMeta[];
   loadAgentSessions: () => Promise<void>;
   switchAgentSession: (sessionId: string) => Promise<void>;
@@ -44,7 +53,7 @@ type Deps = AgentSessionSlice & {
   activeChapterId: string | null;
   chapters: { id: string; title: string; content: string }[];
   updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
-  pendingDiffs: { id: string; toolId: string; fileName: string; content: string; chapterId?: string }[];
+  pendingDiffs: PendingDiff[];
   pendingToolConfirm: { callId: string; name: string; input: unknown } | null;
 };
 
@@ -59,12 +68,28 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   agentLoading: false,
   agentError: null,
 
+  pendingAttachments: [],
+  addAttachment: (attachment) =>
+    set((s) => (
+      s.pendingAttachments.some((a) => a.id === attachment.id && a.type === attachment.type)
+        ? s
+        : { pendingAttachments: [...s.pendingAttachments, attachment] }
+    )),
+  removeAttachment: (id) =>
+    set((s) => ({ pendingAttachments: s.pendingAttachments.filter((a) => a.id !== id) })),
+  clearAttachments: () => set({ pendingAttachments: [] }),
+
   agentSessions: [],
 
   async sendAgentMessage(content) {
     const state = get();
     const projectPath = state.currentProject?.path;
     if (!projectPath) return;
+
+    // Structured selection/chapter/file references pinned for this turn. They are
+    // passed through the IPC channel (not flattened into text); the runtime renders
+    // them into the prompt.
+    const attachments = state.pendingAttachments;
 
     let messageContent = content;
     if (state.activeChapterId) {
@@ -92,9 +117,15 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       id: randomUUID(),
       role: 'user',
       content,
+      references: attachments.length > 0 ? attachments : undefined,
       createdAt: Date.now(),
     };
-    set((s) => ({ agentMessages: [...s.agentMessages, userMsg], agentLoading: true, agentError: null }));
+    set((s) => ({
+      agentMessages: [...s.agentMessages, userMsg],
+      agentLoading: true,
+      agentError: null,
+      pendingAttachments: [],
+    }));
 
     const sid = sessionId;
     const mode = state.agentMode;
@@ -129,30 +160,66 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
           set((s) => ({ agentMessages: [...s.agentMessages, toolMsg] }));
 
           if (mode !== 'readonly') {
-            const results = event.data.results as Array<{ toolId?: string; output?: string; metadata?: unknown }>;
+            // The agent emits ToolCallResult with `toolName`; older shapes used `toolId`.
+            const results = event.data.results as Array<{
+              toolName?: string; toolId?: string; output?: string; metadata?: unknown;
+            }>;
             for (const result of results) {
-              if (WRITE_TOOLS.includes(result.toolId ?? '')) {
-                const meta = result.metadata as { fileName?: string; content?: string; chapterId?: string } | undefined;
-                if (meta?.content) {
-                  if (mode === 'auto') {
-                    const currentState = get();
-                    const chapter = currentState.chapters.find((c) =>
-                      meta.chapterId ? c.id === meta.chapterId : c.title.includes((meta.fileName ?? '').replace('.md', ''))
-                    );
-                    if (chapter) {
-                      currentState.updateChapter(chapter.id, { content: meta.content });
-                    }
-                  } else {
-                    set((s) => ({
-                      pendingDiffs: [...s.pendingDiffs, {
-                        id: randomUUID(),
-                        toolId: result.toolId ?? 'unknown',
-                        fileName: meta.fileName ?? 'unknown',
-                        content: meta.content!,
-                        chapterId: meta.chapterId,
-                      }],
-                    }));
+              const toolId = result.toolName ?? result.toolId ?? '';
+              if (!WRITE_TOOLS.includes(toolId)) continue;
+
+              const meta = result.metadata as
+                | {
+                    type?: string;
+                    fileName?: string; content?: string; chapterId?: string;
+                    filePath?: string; replacement?: string; originalText?: string; originalQuote?: string;
+                    anchor?: import('../types/attachment').SelectionAnchor;
                   }
+                | undefined;
+              if (!meta) continue;
+
+              // Passage-level rewrite: never auto-apply blindly; build a passage diff.
+              if (meta.type === 'passage') {
+                const sourceType: 'chapter' | 'file' = meta.chapterId ? 'chapter' : 'file';
+                const originalText = meta.originalText ?? meta.originalQuote ?? meta.anchor?.quote ?? '';
+                if (!originalText || meta.replacement == null) continue;
+                set((s) => ({
+                  pendingDiffs: [...s.pendingDiffs, {
+                    kind: 'passage',
+                    id: randomUUID(),
+                    toolId,
+                    sourceType,
+                    chapterId: meta.chapterId,
+                    filePath: meta.filePath,
+                    originalText,
+                    replacement: meta.replacement!,
+                    anchor: meta.anchor,
+                  }],
+                }));
+                continue;
+              }
+
+              // Whole-chapter rewrite.
+              if (meta.content) {
+                if (mode === 'auto') {
+                  const currentState = get();
+                  const chapter = currentState.chapters.find((c) =>
+                    meta.chapterId ? c.id === meta.chapterId : c.title.includes((meta.fileName ?? '').replace('.md', '')),
+                  );
+                  if (chapter) {
+                    currentState.updateChapter(chapter.id, { content: meta.content });
+                  }
+                } else {
+                  set((s) => ({
+                    pendingDiffs: [...s.pendingDiffs, {
+                      kind: 'chapter',
+                      id: randomUUID(),
+                      toolId,
+                      fileName: meta.fileName ?? 'unknown',
+                      content: meta.content!,
+                      chapterId: meta.chapterId,
+                    }],
+                  }));
                 }
               }
             }
@@ -203,7 +270,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
           set({ agentError: event.data.message, agentLoading: false });
           break;
       }
-    });
+    }, attachments);
     activeAbort = { cleanup, sessionId: sid };
   },
 
@@ -229,6 +296,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       agentError: null,
       pendingToolConfirm: null,
       pendingDiffs: [],
+      pendingAttachments: [],
     });
   },
 

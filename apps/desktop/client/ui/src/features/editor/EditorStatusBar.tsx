@@ -1,14 +1,7 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
-
-function countWords(html: string): { words: number; chars: number } {
-  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!text) return { words: 0, chars: 0 };
-  const chars = text.length;
-  const words = text.split(/[\s　]+/).filter(Boolean).length;
-  return { words, chars };
-}
+import { countMarkup } from '../../shared/utils/wordCount';
 
 export function EditorStatusBar() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
@@ -17,8 +10,9 @@ export function EditorStatusBar() {
   const { t } = useI18n(resolvedLocale);
 
   const activeChapter = chapters.find((c) => c.id === activeChapterId);
+  // 章节 content 是 HTML，先剥标签再统计。
   const { words, chars } = useMemo(
-    () => countWords(activeChapter?.content ?? ''),
+    () => countMarkup(activeChapter?.content ?? ''),
     [activeChapter?.content],
   );
 

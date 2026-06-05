@@ -294,5 +294,7 @@ editor:
   findReplace: "Find & Replace"
   aiContinue: "AI Continue"
   aiPolish: "AI Polish"
+  aiReview: "AI Review"
+  addToAgent: "Add to Agent"
   unsaved: "Unsaved changes"
   closeTab: "Close {name}"

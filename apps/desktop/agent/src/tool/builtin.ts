@@ -117,6 +117,17 @@ export function registerBuiltinTools() {
   }));
 
   registry.register(remoteToolProxy({
+    id: 'rewrite_passage',
+    description: 'Rewrite a selected passage of text. Does NOT apply the change directly — produces a diff for user review.',
+    parameters: z.object({
+      chapterId: z.string().optional().describe('Chapter identifier if the passage is from a chapter'),
+      filePath: z.string().optional().describe('File path if the passage is from a file'),
+      originalText: z.string().describe('The exact original text to be replaced'),
+      replacement: z.string().describe('The new text to replace the original'),
+    }),
+  }));
+
+  registry.register(remoteToolProxy({
     id: 'outline_read',
     description: 'Read the project outline.',
     parameters: z.object({}),

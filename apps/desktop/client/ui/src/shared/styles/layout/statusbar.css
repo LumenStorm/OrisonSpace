@@ -39,7 +39,108 @@
   animation: status-bar-pulse 1.2s ease-in-out infinite;
 }
 
+/* ── Save status ── */
+.status-bar-save {
+  color: var(--on-surface-variant);
+}
+
+.status-bar-save-icon {
+  font-size: 14px;
+}
+
+.status-bar-save.is-saving .status-bar-save-icon {
+  animation: status-bar-spin 1s linear infinite;
+}
+
+.status-bar-save.is-saved .status-bar-save-icon {
+  color: var(--primary);
+}
+
+.status-bar-save-retry {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.status-bar-save.is-error {
+  color: var(--error);
+}
+
+.status-bar-save.is-error .status-bar-save-icon {
+  color: var(--error);
+}
+
+.status-bar-save-retry.is-error:hover {
+  text-decoration: underline;
+}
+
 @keyframes status-bar-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+@keyframes status-bar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Git dirty / commit input ── */
+.status-bar-git-dirty {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: var(--tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-bar-git-dirty .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.status-bar-commit-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-bar-commit-input input {
+  height: 18px;
+  width: 180px;
+  border: 1px solid var(--border-default);
+  border-radius: 3px;
+  padding: 0 0.375rem;
+  font: inherit;
+  font-size: 0.7rem;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  outline: none;
+}
+
+.status-bar-commit-input input:focus {
+  border-color: var(--primary);
+}
+
+.status-bar-commit-input button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  display: flex;
+  align-items: center;
+}
+
+.status-bar-commit-input button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.status-bar-commit-input button .material-symbols-outlined {
+  font-size: 14px;
 }

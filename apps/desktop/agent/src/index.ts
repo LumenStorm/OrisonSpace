@@ -5,6 +5,8 @@ export type {
   CreateSessionInput,
   SendMessageInput,
   StreamMessageInput,
+  MessageAttachment,
+  MessageSelectionAnchor,
   ExecuteSkillRequest,
   ExecuteSkillResponse,
   ContinuationSummary,

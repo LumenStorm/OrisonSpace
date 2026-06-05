@@ -38,7 +38,7 @@ export interface PermissionServiceOptions {
 
 const DEFAULT_RULES: PermissionRule[] = [
   { action: 'allow', class: 'read', pattern: /^(read_|list_|search|memory_query|project_meta|git_status|git_log|outline_read|chapter_list|chapter_read)/ },
-  { action: 'ask', class: 'write', pattern: /^(write_|memory_update|chapter_write|outline_update|edit_image|generate_image|git_commit)/ },
+  { action: 'ask', class: 'write', pattern: /^(write_|memory_update|chapter_write|rewrite_passage|outline_update|edit_image|generate_image|git_commit)/ },
   { action: 'deny', class: 'dangerous', pattern: /^(delete_|remove_|reset_|rm_)/ },
 ];
 

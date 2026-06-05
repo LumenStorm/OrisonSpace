@@ -71,6 +71,12 @@ statusBar:
   words: "字"
   agentRunning: "运行中"
   agentIdle: "就绪"
+  saving: "保存中…"
+  savedAt: "已保存 {time}"
+  saveFailed: "保存失败"
+  saveRetry: "点击重试"
+  changes: "{n} 处改动"
+  saveVersion: "保存版本"
 notifications:
   title: "通知"
   clearAll: "清除全部"

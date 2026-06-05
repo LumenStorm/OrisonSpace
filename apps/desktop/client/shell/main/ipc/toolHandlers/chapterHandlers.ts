@@ -70,3 +70,20 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
     metadata: { wordCount },
   };
 };
+
+export const rewritePassageHandler: ToolHandler = async ({ params }) => {
+  const { chapterId, filePath, originalText, replacement } = params as {
+    chapterId?: string; filePath?: string; originalText: string; replacement: string;
+  };
+  return {
+    title: 'rewrite_passage',
+    output: `Passage rewrite prepared (${replacement.length} chars). Awaiting user review.`,
+    metadata: {
+      type: 'passage',
+      chapterId,
+      filePath,
+      originalText,
+      replacement,
+    },
+  };
+};

@@ -7,6 +7,7 @@ import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { Tooltip } from '../../shared/components/Tooltip';
 import { useAppStore } from '../../shared/store/appStore';
 import { useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
+import { useAutoSave } from '../../shared/hooks/useAutoSave';
 import { ICON_RAIL_WIDTH } from '../../shared/constants';
 import { StatusBar } from '../../features/status-bar/StatusBar';
 
@@ -52,6 +53,7 @@ export function WorkspaceLayout() {
 
   const handleTreeResize = useProjectTreeResize();
   const handleAgentResize = useAgentPanelResize();
+  useAutoSave();
 
   const treeCols = projectTreeOpen
     ? `${projectTreeWidth}px 4px `

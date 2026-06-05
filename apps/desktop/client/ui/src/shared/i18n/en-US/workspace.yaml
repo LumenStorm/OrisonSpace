@@ -71,6 +71,12 @@ statusBar:
   words: "words"
   agentRunning: "Running"
   agentIdle: "Idle"
+  saving: "Saving…"
+  savedAt: "Saved {time}"
+  saveFailed: "Save failed"
+  saveRetry: "Retry save"
+  changes: "{n} changes"
+  saveVersion: "Save Version"
 notifications:
   title: "Notifications"
   clearAll: "Clear all"

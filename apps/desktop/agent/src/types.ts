@@ -123,6 +123,7 @@ export interface ToolCallResult {
   toolCallId: string;
   toolName: string;
   output: string;
+  metadata?: Record<string, unknown>;
 }
 
 export type SessionStatus = 'idle' | 'running' | 'completed' | 'error' | 'aborted';

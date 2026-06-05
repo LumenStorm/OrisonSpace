@@ -19,6 +19,7 @@ import { createAgentSkillSlice, type AgentSkillSlice } from './agentSkillSlice';
 import { createAgentDiffSlice, type AgentDiffSlice } from './agentDiffSlice';
 import { createNotificationSlice, type NotificationSlice } from './notificationSlice';
 import { createAgentSettingsSlice, type AgentSettingsSlice } from './agentSettingsSlice';
+import { createAutoSaveSlice, type AutoSaveSlice } from './autoSaveSlice';
 import { installProjectSubscription } from './projectSubscription';
 
 export type { WorkspaceModule, WorkspacePanel, ActivePage, SidebarPanel, BottomPanelTab, ThemeSetting, LocaleSetting, ProjectMeta, TaskAdapter, AgentMode } from './types';
@@ -43,6 +44,7 @@ type AppState = ProjectSlice &
   AgentSkillSlice &
   AgentDiffSlice &
   AgentSettingsSlice &
+  AutoSaveSlice &
   NotificationSlice;
 
 export const useAppStore = create<AppState>()((...a) => ({
@@ -65,6 +67,7 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createAgentSkillSlice(...a),
   ...createAgentDiffSlice(...a),
   ...createAgentSettingsSlice(...a),
+  ...createAutoSaveSlice(...a),
   ...createNotificationSlice(...a),
 }));
 

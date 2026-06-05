@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AgentMode } from '../../shared/store/types';
+import type { Attachment } from '../../shared/types/attachment';
 import { AgentConfirmCard } from './AgentConfirmCard';
 
 const MODE_KEYS: { value: AgentMode; i18nKey: string }[] = [
@@ -11,8 +12,6 @@ const MODE_KEYS: { value: AgentMode; i18nKey: string }[] = [
   { value: 'auto', i18nKey: 'agent.modeAuto' },
 ];
 
-type Attachment = { type: 'chapter' | 'file'; id: string; label: string };
-
 export function AgentInput() {
   const {
     sendAgentMessage, cancelAgent, agentLoading,
@@ -20,6 +19,7 @@ export function AgentInput() {
     agentModelRef, setAgentModelRef,
     modelConfig, pendingToolConfirm, resolvedLocale,
     chapters, openFiles,
+    pendingAttachments, addAttachment, removeAttachment,
   } = useAppStore(useShallow((s) => ({
     sendAgentMessage: s.sendAgentMessage,
     cancelAgent: s.cancelAgent,
@@ -33,11 +33,13 @@ export function AgentInput() {
     resolvedLocale: s.resolvedLocale,
     chapters: s.chapters,
     openFiles: s.openFiles,
+    pendingAttachments: s.pendingAttachments,
+    addAttachment: s.addAttachment,
+    removeAttachment: s.removeAttachment,
   })));
 
   const { t } = useI18n(resolvedLocale);
   const [text, setText] = useState('');
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachMenuRef = useRef<HTMLDivElement>(null);
@@ -64,16 +66,10 @@ export function AgentInput() {
     const trimmed = text.trim();
     if (!trimmed || agentLoading) return;
 
-    let content = trimmed;
-    if (attachments.length > 0) {
-      const contextLines = attachments.map((a) => `[Attached ${a.type}: ${a.label}]`).join('\n');
-      content = `${contextLines}\n---\n${trimmed}`;
-    }
-
+    // Attachments are passed structurally by sendAgentMessage; no text flattening.
     setText('');
-    setAttachments([]);
-    sendAgentMessage(content);
-  }, [text, agentLoading, sendAgentMessage, attachments]);
+    sendAgentMessage(trimmed);
+  }, [text, agentLoading, sendAgentMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -82,15 +78,9 @@ export function AgentInput() {
     }
   };
 
-  const addAttachment = (att: Attachment) => {
-    if (!attachments.find((a) => a.type === att.type && a.id === att.id)) {
-      setAttachments([...attachments, att]);
-    }
+  const handleAddAttachment = (att: Attachment) => {
+    addAttachment(att);
     setShowAttachMenu(false);
-  };
-
-  const removeAttachment = (idx: number) => {
-    setAttachments(attachments.filter((_, i) => i !== idx));
   };
 
   const modelOptions = modelConfig.keys.flatMap((key) =>
@@ -107,15 +97,15 @@ export function AgentInput() {
     <div className="agent-input-area">
       {pendingToolConfirm && <AgentConfirmCard />}
 
-      {attachments.length > 0 && (
+      {pendingAttachments.length > 0 && (
         <div className="agent-input-attachments">
-          {attachments.map((att, i) => (
+          {pendingAttachments.map((att) => (
             <span key={`${att.type}-${att.id}`} className="agent-attachment-chip">
               <span className="material-symbols-outlined" style={{ fontSize: '0.7rem' }}>
-                {att.type === 'chapter' ? 'description' : 'insert_drive_file'}
+                {att.type === 'chapter' ? 'description' : att.type === 'selection' ? 'format_quote' : 'insert_drive_file'}
               </span>
               {att.label}
-              <button type="button" className="agent-attachment-remove" onClick={() => removeAttachment(i)}>
+              <button type="button" className="agent-attachment-remove" onClick={() => removeAttachment(att.id)}>
                 <span className="material-symbols-outlined">close</span>
               </button>
             </span>
@@ -141,7 +131,7 @@ export function AgentInput() {
                   key={ch.id}
                   type="button"
                   className="agent-attach-item"
-                  onClick={() => addAttachment({ type: 'chapter', id: ch.id, label: ch.title || ch.id })}
+                  onClick={() => handleAddAttachment({ type: 'chapter', id: ch.id, label: ch.title || ch.id })}
                 >
                   <span className="material-symbols-outlined">description</span>
                   {ch.title || ch.id}
@@ -155,7 +145,7 @@ export function AgentInput() {
                       key={f.path}
                       type="button"
                       className="agent-attach-item"
-                      onClick={() => addAttachment({ type: 'file', id: f.path, label: f.name })}
+                      onClick={() => handleAddAttachment({ type: 'file', id: f.path, label: f.name })}
                     >
                       <span className="material-symbols-outlined">insert_drive_file</span>
                       {f.name}

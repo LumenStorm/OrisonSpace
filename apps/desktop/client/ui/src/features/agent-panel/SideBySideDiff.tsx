@@ -49,7 +49,11 @@ export function SideBySideDiff({ diff, oldContent, onClose }: Props) {
     resolvedLocale: s.resolvedLocale,
   })));
   const { t } = useI18n(resolvedLocale);
-  const lines = useMemo(() => computeDiff(oldContent, diff.content), [oldContent, diff.content]);
+  // Whole-chapter view. Passage diffs render their own compact view (Phase 2);
+  // fall back to the replacement text if a passage diff ever reaches here.
+  const newContent = diff.kind === 'chapter' ? diff.content : diff.replacement;
+  const fileName = diff.kind === 'chapter' ? diff.fileName : (diff.filePath ?? diff.chapterId ?? 'passage');
+  const lines = useMemo(() => computeDiff(oldContent, newContent), [oldContent, newContent]);
 
   // Per-line accept state: accepted lines override old with new
   const [accepted, setAccepted] = useState<Set<number>>(new Set());
@@ -75,7 +79,7 @@ export function SideBySideDiff({ diff, oldContent, onClose }: Props) {
   return (
     <div className="diff-side-by-side">
       <div className="diff-sbs-header">
-        <span className="diff-sbs-filename">{diff.fileName}</span>
+        <span className="diff-sbs-filename">{fileName}</span>
         <div className="diff-sbs-actions">
           <button type="button" className="diff-sbs-btn diff-sbs-btn--accept" onClick={handleAcceptAll}>
             {t('agent.accept')} All

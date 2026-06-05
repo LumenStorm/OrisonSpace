@@ -11,6 +11,8 @@ import { BubbleToolbar } from './file-editor/BubbleToolbar';
 
 export type TiptapEditorFormat = 'html' | 'markdown';
 
+export type SelectionInfo = { text: string; from: number; to: number };
+
 type TiptapEditorProps = {
   content?: string;
   placeholder?: string;
@@ -21,6 +23,7 @@ type TiptapEditorProps = {
   extraContextItems?: ContextMenuItem[];
   bubbleMenu?: boolean;
   disableFind?: boolean;
+  onSelectionAction?: (action: 'review' | 'attach', selection: SelectionInfo) => void;
 };
 
 const menuItems = [
@@ -45,6 +48,7 @@ export function TiptapEditor({
   extraContextItems,
   bubbleMenu = false,
   disableFind = false,
+  onSelectionAction,
 }: TiptapEditorProps) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
@@ -167,6 +171,19 @@ export function TiptapEditor({
     { type: 'item', label: t('editor.quote'), icon: 'format_quote', onClick: () => { editor.chain().focus().toggleBlockquote().run(); } },
     { type: 'separator' },
     { type: 'item', label: t('editor.findReplace'), icon: 'find_replace', onClick: () => { setFindMode('find'); } },
+    ...(onSelectionAction ? [
+      { type: 'separator' } as const,
+      { type: 'item' as const, label: t('editor.aiReview'), icon: 'rate_review', disabled: !hasSelection, onClick: () => {
+        const { from, to } = editor.state.selection;
+        const text = editor.state.doc.textBetween(from, to, '\n');
+        if (text) onSelectionAction('review', { text, from, to });
+      }},
+      { type: 'item' as const, label: t('editor.addToAgent'), icon: 'attach_file', disabled: !hasSelection, onClick: () => {
+        const { from, to } = editor.state.selection;
+        const text = editor.state.doc.textBetween(from, to, '\n');
+        if (text) onSelectionAction('attach', { text, from, to });
+      }},
+    ] : []),
     ...(extraContextItems ?? []),
   ];
 

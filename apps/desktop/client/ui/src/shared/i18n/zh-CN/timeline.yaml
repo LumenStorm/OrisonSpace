@@ -14,3 +14,5 @@ timeline:
   createBranch: "从此处开始新分支"
   createBranchFrom: "从此处分支"
   expandFull: "展开全画布（即将推出）"
+  restoreVersion: "恢复到此版本"
+  dirtyWarning: "有未保存的改动，请先保存版本再切换分支。"

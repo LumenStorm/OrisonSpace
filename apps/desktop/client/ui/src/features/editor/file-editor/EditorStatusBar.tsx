@@ -1,19 +1,13 @@
 import { useMemo, useState } from 'react';
+import { countMarkup } from '../../../shared/utils/wordCount';
 
 type Props = { content: string; fileType: string };
 
-function computeStats(content: string) {
-  const chars = content.length;
-  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const lines = content.split('\n').length;
-  const paragraphs = content.split(/\n\s*\n/).filter((p) => p.trim()).length;
-  const readingMin = Math.max(1, Math.ceil(words / 250));
-  return { chars, words, lines, paragraphs, readingMin };
-}
-
 export function EditorStatusBar({ content, fileType }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const stats = useMemo(() => computeStats(content), [content]);
+  // content 可能是纯文本（PlainText/Code）或 markdown 文本，统一先剥标签再统计。
+  const stats = useMemo(() => countMarkup(content), [content]);
+  const readingMin = Math.max(1, Math.ceil(stats.words / 250));
 
   return (
     <div className="editor-status-bar">
@@ -24,14 +18,14 @@ export function EditorStatusBar({ content, fileType }: Props) {
           className="editor-status-word-btn"
           onClick={() => setExpanded(!expanded)}
         >
-          {stats.words} 字
+          {stats.chars} 字
         </button>
         {expanded && (
           <div className="editor-status-detail">
-            <span>{stats.chars} 字符</span>
+            <span>{stats.totalChars} 字符</span>
             <span>{stats.lines} 行</span>
             <span>{stats.paragraphs} 段落</span>
-            <span>~{stats.readingMin} 分钟阅读</span>
+            <span>~{readingMin} 分钟阅读</span>
           </div>
         )}
       </div>

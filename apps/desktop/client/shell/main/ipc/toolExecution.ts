@@ -9,7 +9,7 @@ import { getLogger } from '../logger';
 
 // Handlers
 import { readFileHandler, writeFileHandler, listFilesHandler, searchHandler } from './toolHandlers/fileHandlers';
-import { chapterListHandler, chapterReadHandler, chapterWriteHandler } from './toolHandlers/chapterHandlers';
+import { chapterListHandler, chapterReadHandler, chapterWriteHandler, rewritePassageHandler } from './toolHandlers/chapterHandlers';
 import { outlineReadHandler, outlineUpdateHandler } from './toolHandlers/outlineHandlers';
 import { generateImageHandler, editImageHandler } from './toolHandlers/imageHandlers';
 import { gitStatusHandler, gitLogHandler, gitCommitHandler, gitDiffHandler } from './toolHandlers/gitHandlers';
@@ -59,6 +59,7 @@ register('search', searchHandler);
 register('chapter_list', chapterListHandler);
 register('chapter_read', chapterReadHandler);
 register('chapter_write', chapterWriteHandler);
+register('rewrite_passage', rewritePassageHandler);
 
 // Outline
 register('outline_read', outlineReadHandler);

@@ -294,5 +294,7 @@ editor:
   findReplace: "查找替换"
   aiContinue: "AI 续写"
   aiPolish: "AI 润色"
+  aiReview: "AI 评阅"
+  addToAgent: "加入 Agent 引用"
   unsaved: "未保存的更改"
   closeTab: "关闭 {name}"

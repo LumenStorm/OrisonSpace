@@ -32,6 +32,7 @@ export type PanelsSlice = {
   setActiveBottomTab: (tab: BottomPanelTab) => void;
   agentPanelOpen: boolean;
   toggleAgentPanel: () => void;
+  setAgentPanelOpen: (open: boolean) => void;
   agentPanelWidth: number;
   setAgentPanelWidth: (w: number) => void;
   activePage: ActivePage;
@@ -68,6 +69,7 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   setActiveBottomTab: (tab) => set({ activeBottomTab: tab }),
   agentPanelOpen: false,
   toggleAgentPanel: () => set((s) => ({ agentPanelOpen: !s.agentPanelOpen })),
+  setAgentPanelOpen: (open) => set({ agentPanelOpen: open }),
   agentPanelWidth: storage.get<number>('agentPanelWidth', AGENT_PANEL_WIDTH_DEFAULT),
   setAgentPanelWidth: (w) => {
     const clamped = Math.max(AGENT_PANEL_WIDTH_MIN, Math.min(AGENT_PANEL_WIDTH_MAX, w));

@@ -1,5 +1,6 @@
 import type { AgentMode } from '../store/types';
 import type { ModelRef } from '@orison/shared-contracts';
+import type { Attachment } from '../types/attachment';
 
 const api = window.orisonDesktop;
 
@@ -8,7 +9,8 @@ export type AgentMessage = {
   role: 'user' | 'assistant' | 'tool';
   content: string;
   toolCalls?: Array<{ id: string; name: string; input: unknown }>;
-  toolResults?: Array<{ toolId: string; output: string; metadata?: unknown }>;
+  toolResults?: Array<{ toolId?: string; toolName?: string; output: string; metadata?: unknown }>;
+  references?: Attachment[];
   createdAt: number;
 };
 
@@ -81,18 +83,21 @@ export async function resolveAgentConfirmation(sessionId: string, callId: string
 /**
  * Stream a message to the agent. Returns a cleanup function to unsubscribe from events,
  * and a promise that resolves when streaming completes.
+ * `attachments` are structured (selection / chapter / file) references the runtime
+ * renders into the prompt — NOT flattened into the content string.
  * To abort, call window.orisonDesktop.abortAgentRun(sessionId).
  */
 export function streamAgentMessage(
   sessionId: string,
   content: string,
   onEvent: (event: AgentStreamEvent) => void,
+  attachments?: Attachment[],
 ): { promise: Promise<{ status: string }>; cleanup: () => void } {
   const cleanup = api.onAgentStreamEvent((event) => {
     onEvent(event as AgentStreamEvent);
   });
 
-  const promise = api.streamAgentMessage({ sessionId, content });
+  const promise = api.streamAgentMessage({ sessionId, content, attachments });
 
   return { promise, cleanup };
 }

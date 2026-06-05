@@ -45,10 +45,42 @@ export interface CreateSessionInput {
   modelRef?: { keyId: string; modelId: string };
 }
 
+/**
+ * Anchor describing a selected passage's location for later relocation.
+ * Mirrors the UI-side `SelectionAnchor`.
+ */
+export interface MessageSelectionAnchor {
+  quote: string;
+  prefix: string;
+  suffix: string;
+  rangeHint: { from: number; to: number };
+}
+
+/**
+ * A structured attachment carried on a message (not a file reference).
+ * Selection attachments carry the quoted passage plus its source + anchor so the
+ * runtime can render a structured reference block for the LLM. Chapter/file
+ * attachments are lightweight pointers used as conversational context.
+ */
+export type MessageAttachment =
+  | { type: 'chapter'; id: string; label: string }
+  | { type: 'file'; id: string; label: string }
+  | {
+      type: 'selection';
+      id: string;
+      label: string;
+      text: string;
+      sourceType: 'chapter' | 'file';
+      chapterId?: string;
+      filePath?: string;
+      anchor: MessageSelectionAnchor;
+    };
+
 export interface SendMessageInput {
   sessionId: string;
   content: string;
   abortSignal: AbortSignal;
+  attachments?: MessageAttachment[];
 }
 
 export interface StreamMessageInput extends SendMessageInput {
@@ -597,7 +629,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
 
       const runAbortSignal = runState.beginRun(input.sessionId, input.abortSignal);
 
-      const userMsg = createUserMessage(input.content);
+      const userMsg = createUserMessage(input.content, input.attachments);
       addMessage(input.sessionId, userMsg);
       updateStatus(input.sessionId, 'running');
 
@@ -657,7 +689,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
 
       const runAbortSignal = runState.beginRun(input.sessionId, input.abortSignal);
 
-      const userMsg = createUserMessage(input.content);
+      const userMsg = createUserMessage(input.content, input.attachments);
       addMessage(input.sessionId, userMsg);
       updateStatus(input.sessionId, 'running');
 
@@ -765,13 +797,53 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
   return runtime;
 }
 
-function createUserMessage(content: string): SessionMessage {
+function createUserMessage(content: string, attachments?: MessageAttachment[]): SessionMessage {
   return {
     id: randomUUID(),
     role: 'user',
-    content,
+    content: renderAttachmentsIntoContent(content, attachments),
     createdAt: Date.now(),
   };
+}
+
+/**
+ * Prepend structured attachment blocks to the user content so the LLM can see
+ * the passages the user is discussing along with their provenance and anchor.
+ * Selection attachments are rendered as quoted blocks with source + anchor hints;
+ * chapter/file attachments are rendered as lightweight context pointers.
+ */
+function renderAttachmentsIntoContent(content: string, attachments?: MessageAttachment[]): string {
+  if (!attachments || attachments.length === 0) {
+    return content;
+  }
+
+  const blocks: string[] = [];
+  for (const att of attachments) {
+    if (att.type === 'selection') {
+      const source = att.sourceType === 'chapter'
+        ? `章节 ${att.chapterId ?? att.label}`
+        : `文件 ${att.filePath ?? att.label}`;
+      const quote = att.text.trim();
+      blocks.push(
+        [
+          `[选段引用 · ${att.label}]`,
+          `来源: ${source}`,
+          `位置提示: 字符 ${att.anchor.rangeHint.from}-${att.anchor.rangeHint.to}`,
+          '正文:',
+          '"""',
+          quote,
+          '"""',
+          '(用户正在讨论这段正文。)',
+        ].join('\n'),
+      );
+    } else if (att.type === 'chapter') {
+      blocks.push(`[引用章节: ${att.label}] (chapterId: ${att.id})`);
+    } else {
+      blocks.push(`[引用文件: ${att.label}] (path: ${att.id})`);
+    }
+  }
+
+  return `${blocks.join('\n\n')}\n---\n${content}`;
 }
 
 function createAssistantMessage(content: string): SessionMessage {

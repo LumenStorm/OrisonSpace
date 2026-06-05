@@ -101,7 +101,12 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
           id: randomUUID(),
           role: 'tool',
           content: toolResult.output,
-          toolResults: [{ toolCallId: call.id, toolName: call.name, output: toolResult.output }],
+          toolResults: [{
+            toolCallId: call.id,
+            toolName: call.name,
+            output: toolResult.output,
+            metadata: toolResult.metadata,
+          }],
           createdAt: Date.now(),
         };
         result.push(toolMsg);

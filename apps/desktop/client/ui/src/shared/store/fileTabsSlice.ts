@@ -1,5 +1,4 @@
 import type { StateCreator } from 'zustand';
-import { htmlToMarkdown, markdownToHtml } from '../utils/markdown';
 
 let tabIdCounter = 0;
 
@@ -87,14 +86,16 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       (set as any)({ activeFilePath: path, recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path), mainView: 'files' });
       return;
     }
-    const isMd = name.endsWith('.md');
-    const normalized = isMd ? htmlToMarkdown(markdownToHtml(content)) : content;
+    // Keep the on-disk text verbatim. A markdownToHtml→htmlToMarkdown round-trip
+    // would silently reformat the user's manuscript (indentation, list markers,
+    // emphasis tokens, line breaks) and falsely mark the tab dirty on open.
+    // TiptapEditor converts markdown→HTML for display on its own.
     const tab: FileTab = {
       id: `tab-${++tabIdCounter}`,
       path,
       name,
-      content: normalized,
-      savedContent: normalized,
+      content,
+      savedContent: content,
       kind: options?.kind ?? 'text',
       dataUrl: options?.dataUrl,
     };
@@ -334,11 +335,11 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     try {
       const raw = await window.orisonDesktop?.readFile(path);
       if (typeof raw !== 'string') return;
-      const isMd = tab.name.endsWith('.md');
-      const content = isMd ? htmlToMarkdown(markdownToHtml(raw)) : raw;
+      // Reload the on-disk text verbatim (no markdown round-trip) so a reloaded
+      // manuscript matches the file byte-for-byte and starts clean.
       set((s) => ({
         openFiles: s.openFiles.map((f) =>
-          f.path === path ? { ...f, content, savedContent: content } : f,
+          f.path === path ? { ...f, content: raw, savedContent: raw } : f,
         ),
       }));
     } catch { /* ignore read errors */ }

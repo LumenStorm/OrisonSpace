@@ -22,7 +22,8 @@ export function DiffCard({ result }: Props) {
 
   const meta = result.metadata as { fileName?: string; content?: string } | undefined;
   const fileName = meta?.fileName ?? result.toolId ?? 'file';
-  const diff = pendingDiffs.find((d) => d.fileName === meta?.fileName);
+  // Phase 1 keeps this card chapter-only; Phase 2 adds passage rendering.
+  const diff = pendingDiffs.find((d) => d.kind === 'chapter' && d.fileName === meta?.fileName);
 
   if (agentMode === 'auto' || agentMode === 'readonly') {
     return (

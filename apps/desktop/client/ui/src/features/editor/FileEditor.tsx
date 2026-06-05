@@ -1,5 +1,5 @@
 import { useAppStore } from '../../shared/store/appStore';
-import { isImageFileName } from '../../shared/utils/fileType';
+import { getFileExtension, isImageFileName } from '../../shared/utils/fileType';
 import { MarkdownEditor } from './file-editor/MarkdownEditor';
 import { CodeEditor } from './file-editor/CodeEditor';
 import { ImagePreview } from './file-editor/ImagePreview';
@@ -16,14 +16,14 @@ export function FileEditor() {
     return <ImagePreview file={file} />;
   }
 
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-
-  if (ext === 'md') {
-    return <MarkdownEditor file={file} />;
-  }
+  const ext = getFileExtension(file.name);
 
   if (ext === 'yaml' || ext === 'yml') {
     return <CodeEditor file={file} />;
+  }
+
+  if (ext === 'md' || ext === 'txt' || ext === 'text' || ext === '') {
+    return <MarkdownEditor file={file} />;
   }
 
   return <ReadOnlyPreview file={file} />;
