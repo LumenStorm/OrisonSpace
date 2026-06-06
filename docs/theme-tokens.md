@@ -199,6 +199,21 @@ themes/
 | `chip-bg` | `{surface-container-high}` | 标签背景 |
 | `chip-text` | `{on-surface-variant}` | 标签文字 |
 
+### 媒体浮层（生成图/视频卡片上的控件）
+
+这组槽位**有意主题无关**：浮层永远叠在生成的图像/视频之上，需固定的暗底浅字，不随亮/暗主题翻转。
+
+| 槽位 | 控制什么 |
+|------|----------|
+| `overlay-on-media-scrim-top` / `-scrim-bottom` | 顶部/底部渐变压暗，保证控件可读 |
+| `overlay-on-media-glass` | 顶部操作条玻璃底 |
+| `overlay-on-media-border` / `-border-strong` | 控件描边 |
+| `overlay-on-media-control` / `-control-hover` / `-control-active` | 控件常态/悬停/激活底色 |
+| `overlay-on-media-danger` | 危险操作（删除）悬停底色 |
+| `overlay-on-media-text` | 浮层文字 |
+| `overlay-on-media-backdrop` | 详情关闭按钮底色 |
+| `window-close-hover` | Windows 标题栏关闭按钮悬停红（固定值） |
+
 ---
 
 ## 亮暗对照速查
@@ -226,6 +241,35 @@ themes/
 改完后：
 1. 运行 `buildThemes.ts` 或等 dev server 热更新
 2. 在界面中切换亮/暗/跟随系统，确认效果正常
+
+---
+
+## 非颜色 token（尺寸 / 圆角 / 字号 / 层级 / 焦点环）
+
+颜色之外的设计尺度**不走 YAML**，也**不进 tokens.css**（那是自动生成的，手改会被覆盖）。它们集中在手写、可放心编辑的 `apps/desktop/client/ui/src/shared/styles/scales.css`，且**主题无关**（亮/暗一致）。
+
+| 组 | token 前缀 | 用途 |
+|----|-----------|------|
+| 间距 | `--space-3xs` … `--space-3xl`（`0.15rem`→`2rem`） | padding / gap / margin |
+| 圆角 | `--radius-2xs` … `--radius-2xl` + `--radius-pill` / `--radius-circle` | border-radius |
+| 字号 | `--text-3xs` … `--text-3xl`（`0.65rem`→`2rem`） | font-size |
+| 层级 | `--z-base` … `--z-tooltip`（0→1600，见下） | z-index |
+| 焦点环 | `--focus-ring-width` / `--focus-ring-offset` | `:focus-visible` 键盘可访问性 |
+
+**层级（z-index）顺序**，低 → 高，后者永远盖前者：
+
+```
+--z-sticky(20) → --z-panel-overlay(100) → --z-dropdown(1000)
+→ --z-image-overlay(1100) → --z-notification(1200) → --z-confirm-dialog(1300)
+→ --z-command-palette(1400) → --z-context-menu(1500) → --z-tooltip(1600)
+```
+
+**迁移约定**（逐步进行，避免一次性全量替换）：
+- 只替换**精确命中** scale stop 的字面量；无对应 stop 的值（如 `0.3rem` / `0.8rem` / `1.2rem`）保留，确保零视觉位移。
+- 同一字面量**按属性区分** token：`0.5rem` 作 padding/gap 用 `--space-md`，作 border-radius 用 `--radius-lg`。
+- 焦点环通过 `global.css` 的全局 `:focus-visible` 基线生效，键盘导航才显示，鼠标点击不触发；主编辑面 `.tiptap` 已排除（光标已表达焦点）。
+
+> a11y：`global.css` 还含 `@media (prefers-reduced-motion: reduce)`，跟随系统「减少动态效果」偏好把动画/过渡收敛到近瞬时。
 
 ---
 

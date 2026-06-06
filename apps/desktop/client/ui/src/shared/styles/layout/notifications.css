@@ -55,7 +55,7 @@
   border: 1px solid var(--outline-variant);
   border-radius: 8px;
   box-shadow: var(--shadow-elevated);
-  z-index: 1000;
+  z-index: var(--z-dropdown);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -80,7 +80,7 @@
   border: none;
   background: transparent;
   color: var(--accent);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   cursor: pointer;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
@@ -100,14 +100,14 @@
   text-align: center;
   color: var(--on-surface-variant);
   font-size: 0.75rem;
-  padding: 2rem 1rem;
+  padding: var(--space-3xl) var(--space-xl);
   margin: 0;
 }
 
 .notification-item {
   display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   align-items: flex-start;
 }
 
@@ -130,7 +130,7 @@
 }
 
 .notification-item-title {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--on-surface);
   white-space: nowrap;
@@ -139,7 +139,7 @@
 }
 
 .notification-item-desc {
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--on-surface-variant);
   white-space: nowrap;
   overflow: hidden;
@@ -147,7 +147,7 @@
 }
 
 .notification-item-time {
-  font-size: 0.65rem;
+  font-size: var(--text-3xs);
   color: var(--on-surface-variant);
   opacity: 0.7;
 }

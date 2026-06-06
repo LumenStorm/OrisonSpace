@@ -8,22 +8,22 @@
   padding: 0 0.75rem;
   border-top: 1px solid var(--border-default);
   background: var(--surface-container-low);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--on-surface-variant);
-  z-index: 20;
+  z-index: var(--z-sticky);
 }
 
 .status-bar-left,
 .status-bar-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-lg);
 }
 
 .status-bar-item {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
   white-space: nowrap;
 }
 
@@ -96,7 +96,7 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
 }
 
 .status-bar-git-dirty .material-symbols-outlined {
@@ -106,7 +106,7 @@
 .status-bar-commit-input {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
 }
 
 .status-bar-commit-input input {
@@ -116,7 +116,7 @@
   border-radius: 3px;
   padding: 0 0.375rem;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   background: var(--surface-container-lowest);
   color: var(--on-surface);
   outline: none;

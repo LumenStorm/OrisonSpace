@@ -76,6 +76,19 @@
   --card-bg-hover: #f4f3f1;
   --chip-bg: #e9e8e6;
   --chip-text: #464741;
+  --border-faint: rgba(199, 199, 191, 0.15);
+  --window-close-hover: #e81123;
+  --overlay-on-media-text: rgba(255, 255, 255, 0.92);
+  --overlay-on-media-scrim-top: rgba(0, 0, 0, 0.55);
+  --overlay-on-media-scrim-bottom: rgba(0, 0, 0, 0.65);
+  --overlay-on-media-glass: rgba(18, 18, 18, 0.68);
+  --overlay-on-media-control: rgba(255, 255, 255, 0.12);
+  --overlay-on-media-control-hover: rgba(255, 255, 255, 0.22);
+  --overlay-on-media-control-active: rgba(255, 255, 255, 0.18);
+  --overlay-on-media-border: rgba(255, 255, 255, 0.32);
+  --overlay-on-media-border-strong: rgba(255, 255, 255, 0.5);
+  --overlay-on-media-danger: rgba(196, 68, 68, 0.75);
+  --overlay-on-media-backdrop: rgba(255, 255, 255, 0.8);
 
   --font-ui: "Inter", "Noto Sans SC", "Segoe UI", sans-serif;
   --font-display: "Newsreader", "Noto Serif SC", "Georgia", serif;
@@ -158,6 +171,19 @@
   --card-bg-hover: #252827;
   --chip-bg: #363938;
   --chip-text: #c4c4be;
+  --border-faint: rgba(255, 255, 255, 0.08);
+  --window-close-hover: #e81123;
+  --overlay-on-media-text: rgba(255, 255, 255, 0.92);
+  --overlay-on-media-scrim-top: rgba(0, 0, 0, 0.55);
+  --overlay-on-media-scrim-bottom: rgba(0, 0, 0, 0.65);
+  --overlay-on-media-glass: rgba(18, 18, 18, 0.68);
+  --overlay-on-media-control: rgba(255, 255, 255, 0.12);
+  --overlay-on-media-control-hover: rgba(255, 255, 255, 0.22);
+  --overlay-on-media-control-active: rgba(255, 255, 255, 0.18);
+  --overlay-on-media-border: rgba(255, 255, 255, 0.32);
+  --overlay-on-media-border-strong: rgba(255, 255, 255, 0.5);
+  --overlay-on-media-danger: rgba(196, 68, 68, 0.75);
+  --overlay-on-media-backdrop: rgba(255, 255, 255, 0.8);
 }
 
 [data-theme="light"] {
@@ -236,6 +262,19 @@
   --card-bg-hover: #f4f3f1;
   --chip-bg: #e9e8e6;
   --chip-text: #464741;
+  --border-faint: rgba(199, 199, 191, 0.15);
+  --window-close-hover: #e81123;
+  --overlay-on-media-text: rgba(255, 255, 255, 0.92);
+  --overlay-on-media-scrim-top: rgba(0, 0, 0, 0.55);
+  --overlay-on-media-scrim-bottom: rgba(0, 0, 0, 0.65);
+  --overlay-on-media-glass: rgba(18, 18, 18, 0.68);
+  --overlay-on-media-control: rgba(255, 255, 255, 0.12);
+  --overlay-on-media-control-hover: rgba(255, 255, 255, 0.22);
+  --overlay-on-media-control-active: rgba(255, 255, 255, 0.18);
+  --overlay-on-media-border: rgba(255, 255, 255, 0.32);
+  --overlay-on-media-border-strong: rgba(255, 255, 255, 0.5);
+  --overlay-on-media-danger: rgba(196, 68, 68, 0.75);
+  --overlay-on-media-backdrop: rgba(255, 255, 255, 0.8);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -315,6 +354,19 @@
   --card-bg-hover: #252827;
   --chip-bg: #363938;
   --chip-text: #c4c4be;
+  --border-faint: rgba(255, 255, 255, 0.08);
+  --window-close-hover: #e81123;
+  --overlay-on-media-text: rgba(255, 255, 255, 0.92);
+  --overlay-on-media-scrim-top: rgba(0, 0, 0, 0.55);
+  --overlay-on-media-scrim-bottom: rgba(0, 0, 0, 0.65);
+  --overlay-on-media-glass: rgba(18, 18, 18, 0.68);
+  --overlay-on-media-control: rgba(255, 255, 255, 0.12);
+  --overlay-on-media-control-hover: rgba(255, 255, 255, 0.22);
+  --overlay-on-media-control-active: rgba(255, 255, 255, 0.18);
+  --overlay-on-media-border: rgba(255, 255, 255, 0.32);
+  --overlay-on-media-border-strong: rgba(255, 255, 255, 0.5);
+  --overlay-on-media-danger: rgba(196, 68, 68, 0.75);
+  --overlay-on-media-backdrop: rgba(255, 255, 255, 0.8);
   }
 }
 

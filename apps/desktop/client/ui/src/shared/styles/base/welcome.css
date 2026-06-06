@@ -13,9 +13,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: var(--space-2xl);
   padding: 3rem 4rem;
-  border-radius: 1rem;
+  border-radius: var(--radius-2xl);
   background: var(--surface-container-lowest);
   box-shadow: var(--shadow-soft);
 }
@@ -37,17 +37,17 @@
 
 .welcome-actions {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
 }
 
 .welcome-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.7rem 1.4rem;
   border: 0;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
@@ -78,8 +78,8 @@
 
 .welcome-recent {
   width: 100%;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
   border-top: 1px solid var(--outline-variant);
 }
 
@@ -95,5 +95,5 @@
 .welcome-recent-empty {
   margin: 0;
   color: var(--outline);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
 }

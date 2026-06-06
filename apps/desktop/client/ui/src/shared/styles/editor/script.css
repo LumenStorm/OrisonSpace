@@ -31,7 +31,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   flex: 1;
   min-height: 0;
   color: var(--on-surface-variant);
@@ -55,7 +55,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem;
+  padding: var(--space-lg);
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -75,7 +75,7 @@
   width: 1.5rem;
   height: 1.5rem;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -93,22 +93,22 @@
 .script-chapter-list {
   display: flex;
   flex-direction: column;
-  padding: 0.35rem;
-  gap: 0.15rem;
+  padding: var(--space-xs);
+  gap: var(--space-3xs);
 }
 
 .script-chapter-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.5rem 0.65rem;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   text-align: left;
   transition: background 0.12s;
 }
@@ -147,9 +147,9 @@
 /* ── Editor Status Bar ── */
 .editor-status-bar {
   display: flex;
-  gap: 1rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.72rem;
+  gap: var(--space-xl);
+  padding: var(--space-2xs) var(--space-lg);
+  font-size: var(--text-xs);
   color: var(--on-surface-variant);
   border-top: 1px solid var(--border-default);
   background: var(--surface-container);

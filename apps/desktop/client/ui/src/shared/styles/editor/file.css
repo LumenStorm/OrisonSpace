@@ -39,7 +39,7 @@
 .file-tab-bar-actions {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: var(--space-3xs);
   padding: 0 0.5rem;
   background: var(--surface-container-low);
   flex-shrink: 0;
@@ -70,18 +70,18 @@
 }
 
 .file-tab-bar-action-btn .material-symbols-outlined {
-  font-size: 1rem;
+  font-size: var(--text-lg);
 }
 
 .file-tab {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-lg);
   border-right: 1px solid var(--border-subtle);
   background: transparent;
   color: var(--on-surface-variant);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.12s, color 0.12s;
@@ -178,11 +178,11 @@
 .code-editor-line-numbers {
   display: flex;
   flex-direction: column;
-  padding: 1rem 0.5rem 1rem 0.75rem;
+  padding: var(--space-xl) var(--space-md) var(--space-xl) var(--space-lg);
   background: var(--surface-container-low);
   border-right: 1px solid var(--border-subtle);
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.65;
   color: var(--on-surface-variant);
   text-align: right;
@@ -195,12 +195,12 @@
   width: 100%;
   min-height: 0;
   resize: none;
-  padding: 1rem;
+  padding: var(--space-xl);
   border: 0;
   background: var(--surface-container-lowest);
   color: var(--on-surface);
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   line-height: 1.65;
   tab-size: 2;
   outline: none;
@@ -217,11 +217,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0.75rem;
+  padding: var(--space-2xs) var(--space-lg);
   border-top: 1px solid var(--border-subtle);
   background: var(--surface-container-low);
   flex-shrink: 0;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--on-surface-variant);
 }
 
@@ -241,7 +241,7 @@
   background: transparent;
   color: var(--on-surface-variant);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   cursor: pointer;
   padding: 0.15rem 0.4rem;
   border-radius: 0.2rem;
@@ -258,21 +258,21 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-md) var(--space-lg);
   background: var(--surface-container-highest);
   border: 1px solid var(--border-default);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow-soft);
   white-space: nowrap;
-  z-index: 50;
+  z-index: var(--z-panel-overlay);
 }
 
 /* ── Bubble Toolbar ── */
 .bubble-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.25rem 0.35rem;
+  gap: var(--space-3xs);
+  padding: var(--space-2xs) var(--space-xs);
   background: var(--surface-container-highest);
   border: 1px solid var(--border-default);
   border-radius: 0.4rem;
@@ -286,7 +286,7 @@
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -312,11 +312,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   height: 100%;
   color: var(--outline);
-  font-size: 0.85rem;
-  padding: 2rem;
+  font-size: var(--text-md);
+  padding: var(--space-3xl);
 }
 
 .file-editor-readonly .material-symbols-outlined {
@@ -331,12 +331,12 @@
 .file-editor-readonly-content {
   width: 100%;
   max-width: 600px;
-  margin-top: 1rem;
-  padding: 1rem;
-  border-radius: 0.35rem;
+  margin-top: var(--space-xl);
+  padding: var(--space-xl);
+  border-radius: var(--radius-sm);
   background: var(--surface-container-low);
   font-family: monospace;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   line-height: 1.6;
   color: var(--on-surface-variant);
   white-space: pre-wrap;
@@ -351,7 +351,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 1.5rem;
+  padding: var(--space-2xl);
   background:
     linear-gradient(45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
     linear-gradient(-45deg, var(--surface-container-low) 25%, transparent 25%) -8px 0,
@@ -366,7 +366,7 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow-soft);
   background: var(--surface-container-lowest);
 }
@@ -385,7 +385,7 @@
 .docx-preview-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.35rem 0.75rem 0.35rem 2.5rem;
   border-bottom: 1px solid var(--border-default);
   background: var(--surface-container-low);
@@ -407,12 +407,12 @@
   height: 1.75rem;
   padding: 0 0.6rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   transition: background 0.12s, color 0.12s;
 }
@@ -467,14 +467,14 @@
   position: absolute;
   top: 0.5rem;
   right: 1rem;
-  z-index: 50;
+  z-index: var(--z-panel-overlay);
   display: flex;
   align-items: flex-start;
   gap: 0.3rem;
   padding: 0.5rem 0.6rem;
   background: var(--surface-container);
   border: 1px solid var(--border-default);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
   min-width: 320px;
   max-width: 460px;
@@ -514,7 +514,7 @@
 .find-replace-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-xs);
 }
 
 .find-replace-input {
@@ -522,11 +522,11 @@
   min-width: 0;
   padding: 0.3rem 0.5rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: var(--surface-container-lowest);
   color: var(--on-surface);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
 }
 
 .find-replace-input:focus {
@@ -554,7 +554,7 @@
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
@@ -575,11 +575,11 @@
 .find-replace-action {
   padding: 0.25rem 0.6rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--on-surface);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -612,7 +612,7 @@
   position: absolute;
   top: 3rem;
   right: 0.5rem;
-  z-index: 50;
+  z-index: var(--z-panel-overlay);
   display: flex;
   flex-direction: column;
   max-height: 60vh;
@@ -641,7 +641,7 @@
   color: var(--on-surface-variant);
   cursor: pointer;
   align-self: flex-end;
-  margin: 0.25rem;
+  margin: var(--space-2xs);
   flex-shrink: 0;
 }
 
@@ -665,7 +665,7 @@
   border: none;
   background: transparent;
   color: var(--on-surface-variant);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   text-align: left;
   padding: 0.2rem 0.4rem;
   border-radius: 3px;
@@ -732,14 +732,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0.5rem;
+  padding: var(--space-2xs) var(--space-md);
   background: var(--surface-container-low);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
 }
 
 .split-editor-pane-name {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--on-surface-variant);
 }
 

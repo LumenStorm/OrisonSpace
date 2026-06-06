@@ -77,6 +77,15 @@
 - 下游消费方只 import `@desktop-ui/shared/styles/global.css`，不能跨层单独 import 子文件
 - 新增样式需归入上述文件夹；不要在根再新建扁平 CSS 文件
 
+### 设计 token 约定
+
+- **颜色**走 YAML（`themes/*.yaml`）→ 构建时生成 `tokens.css`（**自动生成，禁止手改**）。详见 `docs/theme-tokens.md`。
+- **尺寸 / 圆角 / 字号 / 层级 / 焦点环**走手写的 `shared/styles/scales.css`（主题无关，可放心编辑）：
+  - 间距用 `--space-*`、圆角用 `--radius-*`、字号用 `--text-*`、层级用 `--z-*`。
+  - **不要**在样式里写裸 z-index 数字或新魔法数；层级一律用 `--z-*` 阶梯。
+  - 字面量迁移到 token 时**只换精确命中**的值且**按属性区分**（`0.5rem` 作间距=`--space-md`、作圆角=`--radius-lg`），无对应 stop 的值保留，保证零视觉位移。
+- 键盘焦点环由 `global.css` 全局 `:focus-visible` 基线统一提供；新控件即便 `outline:none` 也会自动获得键盘焦点环，无需逐处补。
+
 ## 桌面 Shell 与 IPC
 
 - IPC 契约定义在 `packages/shared-contracts/src/ipc.ts`

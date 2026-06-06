@@ -1,10 +1,10 @@
 /* ── Top Bar ── */
 .workspace-topbar {
   position: relative;
-  z-index: 100;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   padding: 0 1.5rem;
   height: 38px;
   border-bottom: 1px solid var(--border-default);
@@ -28,7 +28,7 @@
 
 .workspace-brand {
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   font-weight: 600;
   letter-spacing: -0.01em;
   flex-shrink: 0;
@@ -52,7 +52,7 @@
   height: 26px;
   padding: 0 0.6rem;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -72,7 +72,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 200;
+  z-index: var(--z-dropdown);
   min-width: 200px;
   padding: 0.25rem 0;
   background: var(--surface-container-lowest);
@@ -86,7 +86,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 0.35rem 0.75rem;
+  padding: var(--space-xs) var(--space-lg);
   border: 0;
   background: transparent;
   color: var(--on-surface);
@@ -94,7 +94,7 @@
   font: inherit;
   font-size: 0.8rem;
   text-align: left;
-  gap: 1.5rem;
+  gap: var(--space-2xl);
 }
 
 .topbar-menu-item:hover:not(:disabled) {
@@ -112,13 +112,13 @@
 
 .topbar-menu-shortcut {
   color: var(--on-surface-variant);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   flex-shrink: 0;
 }
 
 .topbar-menu-separator {
   height: 1px;
-  margin: 0.25rem 0.5rem;
+  margin: var(--space-2xs) var(--space-md);
   background: var(--outline-variant);
 }
 
@@ -151,7 +151,7 @@
 }
 
 .window-control-close:hover {
-  background: #e81123;
+  background: var(--window-close-hover);
   color: var(--on-accent);
 }
 
@@ -159,20 +159,20 @@
 .topbar-new-dialog-overlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-confirm-dialog);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--space-xl);
   background: var(--overlay-backdrop);
 }
 
 .topbar-new-dialog {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
+  gap: var(--space-lg);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-lg);
   background: var(--surface-container-lowest);
   box-shadow: var(--shadow-soft);
   min-width: 320px;
@@ -180,7 +180,7 @@
 
 .topbar-new-dialog-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-md);
 }
 
 /* ── Settings / Account Dialog ── */
@@ -192,7 +192,7 @@
   max-width: 920px;
   height: min(720px, calc(100vh - 2rem));
   max-height: calc(100vh - 2rem);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--surface-container-lowest);
   box-shadow: var(--shadow-soft);
   overflow: hidden;
@@ -216,7 +216,7 @@
 
 .settings-dialog-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   min-width: 0;
   overflow: hidden;
@@ -231,7 +231,7 @@
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -248,7 +248,7 @@
 .settings-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-md);
   flex: 1;
   min-height: 0;
   padding: 1.25rem;
@@ -258,7 +258,7 @@
 .settings-dialog-body-with-nav {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
-  gap: 1rem;
+  gap: var(--space-xl);
   flex: 1;
   min-height: 0;
   padding: 0;
@@ -268,9 +268,9 @@
 .settings-dialog-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
   min-height: 0;
-  padding: 1rem 0.75rem;
+  padding: var(--space-xl) var(--space-lg);
   border-right: 1px solid var(--border-default);
   background: var(--surface-container);
   overflow-y: auto;
@@ -283,11 +283,11 @@
   min-height: 34px;
   padding: 0.45rem 0.6rem;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   text-align: left;
   cursor: pointer;
 }
@@ -322,7 +322,7 @@
 .settings-page {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   min-height: 100%;
 }
 
@@ -344,20 +344,20 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   margin-top: auto;
-  padding-top: 0.5rem;
+  padding-top: var(--space-md);
 }
 
 .settings-save-button {
   min-width: 72px;
   padding: 0.4rem 0.85rem;
   border: 1px solid var(--accent);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--accent);
   color: var(--surface-container-lowest);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   cursor: pointer;
   transition: filter 0.15s ease;
 }
@@ -374,7 +374,7 @@
 .settings-refresh-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-xs);
   width: 100%;
 }
 
@@ -389,7 +389,7 @@
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
-  border: 1px solid rgba(199, 199, 191, 0.15);
+  border: 1px solid var(--border-faint);
   border-radius: 0.375rem;
   background: var(--surface-container);
   color: var(--on-surface-variant);
@@ -416,20 +416,20 @@
 
 .model-page-header {
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--space-xl);
 }
 
 .model-page-header > div {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
   min-width: 0;
   flex: 1;
 }
 
 .settings-page-subtitle {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--on-surface-variant);
   line-height: 1.45;
 }
@@ -457,7 +457,7 @@
 .model-assignment-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   min-width: 0;
 }
 
@@ -465,13 +465,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-md);
 }
 
 .model-profile-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-md);
   min-height: 76px;
 }
 
@@ -483,7 +483,7 @@
   min-height: 56px;
   padding: 0.65rem 0.8rem;
   border: 1px solid transparent;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--surface-container-low);
   color: var(--on-surface);
   text-align: left;
@@ -525,7 +525,7 @@
 }
 
 .model-profile-meta {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--on-surface-variant);
   font-family: var(--font-display);
 }
@@ -533,7 +533,7 @@
 .model-profile-used {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
   margin-top: 0.1rem;
 }
 
@@ -541,7 +541,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.05rem 0.45rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-strong);
   font-size: 0.66rem;
@@ -557,12 +557,12 @@
 .provider-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-xs);
   padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid rgba(199, 199, 191, 0.15);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-faint);
   background: var(--surface-container-low);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   color: var(--on-surface-variant);
   white-space: nowrap;
 }
@@ -576,7 +576,7 @@
 .provider-badge-dot {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   flex: 0 0 auto;
 }
 
@@ -589,7 +589,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding-bottom: 0.6rem;
 }
 
@@ -605,8 +605,8 @@
   flex-direction: column;
   gap: 0.6rem;
   padding: 0.75rem 0.85rem;
-  border: 1px solid rgba(199, 199, 191, 0.15);
-  border-radius: 0.5rem;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-lg);
   background: var(--surface-container-low);
 }
 
@@ -622,12 +622,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--space-md);
 }
 
 .model-editor-empty-hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--on-surface-variant);
   font-style: italic;
 }
@@ -635,13 +635,13 @@
 .model-entry-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-xs);
 }
 
 .model-entry-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.5rem 0.65rem;
   border-radius: 0.375rem;
   background: var(--surface-container);
@@ -668,7 +668,7 @@
 .model-entry-id {
   flex: 1;
   min-width: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--on-surface);
   word-break: break-all;
@@ -676,7 +676,7 @@
 
 .model-entry-alias {
   flex: 0 0 auto;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   color: var(--on-surface-variant);
   max-width: 140px;
   overflow: hidden;
@@ -688,7 +688,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-strong);
   font-size: 0.64rem;
@@ -705,23 +705,23 @@
 .model-editor-banner {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.5rem 0.7rem;
-  border-radius: 0.35rem;
-  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 
 .model-editor-banner.is-error {
   background: var(--error-bg);
   color: var(--error);
-  border: 1px solid rgba(196, 68, 68, 0.2);
+  border: 1px solid color-mix(in srgb, var(--error) 25%, transparent);
 }
 
 .model-editor-banner.is-notice {
   background: var(--notice-bg);
   color: var(--accent-strong);
-  border: 1px solid rgba(107, 122, 106, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-strong) 25%, transparent);
 }
 
 [data-theme="dark"] .model-editor-banner.is-notice {
@@ -745,7 +745,7 @@
   width: 22px;
   height: 22px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -763,8 +763,8 @@
 .api-key-hint {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
+  gap: var(--space-2xs);
+  font-size: var(--text-2xs);
 }
 
 .api-key-hint .material-symbols-outlined {
@@ -775,7 +775,7 @@
 .capability-toggle-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: var(--space-xs);
 }
 
 .capability-toggle-group .sidebar-settings-option {
@@ -786,9 +786,9 @@
 .model-editor-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding-top: 0.6rem;
-  border-top: 1px solid rgba(199, 199, 191, 0.15);
+  border-top: 1px solid var(--border-faint);
 }
 
 .model-editor-actions-spacer {
@@ -806,7 +806,7 @@
 .model-editor-dirty-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
 }
 
@@ -821,7 +821,7 @@
   justify-content: center;
   width: 32px;
   height: 30px;
-  border: 1px solid rgba(199, 199, 191, 0.15);
+  border: 1px solid var(--border-faint);
   border-radius: 0.375rem;
   background: var(--surface-container);
   color: var(--error);
@@ -844,9 +844,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   padding: 2.5rem 1.5rem;
-  border: 1px solid rgba(199, 199, 191, 0.15);
+  border: 1px solid var(--border-faint);
   border-radius: 0.75rem;
   background: var(--surface-container-low);
   text-align: center;
@@ -856,7 +856,7 @@
 .model-empty-state-subtle {
   border: 0;
   background: transparent;
-  padding: 1.5rem 1rem;
+  padding: var(--space-2xl) var(--space-xl);
 }
 
 .model-empty-icon {
@@ -873,7 +873,7 @@
 
 .model-empty-hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   line-height: 1.5;
   max-width: 320px;
 }
@@ -881,8 +881,8 @@
 /* ── Assignment row ── */
 .model-assignment-panel {
   padding: 0.75rem 0.85rem;
-  border: 1px solid rgba(199, 199, 191, 0.15);
-  border-radius: 0.5rem;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-lg);
   background: var(--surface-container-low);
 }
 
@@ -895,7 +895,7 @@
 .model-assignment-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: var(--space-lg);
 }
 
 /* ── Refresh spinning ── */
@@ -915,7 +915,7 @@
 
 .delete-confirm-desc {
   margin: 0 0 1rem;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   line-height: 1.55;
   color: var(--on-surface-variant);
 }
@@ -924,7 +924,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: var(--space-md);
 }
 
 .delete-confirm-cancel {
@@ -932,18 +932,18 @@
   height: auto;
   padding: 0.4rem 0.85rem;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
 }
 
 .delete-confirm-action {
   min-width: 72px;
   padding: 0.4rem 0.85rem;
   border: 1px solid var(--error);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--error);
   color: var(--surface-container-lowest);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   cursor: pointer;
 }
 
@@ -952,9 +952,9 @@
 }
 
 .workspace-brand-version {
-  margin-left: 0.45rem;
+  margin-left: var(--space-sm);
   font-family: var(--font-ui);
-  font-size: 0.7rem;
+  font-size: var(--text-2xs);
   font-weight: 500;
   color: var(--on-surface-variant);
   letter-spacing: 0;
@@ -966,7 +966,7 @@
   padding: 0.6rem 0.75rem;
   background: var(--surface-container-low);
   border: 1px solid var(--outline-variant);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   font-family: var(--font-ui);
   font-size: 0.8rem;
   color: var(--on-surface-variant);
@@ -981,8 +981,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
   width: 100%;
 }
 
@@ -990,9 +990,9 @@
 .update-btn-primary {
   min-width: 88px;
   padding: 0.4rem 0.9rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   cursor: pointer;
   transition: background-color 0.12s ease, border-color 0.12s ease;
 }
@@ -1055,7 +1055,7 @@
 .account-dialog-profile {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   padding: 0.5rem 0;
 }
 
@@ -1067,7 +1067,7 @@
 .account-dialog-info {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: var(--space-3xs);
   min-width: 0;
 }
 
@@ -1081,7 +1081,7 @@
 }
 
 .account-dialog-email {
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   color: var(--on-surface-variant);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1092,7 +1092,7 @@
 .about-dialog-body {
   align-items: center;
   text-align: center;
-  gap: 0.35rem;
+  gap: var(--space-xs);
 }
 
 .about-dialog-brand {
@@ -1103,14 +1103,14 @@
 }
 
 .about-dialog-version {
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--on-surface-variant);
   font-weight: 500;
 }
 
 .about-dialog-desc {
   margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--on-surface-variant);
   line-height: 1.5;
 }
@@ -1136,7 +1136,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
 }
 
 .shortcuts-row {
@@ -1147,7 +1147,7 @@
 }
 
 .shortcuts-row dt {
-  font-size: 0.85rem;
+  font-size: var(--text-md);
   color: var(--on-surface);
 }
 
@@ -1158,7 +1158,7 @@
 .shortcuts-row kbd {
   font-family: inherit;
   font-size: 0.75rem;
-  padding: 0.15rem 0.45rem;
+  padding: var(--space-3xs) var(--space-sm);
   border-radius: 4px;
   background: var(--surface-container);
   border: 1px solid var(--outline-variant);

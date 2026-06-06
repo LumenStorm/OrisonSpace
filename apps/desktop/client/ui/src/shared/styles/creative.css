@@ -21,7 +21,7 @@
   background: transparent;
   color: var(--on-surface-variant);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.12s, border-color 0.12s;
@@ -40,7 +40,7 @@
 .creative-field-content {
   flex: 1;
   overflow: auto;
-  padding: 1rem;
+  padding: var(--space-xl);
 }
 
 .creative-empty {
@@ -54,16 +54,16 @@
 .field-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   min-width: 0;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
   border-bottom: 1px solid var(--outline-variant);
 }
 
 .field-header-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   min-width: 0;
   overflow: hidden;
@@ -74,18 +74,18 @@
 .field-version-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
+  padding: var(--space-3xs) var(--space-md);
+  border-radius: var(--radius-pill);
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .field-stale-badge {
-  color: #e6a700;
+  color: var(--warning);
 }
 
 .field-stale-badge .material-symbols-outlined {
@@ -100,7 +100,7 @@
   width: 28px;
   height: 28px;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -119,13 +119,13 @@
 .creative-field-body {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-xl);
 }
 
 .creative-field-row {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
 }
 
 .creative-field-label {
@@ -153,7 +153,7 @@
 }
 
 .creative-tag-list li {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-2xs);
 }
 
 .creative-list {
@@ -163,32 +163,23 @@
 }
 
 .creative-list li {
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-2xs);
 }
 
 .creative-tag-list-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.asset-card-tag {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: var(--surface-container-high);
-  color: var(--on-surface-variant);
-  font-size: 0.78rem;
+  gap: var(--space-xs);
 }
 
 /* ── Asset Cards ── */
 .asset-card-group {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-xl);
 }
 
 .asset-card-group-title {
   margin: 0 0 0.5rem;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   font-weight: 700;
   text-transform: capitalize;
   color: var(--on-surface-variant);
@@ -197,13 +188,13 @@
 .asset-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.75rem;
+  gap: var(--space-lg);
 }
 
 .asset-card {
-  padding: 0.75rem;
+  padding: var(--space-lg);
   border: 1px solid var(--outline-variant);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   min-width: 0;
 }
@@ -211,15 +202,15 @@
 .asset-card-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   min-width: 0;
-  margin-bottom: 0.35rem;
+  margin-bottom: var(--space-xs);
 }
 
 .asset-card-type-badge {
   display: inline-flex;
   padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
   font-size: 0.68rem;
@@ -251,37 +242,37 @@
 .asset-card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.35rem;
+  gap: var(--space-2xs);
+  margin-top: var(--space-xs);
 }
 
 .asset-card-tag {
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
 }
 
 /* ── Relationship Graph ── */
 .graph-toolbar {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-md);
   flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-lg);
 }
 
 .graph-toolbar-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-xs);
   padding: 0.4rem 0.75rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--on-surface);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   cursor: pointer;
   transition: background 0.12s;
 }
@@ -308,7 +299,7 @@
   width: 100%;
   max-height: 500px;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--surface-container-lowest);
 }
 
@@ -325,7 +316,7 @@
 }
 
 .graph-nodeEdgeSource {
-  stroke: #e6a700;
+  stroke: var(--warning);
   stroke-width: 3;
 }
 
@@ -356,51 +347,51 @@
 .outline-acts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
 }
 
 .outline-act-item {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
 .outline-act-item strong {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-2xs);
 }
 
 /* ── Episode Outlines ── */
 .episode-item {
-  padding: 0.75rem;
+  padding: var(--space-lg);
   border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
 .episode-item + .episode-item {
-  margin-top: 0.5rem;
+  margin-top: var(--space-md);
 }
 
 .episode-item-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   min-width: 0;
-  margin-bottom: 0.35rem;
+  margin-bottom: var(--space-xs);
 }
 
 .episode-index {
   color: var(--on-surface-variant);
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
 .episode-status {
   margin-left: auto;
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -416,34 +407,34 @@
 .episode-beats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 0.35rem;
+  gap: var(--space-2xs);
+  margin-top: var(--space-xs);
 }
 
 .episode-beat-tag {
   padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
 }
 
 /* ── Curves ── */
 .curve-bars {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-md);
 }
 
 .curve-bar-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
 }
 
 .curve-bar-label {
   width: 60px;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   color: var(--on-surface-variant);
   text-align: right;
   flex-shrink: 0;
@@ -466,7 +457,7 @@
 
 .curve-bar-value {
   width: 24px;
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   color: var(--on-surface-variant);
   flex-shrink: 0;
 }
@@ -474,21 +465,21 @@
 .emotion-point {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--outline-variant);
 }
 
 .emotion-primary {
   padding: 0.1rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-container-high);
-  font-size: 0.82rem;
+  font-size: var(--text-base);
 }
 
 .emotion-metric {
   color: var(--on-surface-variant);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-family: monospace;
 }
 
@@ -496,7 +487,7 @@
 .patch-review {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
 }
 
 .patch-review-title {
@@ -514,17 +505,17 @@
 .patch-review-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-xs);
 }
 
 .patch-review-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   min-width: 0;
-  padding: 0.5rem;
+  padding: var(--space-md);
   border: 1px solid var(--outline-variant);
-  border-radius: 0.35rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.12s;
 }
@@ -550,7 +541,7 @@
   padding: 0.1rem 0.35rem;
   border-radius: 0.2rem;
   background: var(--surface-container-high);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   text-transform: uppercase;
 }
 
@@ -563,7 +554,7 @@
 
 .patch-review-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-md);
   flex-wrap: wrap;
 }
 
@@ -574,7 +565,7 @@
 .patch-review-reject-btn {
   padding: 0.8rem 1rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   color: var(--on-surface);
   font: inherit;
@@ -591,7 +582,7 @@
 .outline-page {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--space-3xl);
   padding: 2rem 2.5rem;
   overflow-y: auto;
   max-width: 780px;
@@ -602,14 +593,14 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding-bottom: 1.5rem;
+  padding-bottom: var(--space-2xl);
   border-bottom: 1px solid var(--outline-variant);
 }
 
 .outline-section-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--on-surface);
 }
@@ -623,13 +614,13 @@
 .outline-phases-section {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-lg);
 }
 
 .outline-phase-card {
   border: 1px solid var(--outline-variant);
   border-left: 3px solid var(--accent);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   overflow: hidden;
   transition: box-shadow 0.15s;
@@ -642,7 +633,7 @@
 .outline-phase-card-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.6rem 0.85rem;
   background: var(--surface-container-low);
 }
@@ -665,7 +656,7 @@
   width: 24px;
   height: 24px;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-2xs);
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
@@ -679,7 +670,7 @@
 .outline-phase-card-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  gap: var(--space-lg);
   padding: 0.75rem 0.85rem;
   border-top: 1px solid var(--border-subtle);
 }
@@ -687,11 +678,11 @@
 .outline-phase-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
 }
 
 .outline-phase-label {
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--on-surface-variant);
 }
@@ -704,7 +695,7 @@
   font: inherit;
   font-size: 0.84rem;
   color: var(--on-surface);
-  padding: 0.35rem 0.5rem;
+  padding: var(--space-xs) var(--space-md);
   outline: none;
   transition: border-color 0.12s;
 }
@@ -723,7 +714,7 @@
 .outline-phase-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-md);
   padding: 0.65rem 0.85rem;
   background: var(--surface-container-low);
   cursor: pointer;
@@ -737,7 +728,7 @@
 .outline-phase-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-xl);
   padding: 0.85rem;
   border-top: 1px solid var(--border-subtle);
 }
@@ -749,7 +740,7 @@
 .outline-auxiliary-section {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding-top: 1.5rem;
+  gap: var(--space-lg);
+  padding-top: var(--space-2xl);
   border-top: 1px solid var(--outline-variant);
 }

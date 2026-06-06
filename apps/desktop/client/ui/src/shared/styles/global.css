@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./scales.css";
 
 /* Import order matches the original monolithic layout so cascade-sensitive
  * overrides (e.g. `.image-gen-inspector-*` rules coming after `.image-gen-*`,
@@ -43,4 +44,44 @@
 body {
   height: 100vh;
   overflow: hidden;
+}
+
+/* ── Keyboard focus ring (a11y) ──
+ * Many controls reset `outline: none` for mouse use. :focus-visible restores
+ * a visible ring for keyboard/AT navigation only — it does not fire on click,
+ * so existing custom :focus border styling stays intact. Placed last so it
+ * wins over the scattered `outline: none` resets via source order. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-2xs);
+}
+
+/* Inputs/textarea/contenteditable already show a focus border; keep their
+ * ring tight to the field rather than offset. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline-offset: 0;
+}
+
+/* The main prose editor surface signals focus via the caret; a full-surface
+ * ring there is redundant and visually heavy. */
+.tiptap-content .tiptap:focus-visible {
+  outline: none;
+}
+
+/* ── Reduced motion ──
+ * Respect the OS-level preference: collapse transitions/animations to a
+ * near-instant duration rather than 0 so state changes still register. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -56,3 +56,25 @@ card-bg-hover: "{surface-container-low}"
 # ─── 通用 chip/badge ───
 chip-bg: "{surface-container-high}"
 chip-text: "{on-surface-variant}"
+
+# ─── 细弱分隔边框（窗口控件区/模型编辑器等）───
+# 亮色下为暖灰半透明；暗色见 slots.dark.yaml
+border-faint: "rgba(199, 199, 191, 0.15)"
+
+# ─── Windows 窗口关闭按钮 hover ───
+# 系统约定的红色，主题无关（亮/暗一致）
+window-close-hover: "#e81123"
+
+# ─── 媒体浮层（漂浮在生成图片/视频之上的控件与遮罩）───
+# 刻意主题无关：图片永远是图片，亮暗模式下这些控件保持一致
+overlay-on-media-text: "rgba(255, 255, 255, 0.92)"
+overlay-on-media-scrim-top: "rgba(0, 0, 0, 0.55)"
+overlay-on-media-scrim-bottom: "rgba(0, 0, 0, 0.65)"
+overlay-on-media-glass: "rgba(18, 18, 18, 0.68)"
+overlay-on-media-control: "rgba(255, 255, 255, 0.12)"
+overlay-on-media-control-hover: "rgba(255, 255, 255, 0.22)"
+overlay-on-media-control-active: "rgba(255, 255, 255, 0.18)"
+overlay-on-media-border: "rgba(255, 255, 255, 0.32)"
+overlay-on-media-border-strong: "rgba(255, 255, 255, 0.5)"
+overlay-on-media-danger: "rgba(196, 68, 68, 0.75)"
+overlay-on-media-backdrop: "rgba(255, 255, 255, 0.8)"
