@@ -95,6 +95,10 @@ docs/               — 架构与设计文档
 
 [Apache-2.0](LICENSE)
 
+## 友情链接
+
+- [LinuxDO](https://linux.do/)
+
 ## Contributing
 
 欢迎提交 Issue 和 Pull Request。开始前请阅读 [贡献指南](CONTRIBUTING.md)。
