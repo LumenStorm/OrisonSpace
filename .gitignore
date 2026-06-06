@@ -1,41 +1,46 @@
+# ── Dependencies ──
 node_modules/
-dist/
-out/
-.vite/
-coverage/
-playwright-report/
-test-results/
-.turbo/
-temp/
 .pnpm-store/
 package-lock.json
 apps/**/package-lock.json
-.DS_Store
-.worktrees/
+
+# ── Build output / artifacts ──
+dist/
+out/
+.vite/
+.turbo/
+temp/
+release/
+portable/
+*.tsbuildinfo
+apps/desktop/client/shell/resources/python-runtime/
+apps/desktop/client/shell/.python-cache/
+
+# ── Test / coverage ──
+coverage/
+playwright-report/
+test-results/
+
+# ── Python ──
 __pycache__/
 *.pyc
-.omc/
+
+# ── Secrets / env ──
 .env
 .env.local
 .env.agent
 *.pem
-.claude/
-logs/
-release/
-portable/
-apps/desktop/client/shell/resources/python-runtime/
-apps/desktop/client/shell/.python-cache/
+
+# ── Local app/runtime data ──
 .orison/
-# Planning / spec / review scratch — local working docs, not version-controlled
-.plan.md
-PLAN.md
-**/PLAN-*.md
-**/plan.md
-fix-plan.md
-**/fix-plan.md
-# Historical plan/spec archive (superpowers) — kept on disk, out of version control
+logs/
+
+# ── Tooling / editor ──
+.DS_Store
+.worktrees/
+.omc/
+.claude/
+
+# ── Local working drafts (plans / reviews / specs) — not version-controlled ──
+.scratch/
 docs/internal/archive/
-# Code-review scratch
-review.md
-**/*.local.bak.md
-*.tsbuildinfo

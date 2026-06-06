@@ -2,6 +2,10 @@
   "name": "orison-space",
   "private": true,
   "packageManager": "pnpm@10.8.1",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
   "pnpm": {
     "onlyBuiltDependencies": ["@swc/core", "bcrypt", "better-sqlite3", "electron", "esbuild"],
     "overrides": {
