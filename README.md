@@ -4,13 +4,13 @@
 
 # Orison Space
 
-> AI 驱动的影视 / 小说创作 IDE — 从灵感到成稿的全流程工作台。
+> AI 驱动的小说创作 IDE — 从灵感到成稿的全流程工作台。
 
 [English](README.en.md)
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 ![Electron](https://img.shields.io/badge/Electron-37-47848F.svg)
 
 </div>
@@ -22,7 +22,7 @@
 
 ## 功能亮点
 
-- **全流程创作** — 大纲、章节、分镜、资产卡，一个工作区搞定
+- **全流程创作** — 大纲、章节、资产卡，一个工作区搞定
 - **AI 辅助** — 生成、续写、润色、审阅、可控修改；用户主导，AI 辅助
 - **本地优先** — 项目文件存在你的电脑上，数据不离开本地
 - **Agent 编排** — Skill / Workflow / 子代理嵌套调用，LLM 自动召唤工具
@@ -55,7 +55,7 @@
 ├─────────────────────────────────────────────────┤
 │  Renderer (渲染进程)                             │
 │  ├─ 工作区 IDE 布局                              │
-│  ├─ 创作编辑器 (章节/大纲/分镜/资产)             │
+│  ├─ 创作编辑器 (章节/大纲/资产)                 │
 │  └─ Agent Panel (对话/Skill/Diff)               │
 └─────────────────────────────────────────────────┘
 ```
@@ -81,13 +81,11 @@ docs/               — 架构与设计文档
 
 > 当前处于 Alpha 阶段，持续迭代中。
 
-前往 [GitHub Releases](https://github.com/LumenStorm/OrisonSpace/releases) 下载对应平台安装包：
+前往 [GitHub Releases](https://github.com/LumenStorm/OrisonSpace/releases) 下载安装包：
 
 | 平台 | 格式 |
 |------|------|
-| Windows | `.exe` 安装包 |
-| macOS | `.dmg` |
-| Linux | `.AppImage` |
+| Windows | `.exe` 安装包 / 免安装 `.zip` |
 
 ## 项目状态
 

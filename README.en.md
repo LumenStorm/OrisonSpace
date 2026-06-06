@@ -4,13 +4,13 @@
 
 # Orison Space
 
-> AI-powered creative IDE for novels, screenplays, and storyboards — a full-pipeline workspace from inspiration to final draft.
+> AI-powered novel-writing IDE — a full-pipeline workspace from inspiration to final draft.
 
 [中文](README.md)
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 ![Electron](https://img.shields.io/badge/Electron-37-47848F.svg)
 
 </div>
@@ -22,7 +22,7 @@
 
 ## Features
 
-- **Full-pipeline creation** — Outlines, chapters, storyboards, and asset cards in one workspace
+- **Full-pipeline creation** — Outlines, chapters, and asset cards in one workspace
 - **AI-assisted** — Generate, continue, polish, review, and make controlled edits; user-led, AI-assisted
 - **Local-first** — Project files live on your machine; data never leaves your computer
 - **Agent orchestration** — Skills / Workflows / nested sub-agents; LLM auto-invokes tools
@@ -55,7 +55,7 @@
 ├─────────────────────────────────────────────────┤
 │  Renderer                                        │
 │  ├─ IDE-style workspace layout                  │
-│  ├─ Creative editors (chapters/outline/board)   │
+│  ├─ Creative editors (chapters/outline)         │
 │  └─ Agent Panel (chat/skill/diff)               │
 └─────────────────────────────────────────────────┘
 ```
@@ -81,13 +81,11 @@ docs/               — Architecture & design docs
 
 > Currently in Alpha — under active development.
 
-Head to [GitHub Releases](https://github.com/LumenStorm/OrisonSpace/releases) to download the installer for your platform:
+Head to [GitHub Releases](https://github.com/LumenStorm/OrisonSpace/releases) to download the installer:
 
 | Platform | Format |
 |----------|--------|
-| Windows | `.exe` installer |
-| macOS | `.dmg` |
-| Linux | `.AppImage` |
+| Windows | `.exe` installer / portable `.zip` |
 
 ## Status
 
