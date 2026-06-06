@@ -103,17 +103,39 @@ export function AgentInput() {
 
       {pendingAttachments.length > 0 && (
         <div className="agent-input-attachments">
-          {pendingAttachments.map((att) => (
-            <span key={`${att.type}-${att.id}`} className="agent-attachment-chip">
-              <span className="material-symbols-outlined" style={{ fontSize: '0.7rem' }}>
-                {att.type === 'chapter' ? 'description' : att.type === 'selection' ? 'format_quote' : 'insert_drive_file'}
+          {pendingAttachments.map((att) => {
+            if (att.type === 'selection') {
+              // Render selections as a quoted preview. The quote marks are added
+              // by the component and the inner text is what gets truncated, so the
+              // opening + closing quotes are always balanced — unlike the old
+              // `slice(0,20)` label, which cut dialogue mid-quote.
+              const raw = (att.text ?? att.label).replace(/\s+/g, ' ').trim();
+              const preview = raw.length > 40 ? `${raw.slice(0, 40)}…` : raw;
+              return (
+                <span
+                  key={`selection-${att.id}`}
+                  className="agent-attachment-chip agent-attachment-chip-quote"
+                  title={att.text ?? att.label}
+                >
+                  <span className="agent-attachment-quote-text">“{preview}”</span>
+                  <button type="button" className="agent-attachment-remove" onClick={() => removeAttachment(att.id)}>
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </span>
+              );
+            }
+            return (
+              <span key={`${att.type}-${att.id}`} className="agent-attachment-chip">
+                <span className="material-symbols-outlined" style={{ fontSize: '0.7rem' }}>
+                  {att.type === 'chapter' ? 'description' : 'insert_drive_file'}
+                </span>
+                {att.label}
+                <button type="button" className="agent-attachment-remove" onClick={() => removeAttachment(att.id)}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
               </span>
-              {att.label}
-              <button type="button" className="agent-attachment-remove" onClick={() => removeAttachment(att.id)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </span>
-          ))}
+            );
+          })}
         </div>
       )}
 

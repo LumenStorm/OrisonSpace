@@ -913,6 +913,20 @@
   font-weight: 600;
 }
 
+/* Selection attachment: wider quoted preview, not a tight pill. */
+.agent-attachment-chip-quote {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.agent-attachment-quote-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
 .agent-attachment-remove {
   display: flex;
   align-items: center;

@@ -4,7 +4,7 @@ import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AgentMessage } from '../../shared/store/agentSlice';
 import { WRITE_TOOLS } from '../../shared/store/agentDiffSlice';
-import type { Attachment } from '../../shared/types/attachment';
+import type { Attachment, SelectionAttachment } from '../../shared/types/attachment';
 import { AgentToolCard } from './AgentToolCard';
 import { DiffCard } from './DiffCard';
 import { marked } from 'marked';
@@ -13,12 +13,32 @@ type Props = { message: AgentMessage };
 
 function attachmentIcon(type: Attachment['type']): string {
   if (type === 'chapter') return 'description';
-  if (type === 'selection') return 'format_quote';
   return 'insert_drive_file';
 }
 
 function renderMarkdown(content: string): string {
   return marked.parse(content, { async: false }) as string;
+}
+
+/**
+ * Compact citation chip for a pinned selection — a pointer to what the message
+ * referenced, not a re-display of the full passage (the full text already went
+ * to the model via the runtime). The quote marks are component-owned and the
+ * inner text is truncated, so they stay balanced; the old chip showed the
+ * `format_quote` glyph (a lone opening-quote icon) which read as an unbalanced
+ * quote. Full text is available on hover.
+ */
+function SelectionReferenceChip({ ref }: { ref: SelectionAttachment }) {
+  const raw = (ref.text ?? ref.label).replace(/\s+/g, ' ').trim();
+  const preview = raw.length > 24 ? `${raw.slice(0, 24)}…` : raw;
+  return (
+    <span
+      className="agent-attachment-chip agent-attachment-chip-quote"
+      title={ref.text ?? ref.label}
+    >
+      <span className="agent-attachment-quote-text">“{preview}”</span>
+    </span>
+  );
 }
 
 export function AgentMessageItem({ message }: Props) {
@@ -39,14 +59,18 @@ export function AgentMessageItem({ message }: Props) {
         <div className="agent-msg-content">{message.content}</div>
         {message.references && message.references.length > 0 && (
           <div className="agent-msg-references">
-            {message.references.map((ref) => (
-              <span key={`${ref.type}-${ref.id}`} className="agent-attachment-chip">
-                <span className="material-symbols-outlined" style={{ fontSize: '0.7rem' }}>
-                  {attachmentIcon(ref.type)}
+            {message.references.map((ref) =>
+              ref.type === 'selection' ? (
+                <SelectionReferenceChip key={`selection-${ref.id}`} ref={ref} />
+              ) : (
+                <span key={`${ref.type}-${ref.id}`} className="agent-attachment-chip">
+                  <span className="material-symbols-outlined" style={{ fontSize: '0.7rem' }}>
+                    {attachmentIcon(ref.type)}
+                  </span>
+                  {ref.label}
                 </span>
-                {ref.label}
-              </span>
-            ))}
+              ),
+            )}
           </div>
         )}
       </div>

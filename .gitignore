@@ -26,7 +26,16 @@ portable/
 apps/desktop/client/shell/resources/python-runtime/
 apps/desktop/client/shell/.python-cache/
 .orison/
+# Planning / spec / review scratch — local working docs, not version-controlled
 .plan.md
+PLAN.md
 **/PLAN-*.md
 **/plan.md
+fix-plan.md
+**/fix-plan.md
+# Historical plan/spec archive (superpowers) — kept on disk, out of version control
+docs/internal/archive/
+# Code-review scratch
+review.md
+**/*.local.bak.md
 *.tsbuildinfo
