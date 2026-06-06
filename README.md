@@ -1,8 +1,19 @@
+<div align="center">
+
+<img src="docs/assets/logo.png" alt="Orison Space" width="120" />
+
 # Orison Space
 
 > AI 驱动的影视 / 小说创作 IDE — 从灵感到成稿的全流程工作台。
 
 [English](README.en.md)
+
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
+![Electron](https://img.shields.io/badge/Electron-37-47848F.svg)
+
+</div>
 
 <!-- TODO: 添加应用截图 -->
 <!-- ![screenshot](docs/assets/screenshot.png) -->
@@ -16,6 +27,9 @@
 - **本地优先** — 项目文件存在你的电脑上，数据不离开本地
 - **Agent 编排** — Skill / Workflow / 子代理嵌套调用，LLM 自动召唤工具
 - **图片生成 + 编辑** — 文生图、图编辑（画笔/遮罩/裁切），结果直接入库
+- **版本管理** — 基于 isomorphic-git 的提交节点、分支、diff 与时间线
+- **IDE 式编辑器** — 分屏（Split View）、Minimap、多标签、命令面板
+- **文档互通** — 章节/大纲支持 DOCX 预览与导入导出
 - **主题 & 多语言** — 亮色/暗色/自定义主题，中英双语，YAML 驱动可扩展
 - **模型自由** — 接入任何 OpenAI 兼容端点，本地管理 API Key
 
@@ -85,7 +99,8 @@ docs/               — 架构与设计文档
 
 ## Contributing
 
-欢迎提交 Issue 和 Pull Request。
+欢迎提交 Issue 和 Pull Request。开始前请阅读 [贡献指南](CONTRIBUTING.md)。
 
 - Bug 报告请附上复现步骤和系统信息
 - Feature 建议请先开 Issue 讨论
+- 安全问题请走私密披露，见 [SECURITY.md](SECURITY.md)
