@@ -21,6 +21,18 @@ import { fetchOrisonFile } from './orisonFileProtocol';
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL;
 
+// App icon (Windows/Linux runtime window + taskbar). macOS uses the bundled
+// .icns from electron-builder, so a runtime icon is not needed there.
+// `resources/` is copied next to the app via electron-builder `files`, and in
+// dev it sits two levels up from dist/main. Prefer the .ico on Windows for
+// crisp taskbar rendering, the .png elsewhere.
+function resolveAppIcon(): string {
+  const base = path.join(__dirname, '../../resources');
+  return process.platform === 'win32'
+    ? path.join(base, 'icon.ico')
+    : path.join(base, 'icon.png');
+}
+
 const CSP = [
   "default-src 'self'",
   isDev ? "script-src 'self' 'unsafe-eval'" : "script-src 'self'",
@@ -38,6 +50,7 @@ function createWindow() {
     height: 960,
     minWidth: 1100,
     minHeight: 720,
+    icon: isMac ? undefined : resolveAppIcon(),
     frame: isMac,                          // Windows/Linux 隐藏原生标题栏
     titleBarStyle: isMac ? 'hidden' : undefined, // macOS 保留红绿灯
     trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined,

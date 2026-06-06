@@ -74,3 +74,13 @@ Python agent scripts are resolved via:
 3. Source-tree `apps/desktop/agent/python`, for development.
 
 Native Node modules such as `better-sqlite3` are unpacked from asar so Electron can load their `.node` files.
+
+## Application Icon
+
+The source logo is `apps/desktop/client/shell/resources/icon.png` (1254×1254). The Windows installer and `.exe` require a multi-size `.ico` (electron-builder expects at least 256×256). Regenerate it from the PNG whenever the logo changes:
+
+```powershell
+pnpm --filter @orison/desktop-shell gen:icons
+```
+
+This runs `scripts/generate-icons.mjs` (via `png-to-ico`) and writes `resources/icon.ico` with embedded 16/32/48/256 sizes. Both `electron-builder.yml` and `electron-builder.portable.yml` point `win.icon` at `resources/icon.ico`, and the runtime `BrowserWindow` uses the same icon for the window/taskbar on Windows and Linux (macOS uses the bundled `.icns` from electron-builder).
