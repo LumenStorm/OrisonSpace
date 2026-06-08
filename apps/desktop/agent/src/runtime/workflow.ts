@@ -11,9 +11,7 @@ import { buildSystemPrompt } from '../prompt/render';
 import { discoverSkills } from '../skill/discovery';
 import { SkillRegistry } from '../skill/runtime/registry';
 import { createWorkflowExecutor, type WorkflowExecutionContext, type WorkflowExecutionResult } from '../skill/runtime/workflowExecutor';
-import { loadDirectorySkill } from '../skill/runtime/directoryAdapter';
-import { loadManifestSkill } from '../skill/runtime/manifestAdapter';
-import { loadOhStoryCompatibleSkill } from '../skill/runtime/ohStoryAdapter';
+import { loadSkillFromDir } from '../skill/loadSkillFromDir';
 import { loadRuntimeConfig } from './config';
 import { InMemoryArtifactStore, type ArtifactStore } from '../artifact/store';
 import { buildSkillContext, type SkillRuntimeContext } from '../context/builder';
@@ -1040,40 +1038,11 @@ async function loadProjectSkills(skillRegistry: SkillRegistry, _projectPath: str
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
         const entryDir = path.join(skillsRoot.path, entry.name);
-        try {
-          const adapted = await loadOhStoryCompatibleSkill(entryDir);
-          if (adapted && !skillRegistry.has(adapted.name)) {
-            const normalized = { ...adapted, source: skillsRoot.source };
-            skillRegistry.register(normalized);
-            loaded.push(normalized);
-            continue;
-          }
-        } catch {
-          // Fall through to standard loading.
-        }
-
-        try {
-          const skill = await loadDirectorySkill(entryDir);
-          if (!skillRegistry.has(skill.name)) {
-            const normalized = { ...skill, source: skillsRoot.source };
-            skillRegistry.register(normalized);
-            loaded.push(normalized);
-          }
-          continue;
-        } catch {
-          // Fall through.
-        }
-
-        try {
-          const skill = await loadManifestSkill(path.join(entryDir, 'skill.json'));
-          if (!skillRegistry.has(skill.name)) {
-            const normalized = { ...skill, source: skillsRoot.source };
-            skillRegistry.register(normalized);
-            loaded.push(normalized);
-          }
-        } catch {
-          // skip invalid skill entries
-        }
+        const outcome = await loadSkillFromDir(entryDir, skillsRoot.source);
+        if (outcome.kind !== 'loaded') continue;
+        if (skillRegistry.has(outcome.skill.name)) continue;
+        skillRegistry.register(outcome.skill);
+        loaded.push(outcome.skill);
       }
     } catch {
       // missing root is allowed

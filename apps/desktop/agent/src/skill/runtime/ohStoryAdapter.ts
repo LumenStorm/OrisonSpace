@@ -28,32 +28,58 @@ const BLOCKED_SKILLS = new Set([
   'browser-cdp',
 ]);
 
-export async function loadOhStoryCompatibleSkill(skillDir: string): Promise<NormalizedSkill | null> {
-  if (!existsSync(path.join(skillDir, 'SKILL.md'))) return null;
+/**
+ * Three-state classification of an oh-story skill directory.
+ * - `loaded`: adapted skill ready to list + register.
+ * - `blocked`: explicitly blocked (e.g. story-setup, *-scan, browser-cdp) — must
+ *   be skipped entirely by both listing and execution so it neither appears in the
+ *   prompt nor gets registered under its raw directory name.
+ * - `not-applicable`: not an oh-story routable skill — caller should fall through
+ *   to the standard directory/manifest loaders.
+ */
+export type OhStoryClassification =
+  | { kind: 'loaded'; skill: NormalizedSkill }
+  | { kind: 'blocked' }
+  | { kind: 'not-applicable' };
+
+export async function classifyOhStorySkill(skillDir: string): Promise<OhStoryClassification> {
+  if (!existsSync(path.join(skillDir, 'SKILL.md'))) return { kind: 'not-applicable' };
   const skill = await loadDirectorySkill(skillDir);
-  if (BLOCKED_SKILLS.has(skill.name)) return null;
-  if (!ROUTABLE_SKILLS.has(skill.name)) return null;
+  if (BLOCKED_SKILLS.has(skill.name)) return { kind: 'blocked' };
+  if (!ROUTABLE_SKILLS.has(skill.name)) return { kind: 'not-applicable' };
   const shouldAdaptCompiledPlan = isOhStorySkillDirectory(skillDir);
 
   if (skill.name === ROUTER_SKILL) {
     return {
-      ...skill,
-      format: 'manifest',
-      workflowMode: 'workflow',
-      prompt: ROUTER_PROMPT_PREFIX,
-      workflow: buildRouterWorkflow(skill.name),
+      kind: 'loaded',
+      skill: {
+        ...skill,
+        format: 'manifest',
+        workflowMode: 'workflow',
+        prompt: ROUTER_PROMPT_PREFIX,
+        workflow: buildRouterWorkflow(skill.name),
+      },
     };
   }
 
   return {
-    ...skill,
-    format: 'manifest',
-    workflowMode: 'workflow',
-    prompt: buildExecutionPrompt(skill.prompt, skill.name),
-    compiledPlan: shouldAdaptCompiledPlan
-      ? adaptCompiledPlan(skill.compiledPlan, skill.name)
-      : skill.compiledPlan,
+    kind: 'loaded',
+    skill: {
+      ...skill,
+      format: 'manifest',
+      workflowMode: 'workflow',
+      prompt: buildExecutionPrompt(skill.prompt, skill.name),
+      compiledPlan: shouldAdaptCompiledPlan
+        ? adaptCompiledPlan(skill.compiledPlan, skill.name)
+        : skill.compiledPlan,
+    },
   };
+}
+
+/** Backward-compatible wrapper. Treats `blocked` the same as `not-applicable` (null). */
+export async function loadOhStoryCompatibleSkill(skillDir: string): Promise<NormalizedSkill | null> {
+  const result = await classifyOhStorySkill(skillDir);
+  return result.kind === 'loaded' ? result.skill : null;
 }
 
 function buildRouterWorkflow(skillName: string): WorkflowDefinition {
