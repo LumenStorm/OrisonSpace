@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Tooltip } from '../../shared/components/Tooltip';
 import { InlineInput } from './InlineInput';
 import type { CreatingType, FileEntry } from './types';
@@ -20,6 +21,7 @@ type FileTreeNodeProps = {
   onCreateConfirm: (name: string) => void;
   onCreateCancel: () => void;
   displayNameMap: Record<string, string>;
+  onDropToFolder: (event: React.DragEvent, folderPath: string) => void;
 };
 
 export function FileTreeNode({
@@ -39,6 +41,7 @@ export function FileTreeNode({
   onCreateConfirm,
   onCreateCancel,
   displayNameMap,
+  onDropToFolder,
 }: FileTreeNodeProps) {
   const paddingLeft = 8 + depth * 16;
   const isExpanded = expandedPaths.has(entry.path);
@@ -46,6 +49,7 @@ export function FileTreeNode({
   const isDirty = dirtyPaths.has(entry.path);
   const isRenaming = renamingPath === entry.path;
   const isCreatingHere = creatingIn === entry.path;
+  const [isDropHover, setIsDropHover] = useState(false);
 
   const rawName = getDisplayName(entry.name);
   const mappedName = displayNameMap[entry.name] ?? rawName;
@@ -55,10 +59,30 @@ export function FileTreeNode({
     return (
       <div className="ptree-group">
         <div
-          className={`ptree-node ptree-folder${isSelected ? ' is-active' : ''}`}
+          className={`ptree-node ptree-folder${isSelected ? ' is-active' : ''}${isDropHover ? ' is-drop-target' : ''}`}
           style={{ paddingLeft }}
           onClick={() => onToggle(entry.path)}
           onContextMenu={(event) => onContextMenu(event, entry)}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setIsDropHover(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+          }}
+          onDragLeave={(event) => {
+            event.stopPropagation();
+            if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+              setIsDropHover(false);
+            }
+          }}
+          onDrop={(event) => {
+            setIsDropHover(false);
+            onDropToFolder(event, entry.path);
+          }}
         >
           <span className={`material-symbols-outlined ptree-chevron${isExpanded ? ' is-open' : ''}`} aria-hidden="true">
             chevron_right
@@ -101,6 +125,7 @@ export function FileTreeNode({
                 onCreateConfirm={onCreateConfirm}
                 onCreateCancel={onCreateCancel}
                 displayNameMap={displayNameMap}
+                onDropToFolder={onDropToFolder}
               />
             ))}
             {isCreatingHere && (

@@ -13,17 +13,11 @@ temp/
 release/
 portable/
 *.tsbuildinfo
-apps/desktop/client/shell/resources/python-runtime/
-apps/desktop/client/shell/.python-cache/
 
 # ── Test / coverage ──
 coverage/
 playwright-report/
 test-results/
-
-# ── Python ──
-__pycache__/
-*.pyc
 
 # ── Secrets / env ──
 .env

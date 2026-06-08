@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
   AssetRecord,
   AssetUpsertInput,
@@ -102,6 +102,15 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:move-file', projectDir, fromRelativePath, toRelativePath) as Promise<string>,
   deleteProjectFile: (projectDir: string, relativePath: string) =>
     ipcRenderer.invoke('project:delete-file', projectDir, relativePath) as Promise<boolean>,
+  // Drag-drop import of external OS files into the project tree
+  importFiles: (projectDir: string, targetRelDir: string, sourcePaths: string[]) =>
+    ipcRenderer.invoke('project:import-files', projectDir, targetRelDir, sourcePaths) as Promise<string[]>,
+  // Resolve the absolute path of a dropped File (Electron 32+ removed File.path)
+  pathForFile: (file: File) => webUtils.getPathForFile(file),
+  // Filesystem watcher for external-change auto-refresh
+  watchProject: (projectDir: string) =>
+    ipcRenderer.invoke('project:watch', projectDir) as Promise<void>,
+  unwatchProject: () => ipcRenderer.invoke('project:unwatch') as Promise<void>,
   ensureProjectRegistration: (input: { name: string; type: 'novel' | 'script'; localFingerprint: string }) =>
     ipcRenderer.invoke('project:ensure-registration', input) as Promise<{ projectId: string; name: string; type: string }>,
   // Task persistence (SQLite)

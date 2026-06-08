@@ -23,17 +23,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - name: Setup Python (for embeddable runtime prep)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Builds the portable app dir. pack:portable runs prepare:python first,
-      # which downloads the embeddable Python runtime + installs the agent's
-      # runtime deps, then bundles everything via electron-builder --dir.
+      # Builds the portable app dir via electron-builder --dir.
       - name: Build portable package
         run: pnpm package:desktop:portable
 

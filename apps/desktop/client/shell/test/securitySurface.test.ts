@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('electron', () => ({
   contextBridge: { exposeInMainWorld: vi.fn() },
-  ipcRenderer: { invoke: vi.fn(), send: vi.fn() }
+  ipcRenderer: { invoke: vi.fn(), send: vi.fn() },
+  webUtils: { getPathForFile: vi.fn() }
 }));
 
 import { exposedDesktopApi } from '../preload/index';
@@ -46,6 +47,7 @@ describe('preload security surface', () => {
       'gitLog',
       'gitStatusCount',
       'importDocx',
+      'importFiles',
       'isMaximized',
       'listAgentContinuations',
       'listAgentSessions',
@@ -67,6 +69,7 @@ describe('preload security surface', () => {
       'openLogsDir',
       'openPath',
       'pathExists',
+      'pathForFile',
       'performAutoModeAction',
       'performOrchestrationAction',
       'pickCoverImage',
@@ -92,10 +95,12 @@ describe('preload security surface', () => {
       'syncChaptersMeta',
       'syncField',
       'syncProjectMeta',
+      'unwatchProject',
       'updateAsset',
       'updateTaskStatus',
       'upsertAsset',
       'upsertTask',
+      'watchProject',
       'wordCount',
       'writeFile',
       'writeLog',

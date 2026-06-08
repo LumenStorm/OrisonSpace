@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
 import { mockFileContents } from '../../shared/data/mockFileContents';
@@ -37,6 +37,7 @@ export function ProjectTree() {
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [creatingType, setCreatingType] = useState<CreatingType>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const projectPath = currentProject?.path;
 
@@ -93,6 +94,45 @@ export function ProjectTree() {
     window.addEventListener('orison:tool-event', handler);
     return () => window.removeEventListener('orison:tool-event', handler);
   }, [projectPath, currentProject]);
+
+  // Watch the project directory for changes made outside the app (Explorer/Finder,
+  // other tools) and refresh the tree. The watcher emits `file:changed`, which the
+  // effect above already handles.
+  useEffect(() => {
+    if (!projectPath) return;
+    void window.orisonDesktop?.watchProject?.(projectPath);
+    return () => { void window.orisonDesktop?.unwatchProject?.(); };
+  }, [projectPath]);
+
+  const refreshTree = useCallback(async () => {
+    if (!projectPath || !currentProject) return;
+    const entries = await window.orisonDesktop?.readDirectory?.(projectPath, 3);
+    if (entries?.length) {
+      setFileTree([{ name: currentProject.name, path: '/', isDir: true, children: entries }]);
+    }
+  }, [projectPath, currentProject]);
+
+  const handleDrop = useCallback(async (event: DragEvent, targetDir: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+    if (!projectPath) return;
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length === 0) return;
+    const sourcePaths = files
+      .map((file) => window.orisonDesktop?.pathForFile?.(file) ?? '')
+      .filter((p) => p.length > 0);
+    if (sourcePaths.length === 0) return;
+    try {
+      await window.orisonDesktop?.importFiles?.(projectPath, targetDir, sourcePaths);
+      if (targetDir && targetDir !== '/') {
+        setExpandedPaths((prev) => new Set(prev).add(targetDir));
+      }
+      await refreshTree();
+    } catch {
+      // Import failures are non-fatal; the tree simply won't change.
+    }
+  }, [projectPath, refreshTree]);
 
   const loadChildrenIfNeeded = useCallback(async (entry: FileEntry) => {
     if (!projectPath || !entry.isDir || (entry.children && entry.children.length > 0)) return;
@@ -294,11 +334,23 @@ export function ProjectTree() {
         <span className="ptree-header-title">{t('projectTree.title')}</span>
       </div>
       <div
-        className="ptree-list"
+        className={`ptree-list${dragActive ? ' ptree-list--drag-active' : ''}`}
         onContextMenu={(event) => {
           event.preventDefault();
           setCtxMenu({ x: event.clientX, y: event.clientY, entry: null });
         }}
+        onDragOver={(event) => {
+          if (!projectPath) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          if (!dragActive) setDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+            setDragActive(false);
+          }
+        }}
+        onDrop={(event) => void handleDrop(event, '/')}
       >
         {fileTree.map((entry) => (
           <FileTreeNode
@@ -318,6 +370,7 @@ export function ProjectTree() {
             onCreateConfirm={handleCreateConfirm}
             onCreateCancel={handleCreateCancel}
             displayNameMap={displayNameMap}
+            onDropToFolder={(event, folderPath) => void handleDrop(event, folderPath)}
           />
         ))}
       </div>

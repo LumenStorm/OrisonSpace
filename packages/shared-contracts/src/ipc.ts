@@ -201,6 +201,10 @@ export type OrisonDesktopApi = {
   saveBase64Image(projectDir: string, input: SaveBase64ImageInput): Promise<SavedImageFile>;
   moveProjectFile(projectDir: string, fromRelativePath: string, toRelativePath: string): Promise<string>;
   deleteProjectFile(projectDir: string, relativePath: string): Promise<boolean>;
+  importFiles(projectDir: string, targetRelDir: string, sourcePaths: string[]): Promise<string[]>;
+  pathForFile(file: File): string;
+  watchProject(projectDir: string): Promise<void>;
+  unwatchProject(): Promise<void>;
   ensureProjectRegistration(input: { name: string; type: 'novel' | 'script'; localFingerprint: string }): Promise<{ projectId: string; name: string; type: string }>;
   // Task persistence (SQLite)
   listTasks(projectId: string, limit?: number): Promise<TaskRecord[]>;

@@ -8,7 +8,6 @@ the project, the workflow we follow, and what we expect in a pull request.
 
 - **Node.js** ≥ 20 (the repo pins `24` in [`.nvmrc`](.nvmrc); run `nvm use`)
 - **pnpm** ≥ 10 (the repo pins the exact version via `packageManager`)
-- **Python** ≥ 3.10 on `PATH` as `python` (only needed for the Python agent flow)
 
 ## Setup
 

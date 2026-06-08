@@ -1,10 +1,11 @@
 import { dialog, ipcMain } from 'electron';
-import { existsSync, mkdirSync, copyFileSync, readFileSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, copyFileSync, cpSync, readFileSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 import { atomicWriteFileSync } from '../fs/atomicWrite';
 import { decodeFileToUtf8 } from '../fs/decodeText';
+import { watchProject, unwatchProject } from '../fs/projectWatcher';
 import { notifyUI } from './toolNotify';
 import { ensureProject } from '../db/projectRepository';
 import {
@@ -116,6 +117,47 @@ export function registerProjectIpc() {
     copyFileSync(src, dest);
     return dest;
   });
+
+  /* ── Import external files dropped from the OS into the project ──
+   * The DESTINATION is validated to stay within the project. The SOURCE paths
+   * are NOT checked against the allowed-root scope: a drag-drop is the user's
+   * explicit authorization to copy those arbitrary on-disk files in. We only
+   * read (copy) them, never write to them. */
+  ipcMain.handle(
+    'project:import-files',
+    async (_, projectDir: string, targetRelDir: string, sourcePaths: string[]) => {
+      assertSafePath(projectDir);
+      const destDir = targetRelDir && targetRelDir !== '/'
+        ? buildProjectPath(projectDir, targetRelDir)
+        : projectDir;
+      assertWithinProject(projectDir, destDir);
+      if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+
+      const imported: string[] = [];
+      for (const src of sourcePaths) {
+        if (!src || !existsSync(src)) continue;
+        const baseName = path.basename(src);
+        if (shouldSkipImport(baseName)) continue;
+        const dest = uniquePath(destDir, baseName);
+        assertWithinProject(projectDir, dest);
+        try {
+          const stats = statSync(src);
+          if (stats.isDirectory()) {
+            cpSync(src, dest, { recursive: true });
+          } else {
+            copyFileSync(src, dest);
+          }
+          const rel = '/' + path.relative(projectDir, dest).split(path.sep).join('/');
+          imported.push(rel);
+          notifyUI({ type: 'file:changed', path: rel });
+        } catch {
+          // Skip individual files that fail to copy; continue with the rest.
+        }
+      }
+      return imported;
+    },
+  );
+
 
   ipcMain.handle('project:save-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
@@ -353,6 +395,15 @@ export function registerProjectIpc() {
     const record = ensureProject(input);
     return { projectId: record.projectId, name: record.name, type: record.type };
   });
+
+  /* ── Filesystem watcher (auto-refresh on external changes) ── */
+  ipcMain.handle('project:watch', async (_, projectDir: string) => {
+    watchProject(projectDir);
+  });
+
+  ipcMain.handle('project:unwatch', async () => {
+    unwatchProject();
+  });
 }
 
 /**
@@ -385,4 +436,25 @@ function uniqueMarkdownPath(dir: string, baseName: string): string {
     i++;
   }
   return candidate;
+}
+
+/**
+ * Build a non-colliding path within `dir` for an arbitrary file/folder name,
+ * inserting `-1`, `-2`, … before the extension if the target already exists.
+ */
+function uniquePath(dir: string, name: string): string {
+  const ext = path.extname(name);
+  const stem = ext ? name.slice(0, -ext.length) : name;
+  let candidate = path.join(dir, name);
+  let i = 1;
+  while (existsSync(candidate)) {
+    candidate = path.join(dir, `${stem}-${i}${ext}`);
+    i++;
+  }
+  return candidate;
+}
+
+/** Names that should never be imported into a project via drag-drop. */
+function shouldSkipImport(name: string): boolean {
+  return name.startsWith('.') || name === 'node_modules';
 }

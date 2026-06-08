@@ -12,21 +12,6 @@ files:
   - package.json
   - node_modules/**
 
-extraResources:
-  - from: ../../agent/python
-    to: python
-    filter:
-      - "**/*"
-      - "!tests/**"
-      - "!**/__pycache__/**"
-      - "!**/*.pyc"
-      - "!requirements.txt"
-      - "!requirements.runtime.txt"
-  - from: resources/python-runtime
-    to: python-runtime
-    filter:
-      - "**/*"
-
 asar: true
 asarUnpack:
   - "**/*.node"
