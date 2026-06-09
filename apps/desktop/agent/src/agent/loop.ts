@@ -77,8 +77,28 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       emitChildEvent: opts.emitChildEvent,
     };
 
-    for (const call of response.toolCalls) {
-      throwIfAborted(abort);
+    for (let i = 0; i < response.toolCalls.length; i++) {
+      const call = response.toolCalls[i];
+      // If aborted mid-loop, synthesize cancelled results for this call and all
+      // remaining calls so every tool_call in the assistant message stays paired
+      // with a tool result. An assistant turn persisted with unmatched tool_calls
+      // makes the next request invalid ("Tool result is missing for tool call").
+      if (abort.aborted) {
+        for (let j = i; j < response.toolCalls.length; j++) {
+          const pending = response.toolCalls[j];
+          const cancelOutput = 'Tool call cancelled: the run was stopped by the user before this tool executed.';
+          const toolMsg: SessionMessage = {
+            id: randomUUID(),
+            role: 'tool',
+            content: cancelOutput,
+            toolResults: [{ toolCallId: pending.id, toolName: pending.name, output: cancelOutput }],
+            createdAt: Date.now(),
+          };
+          result.push(toolMsg);
+          onMessage?.(toolMsg);
+        }
+        throwIfAborted(abort);
+      }
 
       const tool = tools.find(t => t.id === call.name);
       if (!tool) {

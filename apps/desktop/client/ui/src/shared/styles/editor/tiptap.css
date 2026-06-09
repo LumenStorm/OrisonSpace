@@ -82,8 +82,9 @@
   padding: var(--space-xl);
   min-height: 120px;
   outline: none;
-  font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-family: var(--reading-font-family);
+  font-weight: var(--reading-font-weight);
+  font-size: calc(0.95rem * var(--reading-font-scale));
   line-height: 1.7;
   color: var(--on-surface);
 }

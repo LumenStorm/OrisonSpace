@@ -120,6 +120,20 @@ export type UserPreferencesConfig = {
   locale: string;
   autoApplyPatches: boolean;
   updateManifestUrl?: string;
+  /** Reading font family for editor + agent panel body text. CSS font-family value or font stack name. */
+  readingFontFamily?: string;
+  /** Reading font weight for editor + agent panel body text (e.g. 400 / 500 / 600). */
+  readingFontWeight?: number;
+  /** Reading font scale multiplier for editor + agent panel body text (1 = default). */
+  readingFontScale?: number;
+};
+
+/** A font file the user imported into the app's font folder. */
+export type ImportedFont = {
+  /** CSS font-family name (derived from the file stem). */
+  family: string;
+  /** `data:` URL of the font file, ready to feed an @font-face src. */
+  dataUrl: string;
 };
 
 /* ── Update check IPC ── */
@@ -187,6 +201,10 @@ export type OrisonDesktopApi = {
   runStorySync(payload: RunStorySyncPayload): Promise<RunStorySyncResult>;
   loadUserPreferences(): Promise<UserPreferencesConfig>;
   saveUserPreferences(config: UserPreferencesConfig): Promise<void>;
+  /** Enumerate fonts the user has imported into the app's font folder. */
+  listImportedFonts(): Promise<ImportedFont[]>;
+  /** Open a file picker, copy chosen font files into the app, return all imported fonts. */
+  importFonts(): Promise<ImportedFont[]>;
   showItemInFolder(fullPath: string): void;
   openPath(fullPath: string): void;
   readDirectory(projectDir: string, maxDepth?: number): Promise<FileTreeEntry[]>;

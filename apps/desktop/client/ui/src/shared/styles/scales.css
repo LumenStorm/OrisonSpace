@@ -64,4 +64,12 @@
    * styling while keyboard navigation always gets a visible ring. */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
+
+  /* ── Reading typography (user-customizable) ──
+   * Scoped to editor body + agent panel body text ONLY (not global UI chrome).
+   * Overridden at runtime via documentElement.style by settingsSlice.
+   * Defaults reproduce the built-in look exactly (zero visual shift). */
+  --reading-font-family: var(--font-display);
+  --reading-font-weight: 400;
+  --reading-font-scale: 1;
 }

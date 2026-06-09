@@ -37,7 +37,7 @@ const CSP = [
   "default-src 'self'",
   isDev ? "script-src 'self' 'unsafe-eval'" : "script-src 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: orison-file: https:",
   `connect-src 'self' ${isDev ? 'ws://localhost:* https:' : 'https:'}`,
 ].join('; ');

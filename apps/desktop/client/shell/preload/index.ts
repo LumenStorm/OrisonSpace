@@ -7,6 +7,7 @@ import type {
   GenerateVideoPayload,
   GitCommitEntry,
   GitFileDiff,
+  ImportedFont,
   ImageGenerationResponse,
   ListRemoteModelsRequest,
   ModelConfig,
@@ -75,6 +76,9 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('config:load-user-preferences') as Promise<UserPreferencesConfig>,
   saveUserPreferences: (config: UserPreferencesConfig) =>
     ipcRenderer.invoke('config:save-user-preferences', config) as Promise<void>,
+  listImportedFonts: () =>
+    ipcRenderer.invoke('config:list-imported-fonts') as Promise<ImportedFont[]>,
+  importFonts: () => ipcRenderer.invoke('config:import-fonts') as Promise<ImportedFont[]>,
   showItemInFolder: (fullPath: string) => ipcRenderer.send('shell:show-item-in-folder', fullPath),
   openPath: (fullPath: string) => ipcRenderer.send('shell:open-path', fullPath),
   // 文件树操作

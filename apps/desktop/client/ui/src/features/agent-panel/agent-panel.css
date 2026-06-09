@@ -97,7 +97,9 @@
 }
 
 .agent-msg-content {
-  font-size: var(--text-base);
+  font-family: var(--reading-font-family);
+  font-weight: var(--reading-font-weight);
+  font-size: calc(var(--text-base) * var(--reading-font-scale));
   line-height: 1.5;
   color: var(--on-surface);
   white-space: pre-wrap;
@@ -768,7 +770,9 @@
 /* ── Markdown rendering in assistant messages ── */
 
 .agent-msg-md {
-  font-size: 0.8rem;
+  font-family: var(--reading-font-family);
+  font-weight: var(--reading-font-weight);
+  font-size: calc(0.8rem * var(--reading-font-scale));
   line-height: 1.55;
   color: var(--on-surface);
 }

@@ -18,11 +18,17 @@ export function SettingsDialog({ onClose }: Props) {
   const {
     resolvedLocale, theme, setTheme, locale, setLocale,
     modelConfig, setModelConfig,
+    readingFontFamily, setReadingFontFamily,
+    readingFontWeight, setReadingFontWeight,
+    readingFontScale, setReadingFontScale,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     theme: s.theme, setTheme: s.setTheme,
     locale: s.locale, setLocale: s.setLocale,
     modelConfig: s.modelConfig, setModelConfig: s.setModelConfig,
+    readingFontFamily: s.readingFontFamily, setReadingFontFamily: s.setReadingFontFamily,
+    readingFontWeight: s.readingFontWeight, setReadingFontWeight: s.setReadingFontWeight,
+    readingFontScale: s.readingFontScale, setReadingFontScale: s.setReadingFontScale,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -63,6 +69,12 @@ export function SettingsDialog({ onClose }: Props) {
                 setTheme={setTheme}
                 locale={locale}
                 setLocale={setLocale}
+                readingFontFamily={readingFontFamily}
+                setReadingFontFamily={setReadingFontFamily}
+                readingFontWeight={readingFontWeight}
+                setReadingFontWeight={setReadingFontWeight}
+                readingFontScale={readingFontScale}
+                setReadingFontScale={setReadingFontScale}
               />
             ) : (
               <ModelSettingsPage

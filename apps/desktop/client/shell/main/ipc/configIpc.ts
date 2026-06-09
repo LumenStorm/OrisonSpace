@@ -1,9 +1,10 @@
-import { ipcMain, safeStorage } from 'electron';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { app, dialog, ipcMain, safeStorage } from 'electron';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import type {
   ApiKeyEntry,
+  ImportedFont,
   ModelConfig,
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
@@ -16,6 +17,8 @@ const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
   theme: 'system',
   locale: 'system',
   autoApplyPatches: true,
+  readingFontWeight: 400,
+  readingFontScale: 1,
 };
 
 let modelDirOverride: string | null = null;
@@ -221,6 +224,18 @@ function readUserPreferences(): UserPreferencesConfig {
         typeof raw?.updateManifestUrl === 'string' && raw.updateManifestUrl.length > 0
           ? raw.updateManifestUrl
           : undefined,
+      readingFontFamily:
+        typeof raw?.readingFontFamily === 'string' && raw.readingFontFamily.length > 0
+          ? raw.readingFontFamily
+          : undefined,
+      readingFontWeight:
+        typeof raw?.readingFontWeight === 'number'
+          ? raw.readingFontWeight
+          : DEFAULT_USER_PREFERENCES.readingFontWeight,
+      readingFontScale:
+        typeof raw?.readingFontScale === 'number'
+          ? raw.readingFontScale
+          : DEFAULT_USER_PREFERENCES.readingFontScale,
     };
   } catch {
     return { ...DEFAULT_USER_PREFERENCES };
@@ -237,11 +252,76 @@ function writeUserPreferences(config: UserPreferencesConfig): void {
     autoApplyPatches: config.autoApplyPatches,
   };
   if (config.updateManifestUrl) flat.updateManifestUrl = config.updateManifestUrl;
+  if (config.readingFontFamily) flat.readingFontFamily = config.readingFontFamily;
+  if (typeof config.readingFontWeight === 'number') flat.readingFontWeight = config.readingFontWeight;
+  if (typeof config.readingFontScale === 'number') flat.readingFontScale = config.readingFontScale;
   atomicWriteFileSync(p, stringifyFlatYaml(flat), 'utf-8');
 }
 
 export function readUserPreferencesFromDisk(): UserPreferencesConfig {
   return readUserPreferences();
+}
+
+/* ── Imported fonts ── */
+
+const FONT_EXTENSIONS = ['.ttf', '.otf', '.ttc', '.woff', '.woff2'];
+const FONT_MIME: Record<string, string> = {
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.ttc': 'font/collection',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+};
+
+function getFontsDir(): string {
+  return path.join(app.getPath('userData'), 'fonts');
+}
+
+/** Build an ImportedFont from a file on disk, or null if unreadable. */
+function readImportedFont(file: string): ImportedFont | null {
+  try {
+    const ext = path.extname(file).toLowerCase();
+    const mime = FONT_MIME[ext] ?? 'application/octet-stream';
+    const base64 = readFileSync(file).toString('base64');
+    return {
+      family: path.basename(file, path.extname(file)),
+      dataUrl: `data:${mime};base64,${base64}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Enumerate fonts the user has imported into userData/fonts. */
+function listImportedFonts(): ImportedFont[] {
+  const dir = getFontsDir();
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((name) => FONT_EXTENSIONS.includes(path.extname(name).toLowerCase()))
+    .map((name) => readImportedFont(path.join(dir, name)))
+    .filter((f): f is ImportedFont => f !== null)
+    .sort((a, b) => a.family.localeCompare(b.family));
+}
+
+/** Open a file picker, copy chosen font files into userData/fonts, return the full list. */
+async function importFonts(): Promise<ImportedFont[]> {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Fonts', extensions: FONT_EXTENSIONS.map((e) => e.slice(1)) }],
+  });
+  if (result.canceled) return listImportedFonts();
+  const dir = getFontsDir();
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  for (const src of result.filePaths) {
+    const ext = path.extname(src).toLowerCase();
+    if (!FONT_EXTENSIONS.includes(ext)) continue;
+    try {
+      copyFileSync(src, path.join(dir, path.basename(src)));
+    } catch {
+      // Skip files that can't be copied; the rest still import.
+    }
+  }
+  return listImportedFonts();
 }
 
 /* ── Resolver helpers reused by gateway / story-sync IPC ── */
@@ -263,4 +343,6 @@ export function registerConfigIpc() {
   ipcMain.handle('config:save-user-preferences', (_, config: UserPreferencesConfig) => {
     writeUserPreferences(config);
   });
+  ipcMain.handle('config:list-imported-fonts', () => listImportedFonts());
+  ipcMain.handle('config:import-fonts', () => importFonts());
 }
