@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts --env-file=.env.agent",
-    "test": "vitest --run test/context.compaction.test.ts test/env.test.ts test/persistence.sessionSchemaMigration.test.ts test/runtime.*.test.ts test/skill.*.test.ts",
+    "test": "vitest --run",
     "lint": "echo agent lint placeholder",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

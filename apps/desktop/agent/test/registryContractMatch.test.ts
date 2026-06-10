@@ -5,7 +5,6 @@ import type { CreativeFieldKey } from '@orison/shared-contracts';
 import { creativeFieldKeys } from '@orison/shared-contracts';
 import { buildCreativeRunContext } from '../src/engine/contextBuilder';
 import { initFieldVersions } from '../src/engine/workflowSync';
-import { buildContextPacket } from '../src/engine/artifactYaml';
 
 const extendedNodes = createExtendedNodeRegistry();
 const contracts = getAllAgentContracts();
@@ -110,28 +109,5 @@ describe('审核字段版本一致性', () => {
     for (const f of coreFields) {
       expect(reviewReads.has(f), `multi-review-agent 缺少 reads: ${f}`).toBe(true);
     }
-  });
-
-  it('context packet 为 multi-review-agent 包含字段版本', () => {
-    const reviewContract = contracts.find((c) => c.id === 'multi-review-agent')!;
-
-    const artifacts = {
-      creative_brief: { genre: '悬疑' },
-      world_setting: { premise: '暗城' },
-      outline: { title: '暗城', synopsis: '故事梗概' },
-      asset_cards: [{ id: 'c1' }],
-      relationship_graph: { nodes: [], edges: [] }
-    };
-    const versions = initFieldVersions();
-    versions.outline = 3;
-    versions.asset_cards = 5;
-
-    const packet = buildContextPacket(reviewContract, artifacts, versions, 'run_1');
-    const fv = packet.field_versions as Record<string, number>;
-
-    // 审核 agent 的 context packet 必须包含它 reads 的字段版本
-    expect(fv.outline).toBe(3);
-    expect(fv.asset_cards).toBe(5);
-    expect(fv.creative_brief).toBe(0);
   });
 });

@@ -29,12 +29,14 @@ export async function runSkillScript(input: RunSkillScriptInput): Promise<SkillS
     let stdout = '';
     let stderr = '';
     let settled = false;
+    let timedOut = false;
 
+    // 超时只负责 kill，由 close 事件统一收尾，
+    // 保证 reject 时子进程已退出（否则 Windows 上临时目录会被占用无法删除）
     const timeout = setTimeout(() => {
       if (settled) return;
-      settled = true;
+      timedOut = true;
       child.kill();
-      reject(new Error(`script timed out after ${input.timeoutMs}ms`));
     }, input.timeoutMs);
 
     child.stdout.on('data', (chunk) => {
@@ -55,6 +57,10 @@ export async function runSkillScript(input: RunSkillScriptInput): Promise<SkillS
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      if (timedOut) {
+        reject(new Error(`script timed out after ${input.timeoutMs}ms`));
+        return;
+      }
       resolve(collectScriptResult(resolvedScriptPath, code ?? 0, stdout, stderr));
     });
   });
