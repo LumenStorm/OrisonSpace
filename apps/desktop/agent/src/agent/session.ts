@@ -104,3 +104,19 @@ export function updateStatus(sessionId: string, status: SessionState['status'], 
   session.updatedAt = Date.now();
   persistSession(session);
 }
+
+/**
+ * Update the model bound to a session. The model is a session-level setting:
+ * it applies to the next turn, not retroactively. Callers should only invoke
+ * this while the session is idle so a change can't bleed into an in-flight run.
+ */
+export function updateSessionModelRef(
+  sessionId: string,
+  modelRef: { keyId: string; modelId: string } | undefined,
+): void {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  session.modelRef = modelRef;
+  session.updatedAt = Date.now();
+  persistSession(session);
+}

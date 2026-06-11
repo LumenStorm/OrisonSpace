@@ -255,6 +255,7 @@ export type OrisonDesktopApi = {
   // Agent
   createAgentSession(input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
   getAgentSession(id: string, projectPath?: string): Promise<unknown>;
+  setAgentSessionModel(sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined): Promise<{ ok: boolean }>;
   listAgentSessions(projectPath?: string): Promise<unknown>;
   deleteAgentSession(id: string): Promise<boolean>;
   streamAgentMessage(input: { sessionId: string; content: string; attachments?: unknown[] }): Promise<{ status: string; message?: string }>;

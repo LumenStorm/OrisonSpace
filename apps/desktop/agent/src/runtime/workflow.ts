@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession } from '../agent/session';
+import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession, updateSessionModelRef } from '../agent/session';
 import { listSessions, persistContinuation, loadContinuations, loadContinuationById, overwriteMessagesFile, persistSession } from '../agent/persistence';
 import { runLoop } from '../agent/loop';
 import { loadAgentDefinition } from '../agent/agentDefinitions';
@@ -125,6 +125,7 @@ export interface RestoredContinuationResponse {
 export interface WorkflowRuntime {
   createSession(input: CreateSessionInput): SessionState;
   getSession(id: string, projectPath?: string): SessionState | undefined;
+  setSessionModel(id: string, modelRef: { keyId: string; modelId: string } | undefined): boolean;
   listSessions(projectPath?: string): { sessions: ReturnType<typeof listSessions> };
   deleteSession(id: string): boolean;
   getRunState(sessionId: string): RunStateSnapshot | undefined;
@@ -327,6 +328,16 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
 
     getSession(id, projectPath) {
       return getSession(id) ?? (projectPath ? loadSession(id, projectPath) : undefined);
+    },
+
+    setSessionModel(id, modelRef) {
+      const session = getSession(id);
+      if (!session) return false;
+      // Refuse to swap the model mid-run; the change must apply to the next turn
+      // so it can't bleed into in-flight generate calls.
+      if (session.status === 'running') return false;
+      updateSessionModelRef(id, modelRef);
+      return true;
     },
 
     listSessions(projectPath) {

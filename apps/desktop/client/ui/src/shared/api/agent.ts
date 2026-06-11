@@ -58,7 +58,16 @@ export async function createAgentSession(projectPath: string, mode?: AgentMode, 
 }
 
 export async function fetchAgentSession(sessionId: string, projectPath?: string) {
-  return api.getAgentSession(sessionId, projectPath) as Promise<{ id: string; status: string; messages: AgentMessage[] } | null>;
+  return api.getAgentSession(sessionId, projectPath) as Promise<{ id: string; status: string; messages: AgentMessage[]; modelRef?: ModelRef } | null>;
+}
+
+/**
+ * Persist the model bound to an existing session. The model is a session-level
+ * setting applied to the next turn — it does not retroactively change prior
+ * messages, and the runtime refuses the change while a run is in flight.
+ */
+export async function setAgentSessionModel(sessionId: string, projectPath: string | undefined, modelRef: ModelRef | null) {
+  return api.setAgentSessionModel(sessionId, projectPath, modelRef ?? undefined);
 }
 
 export async function deleteAgentSession(sessionId: string) {

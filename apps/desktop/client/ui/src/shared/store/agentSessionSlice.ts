@@ -7,6 +7,7 @@ import { WRITE_TOOLS } from './agentDiffSlice';
 import {
   createAgentSession,
   fetchAgentSession,
+  setAgentSessionModel,
   deleteAgentSession as deleteSession,
   listAgentSessions,
   streamAgentMessage,
@@ -86,7 +87,18 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   agentMode: 'suggest',
   setAgentMode: (mode) => set({ agentMode: mode }),
   agentModelRef: null,
-  setAgentModelRef: (ref) => set({ agentModelRef: ref }),
+  setAgentModelRef: (ref) => {
+    set({ agentModelRef: ref });
+    // The model is a session-level setting. When a conversation is already
+    // open and idle, persist the change so the next turn uses it — without
+    // this, switching the dropdown only updated the store and the session
+    // kept calling the model it was created with. A brand-new session (no id)
+    // carries the selection in via createAgentSession instead.
+    const state = get();
+    if (state.agentSessionId && !state.agentLoading) {
+      void setAgentSessionModel(state.agentSessionId, state.currentProject?.path ?? undefined, ref);
+    }
+  },
 
   agentSessionId: null,
   agentMessages: [],
@@ -381,6 +393,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       if (!session) throw new Error('Session not found');
       set({
         agentSessionId: sessionId,
+        agentModelRef: session.modelRef ?? null,
         agentMessages: (session.messages ?? []).map((m: any) => ({
           id: m.id,
           role: m.role,

@@ -22,8 +22,10 @@ export function resolveModel(ref: ModelRef): ResolvedModel {
   let key = config.keys.find((k) => k.id === ref.keyId);
   let modelId = ref.modelId;
 
-  // Fallback: if keyId is 'default' or not found, use first key with an enabled model
-  if (!key && (ref.keyId === 'default' || !ref.keyId)) {
+  // `default` / empty ref is the only path allowed to auto-pick: use the first
+  // key that still has an enabled model. An explicit keyId must resolve as-is.
+  const isDefaultRef = ref.keyId === 'default' || !ref.keyId;
+  if (!key && isDefaultRef) {
     for (const k of config.keys) {
       const enabled = k.models.find((m) => m.enabled !== false);
       if (enabled) {
@@ -38,9 +40,21 @@ export function resolveModel(ref: ModelRef): ResolvedModel {
     throw new Error(`Model ref points to unknown key '${ref.keyId}'`);
   }
 
-  const model = key.models.find((m) => m.id === modelId) ?? key.models.find((m) => m.enabled !== false);
+  // Auto-pick mode (default ref): fall back to any enabled model in the key.
+  // Explicit mode: the named model must exist AND be enabled — never silently
+  // substitute or call a disabled model. Disabling a model in settings must
+  // actually stop calls that reference it.
+  let model = key.models.find((m) => m.id === modelId);
+  if (!model && isDefaultRef) {
+    model = key.models.find((m) => m.enabled !== false);
+  }
   if (!model) {
     throw new Error(`Model '${modelId}' not found in key '${key.name}'`);
+  }
+  if (model.enabled === false) {
+    throw new Error(
+      `Model '${model.alias || model.id}' is disabled in key '${key.name}'. Select an enabled model.`,
+    );
   }
   return {
     keyId: key.id,

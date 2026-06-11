@@ -148,6 +148,41 @@ describe('model gateway IPC', () => {
     ).rejects.toThrow();
   });
 
+  it('rejects an explicitly-referenced disabled model and never calls the provider', async () => {
+    // Disabling a model in settings must actually stop calls that reference it.
+    // A session bound to a now-disabled model must error, not silently dispatch.
+    registerConfigIpc();
+    const saveCall = handle.mock.calls.find(([channel]) => channel === 'config:save-model');
+    await saveCall![1]({}, {
+      keys: [
+        {
+          id: 'key_text',
+          name: 'Text',
+          apiKey: 'sk-text',
+          baseUrl: 'https://relay.example.com/v1',
+          models: [
+            { id: 'gpt-4o-mini', alias: 'GPT 4o mini', capability: 'text', enabled: false },
+          ],
+        },
+      ],
+    } satisfies ModelConfig);
+    registerModelGatewayIpc();
+
+    const fetchMock = vi.fn(async () => {
+      throw new Error('should not be called');
+    });
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const handler = pickHandler('model:generate-text');
+    await expect(
+      handler({}, {
+        ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
+        request: { model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'hi' }] },
+      }),
+    ).rejects.toThrow(/disabled/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('rejects video generation with ProtocolNotImplementedError', async () => {
     await seedConfig();
     registerModelGatewayIpc();

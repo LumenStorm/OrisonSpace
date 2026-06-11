@@ -161,6 +161,8 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('agent:create-session', input),
   getAgentSession: (id: string, projectPath?: string) =>
     ipcRenderer.invoke('agent:get-session', id, projectPath),
+  setAgentSessionModel: (sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined) =>
+    ipcRenderer.invoke('agent:set-session-model', sessionId, projectPath, modelRef),
   listAgentSessions: (projectPath?: string) =>
     ipcRenderer.invoke('agent:list-sessions', projectPath),
   deleteAgentSession: (id: string) =>

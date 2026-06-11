@@ -57,6 +57,14 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
     return runtime.getSession(id, projectPath) ?? null;
   });
 
+  ipcMain.handle('agent:set-session-model', async (_event, sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined) => {
+    // Ensure the session is loaded into memory before mutating it (it may only
+    // exist on disk after an app restart).
+    runtime.getSession(sessionId, projectPath);
+    const ok = runtime.setSessionModel(sessionId, modelRef);
+    return { ok };
+  });
+
   ipcMain.handle('agent:list-sessions', async (_event, projectPath?: string) => {
     return runtime.listSessions(projectPath);
   });
