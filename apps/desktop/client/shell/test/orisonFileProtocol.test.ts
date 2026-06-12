@@ -1,5 +1,11 @@
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// orisonFileProtocol imports `net` from electron at module load; on CI the
+// electron binary isn't installed, so importing it would throw getElectronPath.
+// resolveOrisonFilePath is pure and never touches net — mock electron away.
+vi.mock('electron', () => ({ net: { fetch: vi.fn() } }));
+
 import { allowPath } from '../main/ipc/pathGuard';
 import { resolveOrisonFilePath } from '../main/orisonFileProtocol';
 
