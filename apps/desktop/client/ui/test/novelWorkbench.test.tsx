@@ -61,6 +61,9 @@ describe('NovelWorkbench', () => {
   });
 
   beforeEach(() => {
+    // Setting currentProject triggers the project subscription, which clears
+    // novelChapters/creativeFields. So set the project FIRST, then seed the
+    // chapter fixture in a second setState the subscription won't react to.
     useAppStore.setState({
       currentProject: {
         projectId: 'p_001',
@@ -68,6 +71,8 @@ describe('NovelWorkbench', () => {
         path: 'C:/projects/暗城',
         type: 'novel',
       },
+    } as any);
+    useAppStore.setState({
       novelChapters: SAMPLE_CHAPTERS,
       activeChapterId: null,
       chapterCandidate: null,

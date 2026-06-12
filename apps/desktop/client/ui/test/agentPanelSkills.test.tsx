@@ -1,12 +1,41 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentPanel } from '../src/features/agent-panel/AgentPanel';
 import { useAppStore } from '../src/shared/store/appStore';
 
+// NOTE: The inline skill-run list and the continuation/resumable-run "workbench"
+// these tests used to cover were intentionally removed from the product
+// (commit 92f73d9 — "remove unused continuation-related state from agent slices").
+// AgentPanel now only loads skills on mount via loadAgentSkills(); the skill UI
+// surfaced to users is the skill-package manager in AgentSettings, reached through
+// the panel's settings button. These tests cover that current behavior.
+
+const skillPackagesFixture = [
+  {
+    name: 'story-tools',
+    path: 'I:/echo/project/.orison/skills/story-tools',
+    enabled: true,
+    skills: [
+      { name: 'story-setup', description: 'Prepare story context', enabled: true },
+      { name: 'scene-expander', description: 'Expand scenes', enabled: false },
+    ],
+  },
+];
+
 describe('AgentPanel skills', () => {
+  let loadAgentSkills: ReturnType<typeof vi.fn>;
+  let loadSkillPackages: ReturnType<typeof vi.fn>;
+  let toggleSkillPackage: ReturnType<typeof vi.fn>;
+  let toggleSkill: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.restoreAllMocks();
+    loadAgentSkills = vi.fn().mockResolvedValue(undefined);
+    loadSkillPackages = vi.fn().mockResolvedValue(undefined);
+    toggleSkillPackage = vi.fn().mockResolvedValue(undefined);
+    toggleSkill = vi.fn().mockResolvedValue(undefined);
+
     useAppStore.setState({
       currentProject: {
         projectId: 'p1',
@@ -21,14 +50,13 @@ describe('AgentPanel skills', () => {
       agentSessionId: 'session-1',
       agentSkills: [],
       agentSkillError: null,
-      latestSkillContinuation: null,
-      agentContinuations: [],
-      continuationSourceSessionId: 'session-1',
-      restoreLatestSkillContinuation: vi.fn().mockResolvedValue(undefined),
-      rerunLatestSkillContinuation: vi.fn().mockResolvedValue(undefined),
-      loadAgentContinuations: vi.fn().mockResolvedValue(undefined),
-      restoreAgentContinuation: vi.fn().mockResolvedValue(undefined),
-    });
+      loadAgentSkills,
+      skillPackages: [],
+      skillPackagesLoading: false,
+      loadSkillPackages,
+      toggleSkillPackage,
+      toggleSkill,
+    } as any);
   });
 
   afterEach(() => {
@@ -36,126 +64,58 @@ describe('AgentPanel skills', () => {
     vi.restoreAllMocks();
   });
 
-  it('loads project skills and executes one from the panel', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        skills: [
-          { name: 'story-setup', description: 'Prepare story context', location: 'I:/echo/project/.orison/skills/story-setup', format: 'manifest', source: 'project' },
-          { name: 'scene-expander', description: 'Expand scenes', location: 'I:/echo/skills/scene-expander', format: 'manifest', source: 'external' },
-        ],
-      }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        skill: 'story-setup',
-        status: 'completed',
-        outputs: ['Prepare the story context.'],
-        continuation: {
-          continuationId: 'cont-latest',
-          sessionId: 'session-1',
-          compacted: { sessionId: 'session-1', summary: '', tail: [] },
-          workflowState: { activeSkill: 'story-setup', checkpoints: [] },
-        },
-      }), { status: 200 }));
-
-    vi.stubGlobal('fetch', fetchMock);
+  it('loads project skills on mount and lists skill packages in settings', async () => {
+    useAppStore.setState({ skillPackages: skillPackagesFixture } as any);
 
     render(<AgentPanel />);
 
-    await waitFor(() => {
-      expect(screen.getByText('story-setup')).toBeInTheDocument();
-      expect(screen.getByText('scene-expander')).toBeInTheDocument();
-    });
+    // Skills are loaded for the active project when the panel mounts.
+    expect(loadAgentSkills).toHaveBeenCalled();
 
-    expect(screen.getByText(/Project skill|agent\.skillSourceProject/i)).toBeInTheDocument();
-    expect(screen.getByText(/External skill|agent\.skillSourceExternal/i)).toBeInTheDocument();
+    // Open the skill-package manager via the settings button.
+    await userEvent.click(screen.getByRole('button', { name: /Settings/i }));
 
-    await userEvent.click(screen.getByRole('button', { name: /Run story-setup/i }));
-
-    await waitFor(() => {
-      expect(useAppStore.getState().latestSkillContinuation?.workflowState.activeSkill).toBe('story-setup');
-    });
-
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('/v1/agent/skills?projectPath='),
-      expect.objectContaining({ headers: expect.any(Object) }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining('/v1/agent/sessions/session-1/skills/story-setup/execute'),
-      expect.objectContaining({ method: 'POST' }),
-    );
+    // The package manager loads packages and renders the package name.
+    expect(loadSkillPackages).toHaveBeenCalled();
+    expect(screen.getByText('story-tools')).toBeInTheDocument();
+    expect(screen.getByText('I:/echo/project/.orison/skills/story-tools')).toBeInTheDocument();
   });
 
-  it('shows continuation restore workbench actions and forwards restore/rerun events', async () => {
-    useAppStore.setState({
-      latestSkillContinuation: {
-        continuationId: 'cont-latest',
-        sessionId: 'session-1',
-        compacted: {
-          sessionId: 'session-1',
-          summary: 'Recovered story setup context',
-          tail: [
-            { id: 'm1', role: 'assistant', content: 'Context packed.', createdAt: 1 },
-          ],
-        },
-        workflowState: {
-          activeSkill: 'story-setup',
-          checkpoints: ['outline-ready', 'world-ready'],
-        },
-      },
-    } as any);
+  it('expands a package and toggles an individual skill', async () => {
+    useAppStore.setState({ skillPackages: skillPackagesFixture } as any);
 
     render(<AgentPanel />);
+    await userEvent.click(screen.getByRole('button', { name: /Settings/i }));
 
-    expect(screen.getAllByText(/Continuation ready|agent\.continuationReady/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Recovered story setup context/)).toBeInTheDocument();
-    expect(screen.getByText(/outline-ready/)).toBeInTheDocument();
-    expect(screen.getByText(/world-ready/)).toBeInTheDocument();
+    // Skill rows are hidden until the package is expanded.
+    expect(screen.queryByText('story-setup')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: /Restore context|agent\.restoreContinuation/i }));
-    expect(useAppStore.getState().restoreLatestSkillContinuation).toHaveBeenCalled();
+    const pkgRow = screen.getByText('story-tools').closest('.agent-settings-pkg') as HTMLElement;
+    expect(pkgRow).toBeTruthy();
+    await userEvent.click(within(pkgRow).getByRole('button'));
 
-    await userEvent.click(screen.getByRole('button', { name: /Rerun from continuation|agent\.rerunContinuation/i }));
-    expect(useAppStore.getState().rerunLatestSkillContinuation).toHaveBeenCalled();
+    // Both skills render once expanded, with their descriptions.
+    expect(screen.getByText('story-setup')).toBeInTheDocument();
+    expect(screen.getByText('Prepare story context')).toBeInTheDocument();
+    const expanderRow = screen.getByText('scene-expander').closest('.agent-settings-skill-row') as HTMLElement;
+    expect(expanderRow).toBeTruthy();
+
+    // Enabling the currently-disabled scene-expander skill forwards to the store.
+    await userEvent.click(within(expanderRow).getByRole('checkbox'));
+    expect(toggleSkill).toHaveBeenCalledWith('story-tools', 'scene-expander', true);
   });
 
-  it('shows recent resumable runs and restores one through the workbench', async () => {
-    useAppStore.setState({
-      latestSkillContinuation: {
-        continuationId: 'cont-latest',
-        sessionId: 'session-1',
-        compacted: {
-          sessionId: 'session-1',
-          summary: 'Recovered story setup context',
-          tail: [],
-        },
-        workflowState: {
-          activeSkill: 'story-setup',
-          checkpoints: ['outline-ready'],
-        },
-      },
-      agentContinuations: [
-        {
-          continuationId: 'cont-1',
-          sessionId: 'session-1',
-          createdAt: 1,
-          summary: 'Recovered story setup context',
-          workflowState: {
-            activeSkill: 'story-setup',
-            checkpoints: ['outline-ready'],
-          },
-        },
-      ],
-    } as any);
+  it('toggles a whole skill package on and off', async () => {
+    useAppStore.setState({ skillPackages: skillPackagesFixture } as any);
 
     render(<AgentPanel />);
+    await userEvent.click(screen.getByRole('button', { name: /Settings/i }));
 
-    expect(useAppStore.getState().loadAgentContinuations).toHaveBeenCalled();
-    const recentRunsCard = screen.getByText(/Recent resumable runs|agent\.recentContinuations/i).closest('.agent-workbench-card');
-    expect(recentRunsCard).toBeTruthy();
-    expect(within(recentRunsCard as HTMLElement).getByText(/Recovered story setup context/)).toBeInTheDocument();
+    const pkgRow = screen.getByText('story-tools').closest('.agent-settings-pkg-row') as HTMLElement;
+    expect(pkgRow).toBeTruthy();
 
-    await userEvent.click(screen.getByRole('button', { name: /Restore run|agent\.restoreRun/i }));
-    expect(useAppStore.getState().restoreAgentContinuation).toHaveBeenCalledWith('cont-1');
+    // The package is enabled in the fixture; toggling it forwards `false`.
+    await userEvent.click(within(pkgRow).getByRole('checkbox'));
+    expect(toggleSkillPackage).toHaveBeenCalledWith('story-tools', false);
   });
 });

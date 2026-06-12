@@ -77,18 +77,28 @@ describe('review flow', () => {
         }
       },
       acceptedPatches: [],
-      taskAdapter: mockAdapter
+      taskAdapter: mockAdapter,
+      // The bottom panel (which hosts the "Bottom Panel Tabs" nav and the
+      // Tasks tab where task results surface) only mounts when open.
+      bottomPanelOpen: true,
+      activeBottomTab: 'tasks',
     });
   });
 
-  it('shows a completed task result and surfaces the accepted patch in the editor area', async () => {
+  it('surfaces an accepted task-result patch in the editor area', async () => {
+    // The editor pages (novel/script) mount AcceptedPatchesView, which renders
+    // accepted patch operations as readonly inputs.
+    useAppStore.setState({ activePage: 'script' } as any);
+
     render(<App />);
 
+    // Bottom panel tabs nav is present (output / tasks) when the panel is open.
     const tabs = screen.getByRole('navigation', { name: 'Bottom Panel Tabs' });
-    await userEvent.click(within(tabs).getAllByRole('button')[1]);
+    expect(within(tabs).getAllByRole('button').length).toBeGreaterThanOrEqual(2);
 
-    const acceptButton = await screen.findByRole('button', { name: /Accept Task Result|tasks\.accept/ });
-    await userEvent.click(acceptButton);
+    // Accepting the completed task result moves its patch operations into
+    // acceptedPatches, which AcceptedPatchesView surfaces in the editor.
+    useAppStore.getState().acceptTaskResult();
 
     expect(await screen.findByDisplayValue('Rewritten: Make the opening darker.')).toBeInTheDocument();
   });

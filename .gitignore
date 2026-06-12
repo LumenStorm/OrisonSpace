@@ -22,7 +22,7 @@ test-results/
 # ── Secrets / env ──
 .env
 .env.local
-.env.agent
+.env.agent.local
 *.pem
 
 # ── Local app/runtime data ──

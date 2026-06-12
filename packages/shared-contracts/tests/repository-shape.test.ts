@@ -10,8 +10,8 @@ function repoPath(p: string) {
 
 describe('repository shape', () => {
   it('uses apps and packages instead of the old layout', () => {
-    expect(existsSync(repoPath('apps/desktop/shell'))).toBe(true);
-    expect(existsSync(repoPath('apps/desktop/ui'))).toBe(true);
+    expect(existsSync(repoPath('apps/desktop/client/shell'))).toBe(true);
+    expect(existsSync(repoPath('apps/desktop/client/ui'))).toBe(true);
     expect(existsSync(repoPath('apps/desktop/local-bff'))).toBe(true);
     expect(existsSync(repoPath('packages/shared-contracts'))).toBe(true);
     expect(existsSync(repoPath('packages/model-protocols'))).toBe(true);

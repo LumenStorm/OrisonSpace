@@ -1,36 +1,28 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ModelConfig, ModelProfile } from '@orison/shared-contracts';
-import { ModelSettingsPage } from '../src/shared/components/settings/ModelSettingsPage';
+import type { ApiKeyEntry, ModelConfig } from '@orison/shared-contracts';
+import { ModelSettingsPage } from '../src/features/model-settings/ModelSettingsPage';
 import { useAppStore } from '../src/shared/store/appStore';
 
-const baseProfile: ModelProfile = {
-  schemaVersion: 2,
-  id: 'model_001',
+const baseKey: ApiKeyEntry = {
+  id: 'key_001',
   name: 'GPT-4o',
-  provider: 'openai',
-  apiKey: 'sk-test',
   baseUrl: 'https://api.openai.com',
+  apiKey: 'sk-test',
   models: [
     {
       id: 'gpt-4o',
-      alias: 'GPT-4o',
-      apiFormat: 'openai-chat-completions',
-      capabilities: ['text', 'image'],
+      alias: 'GPT-4o Omni',
+      capability: 'text',
+      enabled: true,
     },
   ],
 };
 
 function buildConfig(overrides: Partial<ModelConfig> = {}): ModelConfig {
   return {
-    profiles: overrides.profiles ?? [baseProfile],
-    selected: {
-      novel: { profileId: 'model_001', modelId: 'gpt-4o' },
-      image: null,
-      video: null,
-      ...overrides.selected,
-    },
+    keys: overrides.keys ?? [baseKey],
   };
 }
 
@@ -40,9 +32,9 @@ describe('ModelSettingsPage', () => {
   beforeEach(() => {
     useAppStore.setState({ outputEntries: [], appendOutputEntry: vi.fn() } as any);
     (window as any).orisonDesktop = {
-      listProviderModels: vi.fn().mockResolvedValue([
-        { id: 'gpt-4o', capabilities: ['text', 'image'] },
-        { id: 'gpt-image-1', capabilities: ['image'] },
+      listRemoteModels: vi.fn().mockResolvedValue([
+        { id: 'gpt-4o', capability: 'text', alias: 'GPT-4o Omni' },
+        { id: 'gpt-image-1', capability: 'image', alias: 'GPT Image 1' },
       ]),
     };
   });
@@ -52,14 +44,10 @@ describe('ModelSettingsPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders empty state when no profiles exist', () => {
+  it('renders empty state when no keys exist', () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
     render(
-      <ModelSettingsPage
-        t={tFake}
-        modelConfig={{ profiles: [], selected: { novel: null, image: null, video: null } }}
-        setModelConfig={setModelConfig}
-      />
+      <ModelSettingsPage t={tFake} modelConfig={{ keys: [] }} setModelConfig={setModelConfig} />
     );
     expect(screen.getByText('settings.emptyTitle')).toBeTruthy();
     expect(screen.getByText('settings.emptyHint')).toBeTruthy();
@@ -68,37 +56,32 @@ describe('ModelSettingsPage', () => {
   it('opens the profile editor from the empty state add action', async () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
     render(
-      <ModelSettingsPage
-        t={tFake}
-        modelConfig={{ profiles: [], selected: { novel: null, image: null, video: null } }}
-        setModelConfig={setModelConfig}
-      />
+      <ModelSettingsPage t={tFake} modelConfig={{ keys: [] }} setModelConfig={setModelConfig} />
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'settings.emptyAction' }));
 
     expect(screen.getByLabelText('settings.profileName')).toBeInTheDocument();
     expect(screen.getByLabelText('settings.baseUrl')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('settings.apiKeyPlaceholder')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('sk-...')).toBeInTheDocument();
   });
 
-  it('shows the no-selection state when profiles exist but none is being edited', () => {
+  it('shows the no-selection state when keys exist but none is being edited', () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
     render(<ModelSettingsPage t={tFake} modelConfig={buildConfig()} setModelConfig={setModelConfig} />);
 
     expect(screen.getByText('settings.selectProfileHint')).toBeInTheDocument();
   });
 
-  it('shows usage chip on profile rows when assigned', () => {
+  it('shows enabled-model summary and count on key rows', () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
     render(<ModelSettingsPage t={tFake} modelConfig={buildConfig()} setModelConfig={setModelConfig} />);
-    const rows = screen.getAllByRole('button', { pressed: false });
-    const gpt4oRow = rows.find((row) => row.textContent?.includes('GPT-4o'));
-    expect(gpt4oRow).toBeTruthy();
-    expect(gpt4oRow?.textContent).toContain('settings.usedForNovel');
+    const row = screen.getByRole('button', { pressed: false, name: /GPT-4o/ });
+    expect(row.textContent).toContain('GPT-4o Omni');
+    expect(row.textContent).toContain('1');
   });
 
-  it('selecting profile and applying name change persists via setModelConfig', async () => {
+  it('selecting a key and applying a name change persists via setModelConfig', async () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
     render(<ModelSettingsPage t={tFake} modelConfig={buildConfig()} setModelConfig={setModelConfig} />);
     const row = screen.getByRole('button', { pressed: false, name: /GPT-4o/ });
@@ -114,7 +97,7 @@ describe('ModelSettingsPage', () => {
 
     await waitFor(() => expect(setModelConfig).toHaveBeenCalled());
     const arg = setModelConfig.mock.calls[0][0] as ModelConfig;
-    expect(arg.profiles[0].name).toBe('Renamed');
+    expect(arg.keys[0].name).toBe('Renamed');
   });
 
   it('opens delete confirm dialog and persists deletion on confirm', async () => {
@@ -131,52 +114,25 @@ describe('ModelSettingsPage', () => {
 
     await waitFor(() => expect(setModelConfig).toHaveBeenCalled());
     const arg = setModelConfig.mock.calls[0][0] as ModelConfig;
-    expect(arg.profiles).toHaveLength(0);
-    expect(arg.selected.novel).toBeNull();
+    expect(arg.keys).toHaveLength(0);
   });
 
-  it('changing assignment dropdown immediately persists', async () => {
+  it('refreshing models merges discovered entries into the draft', async () => {
     const setModelConfig = vi.fn().mockResolvedValue(undefined);
-    render(
-      <ModelSettingsPage
-        t={tFake}
-        modelConfig={buildConfig({
-          profiles: [
-            baseProfile,
-            {
-              schemaVersion: 2,
-              id: 'model_002',
-              name: 'Imagen-3',
-              provider: 'gcp',
-              apiKey: 'gcp-key',
-              baseUrl: 'https://generativelanguage.googleapis.com',
-              models: [
-                {
-                  id: 'imagen-3',
-                  alias: 'Imagen 3',
-                  apiFormat: 'gemini-images',
-                  capabilities: ['image'],
-                },
-              ],
-            },
-          ],
-          selected: { novel: { profileId: 'model_001', modelId: 'gpt-4o' }, image: null, video: null },
-        })}
-        setModelConfig={setModelConfig}
-      />
-    );
+    render(<ModelSettingsPage t={tFake} modelConfig={buildConfig()} setModelConfig={setModelConfig} />);
+    await userEvent.click(screen.getByRole('button', { pressed: false, name: /GPT-4o/ }));
 
-    const imageSelect = screen.getByRole('combobox', { name: /settings\.imageModel/i });
-    await userEvent.selectOptions(imageSelect, 'model_002:imagen-3');
+    await userEvent.click(screen.getByRole('button', { name: 'settings.refreshModels' }));
 
-    await waitFor(() => expect(setModelConfig).toHaveBeenCalled());
-    const arg = setModelConfig.mock.calls[0][0] as ModelConfig;
-    expect(arg.selected.image).toEqual({ profileId: 'model_002', modelId: 'imagen-3' });
-    expect(arg.selected.novel).toEqual({ profileId: 'model_001', modelId: 'gpt-4o' });
+    await waitFor(() => {
+      expect((window as any).orisonDesktop.listRemoteModels).toHaveBeenCalled();
+      // The newly discovered image model is added to the editor's model list.
+      expect(screen.getByText('gpt-image-1')).toBeInTheDocument();
+    });
   });
 
   it('refresh failure surfaces banner with error message', async () => {
-    (window as any).orisonDesktop.listProviderModels = vi
+    (window as any).orisonDesktop.listRemoteModels = vi
       .fn()
       .mockRejectedValue(new Error('Network down'));
     const setModelConfig = vi.fn().mockResolvedValue(undefined);

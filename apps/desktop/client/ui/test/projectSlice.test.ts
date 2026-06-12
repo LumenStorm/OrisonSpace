@@ -5,6 +5,7 @@ import { createCreativeFieldsSlice, type CreativeFieldsSlice } from '../src/shar
 import { createNovelChapterSlice, type NovelChapterSlice } from '../src/shared/store/novelChapterSlice';
 import { createRecentProjectsSlice, type RecentProjectsSlice } from '../src/shared/store/recentProjectsSlice';
 import { createBackgroundTasksSlice, type BackgroundTasksSlice } from '../src/shared/store/backgroundTasksSlice';
+import { installProjectSubscription } from '../src/shared/store/projectSubscription';
 import type { ModelConfig } from '@orison/shared-contracts';
 
 declare global {
@@ -32,6 +33,11 @@ const useTestStore = create<TestState>()((...a) => ({
   ...createRecentProjectsSlice(...a),
   ...createBackgroundTasksSlice(...a),
 }));
+
+// The clear-old-data / load-new-document behavior moved out of openProject
+// into a store subscription on currentProject (see projectSubscription.ts).
+// Install it on the test store so we exercise the CURRENT wiring.
+installProjectSubscription(useTestStore as any);
 
 function resetStore() {
   useTestStore.setState({
@@ -79,6 +85,9 @@ describe('projectSlice regressions', () => {
       loadProjectDocument: vi.fn(async () => null),
       listTasks: vi.fn(async () => []),
       syncField: vi.fn(async () => undefined),
+      // refreshWordCount fires via the currentProject subscription; stub it so
+      // the async call doesn't reject unhandled and fail the whole run.
+      wordCount: vi.fn(async () => 0),
     };
   });
 

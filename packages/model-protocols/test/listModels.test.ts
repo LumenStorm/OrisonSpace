@@ -29,8 +29,8 @@ describe('listModels', () => {
     expect(captured[0].url).toBe('https://api.openai.com/v1/models');
     expect((captured[0].init?.headers as Record<string, string>).authorization).toBe('Bearer sk');
     expect(models[0]).toEqual({ id: 'gpt-4o', capability: 'text', alias: 'GPT-4o' });
-    expect(models[1]).toEqual({ id: 'dall-e-3', capability: 'image', alias: 'DALL·E' });
-    expect(models[2]).toEqual({ id: 'sora-1.0', capability: 'video', alias: 'Sora' });
+    expect(models[1]).toEqual({ id: 'dall-e-3', capability: 'image', alias: 'DALL·E 3' });
+    expect(models[2]).toEqual({ id: 'sora-1.0', capability: 'video', alias: 'Sora 1.0' });
   });
 
   it('handles NewAPI relay with cross-vendor ids', async () => {
@@ -39,8 +39,8 @@ describe('listModels', () => {
     });
     const models = await listModels({ baseUrl: 'https://newapi.example.com', apiKey: 'relay-key' });
     expect(captured[0].url).toBe('https://newapi.example.com/v1/models');
-    expect(models[0]).toEqual({ id: 'claude-3-5-sonnet', capability: 'text', alias: 'Claude' });
-    expect(models[1]).toEqual({ id: 'gemini-2.5-pro', capability: 'text', alias: 'Gemini' });
+    expect(models[0]).toEqual({ id: 'claude-3-5-sonnet', capability: 'text', alias: 'Claude 3-5-sonnet' });
+    expect(models[1]).toEqual({ id: 'gemini-2.5-pro', capability: 'text', alias: 'Gemini 2.5-pro' });
     expect(models[2]).toEqual({ id: 'gpt-4o', capability: 'text', alias: 'GPT-4o' });
   });
 

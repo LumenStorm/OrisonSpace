@@ -36,7 +36,7 @@ describe('unified protocol', () => {
   describe('generateText', () => {
     it('posts to /chat/completions with Bearer auth', async () => {
       globalThis.fetch = buildMock(captured, {
-        choices: [{ message: { content: 'hello' }, finish_reason: 'stop' }],
+        choices: [{ index: 0, message: { role: 'assistant', content: 'hello' }, finish_reason: 'stop' }],
         usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
       });
 
@@ -47,7 +47,7 @@ describe('unified protocol', () => {
         maxTokens: 256,
       });
 
-      expect(captured[0].url).toBe('https://api.openai.com/chat/completions');
+      expect(captured[0].url).toBe('https://api.openai.com/v1/chat/completions');
       const body = JSON.parse((captured[0].init?.body as string) ?? '{}');
       expect(body.model).toBe('gpt-4o');
       expect(body.messages).toEqual([{ role: 'user', content: 'hi' }]);
@@ -75,7 +75,7 @@ describe('unified protocol', () => {
         { model: 'dall-e-3', prompt: 'a cat' },
       );
 
-      expect(captured[0].url).toBe('https://api.openai.com/images/generations');
+      expect(captured[0].url).toBe('https://api.openai.com/v1/images/generations');
       expect(result.images[0].b64Json).toBe('AAAA');
     });
 
@@ -89,7 +89,7 @@ describe('unified protocol', () => {
         { model: 'gpt-image-1', prompt: 'edit', image: { b64Json: 'YWJj', mimeType: 'image/png' } },
       );
 
-      expect(captured[0].url).toBe('https://api.openai.com/images/edits');
+      expect(captured[0].url).toBe('https://api.openai.com/v1/images/edits');
     });
   });
 

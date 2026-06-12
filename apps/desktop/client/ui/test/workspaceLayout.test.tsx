@@ -5,23 +5,24 @@ import { useAppStore } from '../src/shared/store/appStore';
 
 describe('WorkspaceLayout', () => {
   beforeEach(() => {
-    useAppStore.setState({ activeModule: 'overview' });
+    useAppStore.setState({ activePage: 'overview' });
   });
 
   afterEach(() => {
     cleanup();
-    useAppStore.setState({ activeModule: 'overview' });
+    useAppStore.setState({ activePage: 'overview' });
   });
 
-  it('renders the standalone overview page by default', () => {
+  it('renders the standalone overview page by default', async () => {
     render(<WorkspaceLayout />);
 
     expect(screen.getByRole('navigation', { name: 'Main Navigation' })).toBeInTheDocument();
-    expect(screen.getByText('Untitled Project')).toBeInTheDocument();
+    // OverviewPage is lazy-loaded; its project-name input renders the translated placeholder.
+    expect(await screen.findByPlaceholderText('Project Name')).toBeInTheDocument();
   });
 
   it('renders editor workspace and bottom panel for non-standalone modules', () => {
-    useAppStore.setState({ activeModule: 'novel' });
+    useAppStore.setState({ activePage: 'novel', bottomPanelOpen: true, agentPanelOpen: true });
 
     render(<WorkspaceLayout />);
 

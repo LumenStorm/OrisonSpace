@@ -31,12 +31,12 @@ describe('CreativeFieldsEditor', () => {
     const tabs = screen.getByRole('navigation', { name: 'Creative Field Tabs' });
     expect(tabs).toBeTruthy();
     const activeTab = tabs.querySelector('.creative-tabActive');
-    expect(activeTab?.textContent).toContain('creative.tabs.world_setting');
+    expect(activeTab?.textContent).toContain('世设');
   });
 
   it('点击 tab 切换到资产卡', async () => {
     render(<CreativeFieldsEditor />);
-    const assetTab = screen.getByText('creative.tabs.asset_cards');
+    const assetTab = screen.getByText('资产卡');
     await userEvent.click(assetTab);
     expect(useAppStore.getState().activeCreativeTab).toBe('asset_cards');
   });

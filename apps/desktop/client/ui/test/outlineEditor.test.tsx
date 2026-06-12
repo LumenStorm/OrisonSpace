@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { useAppStore } from '../src/shared/store/appStore';
 import { OutlineEditor } from '../src/features/editor/OutlineEditor';
 
@@ -40,9 +40,10 @@ describe('OutlineEditor regressions', () => {
   });
 
   it('首次渲染且 store 尚未 hydrate 时，不应立即把空 outline 落盘', async () => {
-    const { unmount } = render(<OutlineEditor />);
+    const { container, unmount } = render(<OutlineEditor />);
 
-    expect(screen.getByPlaceholderText('outline.projectTitle')).toBeInTheDocument();
+    // 未 hydrate 时只渲染骨架屏，不挂载表单
+    expect(container.querySelector('.skeleton')).toBeInTheDocument();
     await vi.advanceTimersByTimeAsync(600);
 
     expect(window.orisonDesktop.syncField).not.toHaveBeenCalled();

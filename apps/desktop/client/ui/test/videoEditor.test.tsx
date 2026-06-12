@@ -16,30 +16,24 @@ describe('VideoEditor', () => {
         type: 'novel',
       },
       modelConfig: {
-        profiles: [
+        keys: [
           {
-            schemaVersion: 2 as const,
             id: 'model_003',
             name: 'Video Model',
-            provider: 'openai',
             apiKey: 'sk-video',
             baseUrl: 'https://api.openai.com',
             models: [
               {
                 id: 'sora-1',
                 alias: 'Sora 1',
-                apiFormat: 'sora-videos' as const,
-                capabilities: ['video'],
+                capability: 'video' as const,
+                enabled: true,
               },
             ],
           },
         ],
-        selected: {
-          novel: null,
-          image: null,
-          video: { profileId: 'model_003', modelId: 'sora-1' },
-        },
       },
+      selectedVideoRef: { keyId: 'model_003', modelId: 'sora-1' },
     } as any);
 
     (window as any).orisonDesktop = {
@@ -60,18 +54,18 @@ describe('VideoEditor', () => {
     render(<VideoEditor />);
 
     await userEvent.type(
-      screen.getByPlaceholderText(/video\.promptPlaceholder|Describe the video you want to generate/i),
+      screen.getByPlaceholderText(/video\.promptPlaceholder|Describe the video content to generate/i),
       'slow cinematic pan across a rainy street',
     );
 
-    const button = screen.getByRole('button', { name: /video\.generate|Generate/i });
+    const button = screen.getByRole('button', { name: /video\.generate|Generate Video/i });
     expect(button).not.toHaveAttribute('disabled');
 
     await userEvent.click(button);
 
     expect(window.orisonDesktop.generateVideo).toHaveBeenCalledTimes(1);
     const ipcCall = (window.orisonDesktop.generateVideo as any).mock.calls[0][0];
-    expect(ipcCall.slot).toEqual({ profileId: 'model_003', modelId: 'sora-1' });
+    expect(ipcCall.ref).toEqual({ keyId: 'model_003', modelId: 'sora-1' });
     expect(ipcCall.request).toMatchObject({
       model: 'sora-1',
       prompt: 'slow cinematic pan across a rainy street',

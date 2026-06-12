@@ -6,52 +6,46 @@ import { useAppStore } from '../src/shared/store/appStore';
 import { defaultParamsFor } from '../src/shared/imageGen/schema';
 
 const baseProfile = {
-  schemaVersion: 2 as const,
   id: 'model_001',
   name: 'Image Model',
-  provider: 'openai' as const,
   apiKey: 'sk-test',
   baseUrl: 'https://api.openai.com',
   models: [
     {
       id: 'gpt-image-1',
       alias: 'GPT Image 1',
-      apiFormat: 'openai-images' as const,
-      capabilities: ['image' as const],
+      capability: 'image' as const,
+      enabled: true,
     },
   ],
 };
 
 const fallbackProfile = {
-  schemaVersion: 2 as const,
   id: 'model_002',
   name: 'Legacy Image',
-  provider: 'openai' as const,
   apiKey: 'sk-test',
   baseUrl: 'https://api.openai.com',
   models: [
     {
       id: 'dall-e-3',
       alias: 'DALL-E 3',
-      apiFormat: 'openai-images' as const,
-      capabilities: ['image' as const],
+      capability: 'image' as const,
+      enabled: true,
     },
   ],
 };
 
 const gptImage2Profile = {
-  schemaVersion: 2 as const,
   id: 'model_003',
   name: 'GPT Image 2',
-  provider: 'openai' as const,
   apiKey: 'sk-test',
   baseUrl: 'https://api.openai.com',
   models: [
     {
       id: 'gpt-image-2',
       alias: 'GPT Image 2',
-      apiFormat: 'openai-images' as const,
-      capabilities: ['image' as const],
+      capability: 'image' as const,
+      enabled: true,
     },
   ],
 };
@@ -59,9 +53,9 @@ const gptImage2Profile = {
 function seedStore(extra: Partial<ReturnType<typeof useAppStore.getState>> = {}) {
   useAppStore.setState({
     modelConfig: {
-      profiles: [baseProfile, fallbackProfile],
-      selected: { novel: null, image: { profileId: 'model_001', modelId: 'gpt-image-1' }, video: null },
+      keys: [baseProfile, fallbackProfile],
     },
+    selectedImageRef: { keyId: 'model_001', modelId: 'gpt-image-1' },
     imageGenFamily: 'gpt-image-1',
     imageGenParams: defaultParamsFor('gpt-image-1'),
     ...extra,
@@ -198,7 +192,8 @@ describe('ImageGenInspector', () => {
   describe('placeholder by state', () => {
     it('says "no profiles yet" when modelConfig is empty', () => {
       useAppStore.setState({
-        modelConfig: { profiles: [], selected: { novel: null, image: null, video: null } },
+        modelConfig: { keys: [] },
+        selectedImageRef: null,
       } as any);
 
       render(<ImageGenInspector />);
@@ -213,26 +208,24 @@ describe('ImageGenInspector', () => {
     it('says "no image-capable model" when profiles exist but none has image capability', () => {
       useAppStore.setState({
         modelConfig: {
-          profiles: [
+          keys: [
             {
-              schemaVersion: 2 as const,
               id: 'novel_only',
               name: 'Novel Model',
-              provider: 'openai',
               apiKey: 'sk-test',
               baseUrl: 'https://api.openai.com',
               models: [
                 {
                   id: 'gpt-4',
                   alias: 'GPT 4',
-                  apiFormat: 'openai-chat-completions' as const,
-                  capabilities: ['text'],
+                  capability: 'text' as const,
+                  enabled: true,
                 },
               ],
             },
           ],
-          selected: { novel: { profileId: 'novel_only', modelId: 'gpt-4' }, image: null, video: null },
         },
+        selectedImageRef: null,
       } as any);
 
       render(<ImageGenInspector />);
@@ -253,9 +246,9 @@ describe('ImageGenInspector', () => {
       // Default seedStore() already provides two image-capable profiles.
       useAppStore.setState({
         modelConfig: {
-          profiles: [baseProfile, fallbackProfile],
-          selected: { novel: null, image: null, video: null },
+          keys: [baseProfile, fallbackProfile],
         },
+        selectedImageRef: null,
       } as any);
 
       render(<ImageGenInspector />);
@@ -272,13 +265,9 @@ describe('ImageGenInspector', () => {
     function seedGptImage2(extra: Partial<ReturnType<typeof useAppStore.getState>> = {}) {
       useAppStore.setState({
         modelConfig: {
-          profiles: [gptImage2Profile, baseProfile, fallbackProfile],
-          selected: {
-            novel: null,
-            image: { profileId: gptImage2Profile.id, modelId: 'gpt-image-2' },
-            video: null,
-          },
+          keys: [gptImage2Profile, baseProfile, fallbackProfile],
         },
+        selectedImageRef: { keyId: gptImage2Profile.id, modelId: 'gpt-image-2' },
         imageGenFamily: 'gpt-image-2',
         imageGenParams: defaultParamsFor('gpt-image-2'),
         imageGenCustomSize: false,
@@ -383,13 +372,9 @@ describe('ImageGenInspector', () => {
       // Start on gpt-image-1 with transparent.
       useAppStore.setState({
         modelConfig: {
-          profiles: [gptImage2Profile, baseProfile],
-          selected: {
-            novel: null,
-            image: { profileId: baseProfile.id, modelId: 'gpt-image-1' },
-            video: null,
-          },
+          keys: [gptImage2Profile, baseProfile],
         },
+        selectedImageRef: { keyId: baseProfile.id, modelId: 'gpt-image-1' },
         imageGenFamily: 'gpt-image-1',
         imageGenParams: { ...defaultParamsFor('gpt-image-1'), background: 'transparent' },
         imageGenCustomSize: false,

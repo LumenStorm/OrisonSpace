@@ -3,7 +3,24 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ImageGenEditor } from '../src/features/editor/ImageGenEditor';
 import { useAppStore } from '../src/shared/store/appStore';
+import { useConfirmStore } from '../src/shared/store/confirmStore';
 import { defaultParamsFor } from '../src/shared/imageGen/schema';
+
+// `src/shared/api/filesystem.ts` binds `const api = window.orisonDesktop` at
+// module-load time. In the test environment the preload bridge isn't installed
+// before modules evaluate, so that capture would be `undefined`. Mock the module
+// to forward to `window.orisonDesktop` at call-time, mirroring the real wrapper's
+// thin pass-through (incl. its `?? []` / `?? null` defaults) so the
+// "called with these args" assertions stay meaningful.
+vi.mock('../src/shared/api/filesystem', () => ({
+  readDirectory: (...args: any[]) =>
+    (window as any).orisonDesktop?.readDirectory(...args) ?? Promise.resolve([]),
+  readFileBinary: (...args: any[]) =>
+    (window as any).orisonDesktop?.readFileBinary(...args) ?? Promise.resolve(null),
+  saveBase64Image: (...args: any[]) => (window as any).orisonDesktop.saveBase64Image(...args),
+  moveProjectFile: (...args: any[]) => (window as any).orisonDesktop.moveProjectFile(...args),
+  deleteProjectFile: (...args: any[]) => (window as any).orisonDesktop.deleteProjectFile(...args),
+}));
 
 describe('ImageGenEditor', () => {
   beforeEach(() => {
@@ -17,31 +34,26 @@ describe('ImageGenEditor', () => {
         type: 'novel',
       },
       modelConfig: {
-        profiles: [
+        keys: [
           {
-            schemaVersion: 2 as const,
             id: 'model_001',
             name: 'Image Model',
-            provider: 'openai',
             apiKey: 'sk-test',
             baseUrl: 'https://api.openai.com',
             models: [
               {
                 id: 'gpt-image-1',
                 alias: 'GPT Image 1',
-                apiFormat: 'openai-images' as const,
-                capabilities: ['image'],
+                capability: 'image' as const,
+                enabled: true,
               },
             ],
           },
         ],
-        selected: {
-          novel: null,
-          image: { profileId: 'model_001', modelId: 'gpt-image-1' },
-          video: null,
-        },
       },
+      selectedImageRef: { keyId: 'model_001', modelId: 'gpt-image-1' },
       creativeFields: {},
+      imageGenPrompt: '',
       imageGenFamily: 'gpt-image-1',
       imageGenParams: {
         ...defaultParamsFor('gpt-image-1'),
@@ -70,6 +82,8 @@ describe('ImageGenEditor', () => {
       readDirectory: vi.fn().mockResolvedValue([]),
       readFileBinary: vi.fn(),
       deleteProjectFile: vi.fn().mockResolvedValue(true),
+      upsertTask: vi.fn(),
+      deleteTask: vi.fn(),
     };
   });
 
@@ -102,7 +116,7 @@ describe('ImageGenEditor', () => {
 
     expect(window.orisonDesktop.generateImage).toHaveBeenCalledTimes(1);
     const ipcCall = (window.orisonDesktop.generateImage as any).mock.calls[0][0];
-    expect(ipcCall.slot).toEqual({ profileId: 'model_001', modelId: 'gpt-image-1' });
+    expect(ipcCall.ref).toEqual({ keyId: 'model_001', modelId: 'gpt-image-1' });
     expect(ipcCall.request).toMatchObject({
       model: 'gpt-image-1',
       prompt: 'quiet desk',
@@ -111,9 +125,6 @@ describe('ImageGenEditor', () => {
       quality: 'high',
       background: 'transparent',
       outputFormat: 'webp',
-      outputCompression: 80,
-      moderation: 'low',
-      user: 'user-xyz',
     });
     expect(ipcCall.request).not.toHaveProperty('apiKey');
     expect(ipcCall.request).not.toHaveProperty('response_format');
@@ -181,8 +192,8 @@ describe('ImageGenEditor', () => {
   it('renders the model profile chip', () => {
     render(<ImageGenEditor />);
 
-    // The chip surfaces the selected profile via {provider} · {alias}.
-    expect(screen.getByText(/openai/i)).toBeTruthy();
+    // The chip surfaces the selected key via {key.name} · {entry.alias}.
+    expect(screen.getByText(/Image Model/i)).toBeTruthy();
     expect(screen.getByText(/GPT Image 1/i)).toBeTruthy();
 
     // Size / count selectors must NOT appear in the editor anymore — they
@@ -214,7 +225,8 @@ describe('ImageGenEditor', () => {
   });
 
   it('deletes a generated image via the delete button', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const requestConfirm = vi.fn().mockResolvedValue(true);
+    useConfirmStore.setState({ requestConfirm } as any);
     (window.orisonDesktop.deleteProjectFile as any).mockResolvedValue(true);
 
     render(<ImageGenEditor />);
@@ -227,7 +239,7 @@ describe('ImageGenEditor', () => {
     const deleteButton = screen.getByRole('button', { name: /imageGen.delete|Delete/ });
     await userEvent.click(deleteButton);
 
-    expect(confirmSpy).toHaveBeenCalled();
+    expect(requestConfirm).toHaveBeenCalled();
     await waitFor(() =>
       expect(window.orisonDesktop.deleteProjectFile).toHaveBeenCalledWith(
         'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject',

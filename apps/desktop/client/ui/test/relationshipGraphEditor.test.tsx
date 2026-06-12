@@ -27,7 +27,7 @@ describe('RelationshipGraphEditor', () => {
 
   it('无数据时显示空状态', () => {
     render(<RelationshipGraphEditor />);
-    expect(screen.getByText('creative.empty')).toBeTruthy();
+    expect(screen.getByText('暂无数据')).toBeTruthy();
   });
 
   it('有数据时渲染 SVG 画布和节点', () => {
@@ -68,7 +68,7 @@ describe('RelationshipGraphEditor', () => {
     });
 
     render(<RelationshipGraphEditor />);
-    expect(screen.getByText('creative.graph.addEdge')).toBeTruthy();
-    expect(screen.getByText('creative.graph.deleteSelected')).toBeTruthy();
+    expect(screen.getByText('添加关系')).toBeTruthy();
+    expect(screen.getByText('删除选中')).toBeTruthy();
   });
 });

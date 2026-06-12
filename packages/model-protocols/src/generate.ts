@@ -8,7 +8,7 @@ import type {
   VideoGenerationRequest,
   VideoGenerationResponse,
 } from '@orison/shared-contracts';
-import { generateText as aiGenerateText, jsonSchema, tool } from 'ai';
+import { generateText as aiGenerateText, jsonSchema, tool, APICallError } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { base64ToBlob, normalizeBaseUrl, postJson, postMultipart } from './http';
 import { normalizeImageResponse } from './imageNormalize';
@@ -122,15 +122,26 @@ export async function generateText(
     return { role: m.role, content: m.content };
   });
 
-  const result = await aiGenerateText({
-    model: provider,
-    system: systemParts.length ? systemParts.join('\n') : undefined,
-    messages,
-    temperature: request.temperature,
-    maxOutputTokens: request.maxTokens,
-    tools,
-    abortSignal: ctx?.signal,
-  });
+  let result;
+  try {
+    result = await aiGenerateText({
+      model: provider,
+      system: systemParts.length ? systemParts.join('\n') : undefined,
+      messages,
+      temperature: request.temperature,
+      maxOutputTokens: request.maxTokens,
+      tools,
+      abortSignal: ctx?.signal,
+    });
+  } catch (err) {
+    // The AI SDK surfaces HTTP failures as AI_APICallError; normalize to the
+    // ProtocolHttpError contract every other path in this package throws.
+    if (APICallError.isInstance(err)) {
+      const status = err.statusCode ?? 500;
+      throw new ProtocolHttpError(err.message, status, err.responseBody?.slice(0, 500));
+    }
+    throw err;
+  }
 
   const toolCalls = result.toolCalls?.length
     ? result.toolCalls.map((tc: any) => ({
@@ -145,7 +156,11 @@ export async function generateText(
     text: result.text ?? '',
     finishReason: mapFinishReason(result.finishReason),
     usage: result.usage
-      ? { promptTokens: result.usage.inputTokens ?? undefined, completionTokens: result.usage.outputTokens ?? undefined }
+      ? {
+          promptTokens: result.usage.inputTokens ?? undefined,
+          completionTokens: result.usage.outputTokens ?? undefined,
+          totalTokens: result.usage.totalTokens ?? undefined,
+        }
       : undefined,
     toolCalls,
   };
