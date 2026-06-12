@@ -17,7 +17,7 @@ asarUnpack:
   - "**/*.node"
   - "node_modules/better-sqlite3/**"
 
-npmRebuild: false
+npmRebuild: true
 buildDependenciesFromSource: false
 
 win:

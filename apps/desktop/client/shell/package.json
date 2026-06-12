@@ -21,6 +21,7 @@
     "@orison/shared-contracts": "workspace:*",
     "@orison/story-sync": "workspace:*",
     "better-sqlite3": "12.9.0",
+    "electron-updater": "^6.3.9",
     "isomorphic-git": "^1.37.6",
     "mammoth": "1.9.0",
     "pino": "^9.7.0",

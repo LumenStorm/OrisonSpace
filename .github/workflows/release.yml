@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build-portable-windows:
+  release-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Builds the portable app dir via electron-builder --dir.
+      # Tag is the single source of truth. Strip the leading "v" and write it
+      # into root + shell package.json so app.getVersion(), latest.yml and the
+      # installer filename all match the tag.
+      - name: Inject version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Releasing version $VERSION"
+          node scripts/set-version.mjs "$VERSION"
+
+      - name: Build renderer + main
+        run: pnpm --filter @orison/desktop-shell build
+
+      # NSIS installer + latest.yml + blockmap, published straight to the
+      # GitHub Release (electron-updater feed). Release must NOT be a draft,
+      # or latest.yml is invisible to the updater.
+      - name: Build & publish NSIS installer
+        working-directory: apps/desktop/client/shell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder --config electron-builder.yml --win nsis --x64 --publish always
+
+      # Portable (green) build — secondary artifact, no self-update.
       - name: Build portable package
         run: pnpm package:desktop:portable
 
@@ -40,16 +62,9 @@ jobs:
           Compress-Archive -Path "$src/*" -DestinationPath $zip -Force
           Write-Host "Created $zip"
 
-      - name: Upload portable artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: orison-space-portable-windows
-          path: release/OrisonSpace-portable-*.zip
-          if-no-files-found: error
-
-      - name: Publish to GitHub Release
+      - name: Attach portable zip to release
         uses: softprops/action-gh-release@v2
         with:
           files: release/OrisonSpace-portable-*.zip
-          draft: true
+          draft: false
           generate_release_notes: true

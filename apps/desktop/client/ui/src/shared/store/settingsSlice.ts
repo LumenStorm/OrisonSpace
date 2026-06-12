@@ -11,6 +11,7 @@ const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
   theme: 'system',
   locale: 'system',
   autoApplyPatches: true,
+  autoCheckUpdates: true,
   readingFontWeight: 400,
   readingFontScale: 1,
 };
@@ -44,9 +45,9 @@ export type SettingsSlice = {
   /** Application version, populated at bootstrap via preload. Empty until loaded. */
   appVersion: string;
   loadAppVersion: () => Promise<void>;
-  /** URL to remote update manifest. Empty string means "not configured". */
-  updateManifestUrl: string;
-  setUpdateManifestUrl: (url: string) => void;
+  /** Whether to silently check for updates on startup. */
+  autoCheckUpdates: boolean;
+  setAutoCheckUpdates: (value: boolean) => void;
 };
 
 function resolveLocale(locale: LocaleSetting): string {
@@ -90,10 +91,10 @@ function buildPrefs(get: () => SettingsSlice, overrides: Partial<UserPreferences
     theme: s.theme,
     locale: s.locale,
     autoApplyPatches: s.autoApplyPatches,
+    autoCheckUpdates: s.autoCheckUpdates,
     readingFontWeight: s.readingFontWeight,
     readingFontScale: s.readingFontScale,
   };
-  if (s.updateManifestUrl) base.updateManifestUrl = s.updateManifestUrl;
   if (s.readingFontFamily) base.readingFontFamily = s.readingFontFamily;
   return { ...base, ...overrides };
 }
@@ -133,7 +134,7 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
         locale,
         resolvedLocale: resolveLocale(locale),
         autoApplyPatches: config.autoApplyPatches,
-        updateManifestUrl: config.updateManifestUrl ?? '',
+        autoCheckUpdates: config.autoCheckUpdates ?? true,
         readingFontFamily,
         readingFontWeight,
         readingFontScale,
@@ -198,10 +199,9 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
     }
   },
 
-  updateManifestUrl: '',
-  setUpdateManifestUrl(url) {
-    const trimmed = url.trim();
-    set({ updateManifestUrl: trimmed });
-    saveUserPreferencesSnapshot(buildPrefs(get, { updateManifestUrl: trimmed || undefined }));
+  autoCheckUpdates: true,
+  setAutoCheckUpdates(value) {
+    set({ autoCheckUpdates: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { autoCheckUpdates: value }));
   },
 });

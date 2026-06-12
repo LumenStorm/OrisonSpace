@@ -20,6 +20,7 @@ import type {
   TaskUpsertInput,
   TextGenerationResponse,
   UpdateCheckResult,
+  UpdateEvent,
   UserPreferencesConfig,
   VideoGenerationResponse,
 } from '@orison/shared-contracts';
@@ -141,6 +142,13 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('log:write', payload) as Promise<void>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   checkForUpdate: () => ipcRenderer.invoke('update:check') as Promise<UpdateCheckResult>,
+  downloadUpdate: () => ipcRenderer.invoke('update:download') as Promise<void>,
+  installUpdate: () => ipcRenderer.invoke('update:install') as Promise<void>,
+  onUpdateEvent: (callback: (event: UpdateEvent) => void) => {
+    const listener = (_e: unknown, event: UpdateEvent) => callback(event);
+    ipcRenderer.on('update:event', listener);
+    return () => { ipcRenderer.removeListener('update:event', listener); };
+  },
   gitIsRepo: (dir: string) => ipcRenderer.invoke('git:is-repo', dir) as Promise<boolean>,
   gitLog: (dir: string, depth?: number) => ipcRenderer.invoke('git:log', dir, depth) as Promise<GitCommitEntry[]>,
   gitCommitDiff: (dir: string, oid: string) => ipcRenderer.invoke('git:commit-diff', dir, oid) as Promise<GitFileDiff[]>,

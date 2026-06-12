@@ -14,6 +14,7 @@ export function App() {
   const loadUserPreferences = useAppStore((s) => s.loadUserPreferences);
   const loadModelConfig = useAppStore((s) => s.loadModelConfig);
   const loadAppVersion = useAppStore((s) => s.loadAppVersion);
+  const subscribeUpdateEvents = useAppStore((s) => s.subscribeUpdateEvents);
 
   useToolEvents();
   useCloseGuard();
@@ -22,7 +23,8 @@ export function App() {
     void loadUserPreferences();
     void loadModelConfig();
     void loadAppVersion();
-  }, [loadUserPreferences, loadModelConfig, loadAppVersion]);
+    subscribeUpdateEvents();
+  }, [loadUserPreferences, loadModelConfig, loadAppVersion, subscribeUpdateEvents]);
 
   return (
     <>

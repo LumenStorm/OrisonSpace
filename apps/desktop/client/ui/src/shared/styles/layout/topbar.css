@@ -1121,6 +1121,50 @@
   border-color: var(--accent-strong);
 }
 
+.update-major-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.update-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  margin-top: var(--space-xl);
+}
+
+.update-progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.update-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.update-progress-label {
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+  text-align: right;
+}
+
+
 @media (max-width: 640px) {
   .settings-dialog {
     width: calc(100vw - 1rem);

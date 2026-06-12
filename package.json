@@ -22,7 +22,8 @@
     "package:desktop:dir": "pnpm --filter @orison/desktop-shell pack:dir",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "set-version": "node scripts/set-version.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.1",

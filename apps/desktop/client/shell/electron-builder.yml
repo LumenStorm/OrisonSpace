@@ -37,5 +37,8 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Orison Space
 
-publish: null
+publish:
+  provider: github
+  owner: LumenStorm
+  repo: OrisonSpace
 electronDist: node_modules/electron/dist

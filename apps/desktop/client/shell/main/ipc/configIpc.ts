@@ -17,6 +17,7 @@ const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
   theme: 'system',
   locale: 'system',
   autoApplyPatches: true,
+  autoCheckUpdates: true,
   readingFontWeight: 400,
   readingFontScale: 1,
 };
@@ -220,6 +221,10 @@ function readUserPreferences(): UserPreferencesConfig {
         typeof raw?.autoApplyPatches === 'boolean'
           ? raw.autoApplyPatches
           : DEFAULT_USER_PREFERENCES.autoApplyPatches,
+      autoCheckUpdates:
+        typeof raw?.autoCheckUpdates === 'boolean'
+          ? raw.autoCheckUpdates
+          : DEFAULT_USER_PREFERENCES.autoCheckUpdates,
       updateManifestUrl:
         typeof raw?.updateManifestUrl === 'string' && raw.updateManifestUrl.length > 0
           ? raw.updateManifestUrl
@@ -250,6 +255,7 @@ function writeUserPreferences(config: UserPreferencesConfig): void {
     theme: config.theme,
     locale: config.locale,
     autoApplyPatches: config.autoApplyPatches,
+    autoCheckUpdates: config.autoCheckUpdates ?? true,
   };
   if (config.updateManifestUrl) flat.updateManifestUrl = config.updateManifestUrl;
   if (config.readingFontFamily) flat.readingFontFamily = config.readingFontFamily;

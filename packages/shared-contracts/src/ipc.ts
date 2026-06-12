@@ -119,6 +119,9 @@ export type UserPreferencesConfig = {
   theme: string;
   locale: string;
   autoApplyPatches: boolean;
+  /** Whether to silently check for updates on startup. Defaults to true. */
+  autoCheckUpdates?: boolean;
+  /** @deprecated Custom manifest URL — superseded by the electron-updater GitHub feed. Read for back-compat only. */
   updateManifestUrl?: string;
   /** Reading font family for editor + agent panel body text. CSS font-family value or font stack name. */
   readingFontFamily?: string;
@@ -138,6 +141,7 @@ export type ImportedFont = {
 
 /* ── Update check IPC ── */
 
+/** @deprecated Legacy custom-manifest shape — kept for type back-compat, no longer fetched. */
 export type UpdateManifest = {
   /** Latest available version (semver-like, e.g. "0.2.0"). */
   latestVersion: string;
@@ -149,9 +153,29 @@ export type UpdateManifest = {
 
 export type UpdateCheckResult =
   | { status: 'up-to-date'; currentVersion: string; latestVersion: string }
-  | { status: 'available'; currentVersion: string; latestVersion: string; downloadUrl: string; releaseNotes?: string }
+  | {
+      status: 'available';
+      currentVersion: string;
+      latestVersion: string;
+      /** True when the major version increased (current -> latest). Drives the prominent guided banner. */
+      isMajor: boolean;
+      releaseNotes?: string;
+      /** Fallback download page, used by portable builds that cannot self-update. */
+      downloadUrl?: string;
+    }
   | { status: 'not-configured' }
+  /** Running unpackaged (dev) — electron-updater is unavailable. */
+  | { status: 'dev'; currentVersion: string }
   | { status: 'error'; message: string };
+
+/** Progressive update lifecycle events pushed from main -> renderer over `update:event`. */
+export type UpdateEvent =
+  | { type: 'checking' }
+  | { type: 'available'; currentVersion: string; latestVersion: string; isMajor: boolean; releaseNotes?: string }
+  | { type: 'not-available'; currentVersion: string }
+  | { type: 'download-progress'; percent: number }
+  | { type: 'downloaded'; latestVersion: string }
+  | { type: 'error'; message: string };
 
 /* ── Git IPC types ── */
 
@@ -240,6 +264,12 @@ export type OrisonDesktopApi = {
   // Version + update
   getAppVersion(): Promise<string>;
   checkForUpdate(): Promise<UpdateCheckResult>;
+  /** Begin downloading the available update (electron-updater). */
+  downloadUpdate(): Promise<void>;
+  /** Quit and install the downloaded update now. */
+  installUpdate(): Promise<void>;
+  /** Subscribe to update lifecycle events. Returns an unsubscribe fn. */
+  onUpdateEvent(callback: (event: UpdateEvent) => void): () => void;
   // Git
   gitIsRepo(dir: string): Promise<boolean>;
   gitLog(dir: string, depth?: number): Promise<GitCommitEntry[]>;

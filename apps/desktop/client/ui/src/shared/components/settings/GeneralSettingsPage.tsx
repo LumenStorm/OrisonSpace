@@ -16,6 +16,10 @@ type Props = {
   setReadingFontWeight: (value: number) => void;
   readingFontScale: number;
   setReadingFontScale: (value: number) => void;
+  autoCheckUpdates: boolean;
+  setAutoCheckUpdates: (value: boolean) => void;
+  appVersion: string;
+  onCheckForUpdate: () => void;
 };
 
 const WEIGHT_OPTIONS: { value: number; key: string }[] = [
@@ -44,6 +48,10 @@ export function GeneralSettingsPage({
   setReadingFontWeight,
   readingFontScale,
   setReadingFontScale,
+  autoCheckUpdates,
+  setAutoCheckUpdates,
+  appVersion,
+  onCheckForUpdate,
 }: Props) {
   const [importedFonts, setImportedFonts] = useState<ImportedFont[]>([]);
 
@@ -166,6 +174,45 @@ export function GeneralSettingsPage({
               {t(opt.key)}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="settings-page-header">
+        <div>
+          <h3 className="settings-page-title">{t('settings.updates')}</h3>
+          <p className="settings-page-subtitle">{t('settings.updatesDesc')}</p>
+        </div>
+      </div>
+
+      <div className="sidebar-settings-row">
+        <span className="sidebar-settings-label">{t('settings.autoCheckUpdates')}</span>
+        <div className="sidebar-settings-options">
+          <button
+            type="button"
+            className={`sidebar-settings-option${autoCheckUpdates ? ' is-active' : ''}`}
+            onClick={() => setAutoCheckUpdates(true)}
+          >
+            {t('settings.on')}
+          </button>
+          <button
+            type="button"
+            className={`sidebar-settings-option${!autoCheckUpdates ? ' is-active' : ''}`}
+            onClick={() => setAutoCheckUpdates(false)}
+          >
+            {t('settings.off')}
+          </button>
+        </div>
+      </div>
+
+      <div className="sidebar-settings-row">
+        <span className="sidebar-settings-label">
+          {t('settings.currentVersion')}
+          {appVersion && <span className="sidebar-settings-version"> v{appVersion}</span>}
+        </span>
+        <div className="sidebar-settings-options">
+          <button type="button" className="sidebar-settings-option" onClick={onCheckForUpdate}>
+            {t('topbar.checkForUpdate')}
+          </button>
         </div>
       </div>
     </div>

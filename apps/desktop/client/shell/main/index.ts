@@ -3,7 +3,7 @@ import path from 'node:path';
 import { getLogger, installGlobalErrorHandlers } from './logger';
 import { registerProjectIpc } from './ipc/projectIpc';
 import { registerWindowIpc } from './ipc/windowIpc';
-import { registerConfigIpc } from './ipc/configIpc';
+import { registerConfigIpc, readUserPreferencesFromDisk } from './ipc/configIpc';
 import { registerFieldSyncIpc } from './ipc/fieldSyncIpc';
 import { registerModelProviderIpc } from './ipc/modelProviderIpc';
 import { registerModelGatewayIpc } from './ipc/modelGatewayIpc';
@@ -11,7 +11,7 @@ import { registerStorySyncIpc } from './ipc/storySyncIpc';
 import { registerTaskIpc } from './ipc/taskIpc';
 import { registerAssetIpc } from './ipc/assetIpc';
 import { registerLogIpc } from './ipc/logIpc';
-import { registerUpdateIpc } from './ipc/updateIpc';
+import { registerUpdateIpc, checkForUpdateOnStartup } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
 import { registerAgentIpc } from './ipc/agentIpc';
 import { registerOrchestrationIpc } from './ipc/orchestrationIpc';
@@ -86,7 +86,7 @@ function createWindow() {
   registerTaskIpc();
   registerAssetIpc();
   registerLogIpc();
-  registerUpdateIpc();
+  registerUpdateIpc(mainWindow);
   registerGitIpc();
   registerAgentIpc(mainWindow);
   registerOrchestrationIpc();
@@ -115,6 +115,15 @@ function createWindow() {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
     void mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
+
+  // Silent update check on startup (packaged builds only). The renderer
+  // surfaces a guided prompt only if a newer version is found. Delay so the
+  // window/renderer is ready to receive the `update:event` stream.
+  if (readUserPreferencesFromDisk().autoCheckUpdates !== false) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(() => void checkForUpdateOnStartup(), 5000);
+    });
   }
 }
 

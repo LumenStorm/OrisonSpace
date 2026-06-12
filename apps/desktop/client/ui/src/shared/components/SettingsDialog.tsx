@@ -21,6 +21,8 @@ export function SettingsDialog({ onClose }: Props) {
     readingFontFamily, setReadingFontFamily,
     readingFontWeight, setReadingFontWeight,
     readingFontScale, setReadingFontScale,
+    autoCheckUpdates, setAutoCheckUpdates,
+    appVersion, checkForUpdate,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     theme: s.theme, setTheme: s.setTheme,
@@ -29,6 +31,8 @@ export function SettingsDialog({ onClose }: Props) {
     readingFontFamily: s.readingFontFamily, setReadingFontFamily: s.setReadingFontFamily,
     readingFontWeight: s.readingFontWeight, setReadingFontWeight: s.setReadingFontWeight,
     readingFontScale: s.readingFontScale, setReadingFontScale: s.setReadingFontScale,
+    autoCheckUpdates: s.autoCheckUpdates, setAutoCheckUpdates: s.setAutoCheckUpdates,
+    appVersion: s.appVersion, checkForUpdate: s.checkForUpdate,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -75,6 +79,10 @@ export function SettingsDialog({ onClose }: Props) {
                 setReadingFontWeight={setReadingFontWeight}
                 readingFontScale={readingFontScale}
                 setReadingFontScale={setReadingFontScale}
+                autoCheckUpdates={autoCheckUpdates}
+                setAutoCheckUpdates={setAutoCheckUpdates}
+                appVersion={appVersion}
+                onCheckForUpdate={() => { void checkForUpdate(); }}
               />
             ) : (
               <ModelSettingsPage
