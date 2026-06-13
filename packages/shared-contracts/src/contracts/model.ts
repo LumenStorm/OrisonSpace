@@ -24,6 +24,15 @@ export const modelConfigSchema = z.object({
   keys: z.array(apiKeyEntrySchema),
 });
 
+/**
+ * Save-side variant: the renderer redacts apiKey to '' to mean "keep the
+ * existing encrypted key" (see writeModelConfig). Validation must allow the
+ * empty sentinel here, while modelConfigSchema keeps enforcing min(1) elsewhere.
+ */
+export const modelConfigSaveSchema = z.object({
+  keys: z.array(apiKeyEntrySchema.extend({ apiKey: z.string() })),
+});
+
 export type ModelCapability = z.infer<typeof modelCapabilitySchema>;
 export type DiscoveredModel = z.infer<typeof discoveredModelSchema>;
 export type ApiKeyConfig = z.infer<typeof apiKeyConfigSchema>;

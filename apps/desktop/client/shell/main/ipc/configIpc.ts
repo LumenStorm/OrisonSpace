@@ -8,7 +8,7 @@ import type {
   ModelConfig,
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
-import { parseFlatYaml, stringifyFlatYaml } from '@orison/shared-contracts';
+import { parseFlatYaml, stringifyFlatYaml, modelConfigSaveSchema } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '../fs/atomicWrite';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
@@ -343,7 +343,7 @@ export function getModelDirForTest(): string {
 export function registerConfigIpc() {
   ipcMain.handle('config:load-model', () => redactModelConfig(readModelConfig()));
   ipcMain.handle('config:save-model', (_, config: ModelConfig) => {
-    writeModelConfig(config);
+    writeModelConfig(modelConfigSaveSchema.parse(config));
   });
   ipcMain.handle('config:load-user-preferences', () => readUserPreferences());
   ipcMain.handle('config:save-user-preferences', (_, config: UserPreferencesConfig) => {

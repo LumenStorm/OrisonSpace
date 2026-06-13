@@ -82,10 +82,10 @@ export function SideBySideDiff({ diff, oldContent, onClose }: Props) {
         <span className="diff-sbs-filename">{fileName}</span>
         <div className="diff-sbs-actions">
           <button type="button" className="diff-sbs-btn diff-sbs-btn--accept" onClick={handleAcceptAll}>
-            {t('agent.accept')} All
+            {t('agent.acceptAll')}
           </button>
           <button type="button" className="diff-sbs-btn diff-sbs-btn--reject" onClick={handleRejectAll}>
-            {t('agent.reject')} All
+            {t('agent.rejectAll')}
           </button>
           <button type="button" className="diff-sbs-btn" onClick={onClose}>
             <span className="material-symbols-outlined">close</span>
@@ -107,10 +107,10 @@ export function SideBySideDiff({ diff, oldContent, onClose }: Props) {
             <div key={idx} className="diff-sbs-gutter-row">
               {l.type !== 'same' && (
                 <>
-                  <button type="button" className={`diff-sbs-gutter-btn${accepted.has(idx) ? ' is-active' : ''}`} title="Accept" onClick={() => toggleAccept(idx)}>
+                  <button type="button" className={`diff-sbs-gutter-btn${accepted.has(idx) ? ' is-active' : ''}`} title={t('agent.accept')} onClick={() => toggleAccept(idx)}>
                     <span className="material-symbols-outlined">check</span>
                   </button>
-                  <button type="button" className={`diff-sbs-gutter-btn diff-sbs-gutter-btn--reject${rejected.has(idx) ? ' is-active' : ''}`} title="Reject" onClick={() => toggleReject(idx)}>
+                  <button type="button" className={`diff-sbs-gutter-btn diff-sbs-gutter-btn--reject${rejected.has(idx) ? ' is-active' : ''}`} title={t('agent.reject')} onClick={() => toggleReject(idx)}>
                     <span className="material-symbols-outlined">close</span>
                   </button>
                 </>

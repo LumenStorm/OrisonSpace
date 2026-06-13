@@ -88,6 +88,7 @@ settings:
   modelSection: "Model"
   modelsSection: "Models"
   noModelsHint: "Click refresh to load available models from the provider."
+  removeModel: "Remove model"
 welcome:
   brand: "Orison Space"
   tagline: "One line to video — AI-powered storytelling"

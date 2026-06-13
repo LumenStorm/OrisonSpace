@@ -1,4 +1,5 @@
 import type { ChildStreamEvent, PendingConfirmationState } from '../../types';
+import { MAX_SPAWN_DEPTH, SpawnDepthExceededError } from '../../types';
 import type { NormalizedSkill, WorkflowStep } from '../types';
 import type { SkillRuntimeContext } from '../../context/builder';
 import { SkillRegistry } from './registry';
@@ -20,6 +21,8 @@ export interface WorkflowExecutionContext {
   skillContext?: SkillRuntimeContext;
   abort?: AbortSignal;
   spawnDepth?: number;
+  /** Nesting depth of skill→skill delegation; guards against cyclic skill graphs. */
+  skillDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
   suppressSpawnAgent?: boolean;
   suppressAllTools?: boolean;
@@ -57,6 +60,12 @@ export interface WorkflowExecutor {
 export function createWorkflowExecutor(options: WorkflowExecutorOptions): WorkflowExecutor {
   return {
     async executeSkill(skillName, context) {
+      const skillDepth = context.skillDepth ?? 0;
+      if (skillDepth > MAX_SPAWN_DEPTH) {
+        throw new SpawnDepthExceededError(skillDepth);
+      }
+      // Context handed to any nested skill execution — one level deeper.
+      const nestedSkillContext: WorkflowExecutionContext = { ...context, skillDepth: skillDepth + 1 };
       const skill = requireSkill(options.registry, skillName);
       const outputs: string[] = [];
       const checkpoints: string[] = [];
@@ -70,7 +79,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
         const promptStep = skill.workflow.steps[0];
         if (promptStep?.type === 'prompt' && isOhStoryRouterPrompt(promptStep.content)) {
           const routedSkill = resolveOhStoryRoute(context.input);
-          const nestedResult = await this.executeSkill(routedSkill, context);
+          const nestedResult = await this.executeSkill(routedSkill, nestedSkillContext);
           outputs.push(...nestedResult.outputs);
           checkpoints.push(...nestedResult.checkpoints);
           pendingConfirmations.push(...nestedResult.pendingConfirmations);
@@ -142,14 +151,16 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
           const suppressSpawnAgent = node.type === 'instruction' &&
             (nextNode?.type === 'ask_user' || isFirstExecution);
           const suppressWriteTools = hasFollowingSpawnAgent;
+          // Base on nestedSkillContext so any delegate_skill / skill recursion
+          // through the node executor carries the incremented skillDepth guard.
           const execContext = (suppressAllTools || suppressSpawnAgent || suppressWriteTools)
             ? {
-              ...context,
+              ...nestedSkillContext,
               suppressAllTools,
               suppressSpawnAgent,
               suppressWriteTools,
             }
-            : context;
+            : nestedSkillContext;
 
           await executeCompiledNode(node, skill, execContext, {
             executePrompt: options.executePrompt,
@@ -225,7 +236,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
           }
           case 'skill': {
             const nestedSkill = requireSkill(options.registry, step.skill);
-            const nestedResult = await this.executeSkill(nestedSkill.name, context);
+            const nestedResult = await this.executeSkill(nestedSkill.name, nestedSkillContext);
             outputs.push(...nestedResult.outputs);
             checkpoints.push(...nestedResult.checkpoints);
             pendingConfirmations.push(...nestedResult.pendingConfirmations);

@@ -63,9 +63,6 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       }
       break;
     }
-    if (response.finishReason === 'stop') {
-      break;
-    }
 
     // Execute tool calls
     const ctx: ToolContext = {

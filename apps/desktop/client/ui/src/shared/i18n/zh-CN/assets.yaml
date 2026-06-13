@@ -24,3 +24,6 @@ projectTree:
   scenes: "场景"
   assetsDir: "素材"
   projectConfig: "项目配置"
+  ariaLabel: "项目文件"
+  unsaved: "未保存"
+  empty: "（空）"

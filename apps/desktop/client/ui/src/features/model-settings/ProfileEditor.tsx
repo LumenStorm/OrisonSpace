@@ -93,7 +93,7 @@ export function ProfileEditor({
               type="button"
               className="settings-refresh-button"
               onClick={() => setShowApiKey(!showApiKey)}
-              aria-label={showApiKey ? 'Hide' : 'Show'}
+              aria-label={showApiKey ? t('settings.hideKey') : t('settings.showKey')}
             >
               <span className="material-symbols-outlined">
                 {showApiKey ? 'visibility_off' : 'visibility'}
@@ -140,8 +140,8 @@ export function ProfileEditor({
                   type="button"
                   className="settings-refresh-button"
                   onClick={() => onRemoveModelEntry(index)}
-                  aria-label="Remove model"
-                  title="Remove model"
+                  aria-label={t('settings.removeModel')}
+                  title={t('settings.removeModel')}
                 >
                   <span className="material-symbols-outlined">delete</span>
                 </button>

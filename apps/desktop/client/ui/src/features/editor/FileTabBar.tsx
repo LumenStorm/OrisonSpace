@@ -142,7 +142,7 @@ export function FileTabBar() {
     <>
       {openFiles.length > 0 && (
         <div className="file-tab-bar-wrapper">
-          <nav className="file-tab-bar" aria-label="Open files">
+          <nav className="file-tab-bar" role="tablist" aria-label={t('editor.openFiles')}>
             {openFiles.map((file, index) => {
             const isActive = file.path === activeFilePath;
             const isDirty = file.kind === 'text' && file.content !== file.savedContent;
@@ -151,6 +151,9 @@ export function FileTabBar() {
               <div
                 key={file.path}
                 className={`file-tab${isActive ? ' file-tab-active' : ''}${isPinned ? ' file-tab-pinned' : ''}${dropTarget === index ? ' file-tab-drop-target' : ''}`}
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
                 draggable
                 onDragStart={() => { dragIndexRef.current = index; }}
                 onDragOver={(e) => { e.preventDefault(); setDropTarget(index); }}

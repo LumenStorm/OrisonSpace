@@ -70,6 +70,11 @@ export function loadProject(projectPath: string): ProjectDocument | null {
   const raw = readFileSync(filePath, 'utf8');
   const parsed = YAML.parse(raw);
 
+  // Empty or corrupt YAML parses to null/non-object. Return null (rather than
+  // throwing on the property access below) so callers' bootstrap/self-heal
+  // fallback can kick in instead of silently losing the edit.
+  if (!parsed || typeof parsed !== 'object') return null;
+
   // Migration: legacy outline -> outline_v2
   if (!parsed.outline_v2 && parsed.outline) {
     const legacyOutline = parsed.outline;
@@ -263,6 +268,14 @@ export function applyFieldPatches(
 
     // 跳过 locked 字段
     if (next.field_metadata?.[patch.field as CreativeFieldKey]?.locked) continue;
+
+    // 跳过过期补丁：补丁基于的 fieldVersion 早于当前已记录版本，说明
+    // 该字段在补丁生成后被更新过，应用它会覆盖更新的内容。对齐 story-sync
+    // 的 enforcePatchSafety 语义。
+    const currentVersion = next.field_metadata?.[patch.field as CreativeFieldKey]?.version;
+    if (typeof currentVersion === 'number' && typeof patch.fieldVersion === 'number' && patch.fieldVersion < currentVersion) {
+      continue;
+    }
 
     switch (patch.action) {
       case 'set':

@@ -192,7 +192,11 @@ export const createCreativeFieldsSlice: StateCreator<
       }
     }
     if (overviewData) {
-      get().saveProject().catch(() => {});
+      const locale = (get() as any).resolvedLocale ?? 'en-US';
+      get().saveProject().catch((err) => {
+        const reason = err instanceof Error ? err.message : String(err);
+        useToastStore.getState().showToast(translate(locale, 'creative.field.syncFailed', { field: 'overview', reason }), 'error');
+      });
     }
 
     return appliedPatch;

@@ -24,3 +24,6 @@ projectTree:
   scenes: "Scenes"
   assetsDir: "Assets"
   projectConfig: "Project Config"
+  ariaLabel: "Project Files"
+  unsaved: "Unsaved"
+  empty: "(empty)"

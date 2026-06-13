@@ -8,6 +8,7 @@ import type { Attachment, SelectionAttachment } from '../../shared/types/attachm
 import { AgentToolCard } from './AgentToolCard';
 import { DiffCard } from './DiffCard';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 type Props = { message: AgentMessage };
 
@@ -17,7 +18,10 @@ function attachmentIcon(type: Attachment['type']): string {
 }
 
 function renderMarkdown(content: string): string {
-  return marked.parse(content, { async: false }) as string;
+  // Sanitize: agent/tool/file content reaches the renderer (which holds IPC
+  // access to fs/git write tools), so raw model output must never run as HTML.
+  const html = marked.parse(content, { async: false }) as string;
+  return DOMPurify.sanitize(html);
 }
 
 /**

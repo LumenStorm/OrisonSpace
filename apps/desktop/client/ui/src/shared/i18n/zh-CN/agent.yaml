@@ -15,6 +15,8 @@ agent:
   confirm: "确认"
   accept: "接受"
   reject: "拒绝"
+  acceptAll: "全部接受"
+  rejectAll: "全部拒绝"
   applied: "已应用"
   resolved: "已处理"
   original: "原文"

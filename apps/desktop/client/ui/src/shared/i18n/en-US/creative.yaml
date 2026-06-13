@@ -300,3 +300,4 @@ editor:
   addToAgent: "Add to Agent"
   unsaved: "Unsaved changes"
   closeTab: "Close {name}"
+  openFiles: "Open files"

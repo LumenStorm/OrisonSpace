@@ -9,6 +9,11 @@ import type {
   TextGenerationResponse,
   VideoGenerationResponse,
 } from '@orison/shared-contracts';
+import {
+  generateTextPayloadSchema,
+  generateImagePayloadSchema,
+  generateVideoPayloadSchema,
+} from '@orison/shared-contracts';
 import { generateText, generateImage, generateVideo } from '@orison/model-protocols';
 import { readModelConfigFromDisk } from './configIpc';
 
@@ -66,14 +71,17 @@ export function resolveModel(ref: ModelRef): ResolvedModel {
 }
 
 export function registerModelGatewayIpc() {
+  // Validate renderer-supplied payloads at the IPC boundary. The shared
+  // handleGenerate* fns below are also called by the agent with a trusted
+  // shape, so validation lives here rather than in the handlers.
   ipcMain.handle('model:generate-text', async (_event, payload: GenerateTextPayload) => {
-    return handleGenerateText(payload);
+    return handleGenerateText(generateTextPayloadSchema.parse(payload));
   });
   ipcMain.handle('model:generate-image', async (_event, payload: GenerateImagePayload) => {
-    return handleGenerateImage(payload);
+    return handleGenerateImage(generateImagePayloadSchema.parse(payload));
   });
   ipcMain.handle('model:generate-video', async (_event, payload: GenerateVideoPayload) => {
-    return handleGenerateVideo(payload);
+    return handleGenerateVideo(generateVideoPayloadSchema.parse(payload));
   });
 }
 

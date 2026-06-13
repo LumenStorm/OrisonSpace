@@ -160,6 +160,51 @@ describe('local project repository helpers', () => {
     expect(updated.meta.version).toBe(2);
   });
 
+  it('applyFieldPatches 跳过 fieldVersion 早于当前版本的过期补丁', () => {
+    const project = createEmptyProjectDocument('Stale Patch Test');
+    saveProject(TEST_PROJECT_DIR, project);
+
+    // 先写入 version 3 的字段
+    applyFieldPatches(TEST_PROJECT_DIR, {
+      runId: 'run_v3',
+      createdAt: new Date().toISOString(),
+      patches: [{
+        field: 'world_setting',
+        action: 'set',
+        data: { premise: '当前内容', era: '', locations: [], rules: [], power_structures: [], taboos: [], visual_language: [], tone_rules: [], open_questions: [] },
+        fieldVersion: 3,
+        generatedBy: 'agent-a'
+      }]
+    });
+
+    // 再尝试用 version 2(过期)的补丁覆盖,应被跳过
+    const updated = applyFieldPatches(TEST_PROJECT_DIR, {
+      runId: 'run_v2_stale',
+      createdAt: new Date().toISOString(),
+      patches: [{
+        field: 'world_setting',
+        action: 'set',
+        data: { premise: '过期内容', era: '', locations: [], rules: [], power_structures: [], taboos: [], visual_language: [], tone_rules: [], open_questions: [] },
+        fieldVersion: 2,
+        generatedBy: 'agent-b'
+      }]
+    });
+
+    expect(updated.world_setting!.premise).toBe('当前内容');
+    expect(updated.field_metadata!.world_setting!.version).toBe(3);
+  });
+
+  it('loadProject 对空或损坏的 project.yaml 返回 null 而非抛错', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    // 空文件 -> YAML.parse 得到 null
+    writeFileSync(path.join(TEST_PROJECT_DIR, 'project.yaml'), '', 'utf8');
+    expect(loadProject(TEST_PROJECT_DIR)).toBeNull();
+
+    // 标量(非对象)内容
+    writeFileSync(path.join(TEST_PROJECT_DIR, 'project.yaml'), 'just-a-string', 'utf8');
+    expect(loadProject(TEST_PROJECT_DIR)).toBeNull();
+  });
+
   it('applyFieldPatches 支持 chapter_candidate 类型的补丁', () => {
     const project = createEmptyProjectDocument('Chapter Candidate Patch');
     // 预置一个章节（新结构：sections）

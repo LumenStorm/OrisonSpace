@@ -88,6 +88,7 @@ settings:
   modelSection: "模型"
   modelsSection: "模型列表"
   noModelsHint: "点击刷新从供应商加载可用模型。"
+  removeModel: "移除模型"
 welcome:
   brand: "Orison Space"
   tagline: "一句话到视频 — AI 驱动的影视创作"

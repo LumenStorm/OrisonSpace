@@ -108,6 +108,27 @@ export const videoGenerationResponseSchema = z.object({
   videos: z.array(generatedVideoSchema),
 });
 
+/** {keyId, modelId} pointer to a configured key + model. */
+export const modelRefSchema = z.object({
+  keyId: z.string().min(1),
+  modelId: z.string().min(1),
+});
+
+export const generateTextPayloadSchema = z.object({
+  ref: modelRefSchema,
+  request: textGenerationRequestSchema,
+});
+
+export const generateImagePayloadSchema = z.object({
+  ref: modelRefSchema,
+  request: imageGenerationRequestSchema,
+});
+
+export const generateVideoPayloadSchema = z.object({
+  ref: modelRefSchema,
+  request: videoGenerationRequestSchema,
+});
+
 export type GenerationMessage = z.infer<typeof generationMessageSchema>;
 export type GenerationUsage = z.infer<typeof generationUsageSchema>;
 export type GenerationFinishReason = z.infer<typeof generationFinishReasonSchema>;

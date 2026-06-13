@@ -32,8 +32,13 @@ function parseScalar(value: string): FlatConfigValue {
   if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
     return value.slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'");
   }
-  const asNumber = Number(value);
-  if (Number.isFinite(asNumber) && value.trim() !== '') return asNumber;
+  // Only coerce strict decimal literals — never hex/octal ("0x1f"), leading-zero
+  // strings ("007"), or values that lose precision on round-trip (long IDs).
+  // This keeps all-digit identifiers and keys as strings.
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value)) {
+    const asNumber = Number(value);
+    if (Number.isFinite(asNumber) && String(asNumber) === value) return asNumber;
+  }
   return value;
 }
 

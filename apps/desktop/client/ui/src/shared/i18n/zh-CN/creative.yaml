@@ -300,3 +300,4 @@ editor:
   addToAgent: "加入 Agent 引用"
   unsaved: "未保存的更改"
   closeTab: "关闭 {name}"
+  openFiles: "已打开的文件"

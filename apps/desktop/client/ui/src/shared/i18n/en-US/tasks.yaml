@@ -21,6 +21,10 @@ orchestration:
   refreshFailed: "Failed to refresh: {status}"
   actionFailed: "Action failed: {status}"
   unknownError: "Unknown error"
+  deliveryLabel: "Delivery Output"
+  delivered: "Delivered — {summary}"
+  archiveVersion: "Archived version: {versionId}"
+  feedbackMemo: "Feedback memo: {memo}"
 autoMode:
   title: "Auto Mode"
   hint: "Auto Mode will sequentially progress all unfinished chapters."

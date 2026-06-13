@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import { taskUpsertSchema } from '@orison/shared-contracts';
 import { listTasks, upsertTask, updateTaskStatus, deleteTask } from '../db/taskRepository';
 
 export function registerTaskIpc() {
@@ -6,16 +7,8 @@ export function registerTaskIpc() {
     return listTasks(projectId, limit);
   });
 
-  ipcMain.handle('task:upsert', async (_, input: {
-    taskId: string;
-    projectId: string;
-    taskType: string;
-    name: string;
-    status: 'queued' | 'running' | 'completed' | 'failed';
-    errorMessage?: string;
-    outputPayload?: string;
-  }) => {
-    upsertTask(input);
+  ipcMain.handle('task:upsert', async (_, input: unknown) => {
+    upsertTask(taskUpsertSchema.parse(input));
   });
 
   ipcMain.handle('task:update-status', async (_, taskId: string, status: string, errorMessage?: string) => {

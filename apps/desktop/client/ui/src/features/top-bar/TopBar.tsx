@@ -68,7 +68,10 @@ export function TopBar() {
   const handleSave = useCallback(async () => {
     await saveAllOpenFiles();
     await saveProject();
-    await saveChaptersToProject().catch(() => {});
+    await saveChaptersToProject().catch((err) => {
+      const reason = err instanceof Error ? err.message : String(err);
+      showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
+    });
     // Sync word counts from saved files into novelChapters for overview
     const state = useAppStore.getState();
     const projectPath = state.currentProject?.path;

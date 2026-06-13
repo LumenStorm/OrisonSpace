@@ -329,12 +329,14 @@ export function ProjectTree() {
   if (!currentProject || !fileTree) return null;
 
   return (
-    <aside className="project-tree-panel" aria-label="Project Files">
+    <aside className="project-tree-panel" aria-label={t('projectTree.ariaLabel')}>
       <div className="ptree-header">
         <span className="ptree-header-title">{t('projectTree.title')}</span>
       </div>
       <div
         className={`ptree-list${dragActive ? ' ptree-list--drag-active' : ''}`}
+        role="tree"
+        aria-label={t('projectTree.ariaLabel')}
         onContextMenu={(event) => {
           event.preventDefault();
           setCtxMenu({ x: event.clientX, y: event.clientY, entry: null });
@@ -371,6 +373,7 @@ export function ProjectTree() {
             onCreateCancel={handleCreateCancel}
             displayNameMap={displayNameMap}
             onDropToFolder={(event, folderPath) => void handleDrop(event, folderPath)}
+            t={t}
           />
         ))}
       </div>

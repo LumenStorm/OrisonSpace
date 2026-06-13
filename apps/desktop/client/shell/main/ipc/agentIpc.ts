@@ -22,6 +22,9 @@ const logger = getLogger();
 
 let runtime: WorkflowRuntime;
 
+/** In-flight stream abort controllers, keyed by sessionId, for agent:abort-run. */
+const streamAbortControllers = new Map<string, AbortController>();
+
 export function registerAgentIpc(mainWindow: BrowserWindow) {
   const generateTextImpl: GenerateTextFn = async (body, _abort) => {
     const result = await handleGenerateText(body as any);
@@ -94,6 +97,9 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
   });
 
   ipcMain.handle('agent:abort-run', async (_event, sessionId: string) => {
+    // Abort the IPC-level controller too, so streamMessage is interrupted even
+    // outside the runtime's own run window (defense-in-depth on top of abortRun).
+    streamAbortControllers.get(sessionId)?.abort();
     return runtime.abortRun(sessionId);
   });
 
@@ -117,8 +123,9 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
 
   ipcMain.handle('agent:stream-message', async (_event, input: { sessionId: string; content: string; attachments?: unknown[] }) => {
     const abortController = new AbortController();
+    // Track per session so agent:abort-run can cancel an in-flight stream.
+    streamAbortControllers.set(input.sessionId, abortController);
 
-    // Store abort controller so it can be cancelled via agent:abort-run
     const sendEvent = (event: { type: string; data: unknown }) => {
       try {
         mainWindow.webContents.send('agent:stream-event', event);
@@ -140,6 +147,8 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error({ err: message, sessionId: input.sessionId }, 'agent stream error');
       return { status: 'error', message };
+    } finally {
+      streamAbortControllers.delete(input.sessionId);
     }
   });
 }

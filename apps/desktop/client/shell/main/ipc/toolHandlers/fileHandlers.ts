@@ -76,8 +76,23 @@ export const listFilesHandler: ToolHandler = async ({ params, projectDir }) => {
 export const searchHandler: ToolHandler = async ({ params, projectDir }) => {
   const { query, glob: globPattern, maxResults = 50 } = params as { query: string; glob?: string; maxResults?: number };
 
+  if (typeof query !== 'string' || query.length === 0) {
+    throw new Error('search: query must be a non-empty string');
+  }
+  if (query.length > 1000) {
+    throw new Error('search: query too long (max 1000 chars)');
+  }
+
   const results: string[] = [];
-  const regex = new RegExp(query, 'gi');
+  // No `g` flag: with regex.test() a sticky lastIndex would skip/alternate
+  // matches across lines. Guard invalid patterns so a bad query is a clean
+  // error rather than a thrown ReDoS-prone construction.
+  let regex: RegExp;
+  try {
+    regex = new RegExp(query, 'i');
+  } catch (err) {
+    throw new Error(`search: invalid regular expression: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   function searchDir(dir: string) {
     if (results.length >= maxResults) return;

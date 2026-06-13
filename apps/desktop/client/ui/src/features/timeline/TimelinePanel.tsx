@@ -8,19 +8,19 @@ import {
   gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch, gitStatusCount,
 } from '../../shared/api/git';
 
-function formatRelativeTime(timestamp: number): string {
+function formatRelativeTime(timestamp: number, t: (key: string, vars?: Record<string, string | number>) => string): string {
   const now = Date.now();
   const diff = now - timestamp * 1000;
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${minutes}分钟前`;
+  if (minutes < 1) return t('timeline.timeJustNow');
+  if (minutes < 60) return t('timeline.timeMinutesAgo', { value: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}小时前`;
+  if (hours < 24) return t('timeline.timeHoursAgo', { value: hours });
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}天前`;
+  if (days < 30) return t('timeline.timeDaysAgo', { value: days });
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months}个月前`;
-  return `${Math.floor(months / 12)}年前`;
+  if (months < 12) return t('timeline.timeMonthsAgo', { value: months });
+  return t('timeline.timeYearsAgo', { value: Math.floor(months / 12) });
 }
 
 /* ── Graph layout ── */
@@ -212,7 +212,7 @@ export function TimelinePanel() {
     return <div className="timeline-empty">{t('timeline.notARepo')}</div>;
   }
   if (loading) {
-    return <div className="timeline-empty">{t('timeline.loading')}</div>;
+    return <div className="timeline-empty" role="status" aria-live="polite">{t('timeline.loading')}</div>;
   }
 
   return (
@@ -367,7 +367,7 @@ export function TimelinePanel() {
                 {node.commit.message.split('\n')[0]}
               </span>
               <span className="timeline-commit-meta">
-                {formatRelativeTime(node.commit.timestamp)}
+                {formatRelativeTime(node.commit.timestamp, t)}
               </span>
             </button>
             <button

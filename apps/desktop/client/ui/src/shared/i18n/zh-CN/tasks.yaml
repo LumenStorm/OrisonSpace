@@ -21,6 +21,10 @@ orchestration:
   refreshFailed: "刷新失败: {status}"
   actionFailed: "操作失败: {status}"
   unknownError: "未知错误"
+  deliveryLabel: "交付输出"
+  delivered: "已交付 — {summary}"
+  archiveVersion: "归档版本: {versionId}"
+  feedbackMemo: "回流备注: {memo}"
 autoMode:
   title: "自动模式"
   hint: "先根据剧情概括生成资产包，确认后再连续推进未完成章节。"

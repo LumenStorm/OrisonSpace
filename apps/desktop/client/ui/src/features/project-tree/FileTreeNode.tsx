@@ -22,6 +22,7 @@ type FileTreeNodeProps = {
   onCreateCancel: () => void;
   displayNameMap: Record<string, string>;
   onDropToFolder: (event: React.DragEvent, folderPath: string) => void;
+  t: (key: string) => string;
 };
 
 export function FileTreeNode({
@@ -42,6 +43,7 @@ export function FileTreeNode({
   onCreateCancel,
   displayNameMap,
   onDropToFolder,
+  t,
 }: FileTreeNodeProps) {
   const paddingLeft = 8 + depth * 16;
   const isExpanded = expandedPaths.has(entry.path);
@@ -57,11 +59,18 @@ export function FileTreeNode({
 
   if (entry.isDir) {
     return (
-      <div className="ptree-group">
+      <div className="ptree-group" role="treeitem" aria-expanded={isExpanded} aria-selected={isSelected}>
         <div
           className={`ptree-node ptree-folder${isSelected ? ' is-active' : ''}${isDropHover ? ' is-drop-target' : ''}`}
           style={{ paddingLeft }}
+          tabIndex={0}
           onClick={() => onToggle(entry.path)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onToggle(entry.path);
+            }
+          }}
           onContextMenu={(event) => onContextMenu(event, entry)}
           onDragEnter={(event) => {
             event.preventDefault();
@@ -104,7 +113,7 @@ export function FileTreeNode({
             <span className="ptree-label">{mappedName}</span>
           )}
         </div>
-        <div className={`ptree-children${isExpanded ? ' is-open' : ''}`}>
+        <div className={`ptree-children${isExpanded ? ' is-open' : ''}`} role="group">
           <div className="ptree-children-inner">
             {entry.children?.map((child) => (
               <FileTreeNode
@@ -126,6 +135,7 @@ export function FileTreeNode({
                 onCreateCancel={onCreateCancel}
                 displayNameMap={displayNameMap}
                 onDropToFolder={onDropToFolder}
+                t={t}
               />
             ))}
             {isCreatingHere && (
@@ -138,7 +148,7 @@ export function FileTreeNode({
             )}
             {!isCreatingHere && entry.children?.length === 0 && (
               <div className="ptree-node ptree-empty" style={{ paddingLeft: paddingLeft + 16 }}>
-                <span className="ptree-label ptree-label-muted">(empty)</span>
+                <span className="ptree-label ptree-label-muted">{t('projectTree.empty')}</span>
               </div>
             )}
           </div>
@@ -151,7 +161,16 @@ export function FileTreeNode({
     <div
       className={`ptree-node ptree-file${isSelected ? ' is-active' : ''}`}
       style={{ paddingLeft }}
+      role="treeitem"
+      aria-selected={isSelected}
+      tabIndex={0}
       onClick={() => onSelect(entry)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(entry);
+        }
+      }}
       onContextMenu={(event) => onContextMenu(event, entry)}
     >
       <span className="material-symbols-outlined ptree-icon" aria-hidden="true">
@@ -170,7 +189,7 @@ export function FileTreeNode({
       ) : (
         <span className="ptree-label">{mappedName}</span>
       )}
-      {isDirty && !isRenaming && <span className="ptree-dirty-dot" aria-label="unsaved">•</span>}
+      {isDirty && !isRenaming && <span className="ptree-dirty-dot" aria-label={t('projectTree.unsaved')}>•</span>}
     </div>
   );
 }

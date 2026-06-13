@@ -45,6 +45,33 @@ export const taskResultSchema = z.object({
   retryable: z.boolean()
 });
 
+/**
+ * Persistence-layer upsert shapes for the desktop SQLite repositories. These
+ * use free-string projectId (the local DB key), distinct from the 5-digit
+ * registered `projectIdSchema`. Used to validate the task:/asset: IPC inputs.
+ */
+export const taskUpsertSchema = z.object({
+  taskId: z.string().min(1),
+  projectId: z.string().min(1),
+  taskType: z.string().min(1),
+  name: z.string().min(1),
+  status: z.enum(['queued', 'running', 'completed', 'failed']),
+  errorMessage: z.string().optional(),
+  outputPayload: z.string().optional()
+});
+
+export const assetUpsertSchema = z.object({
+  assetId: z.string().min(1),
+  projectId: z.string().min(1),
+  assetType: z.string().min(1),
+  assetName: z.string().min(1),
+  assetGroup: z.string().optional(),
+  assetStatus: z.string().optional(),
+  relativePath: z.string().min(1),
+  sourceTaskId: z.string().optional(),
+  summary: z.string().optional()
+});
+
 export const taskListItemSchema = z.object({
   taskId: z.string().min(1),
   projectId: projectIdSchema,
