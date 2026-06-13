@@ -927,9 +927,9 @@ async function buildRuntimeSystemPrompt(session: SessionState, extraSkillRoots: 
 
   let projectMeta = `Project path: ${session.projectPath}`;
   try {
-    const metaRaw = await readFile(path.join(session.projectPath, 'project.json'), 'utf-8');
+    const metaRaw = await readFile(path.join(session.projectPath, 'project.yaml'), 'utf-8');
     projectMeta += `\nProject config:\n${metaRaw}`;
-  } catch { /* no project.json */ }
+  } catch { /* no project.yaml */ }
 
   return buildSystemPrompt({
     orisonPrompt: DEFAULT_ORISON_PROMPT,

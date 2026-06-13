@@ -234,6 +234,8 @@ export type OrisonDesktopApi = {
   docxToHtml(fullPath: string): Promise<string | null>;
   docxToMarkdown(fullPath: string): Promise<string | null>;
   saveProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
+  /** Idempotently ensure `<projectDir>/project.yaml` exists (create-if-absent, no version bump). */
+  ensureProjectDocument(projectDir: string, meta: Record<string, unknown>): Promise<void>;
   syncProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
   syncChaptersMeta(projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>): Promise<void>;
   loadProjectMeta(projectDir: string): Promise<Record<string, unknown> | null>;

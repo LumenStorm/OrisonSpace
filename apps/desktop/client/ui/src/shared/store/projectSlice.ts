@@ -47,6 +47,8 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
   async saveProject() {
     const project = get().currentProject;
     if (!project?.path) return;
+    // project.json 已废弃：meta 直接落 project.yaml。saveProjectMeta 现在就是写 yaml meta，
+    // 单次调用即可（旧版 saveProjectMeta + syncProjectMeta 双写已是同一目标，去重）。
     const meta = {
       name: project.name,
       type: project.type,
@@ -57,12 +59,10 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
       writing_style: project.writingStyle ?? null,
       tone: project.tone ?? null,
       coverImage: project.coverImage ?? null,
+      projectId: project.projectId ?? null,
     };
     if (window.orisonDesktop?.saveProjectMeta) {
       await window.orisonDesktop.saveProjectMeta(project.path, meta);
-    }
-    if (window.orisonDesktop?.syncProjectMeta) {
-      await window.orisonDesktop.syncProjectMeta(project.path, meta);
     }
   },
   async flushDirty() {

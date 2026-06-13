@@ -4,26 +4,116 @@ import type { FileTab } from '../../../shared/store/fileTabsSlice';
 import { FindReplaceBar, type FindReplaceAdapter, type FindMatch, type FindReplaceMode } from '../FindReplaceBar';
 import { EditorStatusBar } from './EditorStatusBar';
 
+type HistoryEntry = { content: string };
+const HISTORY_LIMIT = 200;
+// Coalesce rapid keystrokes into a single undo step (like native editors).
+const COALESCE_MS = 400;
+
+// Caret position to land on after swapping `from` -> `to`: the end of the
+// region that actually changed, so editing naturally continues after the
+// restored text (matches native/VSCode undo feel). Exported for testing.
+export function caretAfterSwap(from: string, to: string): number {
+  if (from === to) return to.length;
+  let pre = 0;
+  const maxPre = Math.min(from.length, to.length);
+  while (pre < maxPre && from[pre] === to[pre]) pre++;
+  let suf = 0;
+  const maxSuf = Math.min(from.length - pre, to.length - pre);
+  while (suf < maxSuf && from[from.length - 1 - suf] === to[to.length - 1 - suf]) suf++;
+  // End of the changed span within `to`.
+  return to.length - suf;
+}
+
 export function CodeEditor({ file }: { file: FileTab }) {
   const updateFileContent = useAppStore((s) => s.updateFileContent);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
   const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
 
+  // Controlled <textarea> loses the browser's native undo history (React forces
+  // `value` every render), so we maintain our own per-file undo/redo stacks.
+  const undoStack = useRef<HistoryEntry[]>([]);
+  const redoStack = useRef<HistoryEntry[]>([]);
+  const lastPushAt = useRef(0);
+  const fileIdRef = useRef(file.id);
+
+  // Reset history when a different file becomes active in this reused editor.
+  useEffect(() => {
+    if (file.id === fileIdRef.current) return;
+    fileIdRef.current = file.id;
+    undoStack.current = [];
+    redoStack.current = [];
+    lastPushAt.current = 0;
+  }, [file.id]);
+
   const lineCount = useMemo(() => file.content.split('\n').length, [file.content]);
+
+  // Snapshot the current content onto the undo stack (clears redo).
+  const pushHistory = useCallback(() => {
+    undoStack.current.push({ content: file.content });
+    if (undoStack.current.length > HISTORY_LIMIT) undoStack.current.shift();
+    redoStack.current = [];
+  }, [file.content]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      updateFileContent(file.path, e.target.value);
+      const ta = e.target;
+      const now = Date.now();
+      // Push the pre-edit snapshot, coalescing bursts of typing into one step.
+      if (now - lastPushAt.current > COALESCE_MS) pushHistory();
+      lastPushAt.current = now;
+      updateFileContent(file.path, ta.value);
+    },
+    [file.path, updateFileContent, pushHistory],
+  );
+
+  const restore = useCallback(
+    (fromContent: string, entry: HistoryEntry) => {
+      updateFileContent(file.path, entry.content);
+      const caret = caretAfterSwap(fromContent, entry.content);
+      // Reapply caret after React commits the new value.
+      requestAnimationFrame(() => {
+        const ta = textareaRef.current;
+        if (ta) {
+          ta.focus();
+          ta.setSelectionRange(caret, caret);
+        }
+      });
     },
     [file.path, updateFileContent],
   );
+
+  const handleUndo = useCallback(() => {
+    const prev = undoStack.current.pop();
+    if (!prev) return;
+    redoStack.current.push({ content: file.content });
+    lastPushAt.current = 0; // force the next edit to start a fresh undo step
+    restore(file.content, prev);
+  }, [file.content, restore]);
+
+  const handleRedo = useCallback(() => {
+    const next = redoStack.current.pop();
+    if (!next) return;
+    undoStack.current.push({ content: file.content });
+    lastPushAt.current = 0;
+    restore(file.content, next);
+  }, [file.content, restore]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && lineNumRef.current) {
       lineNumRef.current.scrollTop = textareaRef.current.scrollTop;
     }
   }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z' && !e.shiftKey) { e.preventDefault(); handleUndo(); }
+      else if ((key === 'z' && e.shiftKey) || key === 'y') { e.preventDefault(); handleRedo(); }
+    },
+    [handleUndo, handleRedo],
+  );
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -50,6 +140,7 @@ export function CodeEditor({ file }: { file: FileTab }) {
     replaceOne: (match: FindMatch, replacement: string) => {
       const before = file.content.slice(0, match.start);
       const after = file.content.slice(match.end);
+      pushHistory();
       updateFileContent(file.path, before + replacement + after);
     },
     replaceAll: (matches: FindMatch[], replacement: string) => {
@@ -58,9 +149,10 @@ export function CodeEditor({ file }: { file: FileTab }) {
         const m = matches[i];
         result = result.slice(0, m.start) + replacement + result.slice(m.end);
       }
+      pushHistory();
       updateFileContent(file.path, result);
     },
-  }), [file.content, file.path, updateFileContent]);
+  }), [file.content, file.path, updateFileContent, pushHistory]);
 
   const ext = file.name.split('.').pop()?.toUpperCase() ?? 'TEXT';
 
@@ -81,6 +173,7 @@ export function CodeEditor({ file }: { file: FileTab }) {
           value={file.content}
           onChange={handleChange}
           onScroll={handleScroll}
+          onKeyDown={handleKeyDown}
           spellCheck={false}
         />
       </div>

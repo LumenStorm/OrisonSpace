@@ -21,7 +21,7 @@ export function TopBar() {
   const {
     resolvedLocale, closeProject, currentProject, saveProject, saveChaptersToProject,
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
-    checkForUpdate, appVersion, openPalette, undo, redo, toggleProjectTree, toggleBottomPanel,
+    checkForUpdate, appVersion, openPalette, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
     splitDirection, setSplit, showMinimap, toggleMinimap, refreshWordCount, openFile,
   } = useAppStore(useShallow((s) => ({
@@ -37,8 +37,6 @@ export function TopBar() {
     checkForUpdate: s.checkForUpdate,
     appVersion: s.appVersion,
     openPalette: s.openPalette,
-    undo: s.undo,
-    redo: s.redo,
     toggleProjectTree: s.toggleProjectTree,
     toggleBottomPanel: s.toggleBottomPanel,
     toggleAgentPanel: s.toggleAgentPanel,
@@ -53,8 +51,6 @@ export function TopBar() {
     openFile: s.openFile,
   })));
   const showToast = useToastStore((s) => s.showToast);
-  const undoLen = useAppStore((s) => s.undoStack.length);
-  const redoLen = useAppStore((s) => s.redoStack.length);
   const { t } = useI18n(resolvedLocale);
   const handleOpen = useOpenProject();
 
@@ -93,8 +89,23 @@ export function TopBar() {
     showToast(t('topbar.saved'));
   }, [saveProject, saveChaptersToProject, saveAllOpenFiles, refreshWordCount, showToast, t]);
 
-  const handleUndo = useCallback(() => undo(), [undo]);
-  const handleRedo = useCallback(() => redo(), [redo]);
+  // Route undo/redo to the focused editor (textarea / Tiptap contenteditable),
+  // which owns its own history. The legacy editorSlice undo stack drove a
+  // chapters store no live editor renders, so it never had a visible effect.
+  const dispatchEditCommand = useCallback((shift: boolean) => {
+    const active = document.activeElement as HTMLElement | null;
+    const editable =
+      active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)
+        ? active
+        : document.querySelector<HTMLElement>('.code-editor-textarea, .tiptap-content .tiptap');
+    if (!editable) return;
+    editable.focus();
+    editable.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, metaKey: true, shiftKey: shift, bubbles: true }),
+    );
+  }, []);
+  const handleUndo = useCallback(() => dispatchEditCommand(false), [dispatchEditCommand]);
+  const handleRedo = useCallback(() => dispatchEditCommand(true), [dispatchEditCommand]);
 
   const handleImportDocx = useCallback(async () => {
     const projectPath = currentProject?.path;
@@ -162,8 +173,8 @@ export function TopBar() {
   ];
 
   const editItems: MenuItem[] = [
-    { type: 'action', label: t('topbar.undo'), shortcut: `${modKey}Z`, handler: handleUndo, disabled: undoLen === 0 },
-    { type: 'action', label: t('topbar.redo'), shortcut: isMac ? '⌘⇧Z' : 'Ctrl+Shift+Z', handler: handleRedo, disabled: redoLen === 0 },
+    { type: 'action', label: t('topbar.undo'), shortcut: `${modKey}Z`, handler: handleUndo },
+    { type: 'action', label: t('topbar.redo'), shortcut: isMac ? '⌘⇧Z' : 'Ctrl+Shift+Z', handler: handleRedo },
     { type: 'separator' },
     { type: 'action', label: t('topbar.find'), shortcut: `${modKey}F`, handler: () => dispatchKey('f') },
     { type: 'action', label: t('topbar.replace'), shortcut: `${modKey}H`, handler: () => dispatchKey('h') },

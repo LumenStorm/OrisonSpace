@@ -17,6 +17,51 @@ import {
   readDirectoryRecursive,
 } from './projectIpcHelpers';
 
+/** 概览/创建传入的 camelCase meta（含 coverImage/projectId）映射进 project.yaml 的 meta（snake_case）。 */
+const META_KEY_MAP: Record<string, string> = {
+  name: 'name',
+  type: 'type',
+  logline: 'logline',
+  synopsis: 'synopsis',
+  genre: 'genre',
+  theme: 'theme',
+  writing_style: 'writing_style',
+  writingStyle: 'writing_style',
+  tone: 'tone',
+  coverImage: 'cover_image',
+  cover_image: 'cover_image',
+  projectId: 'project_id',
+  project_id: 'project_id',
+};
+
+/** 就地把传入 meta 合并进 project document 的 meta（空串/null 视为清空）。 */
+function applyMetaToDocument(doc: Record<string, any>, meta: Record<string, unknown>): void {
+  if (!doc.meta || typeof doc.meta !== 'object') doc.meta = {};
+  for (const [inKey, value] of Object.entries(meta)) {
+    const docKey = META_KEY_MAP[inKey];
+    if (!docKey) continue; // chapters 等非 meta 字段不进 project.yaml meta
+    if (docKey === 'name') {
+      if (typeof value === 'string' && value.trim()) doc.meta.name = value;
+    } else if (docKey === 'type') {
+      if (value === 'script' || value === 'novel') doc.meta.type = value;
+    } else if (value === undefined) {
+      continue;
+    } else {
+      doc.meta[docKey] = value ? value : undefined;
+    }
+  }
+}
+
+/** project.yaml 的 meta（snake_case）回传成前端历史消费的 camelCase 形状（向后兼容）。 */
+function projectMetaToLegacyShape(meta: Record<string, any>): Record<string, unknown> {
+  return {
+    ...meta,
+    writingStyle: meta.writing_style,
+    coverImage: meta.cover_image,
+    projectId: meta.project_id,
+  };
+}
+
 export function registerProjectIpc() {
   const orisonSpaceRoot = getOrisonSpaceRoot();
   if (!existsSync(orisonSpaceRoot)) {
@@ -161,18 +206,50 @@ export function registerProjectIpc() {
 
   ipcMain.handle('project:save-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
-    const metaPath = path.join(projectDir, 'project.json');
-    assertWithinProject(projectDir, metaPath);
-    atomicWriteFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+    // project.json 已废弃：meta 直接写入 project.yaml（唯一真相源）。沿用 sync-meta 的
+    // 合并语义——load(或迁移/兜底重建) 后把传入字段并入 meta 再落盘。
+    const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
+      await import('../../../../local-bff/index');
+    const doc = migrateLegacyProjectJson(projectDir)
+      ?? loadProject(projectDir)
+      ?? createEmptyProjectDocument(
+        typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
+        meta.type === 'script' ? 'script' : 'novel',
+      );
+    const next = structuredClone(doc) as Record<string, any>;
+    applyMetaToDocument(next, meta);
+    next.meta.updated_at = new Date().toISOString();
+    next.meta.version = (next.meta.version ?? 0) + 1;
+    saveProject(projectDir, next as any);
+  });
+
+  // Idempotent project.yaml initialization for create/import flows: guarantees
+  // the config file exists without rewriting (or bumping version of) one that's
+  // already there. Legacy project.json is migrated in if present.
+  ipcMain.handle('project:ensure-document', async (_, projectDir: string, meta: Record<string, unknown>) => {
+    assertSafePath(projectDir);
+    const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
+      await import('../../../../local-bff/index');
+    // Migration (if any) already lands a valid project.yaml on disk.
+    if (migrateLegacyProjectJson(projectDir) ?? loadProject(projectDir)) return;
+    // No document yet → create a fresh one seeded from the supplied meta.
+    const doc = createEmptyProjectDocument(
+      typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
+      meta.type === 'script' ? 'script' : 'novel',
+    );
+    const next = structuredClone(doc) as Record<string, any>;
+    applyMetaToDocument(next, meta);
+    saveProject(projectDir, next as any);
   });
 
   ipcMain.handle('project:load-meta', async (_, projectDir: string) => {
     assertSafePath(projectDir);
-    const metaPath = path.join(projectDir, 'project.json');
-    assertWithinProject(projectDir, metaPath);
     try {
-      if (!existsSync(metaPath)) return null;
-      return JSON.parse(readFileSync(metaPath, 'utf-8'));
+      const { migrateLegacyProjectJson } = await import('../../../../local-bff/index');
+      // 打开旧项目时把残留 project.json 迁移进 project.yaml 并删除 json。
+      const doc = migrateLegacyProjectJson(projectDir);
+      if (!doc) return null;
+      return projectMetaToLegacyShape(doc.meta);
     } catch {
       return null;
     }
@@ -191,23 +268,21 @@ export function registerProjectIpc() {
   ipcMain.handle('project:sync-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
     try {
-      const { loadProject, saveProject, bootstrapProjectFromMeta } = await import('../../../../local-bff/index');
-      // project.yaml 缺失时不再静默放弃：从 project.json 兜底重建一个，再写入概览
-      // 元信息。否则用户在概览页填的 logline/synopsis 等永远进不了 project.yaml，
-      // 而 agent 工具读的是 project.yaml，会出现元信息漂移。
-      const doc = loadProject(projectDir) ?? bootstrapProjectFromMeta(projectDir);
+      const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
+        await import('../../../../local-bff/index');
+      // project.yaml 是唯一真相源；缺失时迁移旧 json 或兜底重建，再写入概览元信息。
+      const doc = migrateLegacyProjectJson(projectDir)
+        ?? loadProject(projectDir)
+        ?? createEmptyProjectDocument(
+          typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
+          meta.type === 'script' ? 'script' : 'novel',
+        );
       const next = structuredClone(doc) as Record<string, any>;
-      if (meta.name) next.meta.name = meta.name;
-      if (meta.logline !== undefined) next.meta.logline = meta.logline || undefined;
-      if (meta.synopsis !== undefined) next.meta.synopsis = meta.synopsis || undefined;
-      if (meta.genre !== undefined) next.meta.genre = meta.genre || undefined;
-      if (meta.theme !== undefined) next.meta.theme = meta.theme || undefined;
-      if (meta.writing_style !== undefined) next.meta.writing_style = meta.writing_style || undefined;
-      if (meta.tone !== undefined) next.meta.tone = meta.tone || undefined;
+      applyMetaToDocument(next, meta);
       next.meta.updated_at = new Date().toISOString();
       next.meta.version = (next.meta.version ?? 0) + 1;
       saveProject(projectDir, next as any);
-    } catch { /* best-effort：project.json 也损坏时不阻断 project.json 的保存 */ }
+    } catch { /* best-effort：损坏时不阻断其余保存路径 */ }
   });
 
   ipcMain.handle('project:sync-chapters-meta', async (_, projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) => {

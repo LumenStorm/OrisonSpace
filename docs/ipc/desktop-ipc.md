@@ -23,8 +23,9 @@
 | `project:create-directory` | renderer -> main | invoke | 在指定父目录下创建项目目录 |
 | `project:pick-cover-image` | renderer -> main | invoke | 选择封面图 |
 | `project:copy-cover-image` | renderer -> main | invoke | 将封面图复制到项目目录 |
-| `project:save-meta` | renderer -> main | invoke | 保存项目元信息 |
-| `project:load-meta` | renderer -> main | invoke | 读取项目元信息 |
+| `project:save-meta` | renderer -> main | invoke | 保存项目元信息到 project.yaml（已废弃 project.json，旧项目读取时自动迁移并删除） |
+| `project:ensure-document` | renderer -> main | invoke | 幂等初始化 project.yaml：缺失时按传入 meta 创建（不存在则建、已存在不改不升版本），导入/打开项目时确保配置文件存在 |
+| `project:load-meta` | renderer -> main | invoke | 读取项目元信息（来自 project.yaml；遇到残留 project.json 先迁移再读） |
 | `project:read-directory` | renderer -> main | invoke | 读取项目目录树 |
 | `project:delete-entry` | renderer -> main | invoke | 删除文件或目录 |
 | `project:rename-entry` | renderer -> main | invoke | 重命名文件或目录 |
@@ -206,6 +207,7 @@ window.orisonDesktop = {
   pickCoverImage,
   copyCoverImage,
   saveProjectMeta,
+  ensureProjectDocument,
   loadProjectMeta,
   loadProjectDocument,
   syncProjectMeta,

@@ -28,6 +28,10 @@ export const projectMetaSchema = z.object({
   theme: z.string().optional(),
   writing_style: z.string().optional(),
   tone: z.string().optional(),
+  /** 封面图相对/绝对路径（从已废弃的 project.json 收敛而来）。 */
+  cover_image: z.string().optional(),
+  /** 本机注册表里的项目 ID（5 位注册号；从已废弃的 project.json 收敛而来）。 */
+  project_id: z.string().optional(),
   version: z.number().int().nonnegative(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime()

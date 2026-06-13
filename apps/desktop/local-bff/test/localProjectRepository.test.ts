@@ -7,7 +7,8 @@ import {
   saveProject,
   loadProject,
   applyFieldPatches,
-  bootstrapProjectFromMeta
+  bootstrapProjectFromMeta,
+  migrateLegacyProjectJson
 } from '../sync/localProjectRepository';
 import type { ProjectFieldPatch } from '@orison/shared-contracts';
 import YAML from 'yaml';
@@ -61,6 +62,62 @@ describe('local project repository helpers', () => {
 
     expect(doc.meta.name).toBe(path.basename(TEST_PROJECT_DIR));
     expect(doc.meta.type).toBe('novel');
+  });
+
+  it('migrateLegacyProjectJson 把 project.json 收敛进 project.yaml（含 coverImage/projectId）并删除 json', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    writeFileSync(
+      path.join(TEST_PROJECT_DIR, 'project.json'),
+      JSON.stringify({
+        name: '迁移项目', type: 'script', logline: 'L', synopsis: 'S',
+        coverImage: 'assets/cover.png', projectId: '12345'
+      }),
+      'utf8'
+    );
+
+    const doc = migrateLegacyProjectJson(TEST_PROJECT_DIR);
+
+    expect(doc).not.toBeNull();
+    expect(doc!.meta.name).toBe('迁移项目');
+    expect(doc!.meta.type).toBe('script');
+    expect(doc!.meta.logline).toBe('L');
+    expect(doc!.meta.synopsis).toBe('S');
+    expect(doc!.meta.cover_image).toBe('assets/cover.png');
+    expect(doc!.meta.project_id).toBe('12345');
+    // json 被删除，yaml 成为唯一真相源
+    expect(existsSync(path.join(TEST_PROJECT_DIR, 'project.json'))).toBe(false);
+    expect(existsSync(path.join(TEST_PROJECT_DIR, 'project.yaml'))).toBe(true);
+    // 重新加载一致
+    const reloaded = loadProject(TEST_PROJECT_DIR);
+    expect(reloaded!.meta.cover_image).toBe('assets/cover.png');
+    expect(reloaded!.meta.project_id).toBe('12345');
+  });
+
+  it('migrateLegacyProjectJson 已有 project.yaml 时仅补缺字段，不覆盖 yaml 既有值', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    // yaml 已有 logline，json 带不同 logline + 额外 coverImage
+    saveProject(TEST_PROJECT_DIR, createEmptyProjectDocument('Yaml 名', 'novel', { logline: 'yaml-logline' }));
+    writeFileSync(
+      path.join(TEST_PROJECT_DIR, 'project.json'),
+      JSON.stringify({ name: 'Json 名', logline: 'json-logline', coverImage: 'c.png' }),
+      'utf8'
+    );
+
+    const doc = migrateLegacyProjectJson(TEST_PROJECT_DIR);
+
+    expect(doc!.meta.name).toBe('Yaml 名');           // yaml 既有 name 不被覆盖
+    expect(doc!.meta.logline).toBe('yaml-logline');    // yaml 既有 logline 不被覆盖
+    expect(doc!.meta.cover_image).toBe('c.png');        // yaml 缺失的字段从 json 补齐
+    expect(existsSync(path.join(TEST_PROJECT_DIR, 'project.json'))).toBe(false);
+  });
+
+  it('migrateLegacyProjectJson 无 json 时返回现有 yaml（或 null），不做写删', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    expect(migrateLegacyProjectJson(TEST_PROJECT_DIR)).toBeNull();
+
+    saveProject(TEST_PROJECT_DIR, createEmptyProjectDocument('仅 yaml', 'novel'));
+    const doc = migrateLegacyProjectJson(TEST_PROJECT_DIR);
+    expect(doc!.meta.name).toBe('仅 yaml');
   });
 
   it('applies a replace patch (no-op for removed outline paths)', () => {

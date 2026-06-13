@@ -9,8 +9,8 @@ import type { ToolHandler } from '../toolExecution';
 import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 export const projectMetaHandler: ToolHandler = async ({ projectDir }) => {
-  const metaPath = path.join(projectDir, 'project.json');
-  if (!existsSync(metaPath)) return { title: 'project_meta', output: 'No project.json found.' };
+  const metaPath = path.join(projectDir, 'project.yaml');
+  if (!existsSync(metaPath)) return { title: 'project_meta', output: 'No project.yaml found.' };
 
   const content = readFileSync(metaPath, 'utf-8');
   return { title: 'project_meta', output: content };

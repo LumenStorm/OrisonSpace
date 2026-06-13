@@ -177,7 +177,7 @@ export function registerBuiltinTools() {
   // Project
   registry.register(remoteToolProxy({
     id: 'project_meta',
-    description: 'Read the project metadata (project.json).',
+    description: 'Read the project metadata (project.yaml).',
     parameters: z.object({}),
   }));
 

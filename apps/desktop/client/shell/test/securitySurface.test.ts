@@ -27,6 +27,7 @@ describe('preload security surface', () => {
       'docxToHtml',
       'docxToMarkdown',
       'downloadUpdate',
+      'ensureProjectDocument',
       'ensureProjectRegistration',
       'executeAgentSkill',
       'generateImage',

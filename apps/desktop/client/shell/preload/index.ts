@@ -41,6 +41,8 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:docx-to-markdown', fullPath) as Promise<string | null>,
   saveProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:save-meta', projectDir, meta) as Promise<void>,
+  ensureProjectDocument: (projectDir: string, meta: Record<string, unknown>) =>
+    ipcRenderer.invoke('project:ensure-document', projectDir, meta) as Promise<void>,
   syncProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:sync-meta', projectDir, meta) as Promise<void>,
   syncChaptersMeta: (projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) =>

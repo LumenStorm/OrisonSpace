@@ -114,7 +114,7 @@ function buildExecutionPrompt(originalPrompt: string, skillName: string): string
     '- Git operations: use `git_diff`, `git_status`, `git_log`, `git_commit` tools directly',
     '',
     '### Directory Mapping',
-    '- If project.json has "directories" config, use those names instead of defaults.',
+    '- If project.yaml has "directories" config, use those names instead of defaults.',
     '- Skill says `正文/` → use chapter_write/chapter_read APIs instead',
     '- Skill says `设定/` or `设定/角色/` → use actual settings directory from project file tree (e.g., `设定集/`)',
     '- Skill says `大纲/大纲.md` → use outline_update API for main outline',

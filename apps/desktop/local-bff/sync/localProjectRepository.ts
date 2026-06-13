@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import type { z } from 'zod';
 import { patchOperationSchema, projectDocumentSchema } from '@orison/shared-contracts';
@@ -11,7 +11,11 @@ type PatchOperation = z.infer<typeof patchOperationSchema>;
 
 // ── 旧接口（保持兼容） ──
 
-export function createEmptyProjectDocument(name: string, type: 'novel' | 'script' = 'novel'): ProjectDocument {
+export function createEmptyProjectDocument(
+  name: string,
+  type: 'novel' | 'script' = 'novel',
+  extraMeta: Record<string, string> = {}
+): ProjectDocument {
   const now = new Date().toISOString();
   return projectDocumentSchema.parse({
     meta: {
@@ -20,7 +24,8 @@ export function createEmptyProjectDocument(name: string, type: 'novel' | 'script
       type,
       version: 1,
       created_at: now,
-      updated_at: now
+      updated_at: now,
+      ...extraMeta
     },
     storyboard: {
       shots: []
@@ -166,41 +171,81 @@ export function loadProject(projectPath: string): ProjectDocument | null {
   return projectDocumentSchema.parse(parsed);
 }
 
-/** project.json 里可同步到 project.yaml meta 的字段（与 projectMetaSchema 对齐）。 */
+const LEGACY_META_FILE = 'project.json';
+
+/** 旧 project.json 里可收敛到 project.yaml meta 的字段（与 projectMetaSchema 对齐）。 */
 const META_STRING_FIELDS = ['logline', 'synopsis', 'genre', 'theme', 'writing_style', 'tone'] as const;
 
+/** 从旧 project.json 读出可收敛进 yaml meta 的字段（含 coverImage→cover_image、projectId→project_id）。 */
+function readLegacyMeta(projectPath: string): { name?: string; type?: 'novel' | 'script'; extra: Record<string, string> } {
+  const result: { name?: string; type?: 'novel' | 'script'; extra: Record<string, string> } = { extra: {} };
+  try {
+    const metaPath = path.join(projectPath, LEGACY_META_FILE);
+    if (!existsSync(metaPath)) return result;
+    const meta = JSON.parse(readFileSync(metaPath, 'utf8')) as Record<string, unknown>;
+    if (typeof meta.name === 'string' && meta.name.trim()) result.name = meta.name;
+    if (meta.type === 'script' || meta.type === 'novel') result.type = meta.type;
+    for (const key of META_STRING_FIELDS) {
+      const v = meta[key];
+      if (typeof v === 'string' && v.trim()) result.extra[key] = v;
+    }
+    if (typeof meta.coverImage === 'string' && meta.coverImage.trim()) result.extra.cover_image = meta.coverImage;
+    if (typeof meta.projectId === 'string' && meta.projectId.trim()) result.extra.project_id = meta.projectId;
+  } catch {
+    // 读不出/损坏的 project.json 当作不存在处理，用目录名兜底。
+  }
+  return result;
+}
+
 /**
- * 加载 project.yaml；不存在时从同目录 project.json 兜底重建一个合法空文档。
- *
- * 背景：新建项目只写 project.json（name/type/logline/... 等 meta），从不创建
- * project.yaml；而创作字段（大纲、世设等）只存在于 project.yaml。于是首次访问
- * project.yaml 会落空。这里在缺失时读 project.json 的**全部** meta 字段重建，
- * 避免「两个文件元信息漂移」（例如概览页填了 logline，自愈出的 yaml 却为空）。
- *
- * 注意：本函数只在内存中构造文档，不落盘——是否写盘由调用方决定。
+ * 内存构造一个 project.yaml 文档：优先读旧 project.json 的全部 meta 字段，缺失则目录名兜底。
+ * 不落盘、不删 json——是否落盘/迁移由调用方决定（迁移走 {@link migrateLegacyProjectJson}）。
  */
 export function bootstrapProjectFromMeta(projectPath: string): ProjectDocument {
-  let name = path.basename(projectPath);
-  let type: 'novel' | 'script' = 'novel';
-  let extraMeta: Record<string, string> = {};
-  try {
-    const metaPath = path.join(projectPath, 'project.json');
-    if (existsSync(metaPath)) {
-      const meta = JSON.parse(readFileSync(metaPath, 'utf8')) as Record<string, unknown>;
-      if (typeof meta.name === 'string' && meta.name.trim()) name = meta.name;
-      if (meta.type === 'script') type = 'script';
-      for (const key of META_STRING_FIELDS) {
-        const v = meta[key];
-        if (typeof v === 'string' && v.trim()) extraMeta[key] = v;
-      }
-    }
-  } catch {
-    // 读不出 project.json 就用目录名兜底，仍能建出合法文档。
-  }
-  const doc = createEmptyProjectDocument(name, type) as Record<string, any>;
-  Object.assign(doc.meta, extraMeta);
-  return projectDocumentSchema.parse(doc);
+  const legacy = readLegacyMeta(projectPath);
+  const name = legacy.name ?? path.basename(projectPath);
+  const type = legacy.type ?? 'novel';
+  return createEmptyProjectDocument(name, type, legacy.extra);
 }
+
+/**
+ * 把旧 project.json 一次性迁移进 project.yaml，然后删除 json。
+ *
+ * - 已有合法 project.yaml：仅在 yaml 缺少 json 携带的 meta 字段时回填补齐，随后删 json。
+ * - 无 project.yaml：从 json（或目录名兜底）重建一个完整文档写盘，随后删 json。
+ * - 无 project.json：直接返回现有 yaml（可能为 null），不做任何写删。
+ *
+ * 删除前确保 yaml 已成功 atomicWrite 落盘；写失败则不删，避免数据丢失。
+ * 返回迁移后的文档（无 json 且无 yaml 时返回 null）。
+ */
+export function migrateLegacyProjectJson(projectPath: string): ProjectDocument | null {
+  const legacyPath = path.join(projectPath, LEGACY_META_FILE);
+  if (!existsSync(legacyPath)) return loadProject(projectPath);
+
+  const legacy = readLegacyMeta(projectPath);
+  const existing = loadProject(projectPath);
+
+  const doc = (existing
+    ? structuredClone(existing)
+    : createEmptyProjectDocument(legacy.name ?? path.basename(projectPath), legacy.type ?? 'novel')) as Record<string, any>;
+
+  // 只补缺：yaml 已有的字段不被 json 覆盖（yaml 是新真相源）。
+  if (!doc.meta.name && legacy.name) doc.meta.name = legacy.name;
+  if (legacy.type && existing == null) doc.meta.type = legacy.type;
+  for (const [key, value] of Object.entries(legacy.extra)) {
+    if (doc.meta[key] === undefined) doc.meta[key] = value;
+  }
+
+  const validated = projectDocumentSchema.parse(doc);
+  saveProject(projectPath, validated); // atomicWrite：成功后才删 json
+  try {
+    unlinkSync(legacyPath);
+  } catch {
+    // 删不掉（占用/权限）不阻断：yaml 已是真相源，残留 json 下次再试。
+  }
+  return validated;
+}
+
 export function applyFieldPatches(
   projectPath: string,
   fieldPatch: ProjectFieldPatch

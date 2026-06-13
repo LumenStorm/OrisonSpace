@@ -181,9 +181,9 @@
   padding: var(--space-xl) var(--space-md) var(--space-xl) var(--space-lg);
   background: var(--surface-container-low);
   border-right: 1px solid var(--border-subtle);
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: var(--text-sm);
-  line-height: 1.65;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  line-height: 1.7;
   color: var(--on-surface-variant);
   text-align: right;
   user-select: none;
@@ -197,11 +197,11 @@
   resize: none;
   padding: var(--space-xl);
   border: 0;
-  background: var(--surface-container-lowest);
+  background: var(--surface);
   color: var(--on-surface);
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-md);
-  line-height: 1.65;
+  line-height: 1.7;
   tab-size: 2;
   outline: none;
   overflow-y: auto;

@@ -31,16 +31,30 @@ export function useOpenProject(): () => Promise<void> {
     if (!project.projectId) {
       try {
         project.projectId = await ensureProjectRegistration({ project });
-        await window.orisonDesktop?.saveProjectMeta(dir, {
-          ...(meta ?? {}),
-          name: project.name,
-          type: project.type,
-          coverImage: project.coverImage ?? null,
-          projectId: project.projectId,
-        });
       } catch {
         // Keep the local project open even when registration is temporarily unavailable.
       }
+    }
+
+    const metaBase = {
+      ...(meta ?? {}),
+      name: project.name,
+      type: project.type,
+      coverImage: project.coverImage ?? null,
+    };
+
+    // Initialize the project config (project.yaml) on import, mirroring create.
+    try {
+      if (project.projectId && project.projectId !== meta?.projectId) {
+        // Obtained/changed a projectId → persist it (also creates the file if absent).
+        await window.orisonDesktop?.saveProjectMeta(dir, { ...metaBase, projectId: project.projectId });
+      } else {
+        // Otherwise just guarantee the file exists, without rewriting or bumping
+        // the version of an existing project.yaml.
+        await window.orisonDesktop?.ensureProjectDocument(dir, metaBase);
+      }
+    } catch {
+      // A failed write must not block opening the project.
     }
 
     openProject(project);

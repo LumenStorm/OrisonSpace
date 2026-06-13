@@ -149,27 +149,15 @@ export const createEditorSlice: StateCreator<
   canUndo: () => get().undoStack.length > 0,
   canRedo: () => get().redoStack.length > 0,
 
+  // 旧版编辑器章节列表（{id,title,content}）曾被缓存进已废弃的 project.json `chapters`
+  // 键，但该缓存从无读取方（loadChaptersFromProject 全仓零调用）。移除 project.json 后
+  // 这两个方法不再落盘：正文真相源是打开的 .md 文件（saveAllOpenFiles）+ project.yaml
+  // 的 novel.chapters（setNovelChapters/syncChaptersMeta）。保留签名避免改动调用方。
   async saveChaptersToProject() {
-    const { currentProject, chapters } = get();
-    if (!currentProject?.path) return;
-    await window.orisonDesktop?.saveProjectMeta(currentProject.path, {
-      ...(await window.orisonDesktop?.loadProjectMeta(currentProject.path) ?? {}),
-      chapters,
-    });
+    /* no-op：旧 json chapters 缓存已废弃，正文持久化走文件 + novel.chapters */
   },
 
   async loadChaptersFromProject() {
-    const { currentProject } = get();
-    if (!currentProject?.path) return;
-    const meta = await window.orisonDesktop?.loadProjectMeta(currentProject.path);
-    if (meta?.chapters && Array.isArray(meta.chapters)) {
-      const chapters = meta.chapters as Chapter[];
-      set({
-        chapters,
-        activeChapterId: chapters[0]?.id ?? null,
-        undoStack: [],
-        redoStack: [],
-      });
-    }
+    /* no-op：章节由 projectSubscription 从 project.yaml 的 novel.chapters 水合 */
   },
 });
