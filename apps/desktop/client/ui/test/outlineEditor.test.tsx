@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { useAppStore } from '../src/shared/store/appStore';
 import { OutlineEditor } from '../src/features/editor/OutlineEditor';
 
@@ -47,6 +47,49 @@ describe('OutlineEditor regressions', () => {
     await vi.advanceTimersByTimeAsync(600);
 
     expect(window.orisonDesktop.syncField).not.toHaveBeenCalled();
+
+    unmount();
+    await vi.runOnlyPendingTimersAsync();
+  });
+
+  it('连续手动输入：本地值不被回灌覆盖，且只 debounce 落盘一次', async () => {
+    useAppStore.setState({
+      projectDocumentHydrated: true,
+      // updateField writes a new object into store.creativeFields.outline;
+      // the editor must NOT re-hydrate from its own write and clobber typing.
+      updateField: (field: string, data: unknown) => {
+        useAppStore.setState((s) => ({ creativeFields: { ...s.creativeFields, [field]: data } }) as any);
+        if (field === 'outline') {
+          void window.orisonDesktop.syncField('/demo', field, data);
+        }
+      },
+    } as any);
+
+    const { container, unmount } = render(<OutlineEditor />);
+    const input = container.querySelector('.outline-style-input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+
+    // Type three characters with re-renders between (store updates round-trip).
+    fireEvent.change(input, { target: { value: 'a' } });
+    await vi.advanceTimersByTimeAsync(100);
+    fireEvent.change(input, { target: { value: 'ab' } });
+    await vi.advanceTimersByTimeAsync(100);
+    fireEvent.change(input, { target: { value: 'abc' } });
+
+    // Mid-burst the input keeps the latest value (not reverted to a stale one).
+    expect((container.querySelector('.outline-style-input') as HTMLInputElement).value).toBe('abc');
+
+    // Debounce not yet elapsed → no write.
+    expect(window.orisonDesktop.syncField).not.toHaveBeenCalled();
+
+    // After the debounce window, exactly one write with the final value.
+    await vi.advanceTimersByTimeAsync(600);
+    expect(window.orisonDesktop.syncField).toHaveBeenCalledTimes(1);
+    const [, field, data] = (window.orisonDesktop.syncField as any).mock.calls[0];
+    expect(field).toBe('outline');
+    expect((data as { story_type?: string }).story_type).toBe('abc');
+    // Input still shows what was typed — no clobber from the self-write echo.
+    expect((container.querySelector('.outline-style-input') as HTMLInputElement).value).toBe('abc');
 
     unmount();
     await vi.runOnlyPendingTimersAsync();

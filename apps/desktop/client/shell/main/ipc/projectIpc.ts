@@ -7,7 +7,7 @@ import { atomicWriteFileSync } from '../fs/atomicWrite';
 import { decodeFileToUtf8 } from '../fs/decodeText';
 import { watchProject, unwatchProject } from '../fs/projectWatcher';
 import { notifyUI } from './toolNotify';
-import { ensureProject } from '../db/projectRepository';
+import { ensureProject, listProjects, touchProject } from '../db/projectRepository';
 import {
   ALLOWED_IMAGE_DIRS,
   buildProjectPath,
@@ -191,9 +191,11 @@ export function registerProjectIpc() {
   ipcMain.handle('project:sync-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
     try {
-      const { loadProject, saveProject } = await import('../../../../local-bff/index');
-      const doc = loadProject(projectDir);
-      if (!doc) return;
+      const { loadProject, saveProject, bootstrapProjectFromMeta } = await import('../../../../local-bff/index');
+      // project.yaml 缺失时不再静默放弃：从 project.json 兜底重建一个，再写入概览
+      // 元信息。否则用户在概览页填的 logline/synopsis 等永远进不了 project.yaml，
+      // 而 agent 工具读的是 project.yaml，会出现元信息漂移。
+      const doc = loadProject(projectDir) ?? bootstrapProjectFromMeta(projectDir);
       const next = structuredClone(doc) as Record<string, any>;
       if (meta.name) next.meta.name = meta.name;
       if (meta.logline !== undefined) next.meta.logline = meta.logline || undefined;
@@ -205,7 +207,7 @@ export function registerProjectIpc() {
       next.meta.updated_at = new Date().toISOString();
       next.meta.version = (next.meta.version ?? 0) + 1;
       saveProject(projectDir, next as any);
-    } catch { /* ignore if project.yaml doesn't exist yet */ }
+    } catch { /* best-effort：project.json 也损坏时不阻断 project.json 的保存 */ }
   });
 
   ipcMain.handle('project:sync-chapters-meta', async (_, projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) => {
@@ -391,9 +393,27 @@ export function registerProjectIpc() {
   });
 
   /* ── Local project registration (SQLite) ── */
-  ipcMain.handle('project:ensure-registration', async (_, input: { name: string; type: 'novel' | 'script'; localFingerprint: string }) => {
+  ipcMain.handle('project:ensure-registration', async (_, input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }) => {
     const record = ensureProject(input);
     return { projectId: record.projectId, name: record.name, type: record.type };
+  });
+
+  // Durable project list for ProjectsPage (survives app version changes / reinstalls).
+  ipcMain.handle('project:list-registered', async () => {
+    return listProjects().map((r) => ({
+      projectId: r.projectId,
+      name: r.name,
+      type: r.type,
+      path: r.path ?? r.localFingerprint,
+      coverImage: r.coverImage,
+      lastOpenedAt: r.lastOpenedAt,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+  });
+
+  ipcMain.handle('project:touch-registration', async (_, input: { localFingerprint: string; coverImage?: string }) => {
+    touchProject(input);
   });
 
   /* ── Filesystem watcher (auto-refresh on external changes) ── */

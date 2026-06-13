@@ -6,7 +6,8 @@ import {
   createEmptyProjectDocument,
   saveProject,
   loadProject,
-  applyFieldPatches
+  applyFieldPatches,
+  bootstrapProjectFromMeta
 } from '../sync/localProjectRepository';
 import type { ProjectFieldPatch } from '@orison/shared-contracts';
 import YAML from 'yaml';
@@ -26,6 +27,40 @@ describe('local project repository helpers', () => {
     expect(project.meta.name).toBe('Orison Demo');
     expect(project.meta.type).toBe('novel');
     expect(project.storyboard.shots).toEqual([]);
+  });
+
+  it('bootstrapProjectFromMeta 从 project.json 重建文档并保留全部 meta 字段', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    writeFileSync(
+      path.join(TEST_PROJECT_DIR, 'project.json'),
+      JSON.stringify({
+        name: '剧本项目', type: 'script',
+        logline: 'L', synopsis: 'S', genre: 'G', theme: 'T', writing_style: 'W', tone: 'TN'
+      }),
+      'utf8'
+    );
+
+    const doc = bootstrapProjectFromMeta(TEST_PROJECT_DIR);
+
+    expect(doc.meta.name).toBe('剧本项目');
+    expect(doc.meta.type).toBe('script');
+    expect(doc.meta.logline).toBe('L');
+    expect(doc.meta.synopsis).toBe('S');
+    expect(doc.meta.genre).toBe('G');
+    expect(doc.meta.theme).toBe('T');
+    expect(doc.meta.writing_style).toBe('W');
+    expect(doc.meta.tone).toBe('TN');
+    // 纯内存构造，不应自行落盘。
+    expect(existsSync(path.join(TEST_PROJECT_DIR, 'project.yaml'))).toBe(false);
+  });
+
+  it('bootstrapProjectFromMeta 无 project.json 时用目录名兜底', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+
+    const doc = bootstrapProjectFromMeta(TEST_PROJECT_DIR);
+
+    expect(doc.meta.name).toBe(path.basename(TEST_PROJECT_DIR));
+    expect(doc.meta.type).toBe('novel');
   });
 
   it('applies a replace patch (no-op for removed outline paths)', () => {

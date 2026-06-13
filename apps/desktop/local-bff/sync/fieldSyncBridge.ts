@@ -1,6 +1,6 @@
 import type { CreativeFieldKey, WorkflowSyncEvent } from '@orison/shared-contracts';
 import { createSyncEvent, markStaleFields, projectDocumentSchema } from '@orison/shared-contracts';
-import { loadProject, saveProject } from './localProjectRepository';
+import { loadProject, saveProject, bootstrapProjectFromMeta } from './localProjectRepository';
 
 const FIELD_TO_KEY: Record<string, string> = {
   creative_brief: 'creative_brief',
@@ -24,10 +24,8 @@ export function onFieldEdited(
   field: CreativeFieldKey,
   newData: unknown
 ): { syncEvent: WorkflowSyncEvent; staleFields: CreativeFieldKey[] } {
-  const project = loadProject(projectPath);
-  if (!project) {
-    throw new Error(`Project not found at ${projectPath}`);
-  }
+  // project.yaml 不存在时自愈重建（首次编辑一个只存过 project.json 的项目）。
+  const project = loadProject(projectPath) ?? bootstrapProjectFromMeta(projectPath);
 
   const next = structuredClone(project) as Record<string, any>;
 
@@ -89,6 +87,20 @@ export function onFieldEdited(
     }
   }
 
+  // 兜底 meta：手改/历史 project.yaml 可能缺 meta，直接 `next.meta.version += 1`
+  // 会抛 TypeError，导致整次保存静默失败（编辑写不进盘）。
+  if (!next.meta || typeof next.meta !== 'object') {
+    const now = new Date().toISOString();
+    next.meta = {
+      id: crypto.randomUUID(),
+      name: typeof next.name === 'string' ? next.name : 'Untitled',
+      type: next.type === 'script' ? 'script' : 'novel',
+      version: 0,
+      created_at: now,
+      updated_at: now
+    };
+  }
+  if (typeof next.meta.version !== 'number') next.meta.version = 0;
   next.meta.version += 1;
   next.meta.updated_at = new Date().toISOString();
 

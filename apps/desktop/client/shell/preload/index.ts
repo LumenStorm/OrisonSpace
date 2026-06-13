@@ -12,6 +12,7 @@ import type {
   ListRemoteModelsRequest,
   ModelConfig,
   OrisonDesktopApi,
+  RegisteredProject,
   RemoteModel,
   RunStorySyncPayload,
   RunStorySyncResult,
@@ -116,8 +117,12 @@ export const exposedDesktopApi = {
   watchProject: (projectDir: string) =>
     ipcRenderer.invoke('project:watch', projectDir) as Promise<void>,
   unwatchProject: () => ipcRenderer.invoke('project:unwatch') as Promise<void>,
-  ensureProjectRegistration: (input: { name: string; type: 'novel' | 'script'; localFingerprint: string }) =>
+  ensureProjectRegistration: (input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }) =>
     ipcRenderer.invoke('project:ensure-registration', input) as Promise<{ projectId: string; name: string; type: string }>,
+  listRegisteredProjects: () =>
+    ipcRenderer.invoke('project:list-registered') as Promise<RegisteredProject[]>,
+  touchProjectRegistration: (input: { localFingerprint: string; coverImage?: string }) =>
+    ipcRenderer.invoke('project:touch-registration', input) as Promise<void>,
   // Task persistence (SQLite)
   listTasks: (projectId: string, limit?: number) =>
     ipcRenderer.invoke('task:list', projectId, limit) as Promise<TaskRecord[]>,

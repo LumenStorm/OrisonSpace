@@ -84,12 +84,17 @@
 | `project_id` | TEXT | PK | 项目唯一 ID |
 | `project_name` | TEXT | NOT NULL | 项目名称 |
 | `project_type` | TEXT | NOT NULL, CHECK(novel/script) | 项目类型 |
-| `local_fingerprint` | TEXT | UNIQUE NOT NULL | 本地目录指纹 |
+| `local_fingerprint` | TEXT | UNIQUE NOT NULL | 本地目录指纹（即项目绝对路径，作为去重键） |
+| `project_path` | TEXT | 可空 | 项目目录绝对路径；早于该列的旧行回填为 `local_fingerprint` |
+| `cover_image` | TEXT | 可空 | 封面图路径，重复注册 / touch 时刷新 |
+| `last_opened_at` | TEXT | 可空 | 最近打开时间，项目页按 `COALESCE(last_opened_at, updated_at)` 降序排列 |
 | `logline` | TEXT | 可空 | 一句话概要 |
 | `genre` | TEXT | 可空 | 类型标签 |
 | `writing_style` | TEXT | 可空 | 写作风格 |
 | `created_at` | TEXT | NOT NULL | ISO 时间戳 |
 | `updated_at` | TEXT | NOT NULL | ISO 时间戳 |
+
+> `project_path`、`cover_image`、`last_opened_at` 通过 `initSchema` 中的非破坏性 `ALTER TABLE` 迁移补齐，使注册表成为「最近项目」列表的持久来源，跨应用版本升级 / 重装存活。
 
 ### tasks 表
 

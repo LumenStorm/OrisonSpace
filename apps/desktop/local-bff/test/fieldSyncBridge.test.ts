@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createEmptyProjectDocument, saveProject, loadProject } from '../sync/localProjectRepository';
 import { onFieldEdited } from '../sync/fieldSyncBridge';
@@ -127,6 +127,44 @@ describe('fieldSyncBridge', () => {
     const { staleFields } = onFieldEdited(TEST_PROJECT_DIR, 'asset_cards', newAssets);
 
     expect(staleFields).toContain('foreshadow_registry');
+  });
+
+  it('编辑只有 project.json 的项目时自愈创建 project.yaml（回归：Project not found）', () => {
+    // 复现 bug：新建项目只写了 project.json，从无 project.yaml。
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    writeFileSync(
+      path.join(TEST_PROJECT_DIR, 'project.json'),
+      JSON.stringify({
+        name: '我的小说', type: 'script', coverImage: null, projectId: 'p1',
+        logline: '一句话梗概', synopsis: '完整故事梗概', genre: '悬疑', theme: '救赎',
+        writing_style: '冷硬', tone: '黑暗'
+      }),
+      'utf8'
+    );
+    expect(existsSync(path.join(TEST_PROJECT_DIR, 'project.yaml'))).toBe(false);
+
+    // 旧逻辑会抛 "Project not found"；现在应自愈。
+    const { syncEvent, staleFields } = onFieldEdited(TEST_PROJECT_DIR, 'outline', {
+      central_conflict: '冲突', major_turning_points: [], ending_direction: '结局', constraints: []
+    });
+
+    expect(syncEvent.field).toBe('outline');
+    expect(syncEvent.toVersion).toBe(1);
+    expect(staleFields).toContain('episode_outlines');
+
+    // project.yaml 被创建，且 name/type + 全部概览 meta 字段都取自 project.json
+    // （不只是 name/type——否则概览页填的元信息会漂移丢失）。
+    const loaded = loadProject(TEST_PROJECT_DIR);
+    expect(loaded).not.toBeNull();
+    expect(loaded!.meta.name).toBe('我的小说');
+    expect(loaded!.meta.type).toBe('script');
+    expect(loaded!.meta.logline).toBe('一句话梗概');
+    expect(loaded!.meta.synopsis).toBe('完整故事梗概');
+    expect(loaded!.meta.genre).toBe('悬疑');
+    expect(loaded!.meta.theme).toBe('救赎');
+    expect(loaded!.meta.writing_style).toBe('冷硬');
+    expect(loaded!.meta.tone).toBe('黑暗');
+    expect(loaded!.outline_v2).toBeDefined();
   });
 
   it('编辑 locked 字段时抛出错误', () => {

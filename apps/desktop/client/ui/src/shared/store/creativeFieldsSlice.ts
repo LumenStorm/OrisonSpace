@@ -8,6 +8,14 @@ import type {
 } from '@orison/shared-contracts';
 import { creativeFieldKeys } from '@orison/shared-contracts';
 import type { ProjectMeta } from './types';
+import { useToastStore } from './toastStore';
+import { translate } from '../i18n/useI18n';
+
+/** Surface a field-sync failure instead of swallowing it (was `.catch(()=>{})`). */
+function reportSyncFailure(locale: string, field: CreativeFieldKey, err: unknown): void {
+  const reason = err instanceof Error ? err.message : String(err);
+  useToastStore.getState().showToast(translate(locale, 'creative.field.syncFailed', { field, reason }), 'error');
+}
 
 type FieldMetadata = z.infer<typeof fieldMetadataSchema>;
 type ProjectFieldPatch = z.infer<typeof projectFieldPatchSchema>;
@@ -84,7 +92,8 @@ export const createCreativeFieldsSlice: StateCreator<
     });
     // 持久化到磁盘：通过 IPC 调用 local-bff 的 fieldSyncBridge.onFieldEdited
     if (currentProject?.path && window.orisonDesktop?.syncField) {
-      window.orisonDesktop.syncField(currentProject.path, field, data).catch(() => {});
+      const locale = (get() as any).resolvedLocale ?? 'en-US';
+      window.orisonDesktop.syncField(currentProject.path, field, data).catch((err) => reportSyncFailure(locale, field, err));
     }
   },
 
@@ -176,9 +185,10 @@ export const createCreativeFieldsSlice: StateCreator<
     // version/lock checks). Overview → saveProject (project.json + .yaml).
     const path = currentProject?.path;
     if (path && window.orisonDesktop?.syncField) {
+      const locale = (get() as any).resolvedLocale ?? 'en-US';
       for (const patch of selectedPatches) {
         if (patch.field === 'overview' || patch.action === 'delete') continue;
-        window.orisonDesktop.syncField(path, patch.field as CreativeFieldKey, patch.data).catch(() => {});
+        window.orisonDesktop.syncField(path, patch.field as CreativeFieldKey, patch.data).catch((err) => reportSyncFailure(locale, patch.field as CreativeFieldKey, err));
       }
     }
     if (overviewData) {

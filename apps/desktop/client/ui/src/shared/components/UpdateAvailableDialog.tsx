@@ -33,7 +33,27 @@ export function UpdateAvailableDialog() {
       .replace('{latest}', result.latestVersion);
 
     let actions: React.ReactNode;
-    if (phase === 'downloaded') {
+    if (result.manual) {
+      // Portable build: no in-app download. Send the user to the releases page.
+      const url = result.downloadUrl ?? 'https://github.com/LumenStorm/OrisonSpace/releases/latest';
+      actions = (
+        <div className="update-actions">
+          <button type="button" className="update-btn-secondary" onClick={dismiss}>
+            {t('update.later')}
+          </button>
+          <button
+            type="button"
+            className="update-btn-primary"
+            onClick={() => {
+              openDownload(url);
+              dismiss();
+            }}
+          >
+            {t('update.download')}
+          </button>
+        </div>
+      );
+    } else if (phase === 'downloaded') {
       actions = (
         <div className="update-actions">
           <button type="button" className="update-btn-secondary" onClick={dismiss}>

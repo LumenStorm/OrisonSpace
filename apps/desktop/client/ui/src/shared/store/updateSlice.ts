@@ -101,6 +101,8 @@ export const createUpdateSlice: StateCreator<UpdateSlice, [], [], UpdateSlice> =
               latestVersion: event.latestVersion,
               isMajor: event.isMajor,
               releaseNotes: event.releaseNotes,
+              manual: event.manual,
+              downloadUrl: event.downloadUrl,
             },
           });
           break;

@@ -49,7 +49,7 @@ export function NewProjectDialog({ onClose }: Props) {
       let projectId: string | undefined;
       try {
         projectId = await ensureProjectRegistration({
-          project: { name: name.trim(), type, path: projectDir }
+          project: { name: name.trim(), type, path: projectDir, coverImage }
         });
       } catch {
         projectId = undefined;

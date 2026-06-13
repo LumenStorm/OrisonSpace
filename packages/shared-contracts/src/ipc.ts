@@ -35,6 +35,13 @@ export const desktopIpcSchema = z.object({
     'git:current-branch',
     'git:create-branch',
     'git:checkout-branch',
+    'project:ensure-registration',
+    'project:list-registered',
+    'project:touch-registration',
+    'app:get-version',
+    'update:check',
+    'update:download',
+    'update:install',
   ])
 });
 
@@ -45,6 +52,26 @@ export type SkillPackageInfo = {
   path: string;
   enabled: boolean;
   skills: Array<{ name: string; description?: string; enabled: boolean }>;
+};
+
+/* ── Project registry (SQLite, ~/.orison) ── */
+
+/**
+ * A project registered in the local machine registry (`~/.orison/data/projects.db`).
+ * This is the durable source of truth for "which projects exist on this machine",
+ * surviving app version changes / reinstalls (unlike the localStorage recent list).
+ */
+export type RegisteredProject = {
+  projectId: string;
+  name: string;
+  type: 'novel' | 'script';
+  /** Absolute path to the project folder (also the registry's unique fingerprint). */
+  path: string;
+  coverImage?: string;
+  /** ISO timestamp of the last time the project was opened. */
+  lastOpenedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 /* ── Shared types ── */
@@ -162,6 +189,8 @@ export type UpdateCheckResult =
       releaseNotes?: string;
       /** Fallback download page, used by portable builds that cannot self-update. */
       downloadUrl?: string;
+      /** True for portable/dir builds: no in-app download; user opens downloadUrl manually. */
+      manual?: boolean;
     }
   | { status: 'not-configured' }
   /** Running unpackaged (dev) — electron-updater is unavailable. */
@@ -171,7 +200,7 @@ export type UpdateCheckResult =
 /** Progressive update lifecycle events pushed from main -> renderer over `update:event`. */
 export type UpdateEvent =
   | { type: 'checking' }
-  | { type: 'available'; currentVersion: string; latestVersion: string; isMajor: boolean; releaseNotes?: string }
+  | { type: 'available'; currentVersion: string; latestVersion: string; isMajor: boolean; releaseNotes?: string; manual?: boolean; downloadUrl?: string }
   | { type: 'not-available'; currentVersion: string }
   | { type: 'download-progress'; percent: number }
   | { type: 'downloaded'; latestVersion: string }
@@ -247,7 +276,11 @@ export type OrisonDesktopApi = {
   pathForFile(file: File): string;
   watchProject(projectDir: string): Promise<void>;
   unwatchProject(): Promise<void>;
-  ensureProjectRegistration(input: { name: string; type: 'novel' | 'script'; localFingerprint: string }): Promise<{ projectId: string; name: string; type: string }>;
+  ensureProjectRegistration(input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }): Promise<{ projectId: string; name: string; type: string }>;
+  /** List every project registered on this machine (durable across version changes). */
+  listRegisteredProjects(): Promise<RegisteredProject[]>;
+  /** Bump last-opened time (and optionally cover image) for a registered project. */
+  touchProjectRegistration(input: { localFingerprint: string; coverImage?: string }): Promise<void>;
   // Task persistence (SQLite)
   listTasks(projectId: string, limit?: number): Promise<TaskRecord[]>;
   upsertTask(input: TaskUpsertInput): Promise<void>;

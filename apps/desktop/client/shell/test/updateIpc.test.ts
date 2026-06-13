@@ -14,7 +14,15 @@ vi.mock('../main/logger', () => ({
   getLogger: () => ({ warn: vi.fn(), info: vi.fn(), error: vi.fn() }),
 }));
 
-import { compareSemver, isMajorBump } from '../main/ipc/updateIpc';
+import { canSelfUpdate, compareSemver, isMajorBump } from '../main/ipc/updateIpc';
+
+describe('canSelfUpdate', () => {
+  it('is false when the app is not packaged (dev / portable)', () => {
+    // The electron mock reports isPackaged: false, so self-update is disabled
+    // and the portable GitHub-API fallback path is taken instead.
+    expect(canSelfUpdate()).toBe(false);
+  });
+});
 
 describe('compareSemver', () => {
   it('orders versions numerically, not lexically', () => {

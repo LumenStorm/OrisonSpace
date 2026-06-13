@@ -161,10 +161,41 @@ export function loadProject(projectPath: string): ProjectDocument | null {
   return projectDocumentSchema.parse(parsed);
 }
 
+/** project.json 里可同步到 project.yaml meta 的字段（与 projectMetaSchema 对齐）。 */
+const META_STRING_FIELDS = ['logline', 'synopsis', 'genre', 'theme', 'writing_style', 'tone'] as const;
+
 /**
- * 将 CreativeFieldKey 级别的 patch 应用到项目文档。
- * 加载 → 应用 → 保存 → 返回更新后的文档。
+ * 加载 project.yaml；不存在时从同目录 project.json 兜底重建一个合法空文档。
+ *
+ * 背景：新建项目只写 project.json（name/type/logline/... 等 meta），从不创建
+ * project.yaml；而创作字段（大纲、世设等）只存在于 project.yaml。于是首次访问
+ * project.yaml 会落空。这里在缺失时读 project.json 的**全部** meta 字段重建，
+ * 避免「两个文件元信息漂移」（例如概览页填了 logline，自愈出的 yaml 却为空）。
+ *
+ * 注意：本函数只在内存中构造文档，不落盘——是否写盘由调用方决定。
  */
+export function bootstrapProjectFromMeta(projectPath: string): ProjectDocument {
+  let name = path.basename(projectPath);
+  let type: 'novel' | 'script' = 'novel';
+  let extraMeta: Record<string, string> = {};
+  try {
+    const metaPath = path.join(projectPath, 'project.json');
+    if (existsSync(metaPath)) {
+      const meta = JSON.parse(readFileSync(metaPath, 'utf8')) as Record<string, unknown>;
+      if (typeof meta.name === 'string' && meta.name.trim()) name = meta.name;
+      if (meta.type === 'script') type = 'script';
+      for (const key of META_STRING_FIELDS) {
+        const v = meta[key];
+        if (typeof v === 'string' && v.trim()) extraMeta[key] = v;
+      }
+    }
+  } catch {
+    // 读不出 project.json 就用目录名兜底，仍能建出合法文档。
+  }
+  const doc = createEmptyProjectDocument(name, type) as Record<string, any>;
+  Object.assign(doc.meta, extraMeta);
+  return projectDocumentSchema.parse(doc);
+}
 export function applyFieldPatches(
   projectPath: string,
   fieldPatch: ProjectFieldPatch

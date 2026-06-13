@@ -28,6 +28,18 @@ function getMessages(locale: string): Messages | null {
   return cache.get(locale) ?? null;
 }
 
+/**
+ * Non-hook translator for code outside React (store slices, plain modules).
+ * Resolves `key` against the given locale, falling back to en-US then the key
+ * itself — same lookup the `useI18n` hook uses.
+ */
+export function translate(locale: string, key: string, vars?: Record<string, string | number>): string {
+  const val = get(getMessages(locale), key) ?? get(getMessages('en-US'), key);
+  if (typeof val === 'string') return interpolate(val, vars);
+  if (Array.isArray(val)) return val.join(', ');
+  return key;
+}
+
 /* ── 深层取值 ── */
 function get(obj: unknown, path: string): unknown {
   return path.split('.').reduce<unknown>((acc, key) => {

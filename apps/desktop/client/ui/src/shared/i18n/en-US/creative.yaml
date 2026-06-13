@@ -91,6 +91,7 @@ creative:
     unlocked: "Unlocked"
     lock: "Lock field"
     unlock: "Unlock field"
+    syncFailed: "Failed to save \"{field}\": {reason}"
   patch:
     title: "Patch Review"
     field: "Field"

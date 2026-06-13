@@ -59,6 +59,15 @@ The app self-updates via [`electron-updater`](https://www.electron.build/auto-up
 - The dialog drives the full flow in-app: download (with progress) → "Restart & install". Major-version bumps (e.g. `1.x` → `2.x`) show a prominent banner.
 - Users can also trigger a manual check from **Settings → General → Updates** or the top-bar menu.
 
+### Portable builds
+
+The portable (`target: dir`) build ships **without** `app-update.yml`, so `electron-updater` cannot self-download or self-install — even though `app.isPackaged` reports `true`. Calling `quitAndInstall()` there would silently fail.
+
+`canSelfUpdate()` (in `main/ipc/updateIpc.ts`) gates on the presence of `process.resourcesPath/app-update.yml`:
+
+- **NSIS install** → file present → full in-app download + restart-install flow.
+- **Portable / dir** → file absent → `checkForUpdate()` queries the GitHub Releases API (`/repos/LumenStorm/OrisonSpace/releases/latest`) directly and returns `status: 'available'` with `manual: true` and a `downloadUrl`. The renderer dialog then shows a single "open download page" button instead of in-app download/install. The startup check pushes the same as an `available` event (with `manual`/`downloadUrl`) so portable users still get notified. `update:download` / `update:install` also guard on `canSelfUpdate()` and open the releases page as a safety net.
+
 ### Versioning
 
 The git tag is the single source of truth. CI strips the leading `v` and writes the version into the root and shell `package.json` before building:

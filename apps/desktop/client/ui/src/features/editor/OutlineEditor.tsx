@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { z } from 'zod';
 import type { outlineV2Schema, outlinePhaseSchema } from '@orison/shared-contracts';
 import { TiptapEditor } from './TiptapEditor';
@@ -68,14 +68,56 @@ export function OutlineEditor() {
     turningPoints: true, constraints: true,
   });
 
-  const syncingRef = useRef(false);
+  // Tracks whether the user has actually edited since the last store sync.
+  // Gates the debounced + unmount flush so we never write back a value we
+  // merely loaded from the store.
   const userEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // The exact object we last wrote to the store. Used to distinguish our own
+  // writes (which must NOT re-hydrate local state — that round-trip was the
+  // bug: it clobbered the in-flight keystroke with a one-render-stale value)
+  // from external changes (project load, agent patch accept).
+  const lastWrittenRef = useRef<OutlineV2 | undefined>(undefined);
 
-  useEffect(() => {
-    syncingRef.current = true;
+  // Build the current OutlineV2 from local state. Kept in a ref so the
+  // debounced/unmount flush always reads the latest values without making
+  // `persist` depend on every field (which is what forced the effect to
+  // re-run — and prematurely flush — on every keystroke).
+  const buildOutline = (): OutlineV2 => ({
+    story_type: storyType || undefined,
+    writing_style: writingStyle || undefined,
+    main_goal: mainGoal || undefined,
+    central_conflict: centralConflict || undefined,
+    ending_direction: endingDirection || undefined,
+    phases,
+    characters: characters || undefined,
+    growth_curve: growthCurve || undefined,
+    pacing_curve_text: pacingCurveText || undefined,
+    major_turning_points: turningPoints,
+    constraints,
+  });
+  const latestRef = useRef<OutlineV2>(buildOutline());
+  latestRef.current = buildOutline();
+
+  const flush = () => {
+    if (!userEditedRef.current || !projectDocumentHydrated) return;
+    const next = latestRef.current;
+    lastWrittenRef.current = next;
     userEditedRef.current = false;
-    if (!storeOutline) { syncingRef.current = false; return; }
+    updateField('outline', next);
+  };
+  // Keep the unmount handler pointing at the latest `flush` so it doesn't fire
+  // with a stale closure (projectDocumentHydrated was false on first render).
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  // Hydrate local state from the store. Skips our own writes (reference match)
+  // so a debounced save never bounces back and overwrites what the user just
+  // typed. Runs for project load and external (agent) patches.
+  useEffect(() => {
+    if (storeOutline && storeOutline === lastWrittenRef.current) return;
+    userEditedRef.current = false;
+    if (!storeOutline) return;
     setStoryType(storeOutline.story_type ?? '');
     setWritingStyle(storeOutline.writing_style ?? '');
     setMainGoal(storeOutline.main_goal ?? '');
@@ -87,56 +129,25 @@ export function OutlineEditor() {
     setPacingCurveText(storeOutline.pacing_curve_text ?? '');
     setTurningPoints(storeOutline.major_turning_points ?? []);
     setConstraints(storeOutline.constraints ?? []);
-    requestAnimationFrame(() => { syncingRef.current = false; });
   }, [storeOutline]);
 
-  const persist = useCallback(() => {
-    if (syncingRef.current || !projectDocumentHydrated || !userEditedRef.current) return;
+  // Mark a user edit and (re)arm the debounce. Called from every onChange.
+  const markEdited = () => {
+    userEditedRef.current = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      updateField('outline', {
-        story_type: storyType || undefined,
-        writing_style: writingStyle || undefined,
-        main_goal: mainGoal || undefined,
-        central_conflict: centralConflict || undefined,
-        ending_direction: endingDirection || undefined,
-        phases,
-        characters: characters || undefined,
-        growth_curve: growthCurve || undefined,
-        pacing_curve_text: pacingCurveText || undefined,
-        major_turning_points: turningPoints,
-        constraints,
-      } satisfies OutlineV2);
-    }, DEBOUNCE_MS);
-  }, [storyType, writingStyle, mainGoal, centralConflict, endingDirection, phases, characters, growthCurve, pacingCurveText, turningPoints, constraints, projectDocumentHydrated, updateField]);
+    debounceRef.current = setTimeout(() => flushRef.current(), DEBOUNCE_MS);
+  };
 
-  useEffect(() => {
-    persist();
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = undefined;
-      }
-      // Flush pending edit on unmount
-      if (userEditedRef.current && projectDocumentHydrated) {
-        updateField('outline', {
-          story_type: storyType || undefined,
-          writing_style: writingStyle || undefined,
-          main_goal: mainGoal || undefined,
-          central_conflict: centralConflict || undefined,
-          ending_direction: endingDirection || undefined,
-          phases,
-          characters: characters || undefined,
-          growth_curve: growthCurve || undefined,
-          pacing_curve_text: pacingCurveText || undefined,
-          major_turning_points: turningPoints,
-          constraints,
-        } satisfies OutlineV2);
-      }
-    };
-  }, [persist]);
-
-  const markEdited = () => { userEditedRef.current = true; };
+  // Flush any pending edit on unmount only (mount-once effect — does NOT
+  // re-run per keystroke, so it can't pre-empt the debounce).
+  useEffect(() => () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = undefined;
+    }
+    flushRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!projectDocumentHydrated) return <Skeleton />;
 

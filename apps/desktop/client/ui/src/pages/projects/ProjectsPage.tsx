@@ -23,8 +23,21 @@ export function ProjectsPage() {
     if (!window.orisonDesktop?.pathExists || refreshing) return;
     setRefreshing(true);
     try {
+      // Source of truth = the ~/.orison SQLite registry (survives app version
+      // changes / reinstalls). The localStorage list is only a first-paint
+      // cache + a fallback for any rows missing from the registry.
+      const registered = await listRegistered();
+      const byPath = new Map<string, { projectId?: string; name: string; path: string; type: 'novel' | 'script'; coverImage?: string }>();
+      // Registry first (already ordered by last-opened), then any localStorage-only entries.
+      for (const r of registered) {
+        byPath.set(r.path, { projectId: r.projectId, name: r.name, path: r.path, type: r.type, coverImage: r.coverImage });
+      }
+      for (const p of recentProjects) {
+        if (!byPath.has(p.path)) byPath.set(p.path, p);
+      }
+
       const next: typeof recentProjects = [];
-      for (const project of recentProjects) {
+      for (const project of byPath.values()) {
         const exists = await checkPathExists(project.path);
         if (exists === null) {
           next.push(project);
@@ -131,6 +144,16 @@ async function checkPathExists(path: string): Promise<boolean | null> {
     return await window.orisonDesktop.pathExists(path);
   } catch {
     return null;
+  }
+}
+
+async function listRegistered(): Promise<Array<{ projectId: string; name: string; path: string; type: 'novel' | 'script'; coverImage?: string }>> {
+  try {
+    if (!window.orisonDesktop?.listRegisteredProjects) return [];
+    const rows = await window.orisonDesktop.listRegisteredProjects();
+    return rows.map((r) => ({ projectId: r.projectId, name: r.name, path: r.path, type: r.type, coverImage: r.coverImage }));
+  } catch {
+    return [];
   }
 }
 

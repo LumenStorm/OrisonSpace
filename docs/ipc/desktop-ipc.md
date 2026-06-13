@@ -39,8 +39,10 @@
 | `project:load-document` | renderer -> main | invoke | 加载项目文档（project.yaml 完整结构） |
 | `project:sync-meta` | renderer -> main | invoke | 同步项目元信息到 project.yaml |
 | `project:sync-chapters-meta` | renderer -> main | invoke | 批量同步章节元数据 |
-| `project:word-count` | renderer -> main | invoke | 统计项目字数 |
-| `project:ensure-registration` | renderer -> main | invoke | 确保项目已注册到 SQLite |
+| `project:word-count` | renderer -> main | invoke | 统计项目字数（仅 `.md`/`.txt`，按编码探测解码后去空白计数；统计前渲染层会先 flush 脏缓冲落盘） |
+| `project:ensure-registration` | renderer -> main | invoke | 确保项目已注册到 SQLite（入参含 `path`/`coverImage`，重复注册会刷新这两项） |
+| `project:list-registered` | renderer -> main | invoke | 列出 SQLite 注册表中的全部项目，按最近打开时间降序；项目页据此 hydrate「最近项目」，跨版本/重装存活 |
+| `project:touch-registration` | renderer -> main | invoke | 打开项目时更新 `last_opened_at`（可选刷新封面），仅用于排序，找不到记录则 no-op |
 
 `project:save-base64-image` 只允许写入 `temp/images/generation` 或 `assets/images`。
 
@@ -106,6 +108,11 @@
 |---|---|---|---|
 | `app:get-version` | renderer -> main | invoke | 获取当前应用版本号 |
 | `update:check` | renderer -> main | invoke | 检查是否有新版本可用 |
+| `update:download` | renderer -> main | invoke | 下载更新（仅 NSIS 安装版；portable 改为打开 releases 页） |
+| `update:install` | renderer -> main | invoke | 退出并安装（仅 NSIS 安装版；portable 改为打开 releases 页） |
+| `update:event` | main -> renderer | send | 推送更新生命周期事件（checking/available/download-progress/downloaded/error） |
+
+更新能力按构建形态分流：NSIS 安装版随包附带 `app-update.yml`，走 electron-updater 自下载/自安装；**portable（`target: dir`）构建没有 `app-update.yml`，无法自更新**。`canSelfUpdate()` 以该文件是否存在为判据，portable 时改为直接查询 GitHub Releases API，返回 `manual: true` + `downloadUrl`，渲染层提示用户手动下载替换。
 
 ### 日志通道
 
@@ -234,6 +241,8 @@ window.orisonDesktop = {
   deleteProjectFile,
   wordCount,
   ensureProjectRegistration,
+  listRegisteredProjects,
+  touchProjectRegistration,
   // Task persistence (SQLite)
   listTasks,
   upsertTask,
@@ -250,6 +259,9 @@ window.orisonDesktop = {
   // Version + update
   getAppVersion,
   checkForUpdate,
+  downloadUpdate,
+  installUpdate,
+  onUpdateEvent,
   // Git
   gitIsRepo,
   gitLog,

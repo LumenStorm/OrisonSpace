@@ -27,6 +27,9 @@ function initSchema(db: Database.Database): void {
       project_name      TEXT NOT NULL,
       project_type      TEXT NOT NULL CHECK(project_type IN ('novel','script')),
       local_fingerprint TEXT NOT NULL UNIQUE,
+      project_path      TEXT,
+      cover_image       TEXT,
+      last_opened_at    TEXT,
       logline           TEXT,
       genre             TEXT,
       writing_style     TEXT,
@@ -93,6 +96,14 @@ function initSchema(db: Database.Database): void {
   if (!colNames.has('logline')) db.exec('ALTER TABLE projects ADD COLUMN logline TEXT');
   if (!colNames.has('genre')) db.exec('ALTER TABLE projects ADD COLUMN genre TEXT');
   if (!colNames.has('writing_style')) db.exec('ALTER TABLE projects ADD COLUMN writing_style TEXT');
+  // Registry columns: durable project list surviving app version changes.
+  if (!colNames.has('project_path')) db.exec('ALTER TABLE projects ADD COLUMN project_path TEXT');
+  if (!colNames.has('cover_image')) db.exec('ALTER TABLE projects ADD COLUMN cover_image TEXT');
+  if (!colNames.has('last_opened_at')) db.exec('ALTER TABLE projects ADD COLUMN last_opened_at TEXT');
+  // Backfill project_path from the fingerprint for rows registered before this column existed.
+  if (!colNames.has('project_path')) {
+    db.exec('UPDATE projects SET project_path = local_fingerprint WHERE project_path IS NULL');
+  }
 
   // Migration: project_assets new columns
   const assetCols = db.pragma('table_info(project_assets)') as { name: string }[];

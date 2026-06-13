@@ -91,6 +91,7 @@ creative:
     unlocked: "未锁定"
     lock: "锁定字段"
     unlock: "解锁字段"
+    syncFailed: "保存「{field}」失败：{reason}"
   patch:
     title: "补丁审核"
     field: "字段"
