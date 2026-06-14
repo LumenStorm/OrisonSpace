@@ -38,3 +38,4 @@ logs/
 # ── Local working drafts (plans / reviews / specs) — not version-controlled ──
 .scratch/
 docs/internal/archive/
+docs/internal/*-plan.md
