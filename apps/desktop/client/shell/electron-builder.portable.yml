@@ -28,4 +28,3 @@ win:
         - x64
 
 publish: null
-electronDist: node_modules/electron/dist
