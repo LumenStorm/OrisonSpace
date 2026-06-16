@@ -39,3 +39,6 @@ logs/
 .scratch/
 docs/internal/archive/
 docs/internal/*-plan.md
+
+# ── 外部下载的第三方插件项目（非本仓库内容）──
+oh-story-claudecode-main/

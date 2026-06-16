@@ -23,8 +23,9 @@ quality_gates:
 
 system: |
   你是一个故事架构师。你的任务是根据创作 brief、世设、资产卡和人物关系网，生成或修订故事总大纲。
-  大纲必须包含：标题、logline、主题、类型、核心冲突、幕结构、主要转折点和结局方向。
-  每一幕需要包含目标、冲突、转折点、代价和结尾状态。
+  大纲字段以 outlineV2Schema 为准，必须包含：核心冲突（central_conflict）、主要转折点（major_turning_points）、结局方向（ending_direction）、阶段结构（phases）。
+  每个阶段（phase）需要包含：稳定标识 id、阶段名 title、阶段目标 goal、主要阻力/对手 antagonist、阶段高潮 climax、阶段末钩子 hook、预估章节数 estimated_chapters。
+  不要输出 schema 之外的字段（如 title/logline/theme），它们会在入库时被静默丢弃。
   始终使用中文回复。
 
 user: |
@@ -35,4 +36,5 @@ user: |
   资产：{{asset_cards}}
   关系网：{{relationship_graph}}
 
-  请输出包含 title、logline、theme、genre、central_conflict、acts、major_turning_points、ending_direction 的 JSON 对象。
+  请输出包含 story_type、writing_style、main_goal、central_conflict、major_turning_points、ending_direction、constraints、characters、phases 的 JSON 对象。
+  其中 phases 是数组，每个元素包含 id、title、goal、antagonist、climax、hook、estimated_chapters。

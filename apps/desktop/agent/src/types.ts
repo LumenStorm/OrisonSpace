@@ -81,6 +81,12 @@ export interface ToolResult {
   title: string;
   output: string;
   metadata?: Record<string, unknown>;
+  /**
+   * 标记该结果即为面向用户的最终答复。为 true 时，agent 主循环不再就此结果
+   * 追加生成新一轮回复——用于 skill 这类「输出本身就是回答」的工具，避免
+   * skill 已经对用户说完话后，父模型又把同样内容复述一遍。
+   */
+  terminal?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

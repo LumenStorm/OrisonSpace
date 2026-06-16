@@ -30,6 +30,9 @@ export const skillTool = defineTool({
       return {
         title: `skill: ${params.name}`,
         output: renderResult(result),
+        // skill 内部已经把引导/产物流式说给用户了，这份输出即最终答复。
+        // 标记 terminal，阻止父循环就同样内容再生成一轮重复回复。
+        terminal: true,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
