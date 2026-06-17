@@ -69,8 +69,8 @@ jobs:
           draft: false
           generate_release_notes: true
 
-  # macOS 在 arm64 runner 上打包 dmg + zip（zip 供 electron-updater 自动更新）。
-  # 只用单一 mac runner，避免 arm64/x64 各自产出 latest-mac.yml 互相覆盖。
+  # macOS 在单一 runner 上一次性打包 arm64 + x64 的 dmg + zip。
+  # 两架构同一次构建产出单份 latest-mac.yml，electron-updater 自动选架构。
   release-macos:
     runs-on: macos-latest
     steps:

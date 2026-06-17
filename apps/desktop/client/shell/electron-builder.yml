@@ -37,9 +37,10 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Orison Space
 
-# mac/linux 不锁定 arch：electron-builder 默认按构建机 CPU 架构打包。
-# release.yml 当前用单一 macos-latest(arm64) runner 出包，避免多架构各自
-# 产出 latest-mac.yml 互相覆盖、破坏 electron-updater 自动更新。
+# macOS 同时出 arm64(Apple Silicon) 与 x64(Intel) 两份包。
+# 关键：两种架构在同一次 electron-builder 调用里产出，因此只生成一份
+# latest-mac.yml（同时引用两个 zip），electron-updater 按 process.arch
+# 自动选择正确架构——无需第二个 runner，也不会出现 feed 互相覆盖。
 mac:
   # 单张高分辨率 PNG 即可，electron-builder 在 macOS 构建机上自动转 .icns。
   icon: resources/icon.png
@@ -48,7 +49,13 @@ mac:
   identity: null
   target:
     - target: dmg
+      arch:
+        - arm64
+        - x64
     - target: zip # electron-updater 的 macOS 自动更新依赖 zip 包
+      arch:
+        - arm64
+        - x64
 
 linux:
   icon: resources/icon.png
