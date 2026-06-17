@@ -20,6 +20,15 @@ export function getDb(): Database.Database {
   return db;
 }
 
+// 关闭并释放 SQLite 句柄。WAL 模式下句柄不关，Windows 无法删除底层文件
+// （进程持有文件锁），测试清理与应用退出都依赖此方法显式释放。
+export function closeDb(): void {
+  if (db) {
+    db.close();
+    db = undefined as unknown as Database.Database;
+  }
+}
+
 function initSchema(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS projects (

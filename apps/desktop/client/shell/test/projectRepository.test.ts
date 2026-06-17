@@ -11,6 +11,7 @@ vi.mock('electron', () => ({
 }));
 
 import { ensureProject, listProjects, touchProject } from '../main/db/projectRepository';
+import { closeDb } from '../main/db/index';
 
 // better-sqlite3 is a native addon rebuilt against Electron's ABI for the app;
 // under plain-Node vitest its ABI may not match. Probe once and skip the SQL
@@ -25,6 +26,8 @@ try {
 }
 
 function clean() {
+  // 先关闭 SQLite 句柄再删目录：Windows 不允许删除被进程锁定的打开文件。
+  closeDb();
   if (existsSync(TEST_HOME)) rmSync(TEST_HOME, { recursive: true, force: true });
 }
 
