@@ -10,7 +10,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Status](https://img.shields.io/badge/status-Alpha-orange.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![Electron](https://img.shields.io/badge/Electron-37-47848F.svg)
 
 </div>
@@ -86,6 +86,8 @@ Head to [GitHub Releases](https://github.com/LumenStorm/OrisonSpace/releases) to
 | Platform | Format |
 |----------|--------|
 | Windows | `.exe` installer / portable `.zip` |
+| macOS | `.dmg` disk image |
+| Linux | `.AppImage` portable executable |
 
 ## Status
 
