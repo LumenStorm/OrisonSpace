@@ -183,8 +183,9 @@ describe('ImageGenEditor', () => {
 
     render(<ImageGenEditor />);
 
+    // joinProjectPath 统一输出正斜杠路径（跨平台安全，主进程再按平台归一化）。
     await waitFor(() => expect(window.orisonDesktop.readFileBinary).toHaveBeenCalledWith(
-      'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\temp\\images\\generation\\loaded.png',
+      'C:/Users/LightYuki/Documents/OrisonSpace/ImageProject/temp/images/generation/loaded.png',
     ));
     expect(screen.getByAltText('loaded.png')).toBeTruthy();
   });

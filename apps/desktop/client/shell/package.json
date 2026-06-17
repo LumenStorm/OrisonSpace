@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "dist": "pnpm build && electron-builder --config electron-builder.yml --win nsis --x64",
+    "dist": "pnpm build && electron-builder --config electron-builder.yml",
+    "dist:win": "pnpm build && electron-builder --config electron-builder.yml --win",
+    "dist:mac": "pnpm build && electron-builder --config electron-builder.yml --mac",
+    "dist:linux": "pnpm build && electron-builder --config electron-builder.yml --linux",
     "gen:icons": "node scripts/generate-icons.mjs",
     "pack:portable": "pnpm build && electron-builder --config electron-builder.portable.yml --dir",
     "pack:dir": "pnpm build && electron-builder --config electron-builder.portable.yml --dir",

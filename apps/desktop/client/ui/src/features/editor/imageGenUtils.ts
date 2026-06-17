@@ -10,12 +10,15 @@ export function toDataUrl(b64Json: string, mimeType: string): string {
 }
 
 /**
- * Join a project root path with a project-relative path. Forward slashes from
- * the renderer are normalized to back-slashes on the way out so the result is
- * a Windows-style path that matches what the IPC layer returns.
+ * 把项目根路径与项目内相对路径拼接成可供主进程 fs 读取的完整路径。
+ * 统一使用正斜杠：Windows 的 fs/path API 同时接受正反斜杠，而 *nix 只接受
+ * 正斜杠，因此正斜杠是跨平台唯一安全的公共分隔符，主进程 path.resolve 会再
+ * 按各自平台归一化，无需在这里按平台分支。
  */
 export function joinProjectPath(projectPath: string, relativePath: string): string {
-  return `${projectPath.replace(/[\\/]+$/, '')}\\${relativePath.replace(/\//g, '\\')}`;
+  const root = projectPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  const rel = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  return `${root}/${rel}`;
 }
 
 /** Strip directory prefix from a relative path → bare filename. */

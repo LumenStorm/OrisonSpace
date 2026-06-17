@@ -68,3 +68,75 @@ jobs:
           files: release/OrisonSpace-portable-*.zip
           draft: false
           generate_release_notes: true
+
+  # macOS 在 arm64 runner 上打包 dmg + zip（zip 供 electron-updater 自动更新）。
+  # 只用单一 mac runner，避免 arm64/x64 各自产出 latest-mac.yml 互相覆盖。
+  release-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Inject version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Releasing version $VERSION"
+          node scripts/set-version.mjs "$VERSION"
+
+      - name: Build renderer + main
+        run: pnpm --filter @orison/desktop-shell build
+
+      # Alpha 无 Apple 证书：CSC_IDENTITY_AUTO_DISCOVERY=false 关闭自动签名，
+      # 配合 electron-builder.yml 中 mac.identity=null，产出未签名 dmg/zip。
+      - name: Build & publish macOS app
+        working-directory: apps/desktop/client/shell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: pnpm exec electron-builder --config electron-builder.yml --mac --publish always
+
+  # Linux 在 x64 runner 上打包 AppImage（跨发行版免安装格式）。
+  release-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Inject version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Releasing version $VERSION"
+          node scripts/set-version.mjs "$VERSION"
+
+      - name: Build renderer + main
+        run: pnpm --filter @orison/desktop-shell build
+
+      - name: Build & publish Linux AppImage
+        working-directory: apps/desktop/client/shell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder --config electron-builder.yml --linux --publish always

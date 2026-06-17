@@ -8,7 +8,12 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # 三平台矩阵：及早暴露路径分隔符、原生模块 ABI 等平台差异问题。
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 

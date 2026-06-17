@@ -174,8 +174,9 @@ function adaptCompiledNode(node: ExecutionNode, skillName: string): ExecutionNod
 }
 
 function isOhStorySkillDirectory(skillDir: string): boolean {
-  const normalized = skillDir.replace(/\//g, '\\').toLowerCase();
-  return normalized.includes('\\oh-story-claudecode-main\\skills\\');
+  // 统一用正斜杠比较，兼容 Windows 反斜杠路径与 *nix 正斜杠路径。
+  const normalized = skillDir.replace(/\\/g, '/').toLowerCase();
+  return normalized.includes('/oh-story-claudecode-main/skills/');
 }
 
 export function isOhStoryRouterPrompt(prompt: string): boolean {
