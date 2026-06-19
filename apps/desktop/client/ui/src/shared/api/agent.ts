@@ -9,7 +9,7 @@ export type AgentMessage = {
   role: 'user' | 'assistant' | 'tool';
   content: string;
   toolCalls?: Array<{ id: string; name: string; input: unknown }>;
-  toolResults?: Array<{ toolId?: string; toolName?: string; output: string; metadata?: unknown }>;
+  toolResults?: Array<{ toolCallId?: string; toolId?: string; toolName?: string; output: string; metadata?: unknown }>;
   references?: Attachment[];
   createdAt: number;
 };

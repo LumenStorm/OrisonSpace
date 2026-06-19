@@ -8,6 +8,8 @@ export type ChapterPendingDiff = {
   kind: 'chapter';
   id: string;
   toolId: string;
+  /** Unique per tool call — used to match the DiffCard to its own diff. */
+  toolCallId?: string;
   fileName: string;
   content: string;
   chapterId?: string;

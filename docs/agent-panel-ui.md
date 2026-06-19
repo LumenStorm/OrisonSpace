@@ -331,3 +331,15 @@ agent-panel
 - `apps/desktop/client/ui/src/shared/api/agent.ts`
 - `apps/desktop/client/ui/src/shared/store/agentSlice.ts`
 - `apps/desktop/client/shell/main/ipc/agentIpc.ts`
+
+## 会话生命周期与健壮性（2026-06-19）
+
+一轮 UX 修复，保证会话状态不串台、不卡死：
+
+- **切项目重置会话** — agent session 按项目路径隔离。`projectSubscription` 在 `currentProject` 变化时调用 `resetAgentForProjectSwitch`,清空上个项目的 session/messages/pendingDiffs/pendingToolConfirm/agentModelRef/passage 并 abort 在跑的 run。否则旧项目的 pending diff 被 Accept 会按标题写到**新项目**的章节。
+- **流式异常不再卡 spinner** — `sendAgentMessage` 对 `streamAgentMessage` 的 promise 加 `.catch`,在「reject 但未发 error 事件」时复位 `agentLoading` 并报错(带 sessionId 守卫,不误伤新 run)。
+- **skill 确认必达 UI** — LLM 自动调用 `skill` 工具时,skill 内的 pending 确认会经新的 `emitConfirmation` 通道发成 `confirm_required` 事件(此前只在显式 @skill 路径才发,自动召唤时被静默吞掉,工作流当作已批准)。
+- **模型连切防回滚错乱** — `setAgentModelRef` 用代次令牌,过期的失败回滚不再覆盖用户当前选择;运行中切换排队到下一轮(见 docs/agent.md)。
+- **Stop 清理残留卡** — `cancelAgent` 同时清 `pendingToolConfirm`/`pendingDiffs`/`pendingPassageResolve`,避免对已 abort 的 run 再确认而重新锁死。
+- **DiffCard 精确匹配** — chapter diff 与 UI toolResults 携带 `toolCallId`,DiffCard 优先按 `toolCallId` 匹配(回退 fileName),避免多个未命名并发改写串卡。
+- **报错文案 i18n** — `agentError` 改用 i18n key(`agent.modelSwitchFailed`/`agent.sessionCreateFailed`),`AgentMessages.renderError` 解析 `key: detail` 形态翻译,不再向用户暴露内部函数名。

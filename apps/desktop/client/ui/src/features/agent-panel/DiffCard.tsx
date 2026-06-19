@@ -6,7 +6,7 @@ import { SideBySideDiff } from './SideBySideDiff';
 import type { ChapterPendingDiff, PassagePendingDiff } from '../../shared/store/agentDiffSlice';
 
 type Props = {
-  result: { toolId?: string; toolName?: string; output?: string; metadata?: unknown };
+  result: { toolCallId?: string; toolId?: string; toolName?: string; output?: string; metadata?: unknown };
 };
 
 type DiffMeta = {
@@ -75,8 +75,15 @@ export function DiffCard({ result }: Props) {
 
   // ── Whole-chapter rewrite ──────────────────────────────────────────────
   const fileName = meta?.fileName ?? result.toolName ?? result.toolId ?? 'file';
+  // Match on the unique toolCallId so concurrent rewrites (esp. ones the runtime
+  // left unnamed → both 'unknown') don't collide onto the same diff. Fall back to
+  // fileName for diffs created before toolCallId was tracked.
   const diff = pendingDiffs.find(
-    (d): d is ChapterPendingDiff => d.kind === 'chapter' && d.fileName === meta?.fileName,
+    (d): d is ChapterPendingDiff =>
+      d.kind === 'chapter' &&
+      (result.toolCallId && d.toolCallId
+        ? d.toolCallId === result.toolCallId
+        : d.fileName === meta?.fileName),
   );
 
   if (agentMode === 'auto' || agentMode === 'readonly') {

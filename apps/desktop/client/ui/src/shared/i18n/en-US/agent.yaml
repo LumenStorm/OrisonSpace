@@ -6,6 +6,8 @@ agent:
   you: "You"
   agent: "Agent"
   selectModel: "Select model"
+  modelSwitchFailed: "Couldn't switch model. The change will apply on the next turn, or try again."
+  sessionCreateFailed: "Couldn't start the conversation"
   modeReadonly: "Read"
   modeSuggest: "Suggest"
   modeAuto: "Auto"

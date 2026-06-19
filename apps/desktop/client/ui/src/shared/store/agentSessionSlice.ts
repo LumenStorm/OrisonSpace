@@ -47,6 +47,11 @@ function recoverAnchor(
 
 let activeAbort: { cleanup: () => void; sessionId: string } | null = null;
 
+// Monotonic token guarding model-switch persistence. Rapid A→B→C switches each
+// bump it; a late-failing earlier request must not roll the dropdown back over a
+// newer selection the user already made.
+let modelSwitchToken = 0;
+
 export type AgentSessionSlice = {
   agentMode: AgentMode;
   setAgentMode: (mode: AgentMode) => void;
@@ -60,6 +65,8 @@ export type AgentSessionSlice = {
   sendAgentMessage: (content: string) => Promise<void>;
   cancelAgent: () => void;
   newAgentSession: () => Promise<void>;
+  /** Reset all agent conversation state when the active project changes. */
+  resetAgentForProjectSwitch: () => void;
 
   pendingAttachments: Attachment[];
   addAttachment: (attachment: Attachment) => void;
@@ -79,6 +86,7 @@ type Deps = AgentSessionSlice & {
   updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
   pendingDiffs: PendingDiff[];
   pendingToolConfirm: { callId: string; name: string; input: unknown } | null;
+  pendingPassageResolve: unknown | null;
   fieldMetadata: Record<string, { version: number } | undefined>;
   setPendingPatch: (patch: import('@orison/shared-contracts').ProjectFieldPatch | null) => void;
 };
@@ -88,15 +96,39 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   setAgentMode: (mode) => set({ agentMode: mode }),
   agentModelRef: null,
   setAgentModelRef: (ref) => {
+    const previous = get().agentModelRef;
     set({ agentModelRef: ref });
     // The model is a session-level setting. When a conversation is already
-    // open and idle, persist the change so the next turn uses it — without
-    // this, switching the dropdown only updated the store and the session
-    // kept calling the model it was created with. A brand-new session (no id)
+    // open, persist the change so the next turn uses it — without this,
+    // switching the dropdown only updated the store and the session kept
+    // calling the model it was created with. A brand-new session (no id)
     // carries the selection in via createAgentSession instead.
+    //
+    // The persist call can be refused (e.g. the session is gone). Await the
+    // result and roll the dropdown back on failure so the UI never shows a
+    // model the session isn't actually using. A change made while a turn is
+    // running is accepted and queued for the next turn (ok === true).
     const state = get();
-    if (state.agentSessionId && !state.agentLoading) {
-      void setAgentSessionModel(state.agentSessionId, state.currentProject?.path ?? undefined, ref);
+    if (state.agentSessionId) {
+      const token = ++modelSwitchToken;
+      void (async () => {
+        try {
+          const { ok } = await setAgentSessionModel(
+            state.agentSessionId!,
+            state.currentProject?.path ?? undefined,
+            ref,
+          );
+          // A newer switch superseded this one — its result is authoritative,
+          // so neither roll back nor surface an error for the stale request.
+          if (token !== modelSwitchToken) return;
+          if (!ok) {
+            set({ agentModelRef: previous, agentError: 'agent.modelSwitchFailed' });
+          }
+        } catch {
+          if (token !== modelSwitchToken) return;
+          set({ agentModelRef: previous, agentError: 'agent.modelSwitchFailed' });
+        }
+      })();
     }
   },
 
@@ -146,7 +178,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      set({ agentError: `createAgentSession failed: ${message}`, agentLoading: false });
+      set({ agentError: `agent.sessionCreateFailed: ${message}`, agentLoading: false });
       return;
     }
 
@@ -173,7 +205,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       activeAbort = null;
     }
 
-    const { cleanup } = streamAgentMessage(sid, messageContent, (event: AgentStreamEvent) => {
+    const { cleanup, promise } = streamAgentMessage(sid, messageContent, (event: AgentStreamEvent) => {
       switch (event.type) {
         case 'assistant':
           set((s) => ({
@@ -199,7 +231,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
           if (mode !== 'readonly') {
             // The agent emits ToolCallResult with `toolName`; older shapes used `toolId`.
             const results = event.data.results as Array<{
-              toolName?: string; toolId?: string; output?: string; metadata?: unknown;
+              toolCallId?: string; toolName?: string; toolId?: string; output?: string; metadata?: unknown;
             }>;
             // Structured field patches (outline_update / overview_update) accumulate
             // across this result batch, then surface once in the patch-review panel.
@@ -274,6 +306,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                       kind: 'chapter',
                       id: randomUUID(),
                       toolId,
+                      toolCallId: result.toolCallId,
                       fileName: meta.fileName ?? 'unknown',
                       content: meta.content!,
                       chapterId: meta.chapterId,
@@ -341,6 +374,18 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       }
     }, attachments);
     activeAbort = { cleanup, sessionId: sid };
+
+    // Guard against a stream invoke that rejects WITHOUT first emitting an
+    // `error` event — otherwise agentLoading would stay true forever (stuck
+    // spinner, locked input). Only recover if this run is still the active one,
+    // so we don't clobber a newer run the user already started.
+    promise.catch((err: unknown) => {
+      if (activeAbort?.sessionId !== sid) return;
+      const message = err instanceof Error ? err.message : String(err);
+      activeAbort.cleanup();
+      activeAbort = null;
+      set({ agentLoading: false, agentError: message });
+    });
   },
 
   cancelAgent() {
@@ -349,7 +394,15 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
     }
     activeAbort = null;
-    set({ agentLoading: false });
+    // Clear any cards tied to the aborted run. Leaving them on screen lets the
+    // user resolve a confirmation against a run that no longer exists, which
+    // flips agentLoading back on and re-strands the spinner.
+    set({
+      agentLoading: false,
+      pendingToolConfirm: null,
+      pendingDiffs: [],
+      pendingPassageResolve: null,
+    });
   },
 
   async newAgentSession() {
@@ -366,6 +419,30 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       pendingToolConfirm: null,
       pendingDiffs: [],
       pendingAttachments: [],
+    });
+  },
+
+  resetAgentForProjectSwitch() {
+    // The agent session is keyed to a project path. When the active project
+    // changes we must drop the previous project's conversation entirely —
+    // otherwise its messages, session id, pending diffs and confirmations bleed
+    // into the new project, and accepting a stale diff could write to the wrong
+    // project's chapters.
+    if (activeAbort) {
+      activeAbort.cleanup();
+      void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
+    }
+    activeAbort = null;
+    set({
+      agentSessionId: null,
+      agentMessages: [],
+      agentLoading: false,
+      agentError: null,
+      agentModelRef: null,
+      pendingToolConfirm: null,
+      pendingDiffs: [],
+      pendingAttachments: [],
+      pendingPassageResolve: null,
     });
   },
 

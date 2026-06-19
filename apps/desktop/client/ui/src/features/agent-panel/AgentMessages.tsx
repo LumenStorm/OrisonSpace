@@ -38,8 +38,24 @@ export function AgentMessages({ messages, loading, error }: Props) {
           <span className="agent-loading-dot" />
         </div>
       )}
-      {error && <div className="agent-message-error">{error}</div>}
+      {error && (
+        <div className="agent-message-error">
+          {renderError(error, t)}
+        </div>
+      )}
       <div ref={bottomRef} />
     </div>
   );
+}
+
+// agentError holds either a raw backend message or an i18n key. Keys may carry a
+// trailing detail as `agent.someKey: detail`; translate the key part and keep
+// the detail. Anything not prefixed `agent.` is shown verbatim (backend text).
+function renderError(error: string, t: (key: string) => string): string {
+  if (!error.startsWith('agent.')) return error;
+  const sep = error.indexOf(': ');
+  if (sep === -1) return t(error);
+  const key = error.slice(0, sep);
+  const detail = error.slice(sep + 2);
+  return `${t(key)}: ${detail}`;
 }

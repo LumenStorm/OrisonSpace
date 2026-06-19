@@ -20,6 +20,7 @@ export interface LoopOptions {
   skillExecutor?: SkillExecutorRef;
   spawnDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
+  emitConfirmation?: (pending: import('../types').PendingConfirmationState) => void;
 }
 
 export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
@@ -72,6 +73,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       skillExecutor: opts.skillExecutor,
       spawnDepth: opts.spawnDepth ?? 0,
       emitChildEvent: opts.emitChildEvent,
+      emitConfirmation: opts.emitConfirmation,
     };
 
     // 某些工具（如 skill）已经把最终答复流式说给用户了，其结果标记为 terminal。

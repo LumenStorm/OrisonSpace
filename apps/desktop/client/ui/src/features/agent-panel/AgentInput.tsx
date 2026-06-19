@@ -189,7 +189,6 @@ export function AgentInput() {
             const opt = modelOptions.find((o) => o.value === e.target.value);
             setAgentModelRef(opt?.ref ?? null);
           }}
-          disabled={agentLoading}
           title={t('agent.selectModel')}
         >
           <option value="">{t('agent.selectModel')}</option>

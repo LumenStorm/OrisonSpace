@@ -25,8 +25,17 @@ export const skillTool = defineTool({
           abort: ctx.abort,
           spawnDepth: ctx.spawnDepth ?? 0,
           emitChildEvent: ctx.emitChildEvent,
+          emitConfirmation: ctx.emitConfirmation,
         },
       );
+      // Surface any confirmations the skill paused on so the UI can prompt the
+      // user. Without this, a skill auto-invoked by the model would proceed as
+      // if approved (the pendings were only ever rendered as text).
+      if (ctx.emitConfirmation) {
+        for (const pending of result.pendingConfirmations) {
+          ctx.emitConfirmation(pending as Parameters<NonNullable<typeof ctx.emitConfirmation>>[0]);
+        }
+      }
       return {
         title: `skill: ${params.name}`,
         output: renderResult(result),

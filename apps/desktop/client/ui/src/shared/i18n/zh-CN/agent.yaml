@@ -6,6 +6,8 @@ agent:
   you: "你"
   agent: "Agent"
   selectModel: "选择模型"
+  modelSwitchFailed: "切换模型失败。改动将在下一轮生效，或请重试。"
+  sessionCreateFailed: "无法开始对话"
   modeReadonly: "只读"
   modeSuggest: "建议"
   modeAuto: "自动"

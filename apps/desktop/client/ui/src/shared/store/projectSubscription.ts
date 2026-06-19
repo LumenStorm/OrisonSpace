@@ -13,7 +13,16 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
     const prev = prevProject;
     prevProject = project;
 
+    // Drop the previous project's agent conversation so it can't bleed across
+    // projects. Guarded because some store snapshots (tests, partial states)
+    // may not carry the agent slice's actions.
+    const resetAgent = () => {
+      const fn = useAppStore.getState().resetAgentForProjectSwitch;
+      if (typeof fn === 'function') fn();
+    };
+
     if (!project && prev) {
+      resetAgent();
       useAppStore.setState({
         creativeFields: {},
         fieldMetadata: {},
@@ -27,6 +36,7 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
     }
 
     if (project && project !== prev) {
+      resetAgent();
       useAppStore.setState({
         creativeFields: {},
         fieldMetadata: {},
