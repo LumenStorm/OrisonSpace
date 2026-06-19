@@ -123,6 +123,68 @@ second line
     expect(result.checkpoints).not.toContain('phase-1-ready');
   });
 
+  it('resolves references before the instruction prompt runs so they can be injected', async () => {
+    const { SkillRegistry } = await import('../src/skill/runtime/registry');
+    const { createWorkflowExecutor } = await import('../src/skill/runtime/workflowExecutor');
+
+    const registry = new SkillRegistry();
+    registry.register({
+      format: 'directory',
+      name: 'story-skill',
+      description: 'Reference-first workflow skill',
+      location: skillDir,
+      entryPath: path.join(skillDir, 'SKILL.md'),
+      prompt: 'ignored legacy prompt',
+      workflowMode: 'workflow',
+      assets: { references: [referencePath], scripts: [] },
+      rawSource: 'Phase 1',
+      capabilities: ['load_reference'],
+      compiledPlan: {
+        // load_reference now precedes the instruction (compiler emits it first).
+        entryNodeId: 'phase-1-ref',
+        nodes: [
+          { id: 'phase-1-ref', type: 'load_reference', path: 'references/opening-design.md', mode: 'full' },
+          { id: 'phase-1', type: 'instruction', title: 'Phase 1', content: 'Draft an opening.' },
+          { id: 'finish', type: 'finish' },
+        ],
+        edges: [
+          { from: 'phase-1-ref', to: 'phase-1' },
+          { from: 'phase-1', to: 'finish' },
+        ],
+      },
+    });
+
+    // Capture how many references were resolved at the moment the instruction
+    // prompt executes — this is what the runtime's executePrompt injects.
+    let referencesVisibleToPrompt = -1;
+    const executor = createWorkflowExecutor({
+      registry,
+      executePrompt: async (prompt, _skill, context) => {
+        referencesVisibleToPrompt = context.skillContext?.resolvedReferences.length ?? 0;
+        return `prompt:${prompt}`;
+      },
+      executeTool: async (_toolName, input) => `tool:${JSON.stringify(input)}`,
+      requestConfirmation: async (_toolName, input) => ({
+        approved: true,
+        pending: { sessionId: 'session-1', callId: 'c1', name: 'x', input, createdAt: Date.now() },
+      }),
+    });
+
+    const skillContext = {
+      runtime: { sessionId: 'session-1', runStatus: 'running' as const },
+      summary: '',
+      artifacts: [],
+      references: [],
+      resolvedReferences: [],
+      referenceCache: new Map(),
+    };
+
+    await executor.executeSkill('story-skill', { sessionId: 'session-1', skillContext });
+
+    expect(referencesVisibleToPrompt).toBe(1);
+    expect(skillContext.resolvedReferences[0]?.content).toContain('Opening Design');
+  });
+
   it('captures node-level continuation at ask_user and resumes from the next node without reloading references', async () => {
     const { SkillRegistry } = await import('../src/skill/runtime/registry');
     const { createWorkflowExecutor } = await import('../src/skill/runtime/workflowExecutor');

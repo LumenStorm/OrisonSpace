@@ -131,7 +131,11 @@ describe('directory skill compiler core types', () => {
       'ask_user',
       'spawn_agent',
     ]));
-    expect(compiled.compiledPlan.entryNodeId).toBe('phase-1');
+    // References load before the phase instruction, so the entry node is the
+    // first load_reference, not the instruction.
+    expect(compiled.compiledPlan.entryNodeId).toBe('phase-1:reference:0');
+    expect(compiled.compiledPlan.nodes.find((node) => node.id === compiled.compiledPlan.entryNodeId)?.type)
+      .toBe('load_reference');
     expect(compiled.compiledPlan.nodes.map((node) => node.type)).toEqual(expect.arrayContaining([
       'instruction',
       'load_reference',
@@ -141,6 +145,46 @@ describe('directory skill compiler core types', () => {
       'finish',
     ]));
     expect(compiled.compiledPlan.nodes.filter((node) => node.title?.startsWith('Phase '))).toHaveLength(2);
+  });
+
+  it('loads references linked via _reference/ as full content and dedupes against catalogued files', async () => {
+    const { compileDirectorySkill } = await import('../src/skill/runtime/compiler');
+
+    const compiled = compileDirectorySkill({
+      id: 'oh-story',
+      name: 'oh-story',
+      source: 'directory',
+      entryPath: 'I:\\echo\\skill\\oh-story\\SKILL.md',
+      location: 'I:\\echo\\skill\\oh-story',
+      description: 'oh-story workflow',
+      rawPrompt: `# oh-story
+
+## Phase 1
+
+参考 [风格](_reference/style.md)。
+`,
+      // style.md is both linked and catalogued — it must not be loaded twice.
+      // lore.md is catalogued but unlinked — it must be auto-loaded.
+      references: [
+        'I:\\echo\\skill\\oh-story\\_reference\\style.md',
+        'I:\\echo\\skill\\oh-story\\_reference\\lore.md',
+      ],
+      scripts: [],
+      capabilities: [],
+      compiledPlan: { entryNodeId: 'placeholder', nodes: [], edges: [] },
+      warnings: [],
+    });
+
+    const refNodes = compiled.compiledPlan.nodes.filter((node) => node.type === 'load_reference');
+    expect(refNodes).toHaveLength(2);
+    // The explicitly linked reference is loaded in full.
+    expect(refNodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: '_reference/style.md', mode: 'full' }),
+    ]));
+    // The unlinked catalogued reference is auto-loaded by absolute path.
+    expect(refNodes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: 'I:\\echo\\skill\\oh-story\\_reference\\lore.md' }),
+    ]));
   });
 
   it('extracts multi-agent review stages from structured subagent sections without skill-specific hardcoding', async () => {

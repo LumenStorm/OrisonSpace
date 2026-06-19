@@ -30,6 +30,8 @@ export interface SkillExecutorInvokeOptions {
   abort?: AbortSignal;
   spawnDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
+  /** Surface a skill's pending tool confirmation to the UI as it arises. */
+  emitConfirmation?: (pending: PendingConfirmationState) => void;
 }
 
 export interface SkillExecutorRef {
@@ -66,6 +68,8 @@ export interface ToolContext {
   skillExecutor?: SkillExecutorRef;
   spawnDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
+  /** Surface a tool's (e.g. skill's) pending confirmation to the UI. */
+  emitConfirmation?: (pending: PendingConfirmationState) => void;
 }
 
 export const MAX_SPAWN_DEPTH = 5;
@@ -166,6 +170,13 @@ export interface SessionState {
   status: SessionStatus;
   messages: SessionMessage[];
   modelRef?: { keyId: string; modelId: string };
+  /**
+   * A model switch requested while the session was running. It is applied at the
+   * start of the next turn so it can't bleed into an in-flight generate call.
+   * In-memory only — not persisted; a switch made while idle writes modelRef
+   * directly instead.
+   */
+  pendingModelRef?: { keyId: string; modelId: string } | null;
   parentId?: string;
   children: string[];
   branchFromMessageId?: string;

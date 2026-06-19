@@ -22,7 +22,7 @@ export async function loadDirectorySkill(skillDir: string): Promise<NormalizedSk
     entryPath,
     prompt: parsed.content,
     workflowMode: 'workflow',
-    references: await collectFiles(path.join(skillDir, 'references')),
+    references: await collectReferenceFiles(skillDir),
     scripts: await collectFiles(path.join(skillDir, 'scripts')),
     priority: parsed.priority,
   });
@@ -64,4 +64,24 @@ async function collectFiles(dir: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+// Reference material may live under any of the common directory conventions.
+// Scan all of them so a skill that uses `_reference/` (e.g. oh-story) is not
+// silently ignored. De-duplicate by basename, preferring the first dir found.
+const REFERENCE_DIR_NAMES = ['references', 'reference', '_reference'] as const;
+
+async function collectReferenceFiles(skillDir: string): Promise<string[]> {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const dirName of REFERENCE_DIR_NAMES) {
+    const files = await collectFiles(path.join(skillDir, dirName));
+    for (const file of files) {
+      const base = path.basename(file);
+      if (seen.has(base)) continue;
+      seen.add(base);
+      result.push(file);
+    }
+  }
+  return result.sort();
 }

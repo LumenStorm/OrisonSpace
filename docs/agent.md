@@ -251,6 +251,15 @@ priority: required
 
 Agent 可通过 `skill` tool 动态加载 skill 内容注入上下文。skill 自身可以在子 runLoop 中继续调用其它 skill 或 spawn_agent,形成 **链式自动召唤**。
 
+### Reference 资料注入
+
+Skill 目录下的参考资料会被发现、加载并注入到 skill 的 prompt 中,让模型真正读到这些内容:
+
+- **目录约定** — 参考目录名兼容 `references/`、`reference/`、`_reference/`(三者都会被扫描并去重)。
+- **加载时机** — `load_reference` 节点在同一 phase 的 `instruction` 节点**之前**执行,因此 instruction 的 prompt 能看到引用内容。
+- **注入方式** — 已解析的引用以「Reference materials」段拼接进 skill prompt(在 prompt 与项目树之间)。外部 skill root 的引用文件位于 `read_file` 沙箱之外,这是它们进入上下文的唯一通道。
+- **自动加载** — SKILL.md 显式 markdown 链接(`[label](reference/foo.md)`)的引用以 `full` 模式加载;目录中存在但未被链接的引用文件会在工作流开头自动补 `load_reference` 节点(文件 >5 个时降为 `excerpt` 防止上下文膨胀)。
+
 ## Subagent 子代理
 
 `spawn_agent` 工具用于派遣一个**聚焦**的专用代理。父代理写一段任务描述,子代理在自己的子会话里独立完成,然后只把最终答案回传父会话——父代理的上下文不会被子代理的中间步骤撑爆。
@@ -381,5 +390,17 @@ Agent runtime 已作为 `@orison/desktop-agent` 库内嵌于桌面主进程。
 ### 已知未处理
 
 - 子代理的 `model` / `tools` frontmatter 字段当前只做解析,未实际接入 model gateway 路由 / tool registry 收紧。
-- 嵌套 child 事件目前只透传 assistant / tool 两类,confirm_required 等需要后续按需扩展。
+- `skill` 工具调用产生的 pending 确认现已经 `emitConfirmation` 通道发成 `confirm_required`(2026-06-19 修复);嵌套 child 事件仍只透传 assistant / tool 两类,subagent 内部的 confirm 需后续按需扩展。
 - Agent Panel UI 对 `child` 事件的渲染是基础的角标版本,尚未做嵌套树状折叠展示。
+
+### 会话内模型切换(2026-06-19)
+
+模型是 **session 级**设置,每轮 `streamMessage` / `sendMessage` / skill `executePrompt` 都 fresh 读取 `session.modelRef`,因此切换对**下一轮**立即生效:
+
+- **空闲时切换** — `runtime.setSessionModel` 直接 `updateSessionModelRef` 落到 session,下一轮生效。
+- **运行中切换** — 不再静默拒绝;记录到 `session.pendingModelRef`(内存,不持久化),下一轮 `streamMessage` / `sendMessage` 开始时(读 `modelRef` 之前)apply 并清空,避免污染 in-flight generate。`setSessionModel` 返回 `true` 表示已受理。
+- **前端反馈** — `setAgentModelRef` await `agent:set-session-model` 的 `{ ok }`,失败(如会话不存在)时回滚下拉并经 `agentError` 提示,不再「显示新模型却用旧的」。模型下拉在生成中不再禁用(切换会排队到下一轮)。
+
+### Skill reference 注入(2026-06-19)
+
+修复「调用 skill 读不到 `_reference`」:此前 reference 被解析后只存进 run-state 快照、从不进 prompt。现在 `executePrompt` 会把 `context.skillContext.resolvedReferences` 注入 prompt;`load_reference` 默认 `full`(原 `summary` 截 ~3 行);目录扫描与链接正则兼容 `references/`、`reference/`、`_reference/`;未被链接的目录型引用自动补 `load_reference` 节点。详见上文「Reference 资料注入」。

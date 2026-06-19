@@ -24,6 +24,7 @@ import { createSubagentRuntime, type SubagentRuntime, type SubagentDispatchInput
 import { forkSession } from './sessionTree';
 import { createSkillContinuation, mergeConversationSummaryWithRunState, restoreSkillContinuation } from './skillContinuation';
 import { serializeSkillRunState, type SkillRunState } from './skillRunState';
+import type { ResolvedReferencePayload } from '../skill/runtime/referenceResolver';
 import {
   MAX_SPAWN_DEPTH,
   SpawnDepthExceededError,
@@ -238,9 +239,15 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         throw new SpawnDepthExceededError(depth);
       }
       const tree = await getProjectTree(session.projectPath);
+      // Inject any reference files the workflow already resolved (load_reference
+      // nodes run before the instruction node's executePrompt on the same phase).
+      // Without this the reference content was loaded into run-state and dropped,
+      // so the model never saw it — the cause of "skill can't read _reference".
+      const referenceBlock = buildReferenceBlock(context.skillContext?.resolvedReferences);
+      const promptWithRefs = referenceBlock ? `${prompt}\n\n${referenceBlock}` : prompt;
       const content = context.input
-        ? `${prompt}\n\nProject file structure:\n${tree}\n\nUser request:\n${context.input}`
-        : `${prompt}\n\nProject file structure:\n${tree}`;
+        ? `${promptWithRefs}\n\nProject file structure:\n${tree}\n\nUser request:\n${context.input}`
+        : `${promptWithRefs}\n\nProject file structure:\n${tree}`;
       const systemPrompt = await buildRuntimeSystemPrompt(session, externalSkillRoots);
       const childOnMessage = makeChildOnMessage('skill', skill.name, session.id, depth, context.emitChildEvent);
       const availableTools = context.suppressAllTools
@@ -333,9 +340,13 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
     setSessionModel(id, modelRef) {
       const session = getSession(id);
       if (!session) return false;
-      // Refuse to swap the model mid-run; the change must apply to the next turn
-      // so it can't bleed into in-flight generate calls.
-      if (session.status === 'running') return false;
+      // Refuse to swap the model into an in-flight generate call. Instead of
+      // silently dropping the change, queue it so the next turn picks it up.
+      if (session.status === 'running') {
+        session.pendingModelRef = modelRef ?? null;
+        return true;
+      }
+      session.pendingModelRef = undefined;
       updateSessionModelRef(id, modelRef);
       return true;
     },
@@ -636,6 +647,13 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         throw new Error('session not found');
       }
 
+      // Apply a model switch that was queued while a previous turn was running
+      // (mirrors streamMessage); see setSessionModel.
+      if (session.pendingModelRef !== undefined) {
+        updateSessionModelRef(input.sessionId, session.pendingModelRef ?? undefined);
+        session.pendingModelRef = undefined;
+      }
+
       const runAbortSignal = runState.beginRun(input.sessionId, input.abortSignal);
 
       const userMsg = createUserMessage(input.content, input.attachments);
@@ -694,6 +712,14 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       const session = getSession(input.sessionId);
       if (!session) {
         throw new Error('session not found');
+      }
+
+      // Apply any model switch that was requested while a previous turn was
+      // still running. Doing it here (before the run starts) keeps it out of any
+      // in-flight generate call while guaranteeing this turn uses the new model.
+      if (session.pendingModelRef !== undefined) {
+        updateSessionModelRef(input.sessionId, session.pendingModelRef ?? undefined);
+        session.pendingModelRef = undefined;
       }
 
       const runAbortSignal = runState.beginRun(input.sessionId, input.abortSignal);
@@ -773,6 +799,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           skillExecutor: runtime,
           spawnDepth: 0,
           emitChildEvent,
+          emitConfirmation: (pending) => input.sendEvent({ type: 'confirm_required', data: pending }),
         });
 
         updateStatus(input.sessionId, 'completed');
@@ -813,6 +840,22 @@ function createUserMessage(content: string, attachments?: MessageAttachment[]): 
     content: renderAttachmentsIntoContent(content, attachments),
     createdAt: Date.now(),
   };
+}
+
+/**
+ * Render resolved skill reference files into a prompt block so the model can
+ * actually read the _reference / references material the workflow loaded.
+ * Returns undefined when there is nothing to inject.
+ */
+function buildReferenceBlock(references?: ResolvedReferencePayload[]): string | undefined {
+  if (!references || references.length === 0) {
+    return undefined;
+  }
+  const sections = references.map((ref) => {
+    const label = path.basename(ref.path);
+    return `--- Reference: ${label} (${ref.path}) ---\n${ref.content}`;
+  });
+  return `Reference materials:\n${sections.join('\n\n')}`;
 }
 
 /**

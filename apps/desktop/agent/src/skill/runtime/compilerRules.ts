@@ -44,7 +44,9 @@ export function extractPhaseSections(raw: string): PhaseSection[] {
 }
 
 export function extractReferenceLinks(raw: string): ReferenceLink[] {
-  return [...raw.matchAll(/\[([^\]]+)\]\((references\/[^)]+)\)/g)].map((match) => ({
+  // Accept references/, reference/ and _reference/ so skills authored with any
+  // of the common reference-directory conventions resolve their material.
+  return [...raw.matchAll(/\[([^\]]+)\]\(((?:_?references?)\/[^)]+)\)/g)].map((match) => ({
     label: match[1] ?? '',
     path: match[2] ?? '',
   }));

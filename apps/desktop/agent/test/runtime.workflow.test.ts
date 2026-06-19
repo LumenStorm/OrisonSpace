@@ -85,6 +85,74 @@ describe('runtime workflow run state', () => {
     expect(runtime.getRunState(session.id)?.status).toBe('completed');
   });
 
+  it('applies a model switch immediately when idle and queues it when running', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const { getSession } = await import('../src/agent/session');
+
+    // Idle: the switch lands on the session right away.
+    const idleRuntime = createWorkflowRuntime({
+      generate: vi.fn(async () => ({ content: 'ok', finishReason: 'stop' })),
+    });
+    const idleSession = idleRuntime.createSession({ agentName: 'writer', projectPath });
+    expect(idleRuntime.setSessionModel(idleSession.id, { keyId: 'k1', modelId: 'm1' })).toBe(true);
+    expect(getSession(idleSession.id)?.modelRef).toEqual({ keyId: 'k1', modelId: 'm1' });
+
+    // Running: the switch is accepted (true) but deferred to the next turn, so
+    // it can't bleed into the in-flight generate call.
+    let releaseRun: (() => void) | undefined;
+    const usedModels: Array<{ keyId: string; modelId: string } | undefined> = [];
+    const runningRuntime = createWorkflowRuntime({
+      generate: vi.fn((_m, _s, _t, abortSignal, opts) => new Promise((resolve, reject) => {
+        usedModels.push(opts?.modelRef);
+        const onAbort = () => reject(new DOMException('Aborted', 'AbortError'));
+        abortSignal.addEventListener('abort', onAbort, { once: true });
+        releaseRun = () => {
+          abortSignal.removeEventListener('abort', onAbort);
+          resolve({ content: 'released', finishReason: 'stop' });
+        };
+      })),
+    });
+    const session = runningRuntime.createSession({
+      agentName: 'writer',
+      projectPath,
+      modelRef: { keyId: 'orig', modelId: 'orig' },
+    });
+
+    const run = runningRuntime.sendMessage({
+      sessionId: session.id,
+      content: 'hold',
+      abortSignal: new AbortController().signal,
+    });
+
+    await vi.waitFor(() => {
+      if (!releaseRun) throw new Error('generate not yet entered');
+    }, { timeout: 5000, interval: 10 });
+
+    // Switch while running → accepted but not applied to modelRef yet.
+    expect(runningRuntime.setSessionModel(session.id, { keyId: 'next', modelId: 'next' })).toBe(true);
+    expect(getSession(session.id)?.modelRef).toEqual({ keyId: 'orig', modelId: 'orig' });
+    expect(getSession(session.id)?.pendingModelRef).toEqual({ keyId: 'next', modelId: 'next' });
+
+    releaseRun!();
+    await run;
+
+    // Next turn applies the queued model.
+    const secondRun = runningRuntime.sendMessage({
+      sessionId: session.id,
+      content: 'second',
+      abortSignal: new AbortController().signal,
+    });
+    await vi.waitFor(() => {
+      if (usedModels.length < 2) throw new Error('second generate not yet entered');
+    }, { timeout: 5000, interval: 10 });
+    releaseRun!();
+    await secondRun;
+
+    expect(usedModels[0]).toEqual({ keyId: 'orig', modelId: 'orig' });
+    expect(usedModels[1]).toEqual({ keyId: 'next', modelId: 'next' });
+    expect(getSession(session.id)?.pendingModelRef).toBeUndefined();
+  });
+
   it('aborts an in-flight run and keeps a resume checkpoint skeleton', async () => {
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
     const runtime = createWorkflowRuntime({
