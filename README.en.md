@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="Orison Space" width="120" />
+<img src="docs/assets/logo.png" alt="Orison Space — AI novel-writing IDE" width="120" />
 
 # Orison Space
 
@@ -13,12 +13,16 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![Electron](https://img.shields.io/badge/Electron-37-47848F.svg)
 
+[**⬇ Download**](https://github.com/LumenStorm/OrisonSpace/releases) · [📖 Docs](docs/) · [🕒 Timeline Guide](docs/guides/时间线指南.md) · [📋 Changelog](CHANGELOG.md)
+
 </div>
 
 <!-- TODO: Add screenshot -->
 <!-- ![screenshot](docs/assets/screenshot.png) -->
 
 ---
+
+**Orison Space** is an open-source, local-first AI novel-writing IDE for fiction and web-novel authors. It brings outlines, chapters, characters, and world-building asset cards into one workspace. Built on a "user-led, AI-assisted" principle, it offers AI generation, continuation, polishing, review, and controlled edits, connects to any OpenAI-compatible model, and keeps all of your writing on your own computer. It runs on Windows, macOS, and Linux under the Apache-2.0 license.
 
 ## Features
 
@@ -32,6 +36,13 @@
 - **Document interop** — DOCX preview, import, and export for chapters/outlines
 - **Themes & i18n** — Light/dark/custom themes, Chinese & English, YAML-driven and extensible
 - **Model freedom** — Connect any OpenAI-compatible endpoint, manage API keys locally
+
+## Who it's for
+
+- **Web-novel & long-form fiction authors** — who want outlines, chapters, and character bibles to live in one workspace instead of scattered across documents
+- **Writers who want AI without giving up control** — Orison Space is a creative workspace, not a one-shot generator: every AI edit is previewable, controllable, and reversible
+- **People who value privacy and data ownership** — your work is stored as local files, never uploaded, no account required
+- **Bring-your-own-model users** — plug in your own OpenAI-compatible API key and freely choose text and image models
 
 ## Tech Stack
 
@@ -92,6 +103,26 @@ Head to [GitHub Releases](https://github.com/LumenStorm/OrisonSpace/releases) to
 ## Status
 
 **Alpha** — Core creative pipeline (novel chapter generation/continuation/review, image generation, Agent orchestration) is functional. UI and features are being actively refined.
+
+## FAQ
+
+**What is Orison Space?**
+An open-source, local-first AI novel-writing IDE that brings outlines, chapters, characters, and world-building asset cards into one workspace, with AI generation, continuation, polishing, review, and controlled edits.
+
+**How is it different from a chat tool like ChatGPT?**
+It's a workspace for long-form writing, not a one-shot generator. Project structure, a version timeline, and an asset library persist over time; every AI edit is previewable, controllable, and reversible, and the user always leads the creation.
+
+**Is my writing uploaded to the cloud?**
+No. Orison Space is local-first. Your work is saved as plain files (`project.yaml`, `chapters/*.md`, etc.) on your own computer, with no account required and no data leaving your machine.
+
+**Which AI models are supported?**
+Any OpenAI-compatible endpoint. You connect with your own API key and freely choose text and image models; keys are stored encrypted, locally only.
+
+**Which operating systems are supported?**
+Windows, macOS (Intel and Apple Silicon), and Linux.
+
+**Is it free? Is it open source?**
+Fully open source under the Apache-2.0 license and free to use. You only bring your own model API usage.
 
 ## License
 

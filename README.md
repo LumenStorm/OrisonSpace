@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="Orison Space" width="120" />
+<img src="docs/assets/logo.png" alt="Orison Space — AI 小说创作 IDE" width="120" />
 
 # Orison Space
 
@@ -13,12 +13,16 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![Electron](https://img.shields.io/badge/Electron-37-47848F.svg)
 
+[**⬇ 下载安装**](https://github.com/LumenStorm/OrisonSpace/releases) · [📖 文档](docs/) · [🕒 时间线指南](docs/guides/时间线指南.md) · [📋 更新日志](CHANGELOG.md)
+
 </div>
 
 <!-- TODO: 添加应用截图 -->
 <!-- ![screenshot](docs/assets/screenshot.png) -->
 
 ---
+
+**Orison Space** 是一款开源、本地优先的 AI 小说创作 IDE，面向网文与长篇小说作者，把大纲、章节、人物与世界观资产卡整合到一个工作区。它以「用户主导创作、AI 辅助」为原则，提供 AI 生成、续写、润色、审阅与可控修改，接入任意 OpenAI 兼容模型，所有创作数据保存在你自己的电脑上。支持 Windows、macOS 与 Linux，采用 Apache-2.0 许可证。
 
 ## 功能亮点
 
@@ -32,6 +36,13 @@
 - **文档互通** — 章节/大纲支持 DOCX 预览与导入导出
 - **主题 & 多语言** — 亮色/暗色/自定义主题，中英双语，YAML 驱动可扩展
 - **模型自由** — 接入任何 OpenAI 兼容端点，本地管理 API Key
+
+## 适合谁
+
+- **网文 / 长篇小说作者** — 需要把大纲、章节、人物设定长期沉淀在一个工作区，而不是散落在多个文档里
+- **想用 AI 但不想交出主导权的创作者** — Orison Space 是创作工作台，不是一次性自动生成器：每一处 AI 改动都可预览、可控、可回退
+- **重视隐私与数据自主的人** — 作品全部以本地文件保存，不上传云端，不需要登录账号
+- **喜欢自带模型的人** — 接入自己的 OpenAI 兼容 API Key，自由选择文本与图片模型
 
 ## 技术栈
 
@@ -96,6 +107,26 @@ docs/               — 架构与设计文档
 ## 项目状态
 
 **Alpha** — 核心创作链路（小说章节生成/续写/审阅、图片生成、Agent 编排）已可用，UI 和功能持续完善中。
+
+## 常见问题
+
+**Orison Space 是什么？**
+一款开源、本地优先的 AI 小说创作 IDE，把大纲、章节、人物与世界观资产卡整合到一个工作区，提供 AI 生成、续写、润色、审阅与可控修改。
+
+**它和 ChatGPT 这类聊天工具有什么不同？**
+它是面向长篇创作的工作台，而不是一次性生成器。项目结构、版本时间线、资产库长期沉淀；AI 的每次修改都可预览、可控、可回退，用户始终主导创作。
+
+**我的作品数据会上传到云端吗？**
+不会。Orison Space 本地优先，作品以普通文件（`project.yaml`、`chapters/*.md` 等）保存在你自己的电脑上，无需登录账号，数据不离开本地。
+
+**支持哪些 AI 模型？**
+任意 OpenAI 兼容端点。你用自己的 API Key 接入，自由选择文本与图片生成模型，密钥仅加密保存在本地。
+
+**支持哪些操作系统？**
+Windows、macOS（Intel 与 Apple Silicon）和 Linux。
+
+**收费吗？开源吗？**
+完全开源，采用 Apache-2.0 许可证，可免费使用。你只需自备模型 API 调用额度。
 
 ## License
 
