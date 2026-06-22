@@ -62,7 +62,11 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
   }
 
   atomicWriteFileSync(filePath, content, 'utf-8');
+  // Notify both chapter-level listeners (word count) and file-level listeners
+  // (open tab reload). Without file:changed, editors showing this chapter
+  // won't refresh until manually closed and reopened (issue #4).
   notifyUI({ type: 'chapter:changed', chapterId });
+  notifyUI({ type: 'file:changed', path: `${CHAPTERS_DIR}/${chapterId}.md` });
   const wordCount = content.replace(/\s+/g, '').length;
   return {
     title: `chapter_write: ${chapterId}`,
