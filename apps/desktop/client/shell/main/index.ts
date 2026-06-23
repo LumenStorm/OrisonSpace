@@ -16,6 +16,7 @@ import { registerGitIpc } from './ipc/gitIpc';
 import { registerAgentIpc } from './ipc/agentIpc';
 import { registerOrchestrationIpc } from './ipc/orchestrationIpc';
 import { fetchOrisonFile } from './orisonFileProtocol';
+import { closeDb } from './db';
 
 /* ── CSP ── */
 
@@ -179,5 +180,16 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// Release the SQLite handle on quit. In WAL mode an open handle keeps a file
+// lock that, on Windows, blocks deleting/reopening the DB file. Without this the
+// connection only closed in tests, never on real app exit.
+app.on('will-quit', () => {
+  try {
+    closeDb();
+  } catch (err) {
+    getLogger().warn({ err: err instanceof Error ? err.message : String(err) }, 'closeDb on quit failed');
   }
 });

@@ -15,13 +15,22 @@ export function AgentMessages({ messages, loading, error }: Props) {
   const { resolvedLocale } = useAppStore(useShallow((s) => ({ resolvedLocale: s.resolvedLocale })));
   const { t } = useI18n(resolvedLocale);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only auto-scroll if the user is already near the bottom. Otherwise they've
+    // scrolled up to read history and a forced scroll on every new event would
+    // yank them back down.
+    const el = containerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 120) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages.length, loading]);
 
   return (
-    <div className="agent-messages">
+    <div className="agent-messages" ref={containerRef}>
       {messages.length === 0 && !loading && (
         <div className="agent-messages-empty">
           <span className="material-symbols-outlined">smart_toy</span>

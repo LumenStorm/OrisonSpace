@@ -86,6 +86,11 @@ common:
   cancel: "Cancel"
   confirm: "Confirm"
   delete: "Delete"
+errorBoundary:
+  title: "Something went wrong"
+  message: "An unexpected error occurred."
+  tryAgain: "Try again"
+  reload: "Reload app"
 export:
   title: "Export"
   download: "Download"

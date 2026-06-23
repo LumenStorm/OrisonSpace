@@ -11,8 +11,13 @@ export function AgentToolCard({ result }: Props) {
       ? (result.metadata as { paths: string[] }).paths
       : [];
 
+  // A failed tool surfaces its error as a result whose output starts with
+  // "Error:" (see agent loop / tool handlers). Reflect that instead of always
+  // showing a green check, so a failure isn't mistaken for success.
+  const isError = typeof result.output === 'string' && /^\s*error\b/i.test(result.output);
+
   return (
-    <div className="agent-tool-card">
+    <div className={`agent-tool-card${isError ? ' agent-tool-card--error' : ''}`}>
       <button
         type="button"
         className="agent-tool-card-header"
@@ -22,7 +27,9 @@ export function AgentToolCard({ result }: Props) {
           {expanded ? 'expand_less' : 'expand_more'}
         </span>
         <span className="agent-tool-card-name">{result.toolId ?? 'tool'}</span>
-        <span className="agent-tool-card-status">✓</span>
+        <span className={`agent-tool-card-status${isError ? ' agent-tool-card-status--error' : ''}`}>
+          {isError ? '⚠' : '✓'}
+        </span>
       </button>
       {expanded && (
         <div className="agent-tool-card-body">

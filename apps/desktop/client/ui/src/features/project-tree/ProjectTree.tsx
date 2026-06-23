@@ -300,6 +300,11 @@ export function ProjectTree() {
       items.push({
         type: 'item', label: t('contextMenu.delete'), icon: 'delete', danger: true,
         onClick: async () => {
+          // Confirm before an irreversible delete (directories are recursive).
+          const confirmMsg = entry.isDir
+            ? t('projectTree.deleteConfirmDir', { name: entry.name })
+            : t('projectTree.deleteConfirmFile', { name: entry.name });
+          if (!window.confirm(confirmMsg)) return;
           if (projectPath) {
             const fullPath = normalizePath(`${projectPath}${entry.path}`);
             const ok = await window.orisonDesktop?.deleteEntry(`${projectPath}${entry.path}`);
@@ -332,10 +337,25 @@ export function ProjectTree() {
   }, [ctxMenu, t, currentProject, projectPath]);
 
   const handleRenameConfirm = useCallback(async (oldPath: string, newName: string) => {
+    const trimmed = newName.trim();
+    const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
+    const newRelative = parentDir === '/' ? `/${trimmed}` : `${parentDir}/${trimmed}`;
+    // No-op rename (same name) — just close the editor.
+    if (newRelative === oldPath) {
+      setRenamingPath(null);
+      return;
+    }
+    // Reject invalid names and collisions with an existing sibling.
+    if (!trimmed || trimmed.includes('/') || trimmed.includes('\\') || trimmed.includes('..')) {
+      useToastStore.getState().showToast(t('projectTree.invalidName'), 'error');
+      return;
+    }
+    if (findNode(fileTree, newRelative)) {
+      useToastStore.getState().showToast(t('projectTree.nameExists', { name: trimmed }), 'error');
+      return;
+    }
     if (projectPath) {
       const oldFull = normalizePath(`${projectPath}${oldPath}`);
-      const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
-      const newRelative = parentDir === '/' ? `/${newName}` : `${parentDir}/${newName}`;
       const newFull = normalizePath(`${projectPath}${newRelative}`);
       const ok = await window.orisonDesktop?.renameEntry(oldFull, newFull);
       if (ok === false) {
@@ -344,30 +364,47 @@ export function ProjectTree() {
         return;
       }
       // Rebase open tabs (incl. files nested under a renamed directory) and split.
-      renameOpenFile(oldFull, newFull, newName);
+      renameOpenFile(oldFull, newFull, trimmed);
     }
-    setFileTree((prev) => prev ? renameNode(prev, oldPath, newName) : prev);
+    setFileTree((prev) => prev ? renameNode(prev, oldPath, trimmed) : prev);
     setRenamingPath(null);
-  }, [projectPath, renameOpenFile, t]);
+  }, [projectPath, fileTree, renameOpenFile, t]);
 
   const handleCreateConfirm = useCallback(async (name: string) => {
     if (!creatingIn || !creatingType) return;
+    const trimmed = name.trim();
     const isDir = creatingType === 'folder';
-    const newPath = creatingIn === '/' ? `/${name}` : `${creatingIn}/${name}`;
+    // Reject invalid names (separators / traversal) before touching disk.
+    if (!trimmed || trimmed.includes('/') || trimmed.includes('\\') || trimmed.includes('..')) {
+      useToastStore.getState().showToast(t('projectTree.invalidName'), 'error');
+      return;
+    }
+    const newPath = creatingIn === '/' ? `/${trimmed}` : `${creatingIn}/${trimmed}`;
+    // Pre-check for an existing sibling so we never silently overwrite a file.
+    if (findNode(fileTree, newPath)) {
+      useToastStore.getState().showToast(t('projectTree.nameExists', { name: trimmed }), 'error');
+      return;
+    }
     if (projectPath) {
       const ok = await window.orisonDesktop?.createEntry(`${projectPath}${newPath}`, isDir);
       if (ok === false) {
+        // Main rejected it (collision/invalid that slipped past the UI check).
         useToastStore.getState().showToast(t('projectTree.createFailed'), 'error');
         setCreatingIn(null);
         setCreatingType(null);
         return;
       }
     }
-    const child: FileEntry = { name, path: newPath, isDir, children: isDir ? [] : undefined };
+    const child: FileEntry = { name: trimmed, path: newPath, isDir, children: isDir ? [] : undefined };
     setFileTree((prev) => prev ? insertChild(prev, creatingIn, child) : prev);
     setCreatingIn(null);
     setCreatingType(null);
-  }, [creatingIn, creatingType, projectPath, t]);
+    // Open the freshly created file so the user can start editing immediately.
+    if (!isDir && projectPath) {
+      const fullPath = normalizePath(`${projectPath}${newPath}`);
+      openFile(fullPath, trimmed, '');
+    }
+  }, [creatingIn, creatingType, projectPath, fileTree, openFile, t]);
 
   const handleCreateCancel = useCallback(() => {
     setCreatingIn(null);

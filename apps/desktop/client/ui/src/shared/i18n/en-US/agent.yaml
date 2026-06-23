@@ -24,6 +24,8 @@ agent:
   original: "Original"
   modified: "Modified"
   noHistory: "No previous conversations."
+  deleteSession: "Delete conversation"
+  deleteSessionConfirm: "Delete \"{title}\"? This can't be undone."
   skills: "Skills"
   refreshSkills: "Refresh skills"
   runSkill: "Run"

@@ -135,3 +135,5 @@ fileEditor:
   reloadFromDisk: "重新加载"
   keepMine: "保留我的更改"
   saveAnyway: "仍然保存"
+  saveFailedOnClose: "无法保存：{names}。仍然关闭并丢失这些更改吗？"
+  saveFailedToast: "保存失败：{names}"

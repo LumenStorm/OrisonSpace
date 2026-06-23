@@ -36,15 +36,36 @@ export function CodeEditor({ file }: { file: FileTab }) {
   const redoStack = useRef<HistoryEntry[]>([]);
   const lastPushAt = useRef(0);
   const fileIdRef = useRef(file.id);
+  // Track the last content/savedContent we reacted to, so we can tell a user's
+  // own save (savedContent changes, content doesn't) apart from an external
+  // reload / agent patch (both change to the new on-disk text).
+  const savedRef = useRef(file.savedContent);
+  const contentRef = useRef(file.content);
 
   // Reset history when a different file becomes active in this reused editor.
   useEffect(() => {
-    if (file.id === fileIdRef.current) return;
-    fileIdRef.current = file.id;
-    undoStack.current = [];
-    redoStack.current = [];
-    lastPushAt.current = 0;
-  }, [file.id]);
+    if (file.id !== fileIdRef.current) {
+      fileIdRef.current = file.id;
+      savedRef.current = file.savedContent;
+      contentRef.current = file.content;
+      undoStack.current = [];
+      redoStack.current = [];
+      lastPushAt.current = 0;
+      return;
+    }
+    if (file.savedContent === savedRef.current) return;
+    savedRef.current = file.savedContent;
+    // External reload / patch swapped the buffer out from under us: the stale
+    // undo stack now holds snapshots that no longer match disk, so Ctrl+Z would
+    // restore deleted text. Clear it. A user's own save (content unchanged)
+    // keeps history intact.
+    if (file.content !== contentRef.current) {
+      contentRef.current = file.content;
+      undoStack.current = [];
+      redoStack.current = [];
+      lastPushAt.current = 0;
+    }
+  }, [file.id, file.savedContent, file.content]);
 
   const lineCount = useMemo(() => file.content.split('\n').length, [file.content]);
 
@@ -62,6 +83,7 @@ export function CodeEditor({ file }: { file: FileTab }) {
       // Push the pre-edit snapshot, coalescing bursts of typing into one step.
       if (now - lastPushAt.current > COALESCE_MS) pushHistory();
       lastPushAt.current = now;
+      contentRef.current = ta.value;
       updateFileContent(file.path, ta.value);
     },
     [file.path, updateFileContent, pushHistory],
@@ -69,6 +91,8 @@ export function CodeEditor({ file }: { file: FileTab }) {
 
   const restore = useCallback(
     (fromContent: string, entry: HistoryEntry) => {
+      // Keep contentRef in sync so a later save isn't mistaken for a reload.
+      contentRef.current = entry.content;
       updateFileContent(file.path, entry.content);
       const caret = caretAfterSwap(fromContent, entry.content);
       // Reapply caret after React commits the new value.

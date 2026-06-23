@@ -135,3 +135,5 @@ fileEditor:
   reloadFromDisk: "Reload"
   keepMine: "Keep my changes"
   saveAnyway: "Save anyway"
+  saveFailedOnClose: "Couldn't save: {names}. Close anyway and lose these changes?"
+  saveFailedToast: "Save failed: {names}"

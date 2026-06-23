@@ -200,6 +200,14 @@
   font-size: 0.75rem;
 }
 
+.agent-tool-card-status--error {
+  color: var(--error, #e5484d);
+}
+
+.agent-tool-card--error {
+  border-color: var(--error, #e5484d);
+}
+
 .agent-tool-card-body {
   padding: var(--space-md);
   border-top: 1px solid var(--outline-variant);

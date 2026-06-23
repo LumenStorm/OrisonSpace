@@ -2,6 +2,30 @@ import { closeSync, existsSync, fsyncSync, openSync, renameSync, rmSync, writeSy
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
+/**
+ * Rename with a short retry loop. On Windows the final rename can transiently
+ * fail with EPERM/EBUSY when antivirus, the search indexer, or another handle
+ * briefly holds the target file. A few spaced retries clear almost all of these
+ * without surfacing a spurious write failure to the user.
+ */
+function renameWithRetry(from: string, to: string): void {
+  const MAX_TRIES = 5;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      renameSync(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      const transient = code === 'EPERM' || code === 'EBUSY' || code === 'EACCES';
+      if (!transient || attempt >= MAX_TRIES) throw err;
+      // Brief synchronous backoff (10ms, 20ms, ...). atomicWriteFileSync is sync
+      // by contract, so we busy-wait rather than await a timer.
+      const until = Date.now() + attempt * 10;
+      while (Date.now() < until) { /* spin */ }
+    }
+  }
+}
+
 export function atomicWriteFileSync(
   filePath: string,
   data: string | NodeJS.ArrayBufferView,
@@ -21,7 +45,7 @@ export function atomicWriteFileSync(
     } finally {
       closeSync(fd);
     }
-    renameSync(tmpPath, filePath);
+    renameWithRetry(tmpPath, filePath);
   } catch (error) {
     if (existsSync(tmpPath)) rmSync(tmpPath, { force: true });
     throw error;

@@ -63,7 +63,7 @@ export type FileTabsSlice = {
   updateFileContent: (path: string, content: string) => void;
   renameOpenFile: (oldPath: string, newPath: string, newName: string) => void;
   saveFile: (path: string) => Promise<boolean>;
-  saveAllOpenFiles: () => Promise<void>;
+  saveAllOpenFiles: () => Promise<{ failed: string[] }>;
   reloadFile: (path: string) => Promise<void>;
   /** Flag a tab as changed/deleted on disk while it had unsaved edits. */
   markExternalChange: (path: string, kind: 'changed' | 'deleted') => void;
@@ -394,7 +394,12 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const dirty = get().openFiles.filter(
       (f) => f.kind === 'text' && f.content !== f.savedContent,
     );
-    await Promise.all(dirty.map((f) => get().saveFile(f.path)));
+    // Return the paths that failed to persist so callers (e.g. the close guard)
+    // can refuse to proceed and warn the user instead of silently losing edits.
+    const results = await Promise.all(
+      dirty.map(async (f) => ({ path: f.path, ok: await get().saveFile(f.path) })),
+    );
+    return { failed: results.filter((r) => !r.ok).map((r) => r.path) };
   },
 
   async reloadFile(path) {
@@ -452,8 +457,20 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const state = get();
     if (fromIndex === toIndex) return;
     const files = [...state.openFiles];
-    const [moved] = files.splice(fromIndex, 1);
-    files.splice(toIndex, 0, moved);
+    const moved = files[fromIndex];
+    if (!moved) return;
+    const [removed] = files.splice(fromIndex, 1);
+    files.splice(toIndex, 0, removed);
+    // Preserve the pinned-first invariant that togglePinTab maintains: a drag
+    // must not interleave pinned and unpinned tabs. Re-sort so all pinned tabs
+    // stay ahead of unpinned ones while keeping the new relative order within
+    // each group.
+    if (state.pinnedPaths.size > 0) {
+      const pinned = files.filter((f) => state.pinnedPaths.has(f.path));
+      const unpinned = files.filter((f) => !state.pinnedPaths.has(f.path));
+      set({ openFiles: [...pinned, ...unpinned] });
+      return;
+    }
     set({ openFiles: files });
   },
   };

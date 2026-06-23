@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { storyboardFrames } from '../../shared/data/workspaceData';
 
+// NOTE: Storyboard is intentionally NOT reachable from the UI right now. No
+// nav entry (side-nav/navItems.ts) and no `setActivePage('storyboard')` call
+// exists, so this page never mounts in normal use. It overlaps with the
+// Outline/Overview features and still falls back to mock `storyboardFrames`
+// data, so it's parked rather than removed — the component, route case in
+// WorkspaceLayout, and the `storyboard` schema are kept for a future rework.
+// Do not wire a nav entry back in without finishing the real shot pipeline.
+
 type Shot = { id: string; sort_order: number; description: string; image_url?: string };
 
 export function StoryboardCanvas() {

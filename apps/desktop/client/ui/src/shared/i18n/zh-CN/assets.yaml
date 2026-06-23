@@ -34,3 +34,7 @@ projectTree:
   deleteFailed: "删除失败"
   renameFailed: "重命名失败"
   createFailed: "创建失败"
+  nameExists: "“{name}”已存在"
+  invalidName: "名称不能包含 / \\ 或 .."
+  deleteConfirmFile: "删除“{name}”？此操作不可撤销。"
+  deleteConfirmDir: "删除文件夹“{name}”及其全部内容？此操作不可撤销。"

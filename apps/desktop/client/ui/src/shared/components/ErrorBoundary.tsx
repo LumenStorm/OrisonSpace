@@ -1,15 +1,17 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Fragment, type ErrorInfo, type ReactNode } from 'react';
+import { translate } from '../i18n/useI18n';
+import { useAppStore } from '../store/appStore';
 
 type Props = { children: ReactNode };
-type State = { hasError: boolean; error: Error | null };
+type State = { hasError: boolean; error: Error | null; resetKey: number };
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, resetKey: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -24,9 +26,22 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  private handleReload = () => {
-    this.setState({ hasError: false, error: null });
+  // Bump resetKey so the child subtree is forced to remount with fresh state.
+  // Just clearing hasError kept the same element tree, so a deterministic render
+  // error re-threw immediately and the user was stuck on this screen.
+  private handleReset = () => {
+    this.setState((s) => ({ hasError: false, error: null, resetKey: s.resetKey + 1 }));
   };
+
+  private handleReload = () => {
+    window.location.reload();
+  };
+
+  private t(key: string): string {
+    let locale = 'en-US';
+    try { locale = useAppStore.getState().resolvedLocale ?? 'en-US'; } catch { /* store not ready */ }
+    return translate(locale, `errorBoundary.${key}`);
+  }
 
   render() {
     if (this.state.hasError) {
@@ -35,20 +50,21 @@ export class ErrorBoundary extends Component<Props, State> {
           <span className="material-symbols-outlined error-boundary-icon" aria-hidden="true">
             error
           </span>
-          <h2 className="error-boundary-title">Something went wrong</h2>
+          <h2 className="error-boundary-title">{this.t('title')}</h2>
           <p className="error-boundary-message">
-            {this.state.error?.message || 'An unexpected error occurred.'}
+            {this.state.error?.message || this.t('message')}
           </p>
-          <button
-            type="button"
-            className="error-boundary-btn"
-            onClick={this.handleReload}
-          >
-            Try again
-          </button>
+          <div className="error-boundary-actions">
+            <button type="button" className="error-boundary-btn" onClick={this.handleReset}>
+              {this.t('tryAgain')}
+            </button>
+            <button type="button" className="error-boundary-btn" onClick={this.handleReload}>
+              {this.t('reload')}
+            </button>
+          </div>
         </div>
       );
     }
-    return this.props.children;
+    return <Fragment key={this.state.resetKey}>{this.props.children}</Fragment>;
   }
 }

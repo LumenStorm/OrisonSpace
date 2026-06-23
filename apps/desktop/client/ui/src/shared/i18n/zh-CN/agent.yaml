@@ -24,6 +24,8 @@ agent:
   original: "原文"
   modified: "修改后"
   noHistory: "暂无历史对话。"
+  deleteSession: "删除对话"
+  deleteSessionConfirm: "删除“{title}”？此操作不可撤销。"
   skills: "技能"
   refreshSkills: "刷新技能"
   runSkill: "运行"

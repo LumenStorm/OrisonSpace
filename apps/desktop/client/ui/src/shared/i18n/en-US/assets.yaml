@@ -34,3 +34,7 @@ projectTree:
   deleteFailed: "Delete failed"
   renameFailed: "Rename failed"
   createFailed: "Create failed"
+  nameExists: "\"{name}\" already exists here"
+  invalidName: "Name can't contain / \\ or .."
+  deleteConfirmFile: "Delete \"{name}\"? This can't be undone."
+  deleteConfirmDir: "Delete the folder \"{name}\" and everything inside it? This can't be undone."

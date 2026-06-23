@@ -17,6 +17,14 @@ import {
 } from '../api/agent';
 import { randomUUID } from '../util/id';
 import { registerProjectReset } from './resetRegistry';
+import { storage } from './storage';
+
+const AGENT_MODE_KEY = 'agentMode';
+const VALID_MODES: AgentMode[] = ['readonly', 'suggest', 'auto'];
+function readPersistedMode(): AgentMode {
+  const v = storage.getString(AGENT_MODE_KEY, 'suggest') as AgentMode;
+  return VALID_MODES.includes(v) ? v : 'suggest';
+}
 
 export type { AgentMessage, AgentSessionMeta };
 
@@ -101,8 +109,8 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   });
 
   return {
-  agentMode: 'suggest',
-  setAgentMode: (mode) => set({ agentMode: mode }),
+  agentMode: readPersistedMode(),
+  setAgentMode: (mode) => { storage.set(AGENT_MODE_KEY, mode); set({ agentMode: mode }); },
   agentModelRef: null,
   setAgentModelRef: (ref) => {
     const previous = get().agentModelRef;
@@ -256,6 +264,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                     filePath?: string; replacement?: string; originalText?: string; originalQuote?: string;
                     field?: string; action?: string; data?: unknown;
                     anchor?: import('../types/attachment').SelectionAnchor;
+                    previousContent?: string | null; existedBefore?: boolean;
                   }
                 | undefined;
               if (!meta) continue;
@@ -319,6 +328,10 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                       fileName: meta.fileName ?? 'unknown',
                       content: meta.content!,
                       chapterId: meta.chapterId,
+                      // Snapshot for suggest-mode reject (tool already wrote to disk).
+                      previousContent: meta.previousContent,
+                      existedBefore: meta.existedBefore,
+                      filePath: meta.filePath,
                     }],
                   }));
                 }

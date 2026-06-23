@@ -133,6 +133,11 @@
   word-break: break-word;
 }
 
+.error-boundary-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 .error-boundary-btn {
   margin-top: var(--space-md);
   padding: 0.45rem 1.2rem;

@@ -506,6 +506,9 @@ export function ImageGenEditor() {
     setResults((current) =>
       current.map((entry) => entry.id === item.id ? { ...entry, assetAdded: true } : entry),
     );
+    // Notify the Assets panel to rescan so the promoted image shows up there
+    // without a manual refresh (it lives in assets/images now).
+    window.dispatchEvent(new CustomEvent('orison:tool-event', { detail: { type: 'image:created', path: nextItem.savedRelativePath } }));
   }
 
   async function handleCopyPrompt(item: GeneratedImageItem) {

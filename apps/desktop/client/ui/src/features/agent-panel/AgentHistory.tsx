@@ -40,8 +40,12 @@ export function AgentHistory({ onClose }: Props) {
             <button
               type="button"
               className="agent-history-item-delete"
-              onClick={() => deleteAgentSession(s.id)}
-              title={t('agent.reject')}
+              onClick={() => {
+                if (window.confirm(t('agent.deleteSessionConfirm', { title: s.title || 'Untitled' }))) {
+                  deleteAgentSession(s.id);
+                }
+              }}
+              title={t('agent.deleteSession')}
             >
               <span className="material-symbols-outlined">delete</span>
             </button>

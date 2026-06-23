@@ -95,6 +95,18 @@ export function AssetsPanel() {
 
   useEffect(() => { void loadAssets(); }, [loadAssets]);
 
+  // Refresh when an image is created/promoted elsewhere (agent generation, the
+  // Image Gen "add to assets" action, external file changes). Without this the
+  // panel only showed new images after a manual refresh or remount.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { type } = (e as CustomEvent).detail ?? {};
+      if (type === 'image:created' || type === 'file:changed') void loadAssets();
+    };
+    window.addEventListener('orison:tool-event', handler);
+    return () => window.removeEventListener('orison:tool-event', handler);
+  }, [loadAssets]);
+
   // Filter + search + sort
   const filtered = useMemo(() => {
     let result = assets;

@@ -49,14 +49,20 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
   const filePath = path.join(dir, `${chapterId}.md`);
   assertWithinProject(projectDir, filePath);
 
-  if (existsSync(filePath)) {
-    const existing = readFileSync(filePath, 'utf-8');
+  // Snapshot the pre-write content so suggest-mode "reject" can restore it
+  // (the tool writes to disk now; the diff is reviewed afterwards). null marks
+  // a brand-new file, which reject should delete rather than blank out.
+  const existedBefore = existsSync(filePath);
+  const previousContent = existedBefore ? readFileSync(filePath, 'utf-8') : null;
+
+  if (existedBefore) {
+    const existing = previousContent as string;
     if (existing === content) {
       const wordCount = content.replace(/\s+/g, '').length;
       return {
         title: `chapter_write: ${chapterId}`,
         output: `Chapter ${chapterId} already up to date (${wordCount} chars). No changes needed — proceed to the next chapter.`,
-        metadata: { wordCount },
+        metadata: { wordCount, previousContent, existedBefore },
       };
     }
   }
@@ -67,7 +73,7 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
   return {
     title: `chapter_write: ${chapterId}`,
     output: `Wrote chapter ${chapterId} (${wordCount} chars). Chapter saved — proceed to the next chapter.`,
-    metadata: { wordCount },
+    metadata: { wordCount, previousContent, existedBefore },
   };
 };
 

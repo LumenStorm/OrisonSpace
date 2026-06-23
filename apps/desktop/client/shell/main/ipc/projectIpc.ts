@@ -352,6 +352,13 @@ export function registerProjectIpc() {
   ipcMain.handle('project:rename-entry', async (_, oldPath: string, newPath: string) => {
     assertSafePath(oldPath);
     assertSafePath(newPath);
+    // Reject renaming onto an existing sibling. On POSIX renameSync would
+    // silently replace the target (data loss); on Windows it throws. Guard
+    // explicitly so the behaviour is consistent and the UI can warn the user.
+    // Allow a pure case/spacing change where the resolved target IS the source.
+    if (path.resolve(newPath) !== path.resolve(oldPath) && existsSync(newPath)) {
+      return false;
+    }
     try {
       renameSync(oldPath, newPath);
       return true;
@@ -362,6 +369,15 @@ export function registerProjectIpc() {
 
   ipcMain.handle('project:create-entry', async (_, fullPath: string, isDir: boolean) => {
     assertSafePath(fullPath);
+    // Reject names containing path separators / traversal (matches
+    // create-directory). The name is the last path segment of fullPath.
+    const baseName = path.basename(fullPath);
+    if (!baseName || baseName === '.' || baseName === '..' || baseName.includes('..')) {
+      return false;
+    }
+    // Never overwrite an existing file/dir: a blind atomicWrite('') here would
+    // truncate a real manuscript to empty. Refuse and let the UI report it.
+    if (existsSync(fullPath)) return false;
     try {
       if (isDir) {
         mkdirSync(fullPath, { recursive: true });

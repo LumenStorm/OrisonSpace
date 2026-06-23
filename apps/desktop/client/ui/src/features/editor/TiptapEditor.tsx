@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -55,6 +55,7 @@ export function TiptapEditor({
   const initialHtml = format === 'markdown' ? markdownToHtml(content) : content;
   const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -73,14 +74,21 @@ export function TiptapEditor({
 
   useEffect(() => {
     if (!editable || disableFind) return;
+    // Scope the find shortcut to THIS editor's wrapper. A window-level listener
+    // made every mounted TiptapEditor (split view, outline) compete: the first
+    // to register won via `defaultPrevented`, so Ctrl+F opened find in the wrong
+    // pane regardless of focus. Listening on the wrapper means the shortcut only
+    // fires for the editor the user is actually typing in.
+    const el = wrapperRef.current;
+    if (!el) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (!(e.ctrlKey || e.metaKey)) return;
       if (e.key === 'f') { e.preventDefault(); setFindMode('find'); }
       if (e.key === 'h') { e.preventDefault(); setFindMode('replace'); }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    el.addEventListener('keydown', onKey);
+    return () => el.removeEventListener('keydown', onKey);
   }, [editable, disableFind]);
 
   useEffect(() => {
@@ -188,7 +196,7 @@ export function TiptapEditor({
   ];
 
   return (
-    <div className={`tiptap-wrapper${flush ? ' tiptap-wrapper--flush' : ''}`} onContextMenu={handleContextMenu}>
+    <div ref={wrapperRef} className={`tiptap-wrapper${flush ? ' tiptap-wrapper--flush' : ''}`} onContextMenu={handleContextMenu}>
       {!disableFind && findMode && <FindReplaceBar initialMode={findMode} adapter={findAdapter} onClose={handleFindClose} />}
       {ctxMenu && <ContextMenu x={ctxMenu.x} y={ctxMenu.y} items={ctxItems} onClose={() => setCtxMenu(null)} />}
       {bubbleMenu && editable && <BubbleToolbar editor={editor} />}

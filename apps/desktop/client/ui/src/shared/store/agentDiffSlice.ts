@@ -15,6 +15,16 @@ export type ChapterPendingDiff = {
   fileName: string;
   content: string;
   chapterId?: string;
+  /**
+   * suggest-mode reject support: the tool already wrote to disk at execution
+   * time, so reject must undo that write. `previousContent` is the on-disk text
+   * before the write (null when the file was newly created → reject deletes it);
+   * `filePath` is the absolute path actually written (set for write_file, whose
+   * target isn't under chapters/).
+   */
+  previousContent?: string | null;
+  existedBefore?: boolean;
+  filePath?: string;
 };
 
 /**
@@ -89,6 +99,7 @@ type Deps = AgentDiffSlice & ChapterAccessor & {
   updateFileContent: (path: string, content: string) => void;
   saveFile: (path: string) => Promise<boolean>;
   openFile: (path: string, name: string, content: string, options?: { kind?: 'text' | 'image' | 'docx' }) => void;
+  closeFilesUnder?: (pathOrDir: string) => void;
   currentProject: { path?: string } | null;
   novelChapters: { id: string; sections: { contentFile: string }[] }[];
   refreshWordCount?: () => Promise<void>;
@@ -362,6 +373,14 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
   },
 
   rejectDiff(id) {
+    const state = get();
+    const diff = state.pendingDiffs.find((d) => d.id === id);
+    // A chapter/file write already hit disk at tool-execution time (suggest
+    // mode reviews after the fact). Rejecting must undo that write, otherwise
+    // "reject" silently keeps the agent's change.
+    if (diff && diff.kind === 'chapter') {
+      void restoreRejectedWrite(state, diff);
+    }
     set((s) => ({
       pendingDiffs: s.pendingDiffs.filter((d) => d.id !== id),
       pendingPassageResolve: s.pendingPassageResolve?.diffId === id ? null : s.pendingPassageResolve,
@@ -406,6 +425,48 @@ function applyPassage(
   } else if (sourceType === 'file' && filePath) {
     state.updateFileContent(filePath, next);
     void state.saveFile(filePath);
+  }
+}
+
+/**
+ * Undo an already-written chapter/file diff when the user rejects it in suggest
+ * mode (the tool wrote to disk at execution time). Restores the pre-write text,
+ * or deletes the file if the write created it. Keeps any open editor tab in sync.
+ */
+async function restoreRejectedWrite(state: Deps, diff: ChapterPendingDiff): Promise<void> {
+  const api = window.orisonDesktop;
+  if (!api) return;
+  // write_file targets an arbitrary path (diff.filePath); chapter writes resolve
+  // to chapters/<id>.md.
+  const projectPath = state.currentProject?.path;
+  const absPath = diff.filePath && projectPath
+    ? normalizePath(`${projectPath}/${diff.filePath}`)
+    : resolveChapterFilePath(state, diff.chapterId, diff.fileName);
+  if (!absPath) return;
+
+  // No snapshot info → can't safely restore; leave disk as-is.
+  if (diff.existedBefore === undefined) return;
+
+  if (!diff.existedBefore) {
+    // The write created the file — delete it and close any ghost tab.
+    try { await api.deleteEntry?.(absPath); } catch { /* best effort */ }
+    state.closeFilesUnder?.(absPath);
+    return;
+  }
+
+  // The file existed — restore its previous content (in the open tab if any).
+  const previous = diff.previousContent ?? '';
+  const openTab = state.openFiles.find((f) => f.path === absPath);
+  if (openTab) {
+    state.updateFileContent(absPath, previous);
+    void state.saveFile(absPath);
+  } else {
+    try { await api.writeFile?.(absPath, previous); } catch { /* best effort */ }
+  }
+  // Keep the in-memory legacy chapter list consistent if this was a chapter.
+  if (diff.chapterId) {
+    const chapter = state.chapters.find((c) => c.id === diff.chapterId);
+    if (chapter) state.updateChapter(chapter.id, { content: previous });
   }
 }
 

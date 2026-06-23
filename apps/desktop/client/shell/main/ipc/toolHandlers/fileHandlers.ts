@@ -33,12 +33,19 @@ export const writeFileHandler: ToolHandler = async ({ params, projectDir }) => {
 
   const dir = path.dirname(fullPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  // Snapshot pre-write content for suggest-mode reject/restore (the write lands
+  // now; review happens after). null marks a new file → reject deletes it.
+  const existedBefore = existsSync(fullPath);
+  const previousContent = existedBefore ? readFileSync(fullPath, 'utf-8') : null;
+
   atomicWriteFileSync(fullPath, content, 'utf-8');
 
   notifyUI({ type: 'file:changed', path: filePath });
   return {
     title: filePath,
     output: `Wrote ${content.length} chars to ${filePath}`,
+    metadata: { previousContent, existedBefore },
   };
 };
 

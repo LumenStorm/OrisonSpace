@@ -170,8 +170,11 @@ export const exposedDesktopApi = {
   gitStatusCount: (dir: string) => ipcRenderer.invoke('git:status-count', dir) as Promise<number>,
   // Tool event notifications (pushed from Shell when Agent executes tools)
   onToolEvent: (callback: (data: { type: string; [key: string]: unknown }) => void) => {
-    ipcRenderer.on('tool:event', (_e, data) => callback(data));
-    return () => { ipcRenderer.removeAllListeners('tool:event'); };
+    const listener = (_e: unknown, data: { type: string; [key: string]: unknown }) => callback(data);
+    ipcRenderer.on('tool:event', listener);
+    // Scoped removal: removeAllListeners would also kill any other subscriber on
+    // this channel. Remove only the listener this subscription registered.
+    return () => { ipcRenderer.removeListener('tool:event', listener); };
   },
   // Agent
   createAgentSession: (input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }) =>
@@ -187,8 +190,9 @@ export const exposedDesktopApi = {
   streamAgentMessage: (input: { sessionId: string; content: string; attachments?: unknown[] }) =>
     ipcRenderer.invoke('agent:stream-message', input),
   onAgentStreamEvent: (callback: (event: { type: string; data: unknown }) => void) => {
-    ipcRenderer.on('agent:stream-event', (_e, event) => callback(event));
-    return () => { ipcRenderer.removeAllListeners('agent:stream-event'); };
+    const listener = (_e: unknown, event: { type: string; data: unknown }) => callback(event);
+    ipcRenderer.on('agent:stream-event', listener);
+    return () => { ipcRenderer.removeListener('agent:stream-event', listener); };
   },
   resolveAgentConfirmation: (sessionId: string, callId: string, approved: boolean) =>
     ipcRenderer.invoke('agent:resolve-confirmation', sessionId, callId, approved),
@@ -225,8 +229,9 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('orchestration:auto-mode-get', autoModeId),
   // Window lifecycle
   onBeforeClose: (callback: () => void) => {
-    ipcRenderer.on('app:before-close', () => callback());
-    return () => { ipcRenderer.removeAllListeners('app:before-close'); };
+    const listener = () => callback();
+    ipcRenderer.on('app:before-close', listener);
+    return () => { ipcRenderer.removeListener('app:before-close', listener); };
   },
   confirmClose: () => ipcRenderer.send('app:close-confirmed'),
 } satisfies OrisonDesktopApi;
