@@ -2,6 +2,8 @@ import type { StateCreator } from 'zustand';
 import type { ChapterAccessor } from './types';
 import type { SelectionAnchor } from '../types/attachment';
 import { resolveAgentConfirmation } from '../api/agent';
+import { registerProjectReset } from './resetRegistry';
+import { normalizePath } from '../utils/paths';
 
 /** Whole-chapter rewrite (existing behaviour). Applied by replacing chapter content wholesale. */
 export type ChapterPendingDiff = {
@@ -86,7 +88,54 @@ type Deps = AgentDiffSlice & ChapterAccessor & {
   openFiles: { path: string; content: string }[];
   updateFileContent: (path: string, content: string) => void;
   saveFile: (path: string) => Promise<boolean>;
+  openFile: (path: string, name: string, content: string, options?: { kind?: 'text' | 'image' | 'docx' }) => void;
+  currentProject: { path?: string } | null;
+  novelChapters: { id: string; sections: { contentFile: string }[] }[];
+  refreshWordCount?: () => Promise<void>;
 };
+
+/**
+ * Resolve the on-disk manuscript file for a chapter. The canonical layout is
+ * `chapters/<chapterId>.md` (see chapterWriteHandler); when the project document
+ * records an explicit `contentFile` for the chapter we honour that instead.
+ * Returns an absolute, normalized path, or null if it can't be resolved.
+ */
+function resolveChapterFilePath(state: Deps, chapterId: string | undefined, fileName: string | undefined): string | null {
+  const projectPath = state.currentProject?.path;
+  if (!projectPath) return null;
+
+  if (chapterId) {
+    const meta = state.novelChapters.find((c) => c.id === chapterId);
+    const contentFile = meta?.sections?.[0]?.contentFile;
+    if (contentFile) return normalizePath(`${projectPath}/${contentFile}`);
+    return normalizePath(`${projectPath}/chapters/${chapterId}.md`);
+  }
+  if (fileName) {
+    // fileName is a bare manuscript name like "chapter-01.md".
+    return normalizePath(`${projectPath}/chapters/${fileName}`);
+  }
+  return null;
+}
+
+/**
+ * Persist whole-chapter content to its `.md` file (the manuscript source of
+ * truth). If the file is already open as a tab, route through the tab so the
+ * editor view stays in sync; otherwise write straight to disk.
+ */
+function persistChapterContent(state: Deps, filePath: string, content: string): void {
+  const openTab = state.openFiles.find((f) => f.path === filePath);
+  if (openTab) {
+    state.updateFileContent(filePath, content);
+    void state.saveFile(filePath);
+    return;
+  }
+  const fileName = filePath.slice(filePath.lastIndexOf('/') + 1);
+  // Open the tab with the new content and save it — this both persists to disk
+  // and surfaces the change to the user (matching how an open file would behave).
+  state.openFile(filePath, fileName, content, { kind: 'text' });
+  void state.saveFile(filePath);
+  void state.refreshWordCount?.();
+}
 
 // ── passage relocation helpers ──
 
@@ -214,7 +263,16 @@ function locatePassage(content: string, originalText: string, anchor?: Selection
   return { status: 'not-found', candidates: ranked };
 }
 
-export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = (set, get) => ({
+export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = (set, get) => {
+  // Pending diffs/passage-resolve/tool-confirm reference the previous project's
+  // chapters and files. resetAgentForProjectSwitch already clears the session,
+  // but diffs live in this slice — clear them here so accepting a stale diff
+  // after a switch can't write into the new project.
+  registerProjectReset(() => {
+    set({ pendingDiffs: [], pendingPassageResolve: null, pendingToolConfirm: null });
+  });
+
+  return {
   pendingDiffs: [],
   pendingToolConfirm: null,
   pendingPassageResolve: null,
@@ -225,12 +283,19 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
     if (!diff) return;
 
     if (diff.kind === 'chapter') {
+      // Persist to the manuscript .md file (the source of truth). Previously this
+      // only updated the in-memory legacy chapter list and called a no-op save,
+      // so an accepted whole-chapter rewrite was lost on reload if the chapter's
+      // file wasn't open. Keep the in-memory update too for any open editor view.
       const chapter = state.chapters.find((c) =>
         diff.chapterId ? c.id === diff.chapterId : c.title.includes(diff.fileName.replace('.md', '')),
       );
       if (chapter) {
         state.updateChapter(chapter.id, { content: diff.content });
-        void state.saveChaptersToProject();
+      }
+      const filePath = resolveChapterFilePath(state, diff.chapterId, diff.fileName);
+      if (filePath) {
+        persistChapterContent(state, filePath, diff.content);
       }
       set({ pendingDiffs: state.pendingDiffs.filter((d) => d.id !== id) });
       return;
@@ -318,7 +383,8 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
     set({ pendingToolConfirm: null, agentLoading: true });
     void resolveAgentConfirmation(sessionId, pending.callId, false);
   },
-});
+  };
+};
 
 /** Splice replacement into [from,to) of the latest content and persist to the right source. */
 function applyPassage(
@@ -334,7 +400,9 @@ function applyPassage(
   const next = current.slice(0, from) + replacement + current.slice(to);
   if (sourceType === 'chapter' && chapterId) {
     state.updateChapter(chapterId, { content: next });
-    void state.saveChaptersToProject();
+    // Persist the spliced chapter to its manuscript file (was a no-op before).
+    const chapterFile = resolveChapterFilePath(state, chapterId, undefined);
+    if (chapterFile) persistChapterContent(state, chapterFile, next);
   } else if (sourceType === 'file' && filePath) {
     state.updateFileContent(filePath, next);
     void state.saveFile(filePath);

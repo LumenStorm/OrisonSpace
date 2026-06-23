@@ -124,4 +124,57 @@ describe('fileTabsSlice', () => {
     expect(useTestStore.getState().openFiles).toHaveLength(0);
     expect(useTestStore.getState().recentlyClosed).toHaveLength(2);
   });
+
+  it('renameOpenFile rebases a single renamed file and its display name', () => {
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'a');
+    useTestStore.getState().renameOpenFile('/p/a.md', '/p/renamed.md', 'renamed.md');
+    const s = useTestStore.getState();
+    expect(s.openFiles[0].path).toBe('/p/renamed.md');
+    expect(s.openFiles[0].name).toBe('renamed.md');
+    expect(s.activeFilePath).toBe('/p/renamed.md');
+  });
+
+  it('renameOpenFile rebases files nested under a renamed directory', () => {
+    useTestStore.getState().openFile('/p/chapters/c1.md', 'c1.md', '1');
+    useTestStore.getState().openFile('/p/chapters/c2.md', 'c2.md', '2');
+    useTestStore.getState().openFile('/p/other.md', 'other.md', 'o');
+    // Rename the `chapters` directory.
+    useTestStore.getState().renameOpenFile('/p/chapters', '/p/parts', 'parts');
+    const paths = useTestStore.getState().openFiles.map((f) => f.path);
+    expect(paths).toEqual(['/p/parts/c1.md', '/p/parts/c2.md', '/p/other.md']);
+    // Nested files keep their own display name; only the prefix changed.
+    expect(useTestStore.getState().openFiles[0].name).toBe('c1.md');
+  });
+
+  it('closeFilesUnder force-closes a deleted file and its nested tabs', () => {
+    useTestStore.getState().openFile('/p/chapters/c1.md', 'c1.md', '1');
+    useTestStore.getState().openFile('/p/chapters/c2.md', 'c2.md', '2');
+    useTestStore.getState().openFile('/p/keep.md', 'keep.md', 'k');
+    // Even with a dirty buffer, a deleted dir's tabs must close without prompting.
+    useTestStore.getState().updateFileContent('/p/chapters/c1.md', 'edited');
+    useTestStore.getState().closeFilesUnder('/p/chapters');
+    expect(useTestStore.getState().openFiles.map((f) => f.path)).toEqual(['/p/keep.md']);
+  });
+
+  it('reloadFile clears an external-change flag and resyncs content', async () => {
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'hello');
+    useTestStore.getState().markExternalChange('/p/a.md', 'changed');
+    expect(useTestStore.getState().openFiles[0].externalState).toBe('changed');
+    await useTestStore.getState().reloadFile('/p/a.md');
+    const tab = useTestStore.getState().openFiles[0];
+    expect(tab.externalState).toBeUndefined();
+    expect(tab.content).toBe('loaded:/p/a.md');
+    expect(tab.savedContent).toBe('loaded:/p/a.md');
+  });
+
+  it('keepLocalVersion dismisses the banner but preserves unsaved edits', () => {
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'hello');
+    useTestStore.getState().updateFileContent('/p/a.md', 'my edit');
+    useTestStore.getState().markExternalChange('/p/a.md', 'changed');
+    useTestStore.getState().keepLocalVersion('/p/a.md');
+    const tab = useTestStore.getState().openFiles[0];
+    expect(tab.externalState).toBeUndefined();
+    expect(tab.content).toBe('my edit'); // unsaved edit kept
+    expect(tab.savedContent).toBe('hello');
+  });
 });

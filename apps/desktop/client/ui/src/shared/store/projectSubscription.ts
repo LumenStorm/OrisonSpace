@@ -1,4 +1,5 @@
 import type { ProjectMeta } from './types';
+import { runProjectResets } from './resetRegistry';
 
 let prevProject: ProjectMeta | null = null;
 let installed = false;
@@ -13,21 +14,28 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
     const prev = prevProject;
     prevProject = project;
 
-    // Drop the previous project's agent conversation so it can't bleed across
-    // projects. Guarded because some store snapshots (tests, partial states)
-    // may not carry the agent slice's actions.
-    const resetAgent = () => {
-      const fn = useAppStore.getState().resetAgentForProjectSwitch;
-      if (typeof fn === 'function') fn();
+    // Flush the previous project's dirty open files to disk before tearing down
+    // its state. The reset clears `openFiles`, so an un-flushed buffer would be
+    // lost silently. Fire-and-forget: saveFile writes by absolute path, which is
+    // still valid even after the store has moved on to the new project.
+    const flushPrevDirty = () => {
+      const s = useAppStore.getState() as any;
+      if (prev && typeof s.saveAllOpenFiles === 'function' && s.hasDirtyFiles?.()) {
+        void s.saveAllOpenFiles();
+      }
+    };
+
+    // Drop ALL project-scoped slice state (open files, chapters, creative fields,
+    // agent conversation, pending diffs, split view…) via the reset registry, so
+    // nothing bleeds across projects. Each slice owns its own reset.
+    const resetAll = () => {
+      flushPrevDirty();
+      runProjectResets();
     };
 
     if (!project && prev) {
-      resetAgent();
+      resetAll();
       useAppStore.setState({
-        creativeFields: {},
-        fieldMetadata: {},
-        novelChapters: [],
-        activeChapterId: null,
         chapterCandidate: null,
         chapterCandidateStatus: 'idle',
         chapterCandidateError: null,
@@ -36,12 +44,8 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
     }
 
     if (project && project !== prev) {
-      resetAgent();
+      resetAll();
       useAppStore.setState({
-        creativeFields: {},
-        fieldMetadata: {},
-        novelChapters: [],
-        activeChapterId: null,
         chapterCandidate: null,
         chapterCandidateStatus: 'idle',
         chapterCandidateError: null,

@@ -5,9 +5,16 @@ import electronUpdater from 'electron-updater';
 import type { UpdateCheckResult, UpdateEvent } from '@orison/shared-contracts';
 import { getLogger } from '../logger';
 
-// electron-updater is CommonJS; destructure after a default import so the CJS
-// build emitted by electron-vite resolves `autoUpdater` correctly.
-const { autoUpdater } = electronUpdater;
+// electron-updater is CommonJS. Accessing `.autoUpdater` is a GETTER that
+// constructs NsisUpdater and reads `app.getVersion()` eagerly — doing that at
+// module load crashes before the Electron app is ready (and in plain-node dev).
+// Resolve it lazily so it's only built inside packaged-only code paths.
+type AutoUpdater = typeof electronUpdater.autoUpdater;
+let cachedAutoUpdater: AutoUpdater | null = null;
+function getAutoUpdater(): AutoUpdater {
+  if (!cachedAutoUpdater) cachedAutoUpdater = electronUpdater.autoUpdater;
+  return cachedAutoUpdater;
+}
 
 const RELEASES_PAGE = 'https://github.com/LumenStorm/OrisonSpace/releases/latest';
 const LATEST_RELEASE_API = 'https://api.github.com/repos/LumenStorm/OrisonSpace/releases/latest';
@@ -87,10 +94,11 @@ async function checkViaGitHubApi(): Promise<UpdateCheckResult> {
 }
 
 let configured = false;
-let win: BrowserWindow | null = null;
+let registered = false;
+let getWin: () => BrowserWindow | null = () => null;
 
 function send(event: UpdateEvent): void {
-  win?.webContents.send('update:event', event);
+  getWin()?.webContents.send('update:event', event);
 }
 
 function configureAutoUpdater(): void {
@@ -98,6 +106,7 @@ function configureAutoUpdater(): void {
   configured = true;
 
   const logger = getLogger();
+  const autoUpdater = getAutoUpdater();
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
@@ -149,7 +158,7 @@ export async function checkForUpdate(): Promise<UpdateCheckResult> {
   configureAutoUpdater();
 
   try {
-    const result = await autoUpdater.checkForUpdates();
+    const result = await getAutoUpdater().checkForUpdates();
     const latestVersion = result?.updateInfo?.version;
     if (!latestVersion) {
       return { status: 'up-to-date', currentVersion, latestVersion: currentVersion };
@@ -195,8 +204,12 @@ export async function checkForUpdateOnStartup(): Promise<void> {
   await checkForUpdate().catch(() => {});
 }
 
-export function registerUpdateIpc(mainWindow: BrowserWindow): void {
-  win = mainWindow;
+export function registerUpdateIpc(windowGetter: () => BrowserWindow | null): void {
+  getWin = windowGetter;
+  // Handlers are registered once for the app lifetime; a recreated window is
+  // picked up through `getWin`. Guard against a second registration throwing.
+  if (registered) return;
+  registered = true;
 
   ipcMain.handle('app:get-version', () => app.getVersion());
   ipcMain.handle('update:check', () => checkForUpdate());
@@ -209,7 +222,7 @@ export function registerUpdateIpc(mainWindow: BrowserWindow): void {
       return;
     }
     configureAutoUpdater();
-    await autoUpdater.downloadUpdate();
+    await getAutoUpdater().downloadUpdate();
   });
 
   ipcMain.handle('update:install', () => {
@@ -218,6 +231,6 @@ export function registerUpdateIpc(mainWindow: BrowserWindow): void {
       void shell.openExternal(RELEASES_PAGE);
       return;
     }
-    autoUpdater.quitAndInstall();
+    getAutoUpdater().quitAndInstall();
   });
 }

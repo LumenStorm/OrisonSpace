@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { ModelRef } from '@orison/shared-contracts';
 import { storage } from './storage';
+import { registerProjectReset } from './resetRegistry';
 import {
   defaultParamsFor,
   detectImageFamily,
@@ -128,7 +129,18 @@ export type ImageGenResultMeta = {
   source: 'generated' | 'loaded' | 'edited';
 };
 
-export const createImageGenSlice: StateCreator<ImageGenSlice, [], [], ImageGenSlice> = (set, get) => ({
+export const createImageGenSlice: StateCreator<ImageGenSlice, [], [], ImageGenSlice> = (set, get) => {
+  // The prompt and result gallery are per-project content. They persist to a
+  // global localStorage key, so without a reset project A's generations would
+  // show in project B's gallery. Clear in-memory + storage on switch; the
+  // ImageGenEditor re-hydrates the gallery from the new project's temp dir.
+  registerProjectReset(() => {
+    set({ imageGenPrompt: '', imageGenResultsMeta: [] });
+    storage.set('imageGenPrompt', '');
+    storage.set('imageGenResultsMeta', []);
+  });
+
+  return {
   imageGenFamily: INITIAL_FAMILY,
   imageGenParams: INITIAL_PARAMS,
   imageGenCustomSize: INITIAL_CUSTOM_SIZE,
@@ -267,4 +279,5 @@ export const createImageGenSlice: StateCreator<ImageGenSlice, [], [], ImageGenSl
     set({ imageGenResultsMeta: [] });
     storage.set('imageGenResultsMeta', []);
   },
-});
+  };
+};

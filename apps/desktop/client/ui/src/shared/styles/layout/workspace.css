@@ -399,6 +399,30 @@
   background: var(--hover-overlay);
 }
 
+.assets-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.assets-panel-import {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.assets-panel-import:hover {
+  background: var(--hover-overlay);
+  color: var(--on-surface);
+}
+
 .assets-panel--dragging {
   outline: 2px dashed var(--accent);
   outline-offset: -4px;
@@ -469,6 +493,35 @@
 .assets-panel-empty .material-symbols-outlined {
   font-size: 48px;
   opacity: 0.4;
+}
+
+.assets-panel-empty-hint {
+  font-size: var(--text-sm);
+  opacity: 0.75;
+  margin: 0;
+  text-align: center;
+}
+
+.assets-panel-empty-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.assets-panel-empty-import:hover {
+  filter: brightness(1.08);
+}
+
+.assets-panel-empty-import .material-symbols-outlined {
+  font-size: 18px;
+  opacity: 1;
 }
 
 .assets-panel-groups {

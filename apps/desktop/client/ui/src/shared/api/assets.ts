@@ -2,7 +2,7 @@ import type { AssetRecord, SaveBase64ImageInput, SavedImageFile } from '@orison/
 
 const api = window.orisonDesktop;
 
-export type DirEntry = { name: string; isDir: boolean };
+export type DirEntry = { name: string; isDir: boolean; path?: string; children?: DirEntry[] };
 
 export async function readAssetsDirectory(dir: string): Promise<DirEntry[]> {
   return (await api?.readDirectory(dir)) ?? [];
@@ -22,6 +22,12 @@ export async function updateAsset(projectId: string, assetId: string, patch: { a
 
 export async function deleteAsset(projectId: string, assetId: string): Promise<void> {
   await api?.deleteAsset(projectId, assetId);
+}
+
+/** Open a native picker to import external images into assets/images. Returns
+ *  the relative paths imported. */
+export async function importAssets(projectDir: string, projectId: string): Promise<string[]> {
+  return (await api?.importAssets(projectDir, projectId)) ?? [];
 }
 
 export async function deleteEntry(path: string): Promise<void> {

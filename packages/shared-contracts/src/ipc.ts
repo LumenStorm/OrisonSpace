@@ -293,6 +293,9 @@ export type OrisonDesktopApi = {
   upsertAsset(input: AssetUpsertInput): Promise<void>;
   updateAsset(projectId: string, assetId: string, fields: Partial<Pick<AssetRecord, 'assetName' | 'assetGroup' | 'summary' | 'assetStatus'>>): Promise<void>;
   deleteAsset(projectId: string, assetId: string): Promise<void>;
+  /** Open a native picker to import external image files into assets/images and
+   *  register them. Returns the relative paths actually imported. */
+  importAssets(projectDir: string, projectId: string): Promise<string[]>;
   // Logging
   openLogsDir(): Promise<string>;
   writeLog(payload: { level: 'debug' | 'info' | 'warn' | 'error' | 'fatal'; message: string; meta?: Record<string, unknown> }): Promise<void>;

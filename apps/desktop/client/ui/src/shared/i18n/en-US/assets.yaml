@@ -1,5 +1,8 @@
 assets:
   empty: "No assets yet"
+  import: "Import"
+  dropHint: "Drag images here, or import from your files."
+  refresh: "Refresh"
   search: "Search..."
   rename: "Rename"
   name: "Name"
@@ -27,3 +30,7 @@ projectTree:
   ariaLabel: "Project Files"
   unsaved: "Unsaved"
   empty: "(empty)"
+  refresh: "Refresh"
+  deleteFailed: "Delete failed"
+  renameFailed: "Rename failed"
+  createFailed: "Create failed"

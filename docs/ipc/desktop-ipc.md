@@ -94,8 +94,9 @@
 |---|---|---|---|
 | `asset:list` | renderer -> main | invoke | 按 projectId 查询资产列表 |
 | `asset:upsert` | renderer -> main | invoke | 插入或更新资产记录（首次注册） |
-| `asset:update` | renderer -> main | invoke | 更新资产元数据（名称、分组、描述） |
-| `asset:delete` | renderer -> main | invoke | 删除资产记录 |
+| `asset:update` | renderer -> main | invoke | 更新资产元数据（名称、分组、描述；入参经 Zod 校验） |
+| `asset:delete` | renderer -> main | invoke | 删除资产记录（入参经 Zod 校验） |
+| `asset:import-files` | renderer -> main | invoke | 打开原生文件选择器导入图片到 `assets/images/`，逐一注册为资产并广播 `image:created`，返回导入的相对路径列表 |
 
 ### 字段同步通道
 
@@ -126,7 +127,7 @@
 
 | 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
-| `tool:event` | main -> renderer | event | 工具执行后推送状态变更（file:changed / chapter:changed / outline:changed / image:created / git:changed / memory:changed） |
+| `tool:event` | main -> renderer | event | 工具执行后推送状态变更（file:changed / chapter:changed / outline:changed / image:created / git:changed / memory:changed）。`file:changed` 现额外携带 `paths: string[]`（外部文件监听会带上具体变更的相对路径列表，供渲染层精确重载受影响的打开 tab 并做外部变更/删除冲突检测） |
 
 ### Git 通道
 
@@ -255,6 +256,7 @@ window.orisonDesktop = {
   upsertAsset,
   updateAsset,
   deleteAsset,
+  importAssets,
   // Logging
   openLogsDir,
   writeLog,

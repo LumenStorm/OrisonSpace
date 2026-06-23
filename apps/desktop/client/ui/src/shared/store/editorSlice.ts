@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { normalizePath } from '../utils/paths';
+import { registerProjectReset } from './resetRegistry';
 
 export type Chapter = {
   id: string;
@@ -45,7 +46,14 @@ export const createEditorSlice: StateCreator<
   [],
   [],
   EditorSlice
-> = (set, get) => ({
+> = (set, get) => {
+  // The legacy editor chapter list + undo/redo history are project-scoped. Drop
+  // them on switch so undo can't cross project boundaries.
+  registerProjectReset(() => {
+    set({ chapters: [], activeChapterId: null, undoStack: [], redoStack: [] });
+  });
+
+  return {
   chapters: [],
   activeChapterId: null,
   undoStack: [],
@@ -160,4 +168,5 @@ export const createEditorSlice: StateCreator<
   async loadChaptersFromProject() {
     /* no-op：章节由 projectSubscription 从 project.yaml 的 novel.chapters 水合 */
   },
-});
+  };
+};

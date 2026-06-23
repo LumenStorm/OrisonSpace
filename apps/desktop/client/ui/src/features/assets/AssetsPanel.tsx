@@ -6,6 +6,7 @@ import type { AssetRecord } from '@orison/shared-contracts';
 import {
   readAssetsDirectory, listAssets, upsertAsset, updateAsset,
   deleteAsset, deleteEntry, pathExists, saveBase64Image, showItemInFolder,
+  importAssets,
 } from '../../shared/api/assets';
 
 type MergedAsset = AssetRecord & { absolutePath: string };
@@ -36,39 +37,56 @@ export function AssetsPanel() {
       const entries = await readAssetsDirectory(assetsDir);
       const dbRecords = projectId ? await listAssets(projectId) : [];
       const dbMap = new Map(dbRecords.map((r) => [r.relativePath, r]));
-      const images = entries
-        .filter((e) => !e.isDir && /\.(png|jpe?g|webp|gif|svg)$/i.test(e.name))
-        .map((e) => {
-          const relativePath = `assets/images/${e.name}`;
-          const absolutePath = `${assetsDir}/${e.name}`.replace(/\\/g, '/');
-          const existing = dbMap.get(relativePath);
-          if (existing) {
-            return { ...existing, absolutePath };
+
+      // Flatten nested entries: agent-generated images land in subdirectories
+      // (assets/images/generation, .../edits), so a flat top-level scan would
+      // miss them. `e.path` is relative to assetsDir with a leading '/'.
+      type FlatImage = { name: string; rel: string };
+      const flat: FlatImage[] = [];
+      const walk = (items: Array<{ name: string; isDir: boolean; path?: string; children?: any[] }>) => {
+        for (const e of items) {
+          if (e.isDir) {
+            if (Array.isArray(e.children)) walk(e.children);
+            continue;
           }
-          const newRecord: MergedAsset = {
-            assetId: crypto.randomUUID(),
-            projectId: projectId ?? '',
+          if (!/\.(png|jpe?g|webp|gif|svg)$/i.test(e.name)) continue;
+          const sub = (e.path ?? `/${e.name}`).replace(/^\//, '');
+          flat.push({ name: e.name, rel: sub });
+        }
+      };
+      walk(entries as any);
+
+      const images = flat.map(({ name, rel }) => {
+        const relativePath = `assets/images/${rel}`;
+        const absolutePath = `${assetsDir}/${rel}`.replace(/\\/g, '/');
+        const existing = dbMap.get(relativePath);
+        if (existing) {
+          return { ...existing, absolutePath };
+        }
+        const newRecord: MergedAsset = {
+          assetId: crypto.randomUUID(),
+          projectId: projectId ?? '',
+          assetType: 'image',
+          assetName: name.replace(/\.[^.]+$/, ''),
+          assetGroup: '',
+          assetStatus: 'active',
+          relativePath,
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          absolutePath,
+        };
+        if (projectId) {
+          upsertAsset({
+            assetId: newRecord.assetId,
+            projectId,
             assetType: 'image',
-            assetName: e.name.replace(/\.[^.]+$/, ''),
+            assetName: newRecord.assetName,
             assetGroup: '',
-            assetStatus: 'active',
             relativePath,
-            version: 1,
-            updatedAt: new Date().toISOString(),
-            absolutePath,
-          };
-          if (projectId) {
-            upsertAsset({
-              assetId: newRecord.assetId,
-              projectId,
-              assetType: 'image',
-              assetName: newRecord.assetName,
-              assetGroup: '',
-              relativePath,
-            });
-          }
-          return newRecord;
-        });
+          });
+        }
+        return newRecord;
+      });
       setAssets(images);
     } catch {
       setAssets([]);
@@ -196,6 +214,16 @@ export function AssetsPanel() {
     }
   }, [assetsDir, projectPath, loadAssets]);
 
+  const handleImport = useCallback(async () => {
+    if (!projectPath) return;
+    try {
+      const imported = await importAssets(projectPath, projectId ?? '');
+      if (imported.length > 0) void loadAssets();
+    } catch {
+      // Import is best-effort; a failed picker simply changes nothing.
+    }
+  }, [projectPath, projectId, loadAssets]);
+
   return (
     <div
       className={`assets-panel${dragging ? ' assets-panel--dragging' : ''}`}
@@ -206,9 +234,14 @@ export function AssetsPanel() {
     >
       <header className="assets-panel-header">
         <h2 className="assets-panel-title">{t('nav.assets') || 'Assets'}</h2>
-        <button type="button" className="assets-panel-refresh" onClick={loadAssets}>
-          <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
-        </button>
+        <div className="assets-panel-header-actions">
+          <button type="button" className="assets-panel-import" onClick={() => void handleImport()} title={t('assets.import') || 'Import'}>
+            <span className="material-symbols-outlined" aria-hidden="true">add_photo_alternate</span>
+          </button>
+          <button type="button" className="assets-panel-refresh" onClick={loadAssets} title={t('assets.refresh') || 'Refresh'}>
+            <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
+          </button>
+        </div>
       </header>
 
       <div className="assets-toolbar">
@@ -243,6 +276,11 @@ export function AssetsPanel() {
         <div className="assets-panel-empty">
           <span className="material-symbols-outlined">perm_media</span>
           <p>{t('assets.empty') || 'No assets yet'}</p>
+          <p className="assets-panel-empty-hint">{t('assets.dropHint') || 'Drag images here, or import from your files.'}</p>
+          <button type="button" className="assets-panel-empty-import" onClick={() => void handleImport()}>
+            <span className="material-symbols-outlined" aria-hidden="true">add_photo_alternate</span>
+            <span>{t('assets.import') || 'Import'}</span>
+          </button>
         </div>
       ) : (
         <div className="assets-panel-groups">

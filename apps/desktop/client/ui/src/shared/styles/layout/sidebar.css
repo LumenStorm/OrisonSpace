@@ -96,6 +96,29 @@
   color: var(--on-surface-variant);
 }
 
+.ptree-header-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.ptree-header-btn:hover {
+  background: var(--surface-hover, rgba(128, 128, 128, 0.12));
+  color: var(--on-surface);
+}
+
+.ptree-header-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
 .ptree-list {
   flex: 1;
   overflow-y: auto;

@@ -42,10 +42,41 @@ const CSP = [
   `connect-src 'self' ${isDev ? 'ws://localhost:* https:' : 'https:'}`,
 ].join('; ');
 
+// The single live window. IPC handlers that need a window resolve it lazily via
+// `getMainWindow()` so they can be registered ONCE for the app lifetime — a
+// recreated window (macOS dock re-activate) is picked up automatically. Calling
+// ipcMain.handle twice for the same channel throws, which previously crashed the
+// app when a second window was created.
+let mainWindow: BrowserWindow | null = null;
+const getMainWindow = (): BrowserWindow | null => mainWindow;
+
+let cspInstalled = false;
+let ipcRegistered = false;
+
+/** Register every IPC handler exactly once. Window-bound ones use getMainWindow. */
+function registerAllIpc() {
+  if (ipcRegistered) return;
+  ipcRegistered = true;
+  registerProjectIpc();
+  registerWindowIpc(getMainWindow);
+  registerConfigIpc();
+  registerModelProviderIpc();
+  registerModelGatewayIpc();
+  registerStorySyncIpc();
+  registerFieldSyncIpc();
+  registerTaskIpc();
+  registerAssetIpc();
+  registerLogIpc();
+  registerUpdateIpc(getMainWindow);
+  registerGitIpc();
+  registerAgentIpc(getMainWindow);
+  registerOrchestrationIpc();
+}
+
 function createWindow() {
   const isMac = process.platform === 'darwin';
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1440,
     height: 960,
     minWidth: 1100,
@@ -62,10 +93,13 @@ function createWindow() {
     }
   });
 
-  // Inject CSP via response headers — only in production builds.
-  // In dev mode the renderer is served by Vite dev server on localhost,
-  // and 'self' would not match the dev-server origin, blocking all scripts.
-  if (!isDev) {
+  const win = mainWindow;
+
+  // Inject CSP via response headers — only in production builds, and only once
+  // (the listener is on the shared defaultSession, so re-adding it per window
+  // would stack duplicate handlers).
+  if (!isDev && !cspInstalled) {
+    cspInstalled = true;
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
         responseHeaders: {
@@ -76,24 +110,9 @@ function createWindow() {
     });
   }
 
-  registerProjectIpc();
-  registerWindowIpc(mainWindow);
-  registerConfigIpc();
-  registerModelProviderIpc();
-  registerModelGatewayIpc();
-  registerStorySyncIpc();
-  registerFieldSyncIpc();
-  registerTaskIpc();
-  registerAssetIpc();
-  registerLogIpc();
-  registerUpdateIpc(mainWindow);
-  registerGitIpc();
-  registerAgentIpc(mainWindow);
-  registerOrchestrationIpc();
-
   // Prevent Chromium from swallowing shortcuts we handle in the renderer
   const passthroughKeys = new Set(['Tab', 'n', 'w', 't']);
-  mainWindow.webContents.on('before-input-event', (event, input) => {
+  win.webContents.on('before-input-event', (event, input) => {
     if ((input.control || input.meta) && passthroughKeys.has(input.key)) {
       event.preventDefault();
     }
@@ -101,27 +120,34 @@ function createWindow() {
 
   // Guard window close — ask renderer to check for unsaved files
   let forceClose = false;
-  mainWindow.on('close', (e) => {
+  win.on('close', (e) => {
     if (forceClose) return;
     e.preventDefault();
-    mainWindow.webContents.send('app:before-close');
+    win.webContents.send('app:before-close');
   });
-  ipcMain.on('app:close-confirmed', () => {
+  const onCloseConfirmed = (event: Electron.IpcMainEvent) => {
+    // Only react to the confirmation from this window's renderer.
+    if (event.sender !== win.webContents) return;
     forceClose = true;
-    mainWindow.close();
+    win.close();
+  };
+  ipcMain.on('app:close-confirmed', onCloseConfirmed);
+  win.on('closed', () => {
+    ipcMain.removeListener('app:close-confirmed', onCloseConfirmed);
+    if (mainWindow === win) mainWindow = null;
   });
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+    void win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    void mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    void win.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
   // Silent update check on startup (packaged builds only). The renderer
   // surfaces a guided prompt only if a newer version is found. Delay so the
   // window/renderer is ready to receive the `update:event` stream.
   if (readUserPreferencesFromDisk().autoCheckUpdates !== false) {
-    mainWindow.webContents.once('did-finish-load', () => {
+    win.webContents.once('did-finish-load', () => {
       setTimeout(() => void checkForUpdateOnStartup(), 5000);
     });
   }
@@ -140,6 +166,7 @@ app.whenReady().then(() => {
 
   installGlobalErrorHandlers();
   getLogger().info({ platform: process.platform, version: app.getVersion() }, 'desktop main starting');
+  registerAllIpc();
   createWindow();
 
   app.on('activate', () => {

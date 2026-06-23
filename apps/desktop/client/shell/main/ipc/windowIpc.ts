@@ -3,16 +3,24 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { assertSafePath } from './pathGuard';
 
-export function registerWindowIpc(win: BrowserWindow) {
-  ipcMain.on('window:minimize', () => win.minimize());
+/**
+ * Window IPC is registered once for the app lifetime. The active window is
+ * resolved lazily via `getWin` so a recreated window (macOS dock re-activate)
+ * is picked up without re-registering handlers — re-registering the same
+ * channel throws "Attempted to register a second handler".
+ */
+export function registerWindowIpc(getWin: () => BrowserWindow | null) {
+  ipcMain.on('window:minimize', () => getWin()?.minimize());
 
   ipcMain.on('window:maximize', () => {
+    const win = getWin();
+    if (!win) return;
     win.isMaximized() ? win.unmaximize() : win.maximize();
   });
 
-  ipcMain.on('window:close', () => win.close());
+  ipcMain.on('window:close', () => getWin()?.close());
 
-  ipcMain.handle('window:is-maximized', () => win.isMaximized());
+  ipcMain.handle('window:is-maximized', () => getWin()?.isMaximized() ?? false);
 
   // Reveal a file in the system file manager
   ipcMain.on('shell:show-item-in-folder', (_event, fullPath: string) => {

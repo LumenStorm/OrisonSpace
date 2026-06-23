@@ -72,6 +72,22 @@ export const assetUpsertSchema = z.object({
   summary: z.string().optional()
 });
 
+export const assetUpdateSchema = z.object({
+  projectId: z.string().min(1),
+  assetId: z.string().min(1),
+  fields: z.object({
+    assetName: z.string().optional(),
+    assetGroup: z.string().optional(),
+    summary: z.string().optional(),
+    assetStatus: z.string().optional(),
+  })
+});
+
+export const assetDeleteSchema = z.object({
+  projectId: z.string().min(1),
+  assetId: z.string().min(1)
+});
+
 export const taskListItemSchema = z.object({
   taskId: z.string().min(1),
   projectId: projectIdSchema,

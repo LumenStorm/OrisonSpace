@@ -4,6 +4,7 @@ import { ContextMenu, type ContextMenuItem } from '../../shared/components/Conte
 import { mockFileContents } from '../../shared/data/mockFileContents';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useAppStore } from '../../shared/store/appStore';
+import { useToastStore } from '../../shared/store/toastStore';
 import { isImageFileName, isDocxFileName } from '../../shared/utils/fileType';
 import { normalizePath } from '../../shared/utils/paths';
 import { FileTreeNode } from './FileTreeNode';
@@ -11,13 +12,14 @@ import type { CreatingType, CtxState, FileEntry } from './types';
 import { buildInitialTree, findNode, insertChild, removeNode, renameNode, updateChildren } from './treeUtils';
 
 export function ProjectTree() {
-  const { currentProject, resolvedLocale, openFile, openFiles, renameOpenFile } = useAppStore(
+  const { currentProject, resolvedLocale, openFile, openFiles, renameOpenFile, closeFilesUnder } = useAppStore(
     useShallow((state) => ({
       currentProject: state.currentProject,
       resolvedLocale: state.resolvedLocale,
       openFile: state.openFile,
       openFiles: state.openFiles,
       renameOpenFile: state.renameOpenFile,
+      closeFilesUnder: state.closeFilesUnder,
     })),
   );
   const activeFilePath = useAppStore((state) => state.activeFilePath);
@@ -79,38 +81,60 @@ export function ProjectTree() {
     return () => { cancelled = true; };
   }, [currentProject, projectPath]);
 
+  // Re-read the project tree (depth 3) and re-hydrate any directories the user
+  // had expanded beyond that depth, so an external change / manual refresh
+  // doesn't collapse lazily-loaded deep subtrees.
+  const refreshTree = useCallback(async () => {
+    if (!projectPath || !currentProject) return;
+    const entries = await window.orisonDesktop?.readDirectory?.(projectPath, 3);
+    if (!entries?.length) return;
+    let tree: FileEntry[] = [{ name: currentProject.name, path: '/', isDir: true, children: entries }];
+
+    // For each expanded directory whose children weren't included in the shallow
+    // read (depth > 3), fetch one more level so it stays open after refresh.
+    const expanded = [...expandedPaths].filter((p) => p !== '/');
+    for (const dirPath of expanded) {
+      const node = findNode(tree, dirPath);
+      if (!node || !node.isDir || (node.children && node.children.length > 0)) continue;
+      try {
+        const children = await window.orisonDesktop?.readDirectory(`${projectPath}${dirPath}`, 1);
+        if (!children) continue;
+        const remapped = children.map((child: FileEntry) => ({
+          ...child,
+          path: dirPath === '/' ? `/${child.name}` : `${dirPath}/${child.name}`,
+          children: child.isDir ? (child.children ?? []) : undefined,
+        }));
+        tree = updateChildren(tree, dirPath, remapped);
+      } catch {
+        // Best-effort re-hydration; a failed deep dir simply shows collapsed.
+      }
+    }
+    setFileTree(tree);
+  }, [projectPath, currentProject, expandedPaths]);
+
+  // External changes (watcher `file:changed`, agent `image:created`) refresh the
+  // tree through the same path-preserving refresh used by the manual button.
   useEffect(() => {
     if (!projectPath || !currentProject) return;
     const handler = (e: Event) => {
       const { type } = (e as CustomEvent).detail ?? {};
       if (type === 'file:changed' || type === 'image:created') {
-        window.orisonDesktop?.readDirectory?.(projectPath, 3).then((entries) => {
-          if (entries?.length) {
-            setFileTree([{ name: currentProject.name, path: '/', isDir: true, children: entries }]);
-          }
-        });
+        void refreshTree();
       }
     };
     window.addEventListener('orison:tool-event', handler);
     return () => window.removeEventListener('orison:tool-event', handler);
-  }, [projectPath, currentProject]);
+  }, [projectPath, currentProject, refreshTree]);
 
   // Watch the project directory for changes made outside the app (Explorer/Finder,
-  // other tools) and refresh the tree. The watcher emits `file:changed`, which the
-  // effect above already handles.
+  // other tools). The watcher emits `file:changed`, handled by the effect above.
+  // On platforms without recursive watch (Linux) the manual refresh button is the
+  // fallback.
   useEffect(() => {
     if (!projectPath) return;
     void window.orisonDesktop?.watchProject?.(projectPath);
     return () => { void window.orisonDesktop?.unwatchProject?.(); };
   }, [projectPath]);
-
-  const refreshTree = useCallback(async () => {
-    if (!projectPath || !currentProject) return;
-    const entries = await window.orisonDesktop?.readDirectory?.(projectPath, 3);
-    if (entries?.length) {
-      setFileTree([{ name: currentProject.name, path: '/', isDir: true, children: entries }]);
-    }
-  }, [projectPath, currentProject]);
 
   const handleDrop = useCallback(async (event: DragEvent, targetDir: string) => {
     event.preventDefault();
@@ -276,7 +300,17 @@ export function ProjectTree() {
       items.push({
         type: 'item', label: t('contextMenu.delete'), icon: 'delete', danger: true,
         onClick: async () => {
-          if (projectPath) await window.orisonDesktop?.deleteEntry(`${projectPath}${entry.path}`);
+          if (projectPath) {
+            const fullPath = normalizePath(`${projectPath}${entry.path}`);
+            const ok = await window.orisonDesktop?.deleteEntry(`${projectPath}${entry.path}`);
+            if (ok === false) {
+              useToastStore.getState().showToast(t('projectTree.deleteFailed'), 'error');
+              return;
+            }
+            // Close any open tab for the deleted file (or files nested under a
+            // deleted directory) so a "ghost" tab can't re-create it on save.
+            closeFilesUnder(fullPath);
+          }
           setFileTree((prev) => prev ? removeNode(prev, entry.path) : prev);
         },
       });
@@ -303,23 +337,37 @@ export function ProjectTree() {
       const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
       const newRelative = parentDir === '/' ? `/${newName}` : `${parentDir}/${newName}`;
       const newFull = normalizePath(`${projectPath}${newRelative}`);
-      await window.orisonDesktop?.renameEntry(oldFull, newFull);
+      const ok = await window.orisonDesktop?.renameEntry(oldFull, newFull);
+      if (ok === false) {
+        useToastStore.getState().showToast(t('projectTree.renameFailed'), 'error');
+        setRenamingPath(null);
+        return;
+      }
+      // Rebase open tabs (incl. files nested under a renamed directory) and split.
       renameOpenFile(oldFull, newFull, newName);
     }
     setFileTree((prev) => prev ? renameNode(prev, oldPath, newName) : prev);
     setRenamingPath(null);
-  }, [projectPath, renameOpenFile]);
+  }, [projectPath, renameOpenFile, t]);
 
   const handleCreateConfirm = useCallback(async (name: string) => {
     if (!creatingIn || !creatingType) return;
     const isDir = creatingType === 'folder';
     const newPath = creatingIn === '/' ? `/${name}` : `${creatingIn}/${name}`;
-    if (projectPath) await window.orisonDesktop?.createEntry(`${projectPath}${newPath}`, isDir);
+    if (projectPath) {
+      const ok = await window.orisonDesktop?.createEntry(`${projectPath}${newPath}`, isDir);
+      if (ok === false) {
+        useToastStore.getState().showToast(t('projectTree.createFailed'), 'error');
+        setCreatingIn(null);
+        setCreatingType(null);
+        return;
+      }
+    }
     const child: FileEntry = { name, path: newPath, isDir, children: isDir ? [] : undefined };
     setFileTree((prev) => prev ? insertChild(prev, creatingIn, child) : prev);
     setCreatingIn(null);
     setCreatingType(null);
-  }, [creatingIn, creatingType, projectPath]);
+  }, [creatingIn, creatingType, projectPath, t]);
 
   const handleCreateCancel = useCallback(() => {
     setCreatingIn(null);
@@ -332,6 +380,15 @@ export function ProjectTree() {
     <aside className="project-tree-panel" aria-label={t('projectTree.ariaLabel')}>
       <div className="ptree-header">
         <span className="ptree-header-title">{t('projectTree.title')}</span>
+        <button
+          type="button"
+          className="ptree-header-btn"
+          onClick={() => void refreshTree()}
+          title={t('projectTree.refresh')}
+          aria-label={t('projectTree.refresh')}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">refresh</span>
+        </button>
       </div>
       <div
         className={`ptree-list${dragActive ? ' ptree-list--drag-active' : ''}`}

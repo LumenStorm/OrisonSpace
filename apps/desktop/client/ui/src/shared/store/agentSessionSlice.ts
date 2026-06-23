@@ -16,6 +16,7 @@ import {
   type AgentStreamEvent,
 } from '../api/agent';
 import { randomUUID } from '../util/id';
+import { registerProjectReset } from './resetRegistry';
 
 export type { AgentMessage, AgentSessionMeta };
 
@@ -91,7 +92,15 @@ type Deps = AgentSessionSlice & {
   setPendingPatch: (patch: import('@orison/shared-contracts').ProjectFieldPatch | null) => void;
 };
 
-export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSlice> = (set, get) => ({
+export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSlice> = (set, get) => {
+  // The agent conversation is keyed to a project path; drop it on switch so
+  // messages, session id, model and pending cards can't bleed into the new
+  // project. Delegates to the slice's own resetAgentForProjectSwitch action.
+  registerProjectReset(() => {
+    get().resetAgentForProjectSwitch();
+  });
+
+  return {
   agentMode: 'suggest',
   setAgentMode: (mode) => set({ agentMode: mode }),
   agentModelRef: null,
@@ -498,4 +507,5 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       }
     } catch { /* ignore */ }
   },
-});
+  };
+};

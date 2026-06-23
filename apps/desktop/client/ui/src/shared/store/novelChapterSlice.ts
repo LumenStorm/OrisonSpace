@@ -12,6 +12,7 @@ import {
 } from '../api/novelChapter';
 import { resolveNovelModelRuntime } from '../model/novelModel';
 import { storage } from './storage';
+import { registerProjectReset } from './resetRegistry';
 
 export type ChapterStatus = 'draft' | 'generating' | 'revised' | 'final';
 
@@ -121,7 +122,24 @@ export const createNovelChapterSlice: StateCreator<
   [],
   [],
   NovelChapterSlice
-> = (set, get) => ({
+> = (set, get) => {
+  // Chapter list, active selection and any in-flight candidate belong to the
+  // current project. Clear on switch; projectSubscription re-hydrates the list
+  // from the new project's novel.chapters. Memory entries are also per-project.
+  registerProjectReset(() => {
+    set({
+      novelChapters: [],
+      activeChapterId: null,
+      chapterCandidate: null,
+      chapterCandidateStatus: 'idle',
+      chapterCandidateError: null,
+      memoryEntries: [],
+      autoModeState: null,
+      autoModeError: null,
+    });
+  });
+
+  return {
   novelChapters: [],
   setNovelChapters: (chapters) => {
     const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -288,7 +306,8 @@ export const createNovelChapterSlice: StateCreator<
       set({ autoModeError: error instanceof Error ? error.message : AUTO_UNKNOWN_KEY });
     }
   },
-});
+  };
+};
 
 async function applyAutoModeAction(
   get: () => { autoModeState: AutoModeState | null },

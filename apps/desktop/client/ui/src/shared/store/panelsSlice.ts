@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { ActivePage, BottomPanelTab, SidebarPanel } from './types';
 import { storage } from './storage';
+import { registerProjectReset } from './resetRegistry';
 import {
   PROJECT_TREE_WIDTH_DEFAULT,
   PROJECT_TREE_WIDTH_MIN,
@@ -46,7 +47,15 @@ export type PanelsSlice = {
   toggleMinimap: () => void;
 };
 
-export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set) => ({
+export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set) => {
+  // The split view and file-editing mode are tied to the previous project's open
+  // files. On project switch, collapse back to page mode with no split so the new
+  // project doesn't inherit a split pointing at a file it doesn't have.
+  registerProjectReset(() => {
+    set({ mainView: 'page', splitDirection: 'none', splitFilePath: null });
+  });
+
+  return {
   projectTreeOpen: true,
   toggleProjectTree: () => set((s) => ({ projectTreeOpen: !s.projectTreeOpen })),
   projectTreeWidth: storage.get<number>('projectTreeWidth', PROJECT_TREE_WIDTH_DEFAULT),
@@ -85,4 +94,5 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   setSplit: (direction, filePath) => set({ splitDirection: direction, splitFilePath: filePath ?? null }),
   showMinimap: false,
   toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
-});
+  };
+};

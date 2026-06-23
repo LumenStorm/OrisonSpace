@@ -10,6 +10,7 @@ import { creativeFieldKeys } from '@orison/shared-contracts';
 import type { ProjectMeta } from './types';
 import { useToastStore } from './toastStore';
 import { translate } from '../i18n/useI18n';
+import { registerProjectReset } from './resetRegistry';
 
 /** Surface a field-sync failure instead of swallowing it (was `.catch(()=>{})`). */
 function reportSyncFailure(locale: string, field: CreativeFieldKey, err: unknown): void {
@@ -53,7 +54,15 @@ export const createCreativeFieldsSlice: StateCreator<
   [],
   [],
   CreativeFieldsSlice
-> = (set, get) => ({
+> = (set, get) => {
+  // Creative fields + their metadata + any in-flight patch review belong to the
+  // current project. Clear them on switch; projectSubscription re-hydrates from
+  // the new project's project.yaml.
+  registerProjectReset(() => {
+    set({ creativeFields: {}, fieldMetadata: {}, pendingPatch: null, patchSelections: {} });
+  });
+
+  return {
   creativeFields: {},
   fieldMetadata: {},
   activeCreativeTab: 'world_setting',
@@ -201,7 +210,8 @@ export const createCreativeFieldsSlice: StateCreator<
 
     return appliedPatch;
   }
-});
+  };
+};
 
 /**
  * Map an agent overview patch (snake_case meta subset) onto the camelCased

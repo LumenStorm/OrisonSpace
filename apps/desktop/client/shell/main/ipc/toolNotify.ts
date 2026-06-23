@@ -4,7 +4,7 @@
 import { BrowserWindow } from 'electron';
 
 export type ToolEvent =
-  | { type: 'file:changed'; path: string }
+  | { type: 'file:changed'; path: string; paths?: string[] }
   | { type: 'chapter:changed'; chapterId: string }
   | { type: 'outline:changed' }
   | { type: 'image:created'; paths: string[] }

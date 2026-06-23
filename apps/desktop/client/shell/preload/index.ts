@@ -143,6 +143,8 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('asset:update', projectId, assetId, fields) as Promise<void>,
   deleteAsset: (projectId: string, assetId: string) =>
     ipcRenderer.invoke('asset:delete', projectId, assetId) as Promise<void>,
+  importAssets: (projectDir: string, projectId: string) =>
+    ipcRenderer.invoke('asset:import-files', projectDir, projectId) as Promise<string[]>,
   // Logging
   openLogsDir: () => ipcRenderer.invoke('log:open-dir') as Promise<string>,
   writeLog: (payload: { level: 'debug' | 'info' | 'warn' | 'error' | 'fatal'; message: string; meta?: Record<string, unknown> }) =>

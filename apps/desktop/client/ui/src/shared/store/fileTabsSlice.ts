@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { registerProjectReset } from './resetRegistry';
 
 let tabIdCounter = 0;
 
@@ -13,6 +14,12 @@ export type FileTab = {
   kind?: FileTabKind;
   /** For image tabs: data URL (`data:image/png;base64,...`) used for rendering. */
   dataUrl?: string;
+  /**
+   * Set when the file changed on disk outside the editor while this tab has
+   * unsaved edits ('changed'), or was deleted on disk ('deleted'). Drives the
+   * conflict banner. Cleared on reload or when the user keeps their version.
+   */
+  externalState?: 'changed' | 'deleted';
 };
 
 export type RecentlyClosedTab = {
@@ -40,6 +47,9 @@ export type FileTabsSlice = {
   pendingBulkClose: PendingBulkClose | null;
   openFile: (path: string, name: string, content: string, options?: { kind?: FileTabKind; dataUrl?: string }) => void;
   closeFile: (path: string) => void;
+  /** Force-close the given file and any open files nested under it (used after a
+   *  file/dir is deleted on disk, so no "ghost" tab can re-create it). */
+  closeFilesUnder: (pathOrDir: string) => void;
   /** Close `path` if clean, otherwise set `pendingCloseConfirm` for UI to handle. */
   requestCloseFile: (path: string) => void;
   cancelCloseConfirm: () => void;
@@ -55,6 +65,10 @@ export type FileTabsSlice = {
   saveFile: (path: string) => Promise<boolean>;
   saveAllOpenFiles: () => Promise<void>;
   reloadFile: (path: string) => Promise<void>;
+  /** Flag a tab as changed/deleted on disk while it had unsaved edits. */
+  markExternalChange: (path: string, kind: 'changed' | 'deleted') => void;
+  /** Dismiss the external-change banner, keeping the in-editor (unsaved) version. */
+  keepLocalVersion: (path: string) => void;
   hasDirtyFiles: () => boolean;
   togglePinTab: (path: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
@@ -71,7 +85,22 @@ function dropFromRecentlyClosed(prev: RecentlyClosedTab[], path: string): Recent
   return prev.filter((t) => t.path !== path);
 }
 
-export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSlice> = (set, get) => ({
+export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSlice> = (set, get) => {
+  // When the active project changes, drop every open tab and tab-related state.
+  // Without this the previous project's tabs stay in the bar and point at its
+  // absolute paths — clicking one reads/writes the wrong project's files.
+  registerProjectReset(() => {
+    set({
+      openFiles: [],
+      activeFilePath: null,
+      recentlyClosed: [],
+      pinnedPaths: new Set(),
+      pendingCloseConfirm: null,
+      pendingBulkClose: null,
+    });
+  });
+
+  return {
   openFiles: [],
   activeFilePath: null,
   recentlyClosed: [],
@@ -287,20 +316,59 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
 
   renameOpenFile: (oldPath, newPath, newName) => {
     const state = get();
-    const hasTab = state.openFiles.some((f) => f.path === oldPath);
-    if (!hasTab) return;
+    const splitFilePath: string | null = (state as any).splitFilePath ?? null;
+    // Match either the renamed entry itself, or — when a *directory* is renamed —
+    // any open file nested under it. A bare `===` check would leave tabs for
+    // `dir/a.md` pointing at the old path after `dir` is renamed, so their next
+    // save would write to a path that no longer exists.
+    const oldPrefix = oldPath.endsWith('/') ? oldPath : `${oldPath}/`;
+    const rebase = (p: string): string | null => {
+      if (p === oldPath) return newPath;
+      if (p.startsWith(oldPrefix)) return newPath + p.slice(oldPath.length);
+      return null;
+    };
+    const affected = state.openFiles.some((f) => rebase(f.path) !== null);
+    if (!affected && (splitFilePath === null || rebase(splitFilePath) === null)) return;
+
     const nextPinned = new Set(state.pinnedPaths);
-    if (nextPinned.has(oldPath)) {
-      nextPinned.delete(oldPath);
-      nextPinned.add(newPath);
+    for (const p of state.pinnedPaths) {
+      const np = rebase(p);
+      if (np !== null) {
+        nextPinned.delete(p);
+        nextPinned.add(np);
+      }
     }
-    set({
-      openFiles: state.openFiles.map((f) =>
-        f.path === oldPath ? { ...f, path: newPath, name: newName } : f,
-      ),
-      activeFilePath: state.activeFilePath === oldPath ? newPath : state.activeFilePath,
+
+    const nextActive = state.activeFilePath ? (rebase(state.activeFilePath) ?? state.activeFilePath) : state.activeFilePath;
+    const nextSplit = splitFilePath ? (rebase(splitFilePath) ?? splitFilePath) : splitFilePath;
+
+    (set as any)({
+      openFiles: state.openFiles.map((f) => {
+        const np = rebase(f.path);
+        if (np === null) return f;
+        // Only the directly renamed file gets the new display name; nested files
+        // keep their own name (only their path prefix changed).
+        return f.path === oldPath ? { ...f, path: np, name: newName } : { ...f, path: np };
+      }),
+      activeFilePath: nextActive,
+      splitFilePath: nextSplit,
       pinnedPaths: nextPinned,
     });
+  },
+
+  closeFilesUnder: (pathOrDir) => {
+    const state = get();
+    const prefix = pathOrDir.endsWith('/') ? pathOrDir : `${pathOrDir}/`;
+    // Close the file itself and anything nested under it (directory delete).
+    // Force-close regardless of dirty state — the file is gone from disk, so a
+    // "save before close?" prompt would only let the user re-create it.
+    const toClose = state.openFiles.filter(
+      (f) => f.path === pathOrDir || f.path.startsWith(prefix),
+    );
+    if (toClose.length === 0) return;
+    for (const tab of toClose) {
+      get().closeFile(tab.path);
+    }
   },
 
   saveFile: async (path) => {
@@ -336,13 +404,32 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       const raw = await window.orisonDesktop?.readFile(path);
       if (typeof raw !== 'string') return;
       // Reload the on-disk text verbatim (no markdown round-trip) so a reloaded
-      // manuscript matches the file byte-for-byte and starts clean.
+      // manuscript matches the file byte-for-byte and starts clean. Clears any
+      // external-change flag since the tab now matches disk again.
       set((s) => ({
         openFiles: s.openFiles.map((f) =>
-          f.path === path ? { ...f, content: raw, savedContent: raw } : f,
+          f.path === path ? { ...f, content: raw, savedContent: raw, externalState: undefined } : f,
         ),
       }));
     } catch { /* ignore read errors */ }
+  },
+
+  markExternalChange: (path, kind) => {
+    set((s) => ({
+      openFiles: s.openFiles.map((f) =>
+        f.path === path ? { ...f, externalState: kind } : f,
+      ),
+    }));
+  },
+
+  keepLocalVersion: (path) => {
+    // Dismiss the banner but keep the user's unsaved buffer. The tab stays dirty;
+    // the next save overwrites the external change (last-write-wins, by choice).
+    set((s) => ({
+      openFiles: s.openFiles.map((f) =>
+        f.path === path ? { ...f, externalState: undefined } : f,
+      ),
+    }));
   },
 
   hasDirtyFiles: () => get().openFiles.some((f) => f.kind === 'text' && f.content !== f.savedContent),
@@ -369,4 +456,5 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     files.splice(toIndex, 0, moved);
     set({ openFiles: files });
   },
-});
+  };
+};

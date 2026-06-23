@@ -6,6 +6,8 @@ import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isS
 import { atomicWriteFileSync } from '../fs/atomicWrite';
 import { decodeFileToUtf8 } from '../fs/decodeText';
 import { watchProject, unwatchProject } from '../fs/projectWatcher';
+import { withProjectLock } from '../fs/projectWriteLock';
+import { getLogger } from '../logger';
 import { notifyUI } from './toolNotify';
 import { ensureProject, listProjects, touchProject } from '../db/projectRepository';
 import {
@@ -207,20 +209,23 @@ export function registerProjectIpc() {
   ipcMain.handle('project:save-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
     // project.json 已废弃：meta 直接写入 project.yaml（唯一真相源）。沿用 sync-meta 的
-    // 合并语义——load(或迁移/兜底重建) 后把传入字段并入 meta 再落盘。
-    const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
-      await import('../../../../local-bff/index');
-    const doc = migrateLegacyProjectJson(projectDir)
-      ?? loadProject(projectDir)
-      ?? createEmptyProjectDocument(
-        typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
-        meta.type === 'script' ? 'script' : 'novel',
-      );
-    const next = structuredClone(doc) as Record<string, any>;
-    applyMetaToDocument(next, meta);
-    next.meta.updated_at = new Date().toISOString();
-    next.meta.version = (next.meta.version ?? 0) + 1;
-    saveProject(projectDir, next as any);
+    // 合并语义——load(或迁移/兜底重建) 后把传入字段并入 meta 再落盘。串行化防止与
+    // sync-meta / sync-chapters-meta / 字段同步并发时互相覆盖（丢更新）。
+    return withProjectLock(projectDir, async () => {
+      const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
+        await import('../../../../local-bff/index');
+      const doc = migrateLegacyProjectJson(projectDir)
+        ?? loadProject(projectDir)
+        ?? createEmptyProjectDocument(
+          typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
+          meta.type === 'script' ? 'script' : 'novel',
+        );
+      const next = structuredClone(doc) as Record<string, any>;
+      applyMetaToDocument(next, meta);
+      next.meta.updated_at = new Date().toISOString();
+      next.meta.version = (next.meta.version ?? 0) + 1;
+      saveProject(projectDir, next as any);
+    });
   });
 
   // Idempotent project.yaml initialization for create/import flows: guarantees
@@ -228,18 +233,20 @@ export function registerProjectIpc() {
   // already there. Legacy project.json is migrated in if present.
   ipcMain.handle('project:ensure-document', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
-    const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
-      await import('../../../../local-bff/index');
-    // Migration (if any) already lands a valid project.yaml on disk.
-    if (migrateLegacyProjectJson(projectDir) ?? loadProject(projectDir)) return;
-    // No document yet → create a fresh one seeded from the supplied meta.
-    const doc = createEmptyProjectDocument(
-      typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
-      meta.type === 'script' ? 'script' : 'novel',
-    );
-    const next = structuredClone(doc) as Record<string, any>;
-    applyMetaToDocument(next, meta);
-    saveProject(projectDir, next as any);
+    return withProjectLock(projectDir, async () => {
+      const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
+        await import('../../../../local-bff/index');
+      // Migration (if any) already lands a valid project.yaml on disk.
+      if (migrateLegacyProjectJson(projectDir) ?? loadProject(projectDir)) return;
+      // No document yet → create a fresh one seeded from the supplied meta.
+      const doc = createEmptyProjectDocument(
+        typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
+        meta.type === 'script' ? 'script' : 'novel',
+      );
+      const next = structuredClone(doc) as Record<string, any>;
+      applyMetaToDocument(next, meta);
+      saveProject(projectDir, next as any);
+    });
   });
 
   ipcMain.handle('project:load-meta', async (_, projectDir: string) => {
@@ -267,40 +274,56 @@ export function registerProjectIpc() {
 
   ipcMain.handle('project:sync-meta', async (_, projectDir: string, meta: Record<string, unknown>) => {
     assertSafePath(projectDir);
-    try {
-      const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
-        await import('../../../../local-bff/index');
-      // project.yaml 是唯一真相源；缺失时迁移旧 json 或兜底重建，再写入概览元信息。
-      const doc = migrateLegacyProjectJson(projectDir)
-        ?? loadProject(projectDir)
-        ?? createEmptyProjectDocument(
-          typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
-          meta.type === 'script' ? 'script' : 'novel',
-        );
-      const next = structuredClone(doc) as Record<string, any>;
-      applyMetaToDocument(next, meta);
-      next.meta.updated_at = new Date().toISOString();
-      next.meta.version = (next.meta.version ?? 0) + 1;
-      saveProject(projectDir, next as any);
-    } catch { /* best-effort：损坏时不阻断其余保存路径 */ }
+    return withProjectLock(projectDir, async () => {
+      try {
+        const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
+          await import('../../../../local-bff/index');
+        // project.yaml 是唯一真相源；缺失时迁移旧 json 或兜底重建，再写入概览元信息。
+        const doc = migrateLegacyProjectJson(projectDir)
+          ?? loadProject(projectDir)
+          ?? createEmptyProjectDocument(
+            typeof meta.name === 'string' && meta.name.trim() ? meta.name : path.basename(projectDir),
+            meta.type === 'script' ? 'script' : 'novel',
+          );
+        const next = structuredClone(doc) as Record<string, any>;
+        applyMetaToDocument(next, meta);
+        next.meta.updated_at = new Date().toISOString();
+        next.meta.version = (next.meta.version ?? 0) + 1;
+        saveProject(projectDir, next as any);
+        return { ok: true };
+      } catch (err) {
+        // Don't silently swallow: the renderer thought the save succeeded. Log it
+        // and signal failure so the UI can warn the user / retry.
+        const message = err instanceof Error ? err.message : String(err);
+        getLogger().warn({ err: message, projectDir }, 'project:sync-meta failed');
+        return { ok: false, error: message };
+      }
+    });
   });
 
   ipcMain.handle('project:sync-chapters-meta', async (_, projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) => {
     assertSafePath(projectDir);
-    try {
-      const { loadProject, saveProject } = await import('../../../../local-bff/index');
-      const doc = loadProject(projectDir);
-      if (!doc) return;
-      const next = structuredClone(doc) as Record<string, any>;
-      if (!next.novel) next.novel = { chapters: [] };
-      next.novel.chapters = chapters.map((ch) => {
-        const existing = (next.novel.chapters ?? []).find((e: any) => e.id === ch.id);
-        return { ...existing, ...ch };
-      });
-      next.meta.version = (next.meta.version ?? 0) + 1;
-      next.meta.updated_at = new Date().toISOString();
-      saveProject(projectDir, next as any);
-    } catch { /* ignore */ }
+    return withProjectLock(projectDir, async () => {
+      try {
+        const { loadProject, saveProject } = await import('../../../../local-bff/index');
+        const doc = loadProject(projectDir);
+        if (!doc) return { ok: false, error: 'project document not found' };
+        const next = structuredClone(doc) as Record<string, any>;
+        if (!next.novel) next.novel = { chapters: [] };
+        next.novel.chapters = chapters.map((ch) => {
+          const existing = (next.novel.chapters ?? []).find((e: any) => e.id === ch.id);
+          return { ...existing, ...ch };
+        });
+        next.meta.version = (next.meta.version ?? 0) + 1;
+        next.meta.updated_at = new Date().toISOString();
+        saveProject(projectDir, next as any);
+        return { ok: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        getLogger().warn({ err: message, projectDir }, 'project:sync-chapters-meta failed');
+        return { ok: false, error: message };
+      }
+    });
   });
 
   ipcMain.handle('project:read-directory', async (_, projectDir: string, maxDepth = 5) => {

@@ -17,6 +17,8 @@ import { getLogger } from '../logger';
 let activeWatcher: FSWatcher | null = null;
 let activeDir: string | null = null;
 let debounceTimer: NodeJS.Timeout | null = null;
+/** Relative paths (POSIX, leading '/') changed since the last flush. */
+const pendingPaths = new Set<string>();
 
 const DEBOUNCE_MS = 300;
 
@@ -29,11 +31,22 @@ function isNoise(changedPath: string | null): boolean {
   );
 }
 
+/** Normalize a watcher-reported filename to a project-relative POSIX path. */
+function toRelPath(filename: string): string {
+  const posix = filename.replace(/\\/g, '/').replace(/^\/+/, '');
+  return `/${posix}`;
+}
+
 function scheduleNotify() {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
-    notifyUI({ type: 'file:changed', path: '' });
+    const paths = [...pendingPaths];
+    pendingPaths.clear();
+    // Emit the concrete changed paths so the renderer can reload exactly the
+    // affected open tabs (and detect external edits/deletes). An empty `paths`
+    // (filename unavailable on some platforms) still triggers a tree rescan.
+    notifyUI({ type: 'file:changed', path: paths[0] ?? '', paths });
   }, DEBOUNCE_MS);
 }
 
@@ -48,6 +61,7 @@ export function watchProject(projectDir: string): void {
     activeWatcher = watch(resolved, { recursive: true }, (_event, filename) => {
       const name = typeof filename === 'string' ? filename : null;
       if (isNoise(name)) return;
+      if (name) pendingPaths.add(toRelPath(name));
       scheduleNotify();
     });
     activeDir = resolved;
@@ -69,6 +83,7 @@ export function unwatchProject(): void {
     clearTimeout(debounceTimer);
     debounceTimer = null;
   }
+  pendingPaths.clear();
   if (activeWatcher) {
     try {
       activeWatcher.close();

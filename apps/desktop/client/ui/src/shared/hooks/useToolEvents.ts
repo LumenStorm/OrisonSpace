@@ -1,7 +1,8 @@
 /**
  * useToolEvents — listens for tool execution events pushed from Shell
  * and dispatches a custom DOM event so components can react.
- * Also handles file:changed events by reloading affected open tabs.
+ * Also handles file:changed events by reloading affected open tabs, and
+ * surfaces a conflict when a file changes on disk under unsaved edits.
  */
 import { useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
@@ -23,18 +24,54 @@ export function useToolEvents() {
       }, 400);
     };
 
+    // Reconcile a single open tab against its on-disk file. Reads the file and
+    // compares to the tab's saved content so our OWN writes (disk === saved) are
+    // ignored. Genuine external edits: clean tab → silent reload; dirty tab →
+    // conflict banner. Missing file → external-delete flag.
+    const reconcileTab = async (fullPath: string) => {
+      const state = useAppStore.getState();
+      const tab = state.openFiles.find((f) => f.path === fullPath);
+      if (!tab || tab.kind !== 'text') return;
+      let disk: string | null | undefined;
+      try {
+        disk = await api.readFile(fullPath);
+      } catch {
+        return;
+      }
+      if (typeof disk !== 'string') {
+        // File no longer readable (deleted/moved). Only flag if the tab has
+        // unsaved work worth warning about; otherwise leave it (tree refresh
+        // handles the listing) so a transient read race doesn't nag the user.
+        if (tab.content !== tab.savedContent) state.markExternalChange(fullPath, 'deleted');
+        return;
+      }
+      if (disk === tab.savedContent) return; // our own write, or no real change
+      const isDirty = tab.content !== tab.savedContent;
+      if (isDirty) {
+        // Don't clobber unsaved edits and don't silently drop the external
+        // change — surface a conflict the user resolves (reload / keep mine).
+        state.markExternalChange(fullPath, 'changed');
+      } else {
+        void state.reloadFile(fullPath);
+      }
+    };
+
     const unsubscribe = api.onToolEvent((event: { type: string; [key: string]: unknown }) => {
       window.dispatchEvent(new CustomEvent('orison:tool-event', { detail: event }));
 
-      if (event.type === 'file:changed' && typeof event.path === 'string') {
+      if (event.type === 'file:changed') {
         const state = useAppStore.getState();
         const projectPath = state.currentProject?.path;
-        const fullPath = projectPath
-          ? normalizePath(`${projectPath}/${event.path}`)
-          : event.path;
-        const tab = state.openFiles.find((f) => f.path === fullPath);
-        if (tab && tab.content === tab.savedContent) {
-          state.reloadFile(fullPath);
+        // Prefer the concrete changed-path list; fall back to the single `path`.
+        const rels: string[] = Array.isArray(event.paths) && event.paths.length > 0
+          ? (event.paths as string[])
+          : (typeof event.path === 'string' && event.path ? [event.path as string] : []);
+        for (const rel of rels) {
+          const fullPath = projectPath ? normalizePath(`${projectPath}/${rel}`) : rel;
+          // Only touch files actually open as tabs.
+          if (state.openFiles.some((f) => f.path === fullPath)) {
+            void reconcileTab(fullPath);
+          }
         }
       }
 

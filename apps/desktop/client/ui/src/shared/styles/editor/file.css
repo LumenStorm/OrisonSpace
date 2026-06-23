@@ -147,6 +147,69 @@
   font-size: 14px;
 }
 
+/* ── File Editor: external-change conflict banner ── */
+.file-editor-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.file-conflict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-warning, rgba(220, 160, 40, 0.12));
+  border-bottom: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.25));
+  font-size: var(--text-sm);
+}
+
+.file-conflict-icon {
+  color: var(--accent-warning, #d8a23c);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.file-conflict-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-conflict-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.file-conflict-btn {
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.3));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.file-conflict-btn:hover {
+  background: var(--surface-hover, rgba(128, 128, 128, 0.12));
+}
+
+.file-conflict-btn--primary {
+  background: var(--accent, #4a78d0);
+  border-color: var(--accent, #4a78d0);
+  color: #fff;
+}
+
+.file-conflict-btn--primary:hover {
+  filter: brightness(1.08);
+}
+
 /* ── File Editor: Markdown ── */
 .file-editor-md {
   flex: 1;

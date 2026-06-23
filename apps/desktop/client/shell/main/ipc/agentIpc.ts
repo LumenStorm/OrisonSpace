@@ -4,7 +4,6 @@ import {
   setGenerateTextFn,
   setExecuteToolFn,
   registerBuiltinTools,
-  loadRuntimeConfig,
   listSkillPackages,
   setPackageEnabled,
   setSkillEnabled,
@@ -25,7 +24,16 @@ let runtime: WorkflowRuntime;
 /** In-flight stream abort controllers, keyed by sessionId, for agent:abort-run. */
 const streamAbortControllers = new Map<string, AbortController>();
 
-export function registerAgentIpc(mainWindow: BrowserWindow) {
+let registered = false;
+
+export function registerAgentIpc(getWin: () => BrowserWindow | null) {
+  // Handlers register once for the app lifetime; a recreated window is resolved
+  // lazily via getWin. Re-registering the same channel would throw.
+  if (registered) {
+    return;
+  }
+  registered = true;
+
   const generateTextImpl: GenerateTextFn = async (body, _abort) => {
     const result = await handleGenerateText(body as any);
     return result as any;
@@ -48,12 +56,15 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
 
   // ─── Request/Response handlers ───
 
+  // Use the single shared `runtime` for the whole session lifecycle. Previously
+  // create-session built a *separate* runtime carrying externalSkillRoots, while
+  // get-session/execute-skill/stream-message used this module-level one — two
+  // divergent instances with their own session caches and skill registries, so
+  // external skills listed but wouldn't execute. The runtime's listSkills /
+  // executeSkillByName / buildRuntimeSystemPrompt already load per-project
+  // externalSkillRoots via loadRuntimeConfig, so a single instance suffices.
   ipcMain.handle('agent:create-session', async (_event, input: CreateSessionInput) => {
-    const runtimeConfig = await loadRuntimeConfig(input.projectPath);
-    const sessionRuntime = createWorkflowRuntime({
-      externalSkillRoots: runtimeConfig.externalSkillRoots,
-    });
-    return sessionRuntime.createSession(input);
+    return runtime.createSession(input);
   });
 
   ipcMain.handle('agent:get-session', async (_event, id: string, projectPath?: string) => {
@@ -128,7 +139,7 @@ export function registerAgentIpc(mainWindow: BrowserWindow) {
 
     const sendEvent = (event: { type: string; data: unknown }) => {
       try {
-        mainWindow.webContents.send('agent:stream-event', event);
+        getWin()?.webContents.send('agent:stream-event', event);
       } catch {
         // Window may have been closed
       }
