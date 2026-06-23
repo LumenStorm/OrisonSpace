@@ -1,6 +1,14 @@
 import path from 'node:path';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// fileHandlers → toolNotify → `import { BrowserWindow } from 'electron'`, which
+// throws at load time in CI where the electron binary isn't installed. Mock it
+// so this pure-fs search test doesn't drag in the desktop runtime.
+vi.mock('electron', () => ({
+  BrowserWindow: { getAllWindows: () => [] },
+}));
+
 import { searchProjectFiles } from '../main/ipc/toolHandlers/fileHandlers';
 
 const TEST_DIR = path.join(process.cwd(), 'test-tmp-search');
