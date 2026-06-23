@@ -35,7 +35,13 @@
     "pnpm": ">=9.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@swc/core", "bcrypt", "better-sqlite3", "electron", "esbuild"],
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "bcrypt",
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ],
     "overrides": {
       "esbuild": "0.27.7"
     }
@@ -48,15 +54,27 @@
     "package:desktop:portable": "pnpm --filter @orison/desktop-shell pack:portable",
     "package:desktop:dir": "pnpm --filter @orison/desktop-shell pack:dir",
     "test": "turbo run test",
-    "lint": "turbo run lint",
+    "lint": "eslint . && depcruise apps packages --config .dependency-cruiser.cjs",
+    "lint:fix": "eslint . --fix",
+    "deadcode": "knip",
     "typecheck": "turbo run typecheck",
     "set-version": "node scripts/set-version.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^24.0.1",
+    "dependency-cruiser": "^17.4.3",
+    "eslint": "^9",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-i18next": "^6.1.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^15.15.0",
     "jsdom": "^26.1.0",
+    "knip": "^6.18.0",
     "turbo": "^2.0.12",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8",
     "vitest": "^3.1.4"
   }
 }

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
+import type { ProjectSearchResult } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '../../fs/atomicWrite';
 
 export const readFileHandler: ToolHandler = async ({ params, projectDir }) => {
@@ -90,7 +91,35 @@ export const searchHandler: ToolHandler = async ({ params, projectDir }) => {
     throw new Error('search: query too long (max 1000 chars)');
   }
 
-  const results: string[] = [];
+  const hits = searchProjectFiles(projectDir, query, maxResults, globPattern);
+  const lines = hits.map((h) => `${h.path}:${h.line}: ${h.text}`);
+
+  return {
+    title: `search: ${query}`,
+    output: lines.length > 0 ? lines.join('\n') : 'No matches found.',
+    metadata: { count: lines.length },
+  };
+};
+
+/**
+ * Structured regex search across a project directory. Shared by the agent
+ * `search` tool handler and the renderer-facing `project:search` IPC channel.
+ * Returns `{ path, line, text }[]` with paths relative to `projectDir`.
+ */
+export function searchProjectFiles(
+  projectDir: string,
+  query: string,
+  maxResults = 50,
+  globPattern?: string,
+): ProjectSearchResult[] {
+  if (typeof query !== 'string' || query.length === 0) {
+    throw new Error('search: query must be a non-empty string');
+  }
+  if (query.length > 1000) {
+    throw new Error('search: query too long (max 1000 chars)');
+  }
+
+  const results: ProjectSearchResult[] = [];
   // No `g` flag: with regex.test() a sticky lastIndex would skip/alternate
   // matches across lines. Guard invalid patterns so a bad query is a clean
   // error rather than a thrown ReDoS-prone construction.
@@ -115,11 +144,14 @@ export const searchHandler: ToolHandler = async ({ params, projectDir }) => {
         if (globPattern && !name.endsWith(globPattern.replace('*', ''))) continue;
         try {
           const content = readFileSync(fp, 'utf-8');
-          const lines = content.split('\n');
-          for (let i = 0; i < lines.length; i++) {
-            if (regex.test(lines[i])) {
-              const rel = path.relative(projectDir, fp);
-              results.push(`${rel}:${i + 1}: ${lines[i].trim()}`);
+          const fileLines = content.split('\n');
+          for (let i = 0; i < fileLines.length; i++) {
+            if (regex.test(fileLines[i])) {
+              results.push({
+                path: path.relative(projectDir, fp),
+                line: i + 1,
+                text: fileLines[i].trim(),
+              });
               if (results.length >= maxResults) return;
             }
           }
@@ -129,9 +161,5 @@ export const searchHandler: ToolHandler = async ({ params, projectDir }) => {
   }
   searchDir(projectDir);
 
-  return {
-    title: `search: ${query}`,
-    output: results.length > 0 ? results.join('\n') : 'No matches found.',
-    metadata: { count: results.length },
-  };
-};
+  return results;
+}

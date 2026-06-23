@@ -1,34 +1,30 @@
 import { useState, useCallback } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { searchProject, readFile, type ProjectSearchResult } from '../../shared/api/filesystem';
 
-type SearchResult = { path: string; line: number; text: string };
+type SearchResult = ProjectSearchResult;
 
 export function SearchPanel() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const currentProject = useAppStore((s) => s.currentProject);
   const openFile = useAppStore((s) => s.openFile);
 
   const handleSearch = useCallback(async () => {
     if (!query.trim() || !currentProject) return;
     setSearching(true);
+    setError(null);
     try {
-      const res = await fetch('http://localhost:18421/tool/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toolId: 'search',
-          params: { query: query.trim(), maxResults: 100 },
-          projectDir: currentProject.path,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.content ?? []);
-      }
-    } catch { /* ignore */ }
-    setSearching(false);
+      const hits = await searchProject(currentProject.path, query.trim(), 100);
+      setResults(hits);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
   }, [query, currentProject]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -36,12 +32,13 @@ export function SearchPanel() {
   }, [handleSearch]);
 
   const handleResultClick = useCallback(async (r: SearchResult) => {
-    const content = await window.orisonDesktop?.readFile(r.path);
+    const abs = `${currentProject?.path ?? ''}/${r.path}`.replace(/\\/g, '/');
+    const content = await readFile(abs);
     if (content != null) {
       const name = r.path.split(/[/\\]/).pop() || r.path;
-      openFile(r.path, name, content);
+      openFile(abs, name, content);
     }
-  }, [openFile]);
+  }, [openFile, currentProject]);
 
   return (
     <div className="search-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -58,7 +55,10 @@ export function SearchPanel() {
       </div>
       <div className="search-panel-results" style={{ flex: 1, overflow: 'auto', fontSize: '12px' }}>
         {searching && <div style={{ padding: '8px', opacity: 0.6 }}>搜索中...</div>}
-        {!searching && results.length === 0 && query && (
+        {!searching && error && (
+          <div style={{ padding: '8px', color: 'var(--danger, #e06c75)' }}>{error}</div>
+        )}
+        {!searching && !error && results.length === 0 && query && (
           <div style={{ padding: '8px', opacity: 0.6 }}>无结果</div>
         )}
         {results.map((r, i) => (

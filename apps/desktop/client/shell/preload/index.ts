@@ -12,6 +12,7 @@ import type {
   ListRemoteModelsRequest,
   ModelConfig,
   OrisonDesktopApi,
+  ProjectSearchResult,
   RegisteredProject,
   RemoteModel,
   RunStorySyncPayload,
@@ -96,6 +97,8 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:create-entry', fullPath, isDir) as Promise<boolean>,
   readFile: (fullPath: string) =>
     ipcRenderer.invoke('project:read-file', fullPath) as Promise<string | null>,
+  searchProject: (projectDir: string, query: string, maxResults?: number) =>
+    ipcRenderer.invoke('project:search', projectDir, query, maxResults) as Promise<ProjectSearchResult[]>,
   readFileBinary: (fullPath: string) =>
     ipcRenderer.invoke('project:read-file-binary', fullPath) as Promise<{ base64: string; mimeType: string } | null>,
   writeFile: (fullPath: string, content: string) =>

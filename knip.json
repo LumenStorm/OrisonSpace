@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "apps/desktop/agent": {
+      "entry": ["src/index.ts", "src/**/*.test.ts"],
+      "project": "src/**/*.ts"
+    },
+    "apps/desktop/client/shell": {
+      "entry": [
+        "main/index.ts",
+        "preload/index.ts",
+        "renderer/main.tsx",
+        "**/*.test.ts"
+      ],
+      "project": ["main/**/*.ts", "preload/**/*.ts", "renderer/**/*.{ts,tsx}"]
+    },
+    "apps/desktop/client/ui": {
+      "entry": ["src/index.ts", "src/index.tsx", "src/**/*.{test,spec}.{ts,tsx}"],
+      "project": "src/**/*.{ts,tsx}"
+    },
+    "apps/desktop/local-bff": {
+      "entry": ["index.ts", "**/*.test.ts"],
+      "project": "**/*.ts"
+    },
+    "packages/*": {
+      "entry": ["src/index.ts", "src/**/*.test.ts"],
+      "project": "src/**/*.ts"
+    }
+  },
+  "ignore": ["**/dist/**", "packages/shared-utils/**", "packages/ui-kit/**"],
+  "ignoreDependencies": ["@swc/core", "bcrypt"]
+}

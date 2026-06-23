@@ -1,11 +1,19 @@
-import type { BinaryFilePayload, FileTreeEntry, SaveBase64ImageInput, SavedImageFile } from '@orison/shared-contracts';
+import type { BinaryFilePayload, FileTreeEntry, ProjectSearchResult, SaveBase64ImageInput, SavedImageFile } from '@orison/shared-contracts';
 
-export type { FileTreeEntry, BinaryFilePayload, SavedImageFile };
+export type { FileTreeEntry, BinaryFilePayload, SavedImageFile, ProjectSearchResult };
 
 const api = window.orisonDesktop;
 
 export async function readDirectory(dir: string, depth?: number): Promise<FileTreeEntry[]> {
   return (await api?.readDirectory(dir, depth)) ?? [];
+}
+
+export async function readFile(fullPath: string): Promise<string | null> {
+  return (await api?.readFile(fullPath)) ?? null;
+}
+
+export async function searchProject(projectDir: string, query: string, maxResults?: number): Promise<ProjectSearchResult[]> {
+  return (await api?.searchProject(projectDir, query, maxResults)) ?? [];
 }
 
 export async function readFileBinary(filePath: string): Promise<BinaryFilePayload | null> {

@@ -18,6 +18,7 @@ import {
   mimeTypeFromExt,
   readDirectoryRecursive,
 } from './projectIpcHelpers';
+import { searchProjectFiles } from './toolHandlers/fileHandlers';
 
 /** 概览/创建传入的 camelCase meta（含 coverImage/projectId）映射进 project.yaml 的 meta（snake_case）。 */
 const META_KEY_MAP: Record<string, string> = {
@@ -419,6 +420,14 @@ export function registerProjectIpc() {
     } catch {
       return null;
     }
+  });
+
+  ipcMain.handle('project:search', async (_, projectDir: string, query: string, maxResults?: number) => {
+    // Renderer-facing search. The agent tool path (handleToolExecute → searchHandler)
+    // is dev-only HTTP/WS; the UI must use this IPC channel so search works in
+    // the packaged app. Shares the structured-search core with the tool handler.
+    assertSafePath(projectDir);
+    return searchProjectFiles(projectDir, query, maxResults);
   });
 
   ipcMain.handle('project:write-file', async (_, fullPath: string, content: string) => {

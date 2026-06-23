@@ -222,6 +222,16 @@ export type GitFileDiff = {
   status: 'added' | 'modified' | 'deleted';
 };
 
+/** A single regex search hit within a project file. */
+export type ProjectSearchResult = {
+  /** Path relative to the project directory. */
+  path: string;
+  /** 1-based line number. */
+  line: number;
+  /** Trimmed matching line text. */
+  text: string;
+};
+
 /**
  * Canonical type for the preload API surface exposed via contextBridge.
  */
@@ -267,6 +277,9 @@ export type OrisonDesktopApi = {
   renameEntry(oldPath: string, newPath: string): Promise<boolean>;
   createEntry(fullPath: string, isDir: boolean): Promise<boolean>;
   readFile(fullPath: string): Promise<string | null>;
+  /** Regex text search across a project directory; returns structured hits. */
+  searchProject(projectDir: string, query: string, maxResults?: number): Promise<ProjectSearchResult[]>;
+  readFileBinary(fullPath: string): Promise<BinaryFilePayload | null>;
   readFileBinary(fullPath: string): Promise<BinaryFilePayload | null>;
   writeFile(fullPath: string, content: string): Promise<boolean>;
   wordCount(projectDir: string): Promise<number>;
