@@ -26,6 +26,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # A warm pnpm store cache can be restored with better-sqlite3 linked but
+      # its native binding unbuilt (--frozen-lockfile skips the install script).
+      # Force the prebuilt binary so electron-builder bundles a working module.
+      - name: Rebuild native modules (better-sqlite3)
+        run: pnpm rebuild -r better-sqlite3
+
       # Tag is the single source of truth. Strip the leading "v" and write it
       # into root + shell package.json so app.getVersion(), latest.yml and the
       # installer filename all match the tag.
@@ -88,6 +94,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # See windows job: rebuild the native binding so a warm pnpm cache can't
+      # ship a better-sqlite3 without its compiled .node file.
+      - name: Rebuild native modules (better-sqlite3)
+        run: pnpm rebuild -r better-sqlite3
+
       - name: Inject version from tag
         shell: bash
         run: |
@@ -124,6 +135,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # See windows job: rebuild the native binding so a warm pnpm cache can't
+      # ship a better-sqlite3 without its compiled .node file.
+      - name: Rebuild native modules (better-sqlite3)
+        run: pnpm rebuild -r better-sqlite3
 
       - name: Inject version from tag
         shell: bash

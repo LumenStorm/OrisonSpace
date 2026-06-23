@@ -29,6 +29,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The pnpm store cache (cache: pnpm above) can be restored in a state where
+      # better-sqlite3 is linked but its native binding was never built, because
+      # --frozen-lockfile treats the package as already installed and skips its
+      # `install` script. Force the prebuilt binary to be fetched so the agent
+      # tests that load the real module don't fail with "Could not locate the
+      # bindings file". Recursive form actually runs the script (non-recursive
+      # `pnpm rebuild better-sqlite3` is a no-op when the store is warm).
+      - name: Rebuild native modules (better-sqlite3)
+        run: pnpm rebuild -r better-sqlite3
+
       - name: Type check
         run: pnpm typecheck
 
