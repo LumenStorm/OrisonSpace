@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
-import { resolveErrorKey } from '../orchestration/errors';
+import { resolveErrorKey } from './errors';
 
 export function ChapterResultPanel() {
   const { candidate, status, error, accept, reject, resolvedLocale } = useAppStore(

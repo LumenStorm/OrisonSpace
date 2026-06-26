@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
@@ -16,7 +16,7 @@ export function OverviewPage() {
   const { t } = useI18n(resolvedLocale);
   const project = useAppStore((s) => s.currentProject);
   const chapters = useAppStore((s) => s.novelChapters) as NovelChapterMeta[];
-  const setCurrentProject = useAppStore((s) => s.openProject);
+  const updateProjectMeta = useAppStore((s) => s.updateProjectMeta);
   const saveProject = useAppStore((s) => s.saveProject);
   const setActivePage = useAppStore((s) => s.setActivePage);
 
@@ -28,43 +28,60 @@ export function OverviewPage() {
   const [logline, setLogline] = useState('');
   const [synopsis, setSynopsis] = useState('');
 
-  const syncingRef = useRef(false);
+  // Identity of the project we last hydrated local fields from. Used to
+  // re-seed inputs only on a real project switch, not on our own meta writes.
+  const hydratedPathRef = useRef<string | null>(null);
+  // Gates the debounced flush so we never write back a value we merely loaded.
+  const userEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // Hydrate local inputs from the project. Keyed on path so editing the name
+  // (which updates the currentProject object in place, same path) does NOT
+  // re-seed and fight the user's keystrokes.
   useEffect(() => {
     if (!project) return;
-    syncingRef.current = true;
+    if (hydratedPathRef.current === (project.path ?? null)) return;
+    hydratedPathRef.current = project.path ?? null;
+    userEditedRef.current = false;
     setName(project.name ?? '');
     setLogline(project.logline ?? '');
     setSynopsis(project.synopsis ?? '');
-    requestAnimationFrame(() => { syncingRef.current = false; });
   }, [project]);
 
-  const persist = useCallback(() => {
-    if (syncingRef.current || !project) return;
+  // Latest edited values, read by the debounced flush without forcing the
+  // flush callback to depend on every field (which would re-arm per keystroke).
+  const latestRef = useRef({ name, logline, synopsis });
+  latestRef.current = { name, logline, synopsis };
+
+  const markEdited = () => {
+    userEditedRef.current = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const updated = {
-        ...project,
-        name: name || project.name,
-        logline: logline || undefined,
-        synopsis: synopsis || undefined,
-      };
-      setCurrentProject(updated);
-      saveProject();
+      if (!userEditedRef.current) return;
+      userEditedRef.current = false;
+      const { name: n, logline: l, synopsis: s } = latestRef.current;
+      // In-place meta update (same path) → not a project switch. Then persist.
+      updateProjectMeta({
+        name: n || (project?.name ?? ''),
+        logline: l || undefined,
+        synopsis: s || undefined,
+      });
+      void saveProject();
     }, DEBOUNCE_MS);
-  }, [name, logline, synopsis, project, setCurrentProject, saveProject]);
+  };
 
-  useEffect(() => {
-    persist();
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [persist]);
+  // Flush any pending edit on unmount.
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
   // Stats
   const totalChapters = chapters.length;
   const projectWordCount = useAppStore((s) => s.projectWordCount);
   const refreshWordCount = useAppStore((s) => s.refreshWordCount);
-  useEffect(() => { refreshWordCount(); }, [refreshWordCount]);
+  // Recompute word count when the chapter set changes (not just on mount), so
+  // adding/editing chapters reflects without leaving and re-entering the page.
+  useEffect(() => { void refreshWordCount(); }, [refreshWordCount, chapters.length]);
   const totalWords = projectWordCount;
   const characterCount = assetCards?.filter((c) => c.type === 'character').length ?? 0;
   const locationCount = worldSetting?.locations?.length ?? 0;
@@ -95,10 +112,10 @@ export function OverviewPage() {
       <section className="overview-header">
         <div className="overview-header-row">
           <input
-            className="outline-title-input"
+            className="overview-name-input"
             placeholder={t('overview.projectName')}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { markEdited(); setName(e.target.value); }}
           />
           {project?.type && (
             <span className="overview-type-badge">
@@ -107,16 +124,16 @@ export function OverviewPage() {
           )}
         </div>
         <input
-          className="outline-logline-input"
+          className="overview-logline-input"
           placeholder={t('overview.loglinePlaceholder')}
           value={logline}
-          onChange={(e) => setLogline(e.target.value)}
+          onChange={(e) => { markEdited(); setLogline(e.target.value); }}
         />
         <textarea
-          className="outline-textarea"
+          className="overview-synopsis-input"
           placeholder={t('overview.synopsisPlaceholder')}
           value={synopsis}
-          onChange={(e) => setSynopsis(e.target.value)}
+          onChange={(e) => { markEdited(); setSynopsis(e.target.value); }}
           rows={3}
         />
       </section>
@@ -194,10 +211,10 @@ export function OverviewPage() {
           {worldSetting ? (
             <div className="overview-world-content">
               {worldSetting.era && <p className="overview-world-line">{t('overview.era')}: {worldSetting.era}</p>}
-              {worldSetting.rules.length > 0 && (
+              {(worldSetting.rules?.length ?? 0) > 0 && (
                 <p className="overview-world-line">{t('overview.rules')}: {worldSetting.rules.slice(0, 2).join('、')}</p>
               )}
-              {worldSetting.locations.length > 0 && (
+              {(worldSetting.locations?.length ?? 0) > 0 && (
                 <p className="overview-world-line">{t('overview.coreLocations')}: {worldSetting.locations.slice(0, 3).map((l) => l.name).join('、')}</p>
               )}
             </div>

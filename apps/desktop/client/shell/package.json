@@ -29,6 +29,7 @@
     "electron-updater": "^6.3.9",
     "isomorphic-git": "^1.37.6",
     "mammoth": "1.9.0",
+    "material-symbols": "0.31.8",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
     "react": "^19.1.0",

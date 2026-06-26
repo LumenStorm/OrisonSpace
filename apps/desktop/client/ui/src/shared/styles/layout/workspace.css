@@ -297,7 +297,9 @@
   font-size: 16px;
 }
 
-/* ── Agent Side Tab ── */
+/* ── Agent Side Tab ──
+ * Vertically centered against the workspace body so the toggle sits at the
+ * middle of the right edge, regardless of whether the Agent panel is open. */
 .agent-side-tab {
   display: flex;
   align-items: center;
@@ -307,7 +309,7 @@
   align-self: center;
   border: 1px solid var(--outline-variant);
   border-right: 0;
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
   background: var(--surface-container);
   color: var(--on-surface-variant);
   cursor: pointer;

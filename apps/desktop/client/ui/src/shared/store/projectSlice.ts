@@ -6,6 +6,12 @@ export type ProjectSlice = {
   projectDocumentHydrated: boolean;
   projectWordCount: number;
   openProject: (project: ProjectMeta) => void;
+  /** Update meta fields of the *current* project in place (name/logline/…)
+   *  WITHOUT resetting projectDocumentHydrated or re-running the project-switch
+   *  subscription. Used by the Overview editor so saving a rename can't be
+   *  mistaken for a project switch (which would wipe creativeFields + reload
+   *  the document and clobber in-flight Outline edits). */
+  updateProjectMeta: (patch: Partial<ProjectMeta>) => void;
   closeProject: () => void;
   saveProject: () => Promise<void>;
   /** Flush in-memory dirty edits to disk (open text tabs + chapter meta) so a
@@ -32,6 +38,14 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
         coverImage: project.coverImage,
       }).catch(() => {});
     }
+  },
+  updateProjectMeta: (patch) => {
+    const current = get().currentProject;
+    if (!current) return;
+    // In-place meta update: keep the SAME logical project (same path) so the
+    // project-switch subscription's path check treats this as an edit, not a
+    // switch — no creativeFields wipe, no document reload, no hydrated reset.
+    set({ currentProject: { ...current, ...patch } });
   },
   closeProject: () => {
     const state = get() as any;
@@ -68,8 +82,18 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
   async flushDirty() {
     const state = get() as any;
     // Persist dirty open text tabs (the manuscript files word count reads).
+    // refreshWordCount calls this, so navigating to the Overview/word-count
+    // surfaces a save. Reflect that in saveStatus so the flush isn't silent —
+    // otherwise the dirty indicator just vanishes with no "saved" feedback.
     if (state.hasDirtyFiles?.()) {
-      await state.saveAllOpenFiles?.();
+      state.setSaveStatus?.('saving');
+      try {
+        await state.saveAllOpenFiles?.();
+        state.setLastSavedAt?.(Date.now());
+        state.setSaveStatus?.('saved');
+      } catch {
+        state.setSaveStatus?.('error');
+      }
     }
   },
   async refreshWordCount() {

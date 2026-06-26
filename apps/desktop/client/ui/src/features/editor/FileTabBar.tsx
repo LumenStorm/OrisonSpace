@@ -142,7 +142,21 @@ export function FileTabBar() {
     <>
       {openFiles.length > 0 && (
         <div className="file-tab-bar-wrapper">
-          <nav className="file-tab-bar" role="tablist" aria-label={t('editor.openFiles')}>
+          <nav
+            className="file-tab-bar"
+            role="tablist"
+            aria-label={t('editor.openFiles')}
+            onWheel={(e) => {
+              // Translate vertical wheel into horizontal scroll so the mouse
+              // wheel can reveal off-screen tabs. Only intercept when the row
+              // actually overflows and the gesture has no native horizontal
+              // intent (trackpad / Shift+wheel already scroll sideways).
+              const el = e.currentTarget;
+              if (el.scrollWidth <= el.clientWidth) return;
+              if (e.deltaX !== 0) return;
+              el.scrollLeft += e.deltaY;
+            }}
+          >
             {openFiles.map((file, index) => {
             const isActive = file.path === activeFilePath;
             const isDirty = file.kind === 'text' && file.content !== file.savedContent;

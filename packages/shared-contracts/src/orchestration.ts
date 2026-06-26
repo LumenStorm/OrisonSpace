@@ -59,7 +59,11 @@ export const orchestrationRunSchema = z.object({
 
 export const orchestrationNodeConfigSchema = z.object({
   agentId: z.string().min(1),
-  runtime: z.enum(['typescript', 'python']).default('python'),
+  // Default to 'typescript': the Python runtime was removed with the Python
+  // agent chain (commit 820a969). 'python' stays in the enum only so historic
+  // configs still parse and the auto-mode rebuild can reuse the schema — see
+  // docs/internal/auto-mode-rebuild-plan.md. No node currently executes Python.
+  runtime: z.enum(['typescript', 'python']).default('typescript'),
   entry: z.string().min(1),
   model: z.string().min(1),
   execution: z.object({

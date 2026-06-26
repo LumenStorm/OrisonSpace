@@ -14,6 +14,15 @@ export function installProjectSubscription(useAppStore: typeof import('./appStor
     const prev = prevProject;
     prevProject = project;
 
+    // Compare by PATH, not object reference: editing project meta (rename,
+    // logline…) produces a new currentProject object with the SAME path. That
+    // must NOT be treated as a project switch — otherwise resetAll() flushes +
+    // wipes ALL project-scoped state (open files, creative fields, agent…) and
+    // reloads the document, clobbering in-flight Outline edits on every rename
+    // keystroke. Only a genuine path change is a real switch.
+    const isSwitch = (project?.path ?? null) !== (prev?.path ?? null);
+    if (!isSwitch) return;
+
     // Flush the previous project's dirty open files to disk before tearing down
     // its state. The reset clears `openFiles`, so an un-flushed buffer would be
     // lost silently. Fire-and-forget: saveFile writes by absolute path, which is

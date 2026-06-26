@@ -90,8 +90,8 @@
   --overlay-on-media-danger: rgba(196, 68, 68, 0.75);
   --overlay-on-media-backdrop: rgba(255, 255, 255, 0.8);
 
-  --font-ui: "Inter", "Noto Sans SC", "Segoe UI", sans-serif;
-  --font-display: "Newsreader", "Noto Serif SC", "Georgia", serif;
+  --font-ui: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-display: "Newsreader", "Noto Serif SC", "Songti SC", "SimSun", "Georgia", serif;
   --inspector-width: 300px;
 }
 

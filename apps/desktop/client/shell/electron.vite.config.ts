@@ -31,8 +31,8 @@ function resolveSlots(slots: Record<string, string>, palette: Record<string, str
 
 function buildTokensCss() {
   const staticTokens = `
-  --font-ui: "Inter", "Noto Sans SC", "Segoe UI", sans-serif;
-  --font-display: "Newsreader", "Noto Serif SC", "Georgia", serif;
+  --font-ui: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-display: "Newsreader", "Noto Serif SC", "Songti SC", "SimSun", "Georgia", serif;
   --inspector-width: 300px;
 `;
   const paletteFiles = fs.readdirSync(themesDir).filter(

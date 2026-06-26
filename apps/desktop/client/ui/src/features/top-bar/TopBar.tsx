@@ -24,6 +24,7 @@ export function TopBar() {
     checkForUpdate, appVersion, openPalette, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
     splitDirection, setSplit, showMinimap, toggleMinimap, refreshWordCount, openFile,
+    setSaveStatus, setLastSavedAt,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     closeProject: s.closeProject,
@@ -49,6 +50,8 @@ export function TopBar() {
     toggleMinimap: s.toggleMinimap,
     refreshWordCount: s.refreshWordCount,
     openFile: s.openFile,
+    setSaveStatus: s.setSaveStatus,
+    setLastSavedAt: s.setLastSavedAt,
   })));
   const showToast = useToastStore((s) => s.showToast);
   const { t } = useI18n(resolvedLocale);
@@ -62,32 +65,40 @@ export function TopBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
-    await saveAllOpenFiles();
-    await saveProject();
-    await saveChaptersToProject().catch((err) => {
+    setSaveStatus('saving');
+    try {
+      await saveAllOpenFiles();
+      await saveProject();
+      await saveChaptersToProject();
+      // Sync word counts from saved files into novelChapters for overview
+      const state = useAppStore.getState();
+      const projectPath = state.currentProject?.path;
+      if (projectPath && state.novelChapters.length > 0) {
+        const base = normalizePath(projectPath);
+        const updated = state.novelChapters.map((ch) => ({
+          ...ch,
+          sections: ch.sections.map((sec) => {
+            const fullPath = `${base}/${sec.contentFile}`;
+            const file = state.openFiles.find((f) => normalizePath(f.path) === fullPath);
+            if (!file) return sec;
+            const wc = file.content.replace(/\s/g, '').length;
+            return { ...sec, wordCount: wc };
+          }),
+        }));
+        state.setNovelChapters(updated);
+      }
+      await refreshWordCount();
+      // Surface an explicit, persistent "saved" state (matches autosave), so a
+      // manual Ctrl+S clearly reflects in the status bar — not just a toast.
+      setLastSavedAt(Date.now());
+      setSaveStatus('saved');
+      showToast(t('topbar.saved'));
+    } catch (err) {
+      setSaveStatus('error');
       const reason = err instanceof Error ? err.message : String(err);
       showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
-    });
-    // Sync word counts from saved files into novelChapters for overview
-    const state = useAppStore.getState();
-    const projectPath = state.currentProject?.path;
-    if (projectPath && state.novelChapters.length > 0) {
-      const base = normalizePath(projectPath);
-      const updated = state.novelChapters.map((ch) => ({
-        ...ch,
-        sections: ch.sections.map((sec) => {
-          const fullPath = `${base}/${sec.contentFile}`;
-          const file = state.openFiles.find((f) => normalizePath(f.path) === fullPath);
-          if (!file) return sec;
-          const wc = file.content.replace(/\s/g, '').length;
-          return { ...sec, wordCount: wc };
-        }),
-      }));
-      state.setNovelChapters(updated);
     }
-    await refreshWordCount();
-    showToast(t('topbar.saved'));
-  }, [saveProject, saveChaptersToProject, saveAllOpenFiles, refreshWordCount, showToast, t]);
+  }, [saveProject, saveChaptersToProject, saveAllOpenFiles, refreshWordCount, setSaveStatus, setLastSavedAt, showToast, t]);
 
   // Route undo/redo to the focused editor (textarea / Tiptap contenteditable),
   // which owns its own history. The legacy editorSlice undo stack drove a

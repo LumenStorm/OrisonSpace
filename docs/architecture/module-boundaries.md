@@ -167,13 +167,12 @@
 
 ## Auto Mode 持久化
 
-- Auto Mode 状态由 agent runtime 拥有
-- 主要模块：
-  - `novelAutoModeRunner.ts`
-  - `autoModeService.ts`
-  - `autoModeStore.ts`
-- 持久化位置：
-  - `<projectPath>/runs/auto-mode/<autoModeId>.yaml`
+> **已移除（待重建）**：Auto Mode 执行引擎（`novelAutoModeRunner.ts` /
+> `autoModeService.ts` / `autoModeStore.ts`）随 Python agent 链在 commit 820a969
+> 删除，未替代。其 UI 空壳（AutoModeConsole / OrchestrationPanel）已在 UX 修复轮次
+> 暂时移除。重建方案见 `docs/internal/auto-mode-rebuild-plan.md`——届时执行引擎将
+> 接入现有 TypeScript `WorkflowRuntime`，持久化位置（原设计
+> `<projectPath>/runs/auto-mode/<autoModeId>.yaml`）重建时复核。
 
 ## 模型协议层
 

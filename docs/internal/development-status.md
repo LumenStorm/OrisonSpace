@@ -199,7 +199,9 @@ OrisonSpace/
 
 - Node.js 22+
 - pnpm 10+
-- Python 3.10+（Agent Python 节点需要）
+
+> Python 不再是运行依赖：早期的 Agent Python 节点链已移除（commit 820a969 / 10bd93a），
+> 当前 Agent 运行时全部为 TypeScript，安装包不含也不需要 Python。
 
 ---
 

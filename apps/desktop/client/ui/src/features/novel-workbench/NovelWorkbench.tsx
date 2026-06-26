@@ -1,6 +1,5 @@
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
-import { AutoModeConsole } from '../auto-mode/AutoModeConsole';
 import { ChapterActionsBar } from './ChapterActionsBar';
 import { ChapterListPanel } from './ChapterListPanel';
 import { ChapterResultPanel } from './ChapterResultPanel';
@@ -16,7 +15,10 @@ export function NovelWorkbench() {
           <strong>{t('script.chapters')}</strong>
         </header>
         <ChapterListPanel />
-        <AutoModeConsole />
+        {/* AutoModeConsole removed: the auto-mode execution engine was deleted
+            with the Python agent chain (commit 820a969) and never replaced, so
+            the console was a non-functional shell. Hidden until the engine is
+            rebuilt — see docs/internal/auto-mode-rebuild-plan.md. */}
       </aside>
 
       <main className="novel-workbench-main">

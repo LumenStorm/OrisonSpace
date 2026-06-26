@@ -272,7 +272,14 @@ export function OutlineEditor() {
                 </div>
                 <div className="outline-phase-field">
                   <label className="outline-phase-label">{t('outline.estimatedChapters')}</label>
-                  <input className="outline-phase-input" type="number" min={0} value={phase.estimated_chapters ?? ''} onChange={(e) => updatePhase(phase.id, { estimated_chapters: e.target.value ? Number(e.target.value) : undefined })} />
+                  <input className="outline-phase-input" type="number" min={0} value={phase.estimated_chapters ?? ''} onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === '') { updatePhase(phase.id, { estimated_chapters: undefined }); return; }
+                    // Clamp to a non-negative integer: guards against negative
+                    // or NaN (paste / spinner) corrupting phase-progress math.
+                    const n = Math.max(0, Math.floor(Number(raw)));
+                    updatePhase(phase.id, { estimated_chapters: Number.isFinite(n) ? n : undefined });
+                  }} />
                 </div>
               </div>
             )}

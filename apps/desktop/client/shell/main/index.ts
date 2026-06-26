@@ -37,8 +37,11 @@ function resolveAppIcon(): string {
 const CSP = [
   "default-src 'self'",
   isDev ? "script-src 'self' 'unsafe-eval'" : "script-src 'self'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  // Fonts are bundled locally now (Material Symbols woff2 + system CJK
+  // fallbacks), so no Google Fonts CDN is whitelisted. 'self' covers the
+  // fingerprinted woff2 emitted into the build; data: kept for inlined assets.
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
   "img-src 'self' data: orison-file: https:",
   `connect-src 'self' ${isDev ? 'ws://localhost:* https:' : 'https:'}`,
 ].join('; ');
