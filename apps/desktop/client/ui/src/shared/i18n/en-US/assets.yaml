@@ -1,7 +1,7 @@
 assets:
   empty: "No assets yet"
   import: "Import"
-  dropHint: "Drag images here, or import from your files."
+  dropHint: "Drag images here, or import from your files. Images the agent generates land here too."
   refresh: "Refresh"
   search: "Search..."
   rename: "Rename"

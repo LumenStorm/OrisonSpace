@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
+import { gitIsRepo, gitLog } from '../../shared/api/git';
+import type { GitCommitEntry } from '@orison/shared-contracts';
 import type { z } from 'zod';
 import type { outlineV2Schema, worldSettingSchema, assetCardSchema } from '@orison/shared-contracts';
 
@@ -11,6 +13,16 @@ type AssetCard = z.infer<typeof assetCardSchema>;
 
 const DEBOUNCE_MS = 500;
 
+function relativeTime(ts: number, t: (k: string, v?: Record<string, string | number>) => string): string {
+  const mins = Math.floor((Date.now() - ts * 1000) / 60000);
+  if (mins < 1) return t('timeline.timeJustNow');
+  if (mins < 60) return t('timeline.timeMinutesAgo', { value: mins });
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return t('timeline.timeHoursAgo', { value: hrs });
+  const days = Math.floor(hrs / 24);
+  return t('timeline.timeDaysAgo', { value: days });
+}
+
 export function OverviewPage() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
@@ -19,6 +31,7 @@ export function OverviewPage() {
   const updateProjectMeta = useAppStore((s) => s.updateProjectMeta);
   const saveProject = useAppStore((s) => s.saveProject);
   const setActivePage = useAppStore((s) => s.setActivePage);
+  const setActiveSidebarPanel = useAppStore((s) => s.setActiveSidebarPanel);
 
   const outline = useAppStore((s) => s.creativeFields.outline) as OutlineV2 | undefined;
   const worldSetting = useAppStore((s) => s.creativeFields.world_setting) as WorldSetting | undefined;
@@ -27,6 +40,8 @@ export function OverviewPage() {
   const [name, setName] = useState('');
   const [logline, setLogline] = useState('');
   const [synopsis, setSynopsis] = useState('');
+  const [versions, setVersions] = useState<GitCommitEntry[]>([]);
+  const [coverBust, setCoverBust] = useState(0);
 
   // Identity of the project we last hydrated local fields from. Used to
   // re-seed inputs only on a real project switch, not on our own meta writes.
@@ -75,6 +90,27 @@ export function OverviewPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, []);
 
+  // Load recent version nodes for the activity feed. Best-effort: a project
+  // with no repo simply shows an empty activity stream.
+  const projectPath = project?.path;
+  useEffect(() => {
+    if (!projectPath) { setVersions([]); return; }
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (await gitIsRepo(projectPath)) {
+          const log = await gitLog(projectPath, 4);
+          if (!cancelled) setVersions(log);
+        } else if (!cancelled) {
+          setVersions([]);
+        }
+      } catch {
+        if (!cancelled) setVersions([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [projectPath]);
+
   // Stats
   const totalChapters = chapters.length;
   const projectWordCount = useAppStore((s) => s.projectWordCount);
@@ -106,78 +142,135 @@ export function OverviewPage() {
     .sort((a, b) => b.sortOrder - a.sortOrder)
     .slice(0, 3);
 
+  const writingPage = project?.type === 'script' ? 'script' : 'novel';
+  const hasActivity = versions.length > 0 || recentChapters.length > 0;
+
+  // Pick a cover image, copy it into the project as cover.<ext>, and persist it
+  // to the project meta — the same flow as project creation. The cover is a
+  // first-class project field, not derived from the assets library.
+  const handlePickCover = async () => {
+    if (!projectPath) return;
+    const src = await window.orisonDesktop?.pickCoverImage();
+    if (!src) return;
+    const dest = await window.orisonDesktop.copyCoverImage(src, projectPath);
+    updateProjectMeta({ coverImage: dest });
+    await saveProject();
+    // The destination path is stable (cover.<ext>); bump a cache-buster so the
+    // <img> re-fetches when the file is replaced in place.
+    setCoverBust((n) => n + 1);
+  };
+
+  const coverImage = project?.coverImage;
+
   return (
     <div className="overview-page">
-      {/* Header */}
-      <section className="overview-header">
-        <div className="overview-header-row">
-          <input
-            className="overview-name-input"
-            placeholder={t('overview.projectName')}
-            value={name}
-            onChange={(e) => { markEdited(); setName(e.target.value); }}
-          />
-          {project?.type && (
-            <span className="overview-type-badge">
-              {project.type === 'novel' ? t('overview.typeNovel') : t('overview.typeScript')}
-            </span>
+      {/* ── Hero ── */}
+      <section className="overview-hero">
+        <div className={`overview-cover${coverImage ? '' : ' overview-cover--empty'}`}>
+          {coverImage ? (
+            <button
+              type="button"
+              className="overview-cover-set"
+              onClick={() => { void handlePickCover(); }}
+              title={t('overview.changeCover')}
+            >
+              <img className="overview-cover-img" src={`orison-file:///${coverImage}?v=${coverBust}`} alt="" />
+              <span className="overview-cover-overlay">
+                <span className="material-symbols-outlined">photo_camera</span>
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="overview-cover-placeholder"
+              onClick={() => { void handlePickCover(); }}
+              title={t('overview.setCover')}
+            >
+              <span className="material-symbols-outlined">add_photo_alternate</span>
+            </button>
           )}
         </div>
-        <input
-          className="overview-logline-input"
-          placeholder={t('overview.loglinePlaceholder')}
-          value={logline}
-          onChange={(e) => { markEdited(); setLogline(e.target.value); }}
-        />
-        <textarea
-          className="overview-synopsis-input"
-          placeholder={t('overview.synopsisPlaceholder')}
-          value={synopsis}
-          onChange={(e) => { markEdited(); setSynopsis(e.target.value); }}
-          rows={3}
-        />
-      </section>
-
-      {/* Stats Cards */}
-      <section className="overview-cards">
-        <div className="overview-card">
-          <span className="overview-card-icon material-symbols-outlined">menu_book</span>
-          <div className="overview-card-body">
-            <span className="overview-card-value">{totalChapters}</span>
-            <span className="overview-card-label">{t('overview.chapters')}</span>
+        <div className="overview-hero-body">
+          <div className="overview-header-row">
+            <input
+              className="overview-name-input"
+              placeholder={t('overview.projectName')}
+              value={name}
+              onChange={(e) => { markEdited(); setName(e.target.value); }}
+            />
+            {project?.type && (
+              <span className="overview-type-badge">
+                {project.type === 'novel' ? t('overview.typeNovel') : t('overview.typeScript')}
+              </span>
+            )}
           </div>
-        </div>
-        <div className="overview-card">
-          <span className="overview-card-icon material-symbols-outlined">text_fields</span>
-          <div className="overview-card-body">
-            <span className="overview-card-value">{totalWords.toLocaleString()}</span>
-            <span className="overview-card-label">{t('overview.words')}</span>
-          </div>
-        </div>
-        <div className="overview-card">
-          <span className="overview-card-icon material-symbols-outlined">person</span>
-          <div className="overview-card-body">
-            <span className="overview-card-value">{characterCount}</span>
-            <span className="overview-card-label">{t('overview.characters')}</span>
-          </div>
-        </div>
-        <div className="overview-card">
-          <span className="overview-card-icon material-symbols-outlined">location_on</span>
-          <div className="overview-card-body">
-            <span className="overview-card-value">{locationCount}</span>
-            <span className="overview-card-label">{t('overview.locations')}</span>
-          </div>
+          <input
+            className="overview-logline-input"
+            placeholder={t('overview.loglinePlaceholder')}
+            value={logline}
+            onChange={(e) => { markEdited(); setLogline(e.target.value); }}
+          />
+          <textarea
+            className="overview-synopsis-input"
+            placeholder={t('overview.synopsisPlaceholder')}
+            value={synopsis}
+            onChange={(e) => { markEdited(); setSynopsis(e.target.value); }}
+            rows={2}
+          />
         </div>
       </section>
 
-      {/* Phase Progress */}
+      {/* ── Quick actions ── */}
+      <section className="overview-actions">
+        <button type="button" className="overview-action overview-action--primary" onClick={() => setActivePage(writingPage)}>
+          <span className="material-symbols-outlined">edit_note</span>
+          {t('overview.continueWriting')}
+        </button>
+        <button type="button" className="overview-action" onClick={() => setActivePage('outline')}>
+          <span className="material-symbols-outlined">account_tree</span>
+          {t('overview.openOutline')}
+        </button>
+        <button type="button" className="overview-action" onClick={() => setActiveSidebarPanel('timeline')}>
+          <span className="material-symbols-outlined">history</span>
+          {t('overview.openTimeline')}
+        </button>
+      </section>
+
+      {/* ── Compact stat strip ── */}
+      <section className="overview-stat-strip">
+        <div className="overview-stat">
+          <span className="material-symbols-outlined">menu_book</span>
+          <span className="overview-stat-value">{totalChapters}</span>
+          <span className="overview-stat-label">{t('overview.chapters')}</span>
+        </div>
+        <div className="overview-stat">
+          <span className="material-symbols-outlined">text_fields</span>
+          <span className="overview-stat-value">{totalWords.toLocaleString()}</span>
+          <span className="overview-stat-label">{t('overview.words')}</span>
+        </div>
+        <div className="overview-stat">
+          <span className="material-symbols-outlined">person</span>
+          <span className="overview-stat-value">{characterCount}</span>
+          <span className="overview-stat-label">{t('overview.characters')}</span>
+        </div>
+        <div className="overview-stat">
+          <span className="material-symbols-outlined">location_on</span>
+          <span className="overview-stat-value">{locationCount}</span>
+          <span className="overview-stat-label">{t('overview.locations')}</span>
+        </div>
+      </section>
+
+      {/* ── Segmented phase progress ── */}
       {phases.length > 0 && (
         <section className="overview-progress" onClick={() => setActivePage('outline')} role="button" tabIndex={0}>
-          <div className="overview-progress-bar-track">
-            <div
-              className="overview-progress-bar-fill"
-              style={{ width: `${((currentPhaseIndex + 1) / phases.length) * 100}%` }}
-            />
+          <div className="overview-progress-segments">
+            {phases.map((p, i) => (
+              <div
+                key={p.id ?? i}
+                className={`overview-progress-segment${i <= currentPhaseIndex ? ' is-done' : ''}${i === currentPhaseIndex ? ' is-current' : ''}`}
+                title={p.title}
+              />
+            ))}
           </div>
           <span className="overview-progress-label">
             {t('overview.phaseProgress', {
@@ -189,21 +282,31 @@ export function OverviewPage() {
         </section>
       )}
 
-      {/* Bottom Grid: Recent + World */}
+      {/* ── Bottom grid: activity feed + world summary ── */}
       <section className="overview-bottom-grid">
-        <div className="overview-recent">
-          <h3 className="overview-section-title">{t('overview.recentEdits')}</h3>
-          {recentChapters.length > 0 ? (
-            <ul className="overview-recent-list">
+        <div className="overview-activity">
+          <h3 className="overview-section-title">{t('overview.activity')}</h3>
+          {hasActivity ? (
+            <ul className="overview-activity-list">
+              {versions.map((v) => (
+                <li key={v.oid} className="overview-activity-item" onClick={() => setActiveSidebarPanel('timeline')} role="button" tabIndex={0}>
+                  <span className="material-symbols-outlined overview-activity-icon">commit</span>
+                  <span className="overview-activity-text">
+                    {v.tag && <span className="overview-activity-tag">{v.tag}</span>}
+                    {v.message.split('\n')[0]}
+                  </span>
+                  <span className="overview-activity-time">{relativeTime(v.timestamp, t)}</span>
+                </li>
+              ))}
               {recentChapters.map((ch) => (
-                <li key={ch.id} className="overview-recent-item">
-                  <span className="material-symbols-outlined overview-recent-icon">description</span>
-                  <span className="overview-recent-title">{ch.title}</span>
+                <li key={ch.id} className="overview-activity-item" onClick={() => setActivePage(writingPage)} role="button" tabIndex={0}>
+                  <span className="material-symbols-outlined overview-activity-icon">description</span>
+                  <span className="overview-activity-text">{ch.title}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="overview-empty-hint">{t('overview.noRecentEdits')}</p>
+            <p className="overview-empty-hint">{t('overview.noActivity')}</p>
           )}
         </div>
         <div className="overview-world-summary">

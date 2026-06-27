@@ -6,6 +6,11 @@ export async function gitIsRepo(projectDir: string): Promise<boolean> {
   return !!(await api?.gitIsRepo(projectDir));
 }
 
+/** Initialize version management for a project that isn't a repo yet. */
+export async function gitInit(projectDir: string): Promise<{ initialized: boolean }> {
+  return (await api?.gitInit(projectDir)) ?? { initialized: false };
+}
+
 export async function gitLog(projectDir: string, limit = 50): Promise<GitCommitEntry[]> {
   return (await api?.gitLog(projectDir, limit)) ?? [];
 }

@@ -16,16 +16,26 @@ export function OutlineV2View() {
 
   return (
     <div className="creative-field-body">
-      {data.characters && (
-        <div className="creative-field-row">
-          <span className="creative-field-label">{t('outline.characters')}</span>
-          <p className="creative-field-value-lg">{data.characters}</p>
+      {(data.story_type || data.writing_style) && (
+        <div className="creative-field-row creative-field-row-inline">
+          {data.story_type && (
+            <span className="creative-inline-pair">
+              <span className="creative-field-label">{t('outline.storyType')}</span>
+              <span>{data.story_type}</span>
+            </span>
+          )}
+          {data.writing_style && (
+            <span className="creative-inline-pair">
+              <span className="creative-field-label">{t('outline.writingStyle')}</span>
+              <span>{data.writing_style}</span>
+            </span>
+          )}
         </div>
       )}
-      {data.growth_curve && (
+      {data.main_goal && (
         <div className="creative-field-row">
-          <span className="creative-field-label">{t('outline.growthCurve')}</span>
-          <p className="creative-field-value-lg">{data.growth_curve}</p>
+          <span className="creative-field-label">{t('outline.mainGoal')}</span>
+          <p>{data.main_goal}</p>
         </div>
       )}
       {data.central_conflict && (
@@ -38,6 +48,31 @@ export function OutlineV2View() {
         <div className="creative-field-row">
           <span className="creative-field-label">{t('outline.endingDirection')}</span>
           <p>{data.ending_direction}</p>
+        </div>
+      )}
+      {data.phases.length > 0 && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('outline.phases')}</span>
+          <ol className="creative-list creative-list-ordered">
+            {data.phases.map((p) => (
+              <li key={p.id}>
+                {p.title}
+                {p.goal && <span className="creative-phase-goal"> — {p.goal}</span>}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {data.characters && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('outline.characters')}</span>
+          <p className="creative-field-value-lg">{data.characters}</p>
+        </div>
+      )}
+      {data.growth_curve && (
+        <div className="creative-field-row">
+          <span className="creative-field-label">{t('outline.growthCurve')}</span>
+          <p className="creative-field-value-lg">{data.growth_curve}</p>
         </div>
       )}
       {data.pacing_curve_text && (

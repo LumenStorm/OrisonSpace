@@ -269,6 +269,184 @@
   color: var(--outline);
 }
 
+/* ── Story core (collapsible header) ── */
+.outline-core-section {
+  margin-bottom: var(--space-2xl);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-low);
+  overflow: hidden;
+}
+
+.outline-core-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--on-surface);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background 0.12s;
+}
+.outline-core-toggle:hover {
+  background: var(--hover-overlay);
+}
+.outline-core-toggle .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--on-surface-variant);
+}
+.outline-core-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.outline-core-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── Phase master-detail canvas ── */
+.outline-phase-master-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.outline-phase-track {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.outline-beat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--outline-variant);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, background 0.12s;
+}
+.outline-beat:hover {
+  box-shadow: var(--shadow-soft);
+}
+.outline-beat.is-selected {
+  border-color: var(--accent);
+  background: var(--active-indicator);
+}
+
+.outline-beat-drag {
+  font-size: 16px;
+  color: var(--on-surface-variant);
+  opacity: 0.45;
+  cursor: grab;
+}
+.outline-beat-drag:active { cursor: grabbing; }
+
+.outline-beat-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--radius-circle);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+}
+
+.outline-beat-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.outline-beat-title {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outline-beat-goal {
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outline-beat-chapters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: var(--text-2xs);
+  color: var(--outline);
+}
+.outline-beat-chapters .material-symbols-outlined {
+  font-size: 13px;
+}
+
+.outline-beat-chevron {
+  font-size: 18px;
+  color: var(--on-surface-variant);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.outline-beat-detail {
+  position: sticky;
+  top: var(--space-md);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
+}
+
+.outline-beat-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.outline-beat-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+@media (max-width: 720px) {
+  .outline-phase-master-detail {
+    grid-template-columns: 1fr;
+  }
+  .outline-beat-detail {
+    position: static;
+  }
+}
+
 .outline-list-header {
   display: flex;
   align-items: center;

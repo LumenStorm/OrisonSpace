@@ -189,6 +189,26 @@
   font-size: var(--text-lg);
 }
 
+.agent-tool-card-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.agent-tool-card-summary {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--on-surface-variant);
+  font-size: var(--text-xs);
+  opacity: 0.85;
+}
+
+.agent-tool-card-chevron {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
 .agent-tool-card-name {
   flex: 1;
   font-weight: 500;
@@ -229,6 +249,75 @@
   max-width: 100%;
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-xs);
+}
+
+/* ── Work steps (grouped tool calls within one turn) ── */
+
+.agent-work-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.agent-work-steps-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 0;
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+.agent-work-steps-header:hover {
+  background: var(--hover-overlay);
+}
+.agent-work-steps-header .material-symbols-outlined {
+  font-size: var(--text-lg);
+}
+
+.agent-work-steps-title {
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+.agent-work-steps-count {
+  margin-left: auto;
+  font-size: var(--text-2xs);
+  color: var(--on-surface-variant);
+}
+
+.agent-work-steps-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding-left: var(--space-md);
+  border-left: 2px solid var(--outline-variant);
+  margin-left: var(--space-xs);
+}
+
+/* ── Child execution badge (nested skill / subagent step) ── */
+
+.agent-child-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 0.15rem 0.45rem;
+  margin-bottom: var(--space-2xs);
+  background: var(--agent-panel-skills-bg);
+  color: var(--on-surface-variant);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+}
+.agent-child-badge .material-symbols-outlined {
+  font-size: var(--text-sm);
+  color: var(--accent);
 }
 
 /* ── Confirm Card ── */

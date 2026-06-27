@@ -323,6 +323,7 @@ export type OrisonDesktopApi = {
   onUpdateEvent(callback: (event: UpdateEvent) => void): () => void;
   // Git
   gitIsRepo(dir: string): Promise<boolean>;
+  gitInit(dir: string): Promise<{ initialized: boolean }>;
   gitLog(dir: string, depth?: number): Promise<GitCommitEntry[]>;
   gitCommitDiff(dir: string, oid: string): Promise<GitFileDiff[]>;
   gitFileAtCommit(dir: string, oid: string, filepath: string): Promise<string | null>;

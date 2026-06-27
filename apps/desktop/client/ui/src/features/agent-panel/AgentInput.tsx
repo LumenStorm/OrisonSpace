@@ -4,6 +4,7 @@ import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AgentMode } from '../../shared/store/types';
 import type { Attachment } from '../../shared/types/attachment';
+import { readAssetsDirectory, type DirEntry } from '../../shared/api/assets';
 import { AgentConfirmCard } from './AgentConfirmCard';
 import { AgentPassageResolveCard } from './AgentPassageResolveCard';
 
@@ -12,6 +13,26 @@ const MODE_KEYS: { value: AgentMode; i18nKey: string }[] = [
   { value: 'suggest', i18nKey: 'agent.modeSuggest' },
   { value: 'auto', i18nKey: 'agent.modeAuto' },
 ];
+
+const IMAGE_RE = /\.(png|jpe?g|webp|gif|svg)$/i;
+
+/** Flatten the (possibly nested) assets/images tree into relative image paths. */
+function flattenAssetImages(entries: DirEntry[]): { name: string; rel: string }[] {
+  const out: { name: string; rel: string }[] = [];
+  const walk = (items: DirEntry[]) => {
+    for (const e of items) {
+      if (e.isDir) {
+        if (Array.isArray(e.children)) walk(e.children);
+        continue;
+      }
+      if (!IMAGE_RE.test(e.name)) continue;
+      const sub = (e.path ?? `/${e.name}`).replace(/^\//, '');
+      out.push({ name: e.name, rel: `assets/images/${sub}` });
+    }
+  };
+  walk(entries);
+  return out;
+}
 
 export function AgentInput() {
   const {
@@ -22,6 +43,7 @@ export function AgentInput() {
     chapters, openFiles,
     pendingAttachments, addAttachment, removeAttachment,
     pendingPassageResolve,
+    projectPath,
   } = useAppStore(useShallow((s) => ({
     sendAgentMessage: s.sendAgentMessage,
     cancelAgent: s.cancelAgent,
@@ -39,13 +61,32 @@ export function AgentInput() {
     addAttachment: s.addAttachment,
     removeAttachment: s.removeAttachment,
     pendingPassageResolve: s.pendingPassageResolve,
+    projectPath: s.currentProject?.path,
   })));
 
   const { t } = useI18n(resolvedLocale);
   const [text, setText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [assetImages, setAssetImages] = useState<{ name: string; rel: string }[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachMenuRef = useRef<HTMLDivElement>(null);
+
+  // Load asset images lazily when the attach menu opens, so a user can pin a
+  // generated/imported image as a `file` reference for the agent. Reuses the
+  // file attachment channel — no new IPC/runtime shape needed.
+  useEffect(() => {
+    if (!showAttachMenu || !projectPath) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const entries = await readAssetsDirectory(`${projectPath}/assets/images`);
+        if (!cancelled) setAssetImages(flattenAssetImages(entries));
+      } catch {
+        if (!cancelled) setAssetImages([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showAttachMenu, projectPath]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -175,6 +216,22 @@ export function AgentInput() {
                     >
                       <span className="material-symbols-outlined">insert_drive_file</span>
                       {f.name}
+                    </button>
+                  ))}
+                </>
+              )}
+              {assetImages.length > 0 && (
+                <>
+                  <div className="agent-attach-section-title">{t('agent.attachAsset')}</div>
+                  {assetImages.map((a) => (
+                    <button
+                      key={a.rel}
+                      type="button"
+                      className="agent-attach-item"
+                      onClick={() => handleAddAttachment({ type: 'file', id: a.rel, label: a.name })}
+                    >
+                      <span className="material-symbols-outlined">image</span>
+                      {a.name}
                     </button>
                   ))}
                 </>

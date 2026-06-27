@@ -162,6 +162,7 @@ export const exposedDesktopApi = {
     return () => { ipcRenderer.removeListener('update:event', listener); };
   },
   gitIsRepo: (dir: string) => ipcRenderer.invoke('git:is-repo', dir) as Promise<boolean>,
+  gitInit: (dir: string) => ipcRenderer.invoke('git:init', dir) as Promise<{ initialized: boolean }>,
   gitLog: (dir: string, depth?: number) => ipcRenderer.invoke('git:log', dir, depth) as Promise<GitCommitEntry[]>,
   gitCommitDiff: (dir: string, oid: string) => ipcRenderer.invoke('git:commit-diff', dir, oid) as Promise<GitFileDiff[]>,
   gitFileAtCommit: (dir: string, oid: string, filepath: string) => ipcRenderer.invoke('git:file-at-commit', dir, oid, filepath) as Promise<string | null>,

@@ -1,6 +1,11 @@
 timeline:
   noProject: "Open a project to view its timeline."
   notARepo: "Version history not enabled for this project."
+  initTitle: "Enable the timeline for this project"
+  initDescription: "Once enabled, you can save a \"node\" as a checkpoint anytime, or start a \"branch\" from any node to try a different direction without affecting your main draft. Fully local — nothing is uploaded."
+  initButton: "Enable version management"
+  initFailed: "Couldn't enable it. Please try again."
+  initializing: "Enabling..."
   loading: "Loading timeline..."
   noCommits: "No versions yet."
   changedFiles: "Changes in this version"

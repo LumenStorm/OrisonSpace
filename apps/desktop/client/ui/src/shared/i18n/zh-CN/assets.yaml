@@ -1,7 +1,7 @@
 assets:
   empty: "暂无资产"
   import: "导入"
-  dropHint: "拖拽图片到此处，或从文件导入。"
+  dropHint: "拖拽图片到此处，或从文件导入。Agent 生成的图也会自动入库。"
   refresh: "刷新"
   search: "搜索..."
   rename: "重命名"

@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { GitCommitEntry, GitFileDiff } from '@orison/shared-contracts';
 import {
-  gitIsRepo, gitLog, gitListBranches, gitCurrentBranch,
+  gitIsRepo, gitInit, gitLog, gitListBranches, gitCurrentBranch,
   gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch, gitStatusCount,
 } from '../../shared/api/git';
 
@@ -113,6 +113,8 @@ export function TimelinePanel() {
   const [selectedOid, setSelectedOid] = useState<string | null>(null);
   const [diff, setDiff] = useState<GitFileDiff[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+  const [initError, setInitError] = useState(false);
 
   const [branches, setBranches] = useState<string[]>([]);
   const [currentBranch, setCurrentBranch] = useState('');
@@ -205,11 +207,40 @@ export function TimelinePanel() {
     await refresh();
   }, [projectDir, t, refresh]);
 
+  const handleInit = useCallback(async () => {
+    if (!projectDir) return;
+    setInitializing(true);
+    setInitError(false);
+    try {
+      await gitInit(projectDir);
+      await refresh();
+    } catch {
+      setInitError(true);
+    } finally {
+      setInitializing(false);
+    }
+  }, [projectDir, refresh]);
+
   if (!projectDir) {
     return <div className="timeline-empty">{t('timeline.noProject')}</div>;
   }
   if (!isRepo) {
-    return <div className="timeline-empty">{t('timeline.notARepo')}</div>;
+    return (
+      <div className="timeline-onboard">
+        <span className="material-symbols-outlined timeline-onboard-icon" aria-hidden="true">history</span>
+        <h3 className="timeline-onboard-title">{t('timeline.initTitle')}</h3>
+        <p className="timeline-onboard-desc">{t('timeline.initDescription')}</p>
+        <button
+          type="button"
+          className="timeline-onboard-btn"
+          onClick={() => { void handleInit(); }}
+          disabled={initializing}
+        >
+          {initializing ? t('timeline.initializing') : t('timeline.initButton')}
+        </button>
+        {initError && <p className="timeline-onboard-error">{t('timeline.initFailed')}</p>}
+      </div>
+    );
   }
   if (loading) {
     return <div className="timeline-empty" role="status" aria-live="polite">{t('timeline.loading')}</div>;
@@ -235,14 +266,6 @@ export function TimelinePanel() {
           title={t('timeline.createNode')}
         >
           <span className="material-symbols-outlined">add_circle</span>
-        </button>
-        <button
-          type="button"
-          className="timeline-action-btn"
-          disabled
-          title={t('timeline.expandFull') || '即将推出'}
-        >
-          <span className="material-symbols-outlined">open_in_full</span>
         </button>
       </div>
 

@@ -55,7 +55,13 @@ export function OutlineEditor() {
 
   // Phases
   const [phases, setPhases] = useState<OutlinePhase[]>([]);
-  const [phaseCollapsed, setPhaseCollapsed] = useState<Record<string, boolean>>({});
+  // Master-detail: the phase whose detail pane is open. The phase list is the
+  // master canvas; selecting a beat opens its fields on the side instead of
+  // expanding inline and pushing the page down.
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
+  // The "story core" header (type/style/conflict/goal/ending) collapses so the
+  // phase canvas — the spine of the outline — stays the visual focus.
+  const [coreCollapsed, setCoreCollapsed] = useState(false);
 
   // Auxiliary fields
   const [characters, setCharacters] = useState('');
@@ -154,7 +160,9 @@ export function OutlineEditor() {
   // Phase helpers
   const addPhase = () => {
     markEdited();
-    setPhases([...phases, { id: genId(), title: t('outline.newPhase') }]);
+    const id = genId();
+    setPhases([...phases, { id, title: t('outline.newPhase') }]);
+    setSelectedPhaseId(id);
   };
 
   const updatePhase = (id: string, patch: Partial<OutlinePhase>) => {
@@ -165,10 +173,7 @@ export function OutlineEditor() {
   const removePhase = (id: string) => {
     markEdited();
     setPhases(phases.filter((p) => p.id !== id));
-  };
-
-  const togglePhaseCollapse = (id: string) => {
-    setPhaseCollapsed((c) => ({ ...c, [id]: !c[id] }));
+    if (selectedPhaseId === id) setSelectedPhaseId(null);
   };
 
   // Turning points / constraints helpers
@@ -186,38 +191,50 @@ export function OutlineEditor() {
 
   const toggleAux = (key: string) => setAuxCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
+  // The phase whose detail pane is open. Tolerates a stale id after a delete /
+  // external patch by falling back to none.
+  const selectedPhase = phases.find((p) => p.id === selectedPhaseId) ?? null;
+
   return (
     <div className="outline-editor">
-      {/* ── Top Section: Core Settings ── */}
-      <section className="outline-top-section">
-        <div className="outline-style-grid">
-          <div className="outline-style-field">
-            <label className="outline-style-label">{t('outline.storyType')}</label>
-            <input className="outline-style-input" value={storyType} onChange={(e) => { markEdited(); setStoryType(e.target.value); }} placeholder={t('outline.storyTypePlaceholder')} />
+      {/* ── Story core (collapsible header) ── */}
+      <section className="outline-core-section">
+        <button type="button" className="outline-core-toggle" onClick={() => setCoreCollapsed((v) => !v)}>
+          <span className="material-symbols-outlined">{coreCollapsed ? 'chevron_right' : 'expand_more'}</span>
+          <span className="outline-core-title">{t('outline.storyCore')}</span>
+        </button>
+        {!coreCollapsed && (
+          <div className="outline-core-body">
+            <div className="outline-style-grid">
+              <div className="outline-style-field">
+                <label className="outline-style-label">{t('outline.storyType')}</label>
+                <input className="outline-style-input" value={storyType} onChange={(e) => { markEdited(); setStoryType(e.target.value); }} placeholder={t('outline.storyTypePlaceholder')} />
+              </div>
+              <div className="outline-style-field">
+                <label className="outline-style-label">{t('outline.writingStyle')}</label>
+                <input className="outline-style-input" value={writingStyle} onChange={(e) => { markEdited(); setWritingStyle(e.target.value); }} placeholder={t('outline.writingStylePlaceholder')} />
+              </div>
+            </div>
+
+            <div className="outline-field">
+              <label className="outline-field-label">{t('outline.centralConflict')}</label>
+              <textarea className="outline-textarea" value={centralConflict} onChange={(e) => { markEdited(); setCentralConflict(e.target.value); }} placeholder={t('outline.centralConflictPlaceholder')} rows={2} />
+            </div>
+
+            <div className="outline-field">
+              <label className="outline-field-label">{t('outline.mainGoal')}</label>
+              <textarea className="outline-textarea" value={mainGoal} onChange={(e) => { markEdited(); setMainGoal(e.target.value); }} placeholder={t('outline.mainGoalPlaceholder')} rows={2} />
+            </div>
+
+            <div className="outline-field">
+              <label className="outline-field-label">{t('outline.endingDirection')}</label>
+              <textarea className="outline-textarea" value={endingDirection} onChange={(e) => { markEdited(); setEndingDirection(e.target.value); }} placeholder={t('outline.endingDirectionPlaceholder')} rows={2} />
+            </div>
           </div>
-          <div className="outline-style-field">
-            <label className="outline-style-label">{t('outline.writingStyle')}</label>
-            <input className="outline-style-input" value={writingStyle} onChange={(e) => { markEdited(); setWritingStyle(e.target.value); }} placeholder={t('outline.writingStylePlaceholder')} />
-          </div>
-        </div>
-
-        <div className="outline-field">
-          <label className="outline-field-label">{t('outline.centralConflict')}</label>
-          <textarea className="outline-textarea" value={centralConflict} onChange={(e) => { markEdited(); setCentralConflict(e.target.value); }} placeholder={t('outline.centralConflictPlaceholder')} rows={2} />
-        </div>
-
-        <div className="outline-field">
-          <label className="outline-field-label">{t('outline.mainGoal')}</label>
-          <textarea className="outline-textarea" value={mainGoal} onChange={(e) => { markEdited(); setMainGoal(e.target.value); }} placeholder={t('outline.mainGoalPlaceholder')} rows={2} />
-        </div>
-
-        <div className="outline-field">
-          <label className="outline-field-label">{t('outline.endingDirection')}</label>
-          <textarea className="outline-textarea" value={endingDirection} onChange={(e) => { markEdited(); setEndingDirection(e.target.value); }} placeholder={t('outline.endingDirectionPlaceholder')} rows={2} />
-        </div>
+        )}
       </section>
 
-      {/* ── Middle Section: Phases ── */}
+      {/* ── Phase canvas (master-detail) ── */}
       <section className="outline-phases-section">
         <div className="outline-section-header">
           <h3 className="outline-section-title">{t('outline.phases')}</h3>
@@ -227,67 +244,86 @@ export function OutlineEditor() {
           </button>
         </div>
 
-        {phases.map((phase, i) => (
-          <div
-            key={phase.id}
-            className="outline-phase-card"
-            draggable
-            onDragStart={phaseDrag.onDragStart(i)}
-            onDragOver={phaseDrag.onDragOver(i)}
-            onDragEnd={phaseDrag.onDragEnd}
-          >
-            <div className="outline-phase-card-header">
-              <span className="material-symbols-outlined outline-drag-handle">drag_indicator</span>
-              <input
-                className="outline-phase-title-input"
-                value={phase.title}
-                onChange={(e) => updatePhase(phase.id, { title: e.target.value })}
-                placeholder={t('outline.phaseTitle')}
-              />
-              <button type="button" className="outline-collapse-btn" onClick={() => togglePhaseCollapse(phase.id)}>
-                <span className="material-symbols-outlined">{phaseCollapsed[phase.id] ? 'expand_more' : 'expand_less'}</span>
-              </button>
-              <button type="button" className="outline-remove-btn" onClick={() => removePhase(phase.id)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
+        {phases.length === 0 ? (
+          <div className="outline-empty-hint">{t('outline.noPhasesHint')}</div>
+        ) : (
+          <div className="outline-phase-master-detail">
+            <ol className="outline-phase-track">
+              {phases.map((phase, i) => {
+                const chapters = phase.estimated_chapters ?? 0;
+                return (
+                  <li
+                    key={phase.id}
+                    className={`outline-beat${selectedPhaseId === phase.id ? ' is-selected' : ''}`}
+                    draggable
+                    onDragStart={phaseDrag.onDragStart(i)}
+                    onDragOver={phaseDrag.onDragOver(i)}
+                    onDragEnd={phaseDrag.onDragEnd}
+                    onClick={() => setSelectedPhaseId(selectedPhaseId === phase.id ? null : phase.id)}
+                  >
+                    <span className="material-symbols-outlined outline-beat-drag">drag_indicator</span>
+                    <span className="outline-beat-index">{i + 1}</span>
+                    <div className="outline-beat-body">
+                      <span className="outline-beat-title">{phase.title || t('outline.phaseTitle')}</span>
+                      {phase.goal && <span className="outline-beat-goal">{phase.goal}</span>}
+                      {chapters > 0 && (
+                        <span className="outline-beat-chapters">
+                          <span className="material-symbols-outlined">menu_book</span>
+                          {chapters}
+                        </span>
+                      )}
+                    </div>
+                    <span className="material-symbols-outlined outline-beat-chevron">chevron_right</span>
+                  </li>
+                );
+              })}
+            </ol>
 
-            {!phaseCollapsed[phase.id] && (
-              <div className="outline-phase-card-body">
-                <div className="outline-phase-field">
-                  <label className="outline-phase-label">{t('outline.phaseGoal')}</label>
-                  <input className="outline-phase-input" value={phase.goal ?? ''} onChange={(e) => updatePhase(phase.id, { goal: e.target.value })} />
+            {selectedPhase && (
+              <div className="outline-beat-detail">
+                <div className="outline-beat-detail-header">
+                  <input
+                    className="outline-phase-title-input"
+                    value={selectedPhase.title}
+                    onChange={(e) => updatePhase(selectedPhase.id, { title: e.target.value })}
+                    placeholder={t('outline.phaseTitle')}
+                  />
+                  <button type="button" className="outline-remove-btn" onClick={() => removePhase(selectedPhase.id)} title={t('outline.removePhase') || ''}>
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
                 </div>
-                <div className="outline-phase-field">
-                  <label className="outline-phase-label">{t('outline.phaseAntagonist')}</label>
-                  <input className="outline-phase-input" value={phase.antagonist ?? ''} onChange={(e) => updatePhase(phase.id, { antagonist: e.target.value })} />
-                </div>
-                <div className="outline-phase-field">
-                  <label className="outline-phase-label">{t('outline.phaseClimax')}</label>
-                  <input className="outline-phase-input" value={phase.climax ?? ''} onChange={(e) => updatePhase(phase.id, { climax: e.target.value })} />
-                </div>
-                <div className="outline-phase-field">
-                  <label className="outline-phase-label">{t('outline.phaseHook')}</label>
-                  <input className="outline-phase-input" value={phase.hook ?? ''} onChange={(e) => updatePhase(phase.id, { hook: e.target.value })} />
-                </div>
-                <div className="outline-phase-field">
-                  <label className="outline-phase-label">{t('outline.estimatedChapters')}</label>
-                  <input className="outline-phase-input" type="number" min={0} value={phase.estimated_chapters ?? ''} onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') { updatePhase(phase.id, { estimated_chapters: undefined }); return; }
-                    // Clamp to a non-negative integer: guards against negative
-                    // or NaN (paste / spinner) corrupting phase-progress math.
-                    const n = Math.max(0, Math.floor(Number(raw)));
-                    updatePhase(phase.id, { estimated_chapters: Number.isFinite(n) ? n : undefined });
-                  }} />
+                <div className="outline-beat-detail-grid">
+                  <div className="outline-phase-field">
+                    <label className="outline-phase-label">{t('outline.phaseGoal')}</label>
+                    <input className="outline-phase-input" value={selectedPhase.goal ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { goal: e.target.value })} />
+                  </div>
+                  <div className="outline-phase-field">
+                    <label className="outline-phase-label">{t('outline.phaseAntagonist')}</label>
+                    <input className="outline-phase-input" value={selectedPhase.antagonist ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { antagonist: e.target.value })} />
+                  </div>
+                  <div className="outline-phase-field">
+                    <label className="outline-phase-label">{t('outline.phaseClimax')}</label>
+                    <input className="outline-phase-input" value={selectedPhase.climax ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { climax: e.target.value })} />
+                  </div>
+                  <div className="outline-phase-field">
+                    <label className="outline-phase-label">{t('outline.phaseHook')}</label>
+                    <input className="outline-phase-input" value={selectedPhase.hook ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { hook: e.target.value })} />
+                  </div>
+                  <div className="outline-phase-field">
+                    <label className="outline-phase-label">{t('outline.estimatedChapters')}</label>
+                    <input className="outline-phase-input" type="number" min={0} value={selectedPhase.estimated_chapters ?? ''} onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') { updatePhase(selectedPhase.id, { estimated_chapters: undefined }); return; }
+                      // Clamp to a non-negative integer: guards against negative
+                      // or NaN (paste / spinner) corrupting phase-progress math.
+                      const n = Math.max(0, Math.floor(Number(raw)));
+                      updatePhase(selectedPhase.id, { estimated_chapters: Number.isFinite(n) ? n : undefined });
+                    }} />
+                  </div>
                 </div>
               </div>
             )}
           </div>
-        ))}
-
-        {phases.length === 0 && (
-          <div className="outline-empty-hint">{t('outline.noPhasesHint')}</div>
         )}
       </section>
 

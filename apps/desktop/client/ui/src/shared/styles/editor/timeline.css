@@ -301,3 +301,66 @@
   color: var(--on-surface-variant);
   text-align: center;
 }
+
+/* ── Onboarding empty state (project not yet under version management) ── */
+.timeline-onboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-md);
+  padding: var(--space-3xl) var(--space-xl);
+}
+
+.timeline-onboard-icon {
+  font-size: 32px;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+.timeline-onboard-title {
+  margin: var(--space-2xs) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.timeline-onboard-desc {
+  margin: 0;
+  max-width: 30ch;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+}
+
+.timeline-onboard-btn {
+  margin-top: var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.1rem;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.timeline-onboard-btn:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+.timeline-onboard-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.timeline-onboard-error {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--error);
+}

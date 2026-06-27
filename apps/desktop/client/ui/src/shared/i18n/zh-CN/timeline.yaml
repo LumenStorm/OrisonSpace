@@ -1,6 +1,11 @@
 timeline:
   noProject: "打开项目以查看时间线。"
   notARepo: "此项目尚未开启版本管理。"
+  initTitle: "为这个项目开启时间线"
+  initDescription: "开启后，你可以随时存下「时间节点」作为进度存档，或从某个节点开「支线」尝试不同写法，互不影响。纯本地，不上传云端。"
+  initButton: "开启版本管理"
+  initFailed: "开启失败，请重试。"
+  initializing: "正在开启..."
   loading: "加载时间线..."
   noCommits: "暂无历史版本。"
   changedFiles: "本次修改"

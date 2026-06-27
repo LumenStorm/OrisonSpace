@@ -44,6 +44,7 @@ describe('preload security surface', () => {
       'gitCreateNode',
       'gitCurrentBranch',
       'gitFileAtCommit',
+      'gitInit',
       'gitIsRepo',
       'gitListBranches',
       'gitLog',

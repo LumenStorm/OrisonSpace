@@ -123,6 +123,33 @@ function notifyGitChanged() {
   }
 }
 
+/**
+ * Initialize version management for a project folder that isn't a repo yet
+ * (e.g. an imported existing directory). Creates the repo, stages everything
+ * currently on disk, and lays down a first node so the timeline has a starting
+ * point. Idempotent: if the folder is already a repo, returns without error.
+ */
+async function initRepo(dir: string): Promise<{ initialized: boolean }> {
+  if (await isGitRepo(dir)) {
+    return { initialized: false };
+  }
+  await git.init({ fs, dir, defaultBranch: 'main' });
+  const matrix = await git.statusMatrix({ fs, dir });
+  for (const [filepath, , workdir] of matrix) {
+    if (workdir !== 1) {
+      await git.add({ fs, dir, filepath });
+    }
+  }
+  await git.commit({
+    fs,
+    dir,
+    message: '开启版本管理',
+    author: { name: 'Orison', email: 'user@orison.local' },
+  });
+  notifyGitChanged();
+  return { initialized: true };
+}
+
 async function createNode(dir: string, message: string, tag?: string): Promise<{ oid: string }> {
   const root = await getGitRoot(dir);
   const matrix = await git.statusMatrix({ fs, dir: root });
@@ -186,6 +213,16 @@ export function registerGitIpc() {
     } catch (err) {
       logger.warn({ dir, err }, 'git:is-repo failed');
       return false;
+    }
+  });
+
+  ipcMain.handle('git:init', async (_e, dir: string) => {
+    try {
+      assertSafePath(dir);
+      return await initRepo(dir);
+    } catch (err) {
+      logger.warn({ dir, err }, 'git:init failed');
+      throw err;
     }
   });
 

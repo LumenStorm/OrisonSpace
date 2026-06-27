@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -7,6 +7,7 @@ import { WRITE_TOOLS } from '../../shared/store/agentDiffSlice';
 import type { Attachment, SelectionAttachment } from '../../shared/types/attachment';
 import { AgentToolCard } from './AgentToolCard';
 import { DiffCard } from './DiffCard';
+import { toolPresentation, toolLabel, parseChildTag } from './toolMeta';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -45,16 +46,35 @@ function SelectionReferenceChip({ ref }: { ref: SelectionAttachment }) {
   );
 }
 
+/** Small leading badge for a nested skill / subagent execution step. */
+function ChildBadge({ source, role, depth, t }: { source: 'skill' | 'subagent'; role: string; depth: number; t: (k: string) => string }) {
+  const icon = source === 'skill' ? 'extension' : 'smart_toy';
+  const sourceLabel = source === 'skill' ? t('agent.childSkill') : t('agent.childSubagent');
+  return (
+    <span className="agent-child-badge">
+      <span className="material-symbols-outlined" aria-hidden="true">{icon}</span>
+      {sourceLabel} · {role}{depth > 1 ? ` · d${depth}` : ''}
+    </span>
+  );
+}
+
 export function AgentMessageItem({ message }: Props) {
   const { resolvedLocale } = useAppStore(useShallow((s) => ({ resolvedLocale: s.resolvedLocale })));
   const { t } = useI18n(resolvedLocale);
+  const [stepsOpen, setStepsOpen] = useState(true);
+
+  // Strip a child-execution tag (e.g. `[skill:story:d1] ...`) off assistant
+  // content so it renders as an indented, labelled step instead of leaking the
+  // raw tag into prose. The slice keeps injecting the tag; we only parse it here.
+  const childTag = message.role === 'assistant' ? parseChildTag(message.content ?? '') : null;
+  const assistantContent = childTag ? childTag.rest : message.content;
 
   const renderedHtml = useMemo(() => {
-    if (message.role === 'assistant' && message.content) {
-      return renderMarkdown(message.content);
+    if (message.role === 'assistant' && assistantContent) {
+      return renderMarkdown(assistantContent);
     }
     return null;
-  }, [message.role, message.content]);
+  }, [message.role, assistantContent]);
 
   if (message.role === 'user') {
     return (
@@ -82,15 +102,45 @@ export function AgentMessageItem({ message }: Props) {
   }
 
   if (message.role === 'tool') {
+    const results = message.toolResults ?? [];
+    // A whole-chapter / passage / field write surfaces as its own DiffCard
+    // (review affordance); everything else is an inspectable "work step".
+    const diffResults = results.filter((r) => WRITE_TOOLS.includes(r.toolName ?? r.toolId ?? ''));
+    const stepResults = results.filter((r) => !WRITE_TOOLS.includes(r.toolName ?? r.toolId ?? ''));
+    const childTagOnTool = parseChildTag(message.content ?? '');
+
     return (
       <div className="agent-msg agent-msg-tool">
-        {message.toolResults?.map((r, i) => {
-          const toolId = r.toolName ?? r.toolId ?? '';
-          if (WRITE_TOOLS.includes(toolId)) {
-            return <DiffCard key={i} result={r} />;
-          }
-          return <AgentToolCard key={i} result={r} />;
-        })}
+        {childTagOnTool && (
+          <ChildBadge source={childTagOnTool.source} role={childTagOnTool.role} depth={childTagOnTool.depth} t={t} />
+        )}
+        {diffResults.map((r, i) => <DiffCard key={`diff-${i}`} result={r} />)}
+        {stepResults.length > 0 && (
+          <div className="agent-work-steps">
+            {stepResults.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="agent-work-steps-header"
+                  onClick={() => setStepsOpen((v) => !v)}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    {stepsOpen ? 'expand_more' : 'chevron_right'}
+                  </span>
+                  <span className="agent-work-steps-title">{t('agent.workSteps')}</span>
+                  <span className="agent-work-steps-count">{t('agent.workStepsCount', { count: stepResults.length })}</span>
+                </button>
+                {stepsOpen && (
+                  <div className="agent-work-steps-body">
+                    {stepResults.map((r, i) => <AgentToolCard key={`step-${i}`} result={r} />)}
+                  </div>
+                )}
+              </>
+            ) : (
+              stepResults.map((r, i) => <AgentToolCard key={`step-${i}`} result={r} />)
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -98,15 +148,21 @@ export function AgentMessageItem({ message }: Props) {
   return (
     <div className="agent-msg agent-msg-assistant">
       <div className="agent-msg-label">{t('agent.agent')}</div>
+      {childTag && (
+        <ChildBadge source={childTag.source} role={childTag.role} depth={childTag.depth} t={t} />
+      )}
       {renderedHtml && (
         <div className="agent-msg-content agent-msg-md" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
       )}
-      {message.toolCalls?.map((tc) => (
-        <div key={tc.id} className="agent-tool-call-badge">
-          <span className="material-symbols-outlined">build</span>
-          {tc.name}
-        </div>
-      ))}
+      {message.toolCalls?.map((tc) => {
+        const { icon } = toolPresentation(tc.name);
+        return (
+          <div key={tc.id} className="agent-tool-call-badge">
+            <span className="material-symbols-outlined">{icon}</span>
+            {toolLabel(tc.name, t)}
+          </div>
+        );
+      })}
     </div>
   );
 }
