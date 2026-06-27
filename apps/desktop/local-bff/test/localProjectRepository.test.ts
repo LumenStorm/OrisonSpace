@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   applyPatchOperations,
@@ -260,6 +260,54 @@ describe('local project repository helpers', () => {
     // 标量(非对象)内容
     writeFileSync(path.join(TEST_PROJECT_DIR, 'project.yaml'), 'just-a-string', 'utf8');
     expect(loadProject(TEST_PROJECT_DIR)).toBeNull();
+  });
+
+  it('loadProject 自愈：从「合法前缀 + 残留尾巴」损坏中抢救数据并备份坏文件', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    // 复刻真实损坏特征：合法文档到 `shots: []` 结束，后接旧版本残留尾巴
+    // （孤儿 updated_at + 垃圾字节），且合法前缀的 meta 缺 updated_at。
+    const corrupt = [
+      'meta:',
+      '  id: 2bb8e07a-d41a-4785-8dfc-cef994ee42b4',
+      '  name: X',
+      '  type: novel',
+      '  project_id: "00001"',
+      '  version: 10',
+      '  created_at: 2026-06-13T15:44:39.644Z',
+      'novel:',
+      '  chapters: []',
+      'storyboard:',
+      '  shots: []',
+      '35Zz',
+      '  updated_at: 2026-06-13T17:02:46.8',
+    ].join('\n');
+    writeFileSync(path.join(TEST_PROJECT_DIR, 'project.yaml'), corrupt, 'utf8');
+
+    const doc = loadProject(TEST_PROJECT_DIR);
+
+    // 合法前缀里的真实数据被保留，而非丢弃后用目录名兜底。
+    expect(doc).not.toBeNull();
+    expect(doc!.meta.id).toBe('2bb8e07a-d41a-4785-8dfc-cef994ee42b4');
+    expect(doc!.meta.name).toBe('X');
+    expect(doc!.meta.version).toBe(10);
+    expect(doc!.meta.project_id).toBe('00001');
+    // 损坏截断丢失的必填字段被补默认值，使其通过 schema 校验。
+    expect(typeof doc!.meta.updated_at).toBe('string');
+    expect(doc!.storyboard.shots).toEqual([]);
+
+    // 坏文件被改名备份（never silently destroyed），原路径让位给自愈重写。
+    const backups = readdirSync(TEST_PROJECT_DIR).filter((f) => f.includes('.corrupt-'));
+    expect(backups.length).toBe(1);
+  });
+
+  it('loadProject 自愈：完全无法解析时返回 null 并备份，交给 bootstrap 重建', () => {
+    mkdirSync(TEST_PROJECT_DIR, { recursive: true });
+    // 单行不平衡 flow，任何前缀都解析失败，没有可抢救的对象。
+    writeFileSync(path.join(TEST_PROJECT_DIR, 'project.yaml'), '{[unbalanced: flow', 'utf8');
+
+    expect(loadProject(TEST_PROJECT_DIR)).toBeNull();
+    const backups = readdirSync(TEST_PROJECT_DIR).filter((f) => f.includes('.corrupt-'));
+    expect(backups.length).toBe(1);
   });
 
   it('applyFieldPatches 支持 chapter_candidate 类型的补丁', () => {

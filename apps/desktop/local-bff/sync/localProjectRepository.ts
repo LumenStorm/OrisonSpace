@@ -5,6 +5,7 @@ import { patchOperationSchema, projectDocumentSchema } from '@orison/shared-cont
 import type { ProjectFieldPatch, CreativeFieldKey } from '@orison/shared-contracts';
 import YAML from 'yaml';
 import { atomicWriteFileSync } from './atomicWrite';
+import { backupCorruptFile, salvageYamlPrefix } from './corruptRecovery';
 
 type ProjectDocument = z.infer<typeof projectDocumentSchema>;
 type PatchOperation = z.infer<typeof patchOperationSchema>;
@@ -73,7 +74,18 @@ export function loadProject(projectPath: string): ProjectDocument | null {
   if (!existsSync(filePath)) return null;
 
   const raw = readFileSync(filePath, 'utf8');
-  const parsed = YAML.parse(raw);
+
+  let parsed: any;
+  try {
+    parsed = YAML.parse(raw);
+  } catch {
+    // Corrupt YAML — legacy non-atomic-write damage leaves a valid prefix with a
+    // stale tail. Throwing here would wedge EVERY save path (all start with a
+    // load), so instead salvage the prefix, set the bad file aside, and either
+    // recover the real data or let the caller's bootstrap rebuild a clean file.
+    parsed = recoverCorruptProject(filePath, raw);
+    if (!parsed) return null;
+  }
 
   // Empty or corrupt YAML parses to null/non-object. Return null (rather than
   // throwing on the property access below) so callers' bootstrap/self-heal
@@ -168,7 +180,51 @@ export function loadProject(projectPath: string): ProjectDocument | null {
     delete parsed.outline_v2.acts;
   }
 
-  return projectDocumentSchema.parse(parsed);
+  try {
+    return projectDocumentSchema.parse(parsed);
+  } catch {
+    // Structurally invalid (e.g. a salvaged prefix we couldn't repair, or YAML
+    // that parsed but doesn't match the schema). Set the bad file aside and let
+    // the caller bootstrap rather than wedge every save path.
+    backupCorruptFile(filePath);
+    return null;
+  }
+}
+
+/**
+ * Recover a project document from corrupt YAML bytes: salvage the largest valid
+ * prefix, move the bad file aside (preserved as a `.corrupt-*` backup), and
+ * backfill any required meta fields the corruption truncated so the salvaged
+ * data survives schema validation instead of being discarded.
+ *
+ * Returns the (repaired) salvaged object, or null when nothing parses — in
+ * which case the caller's bootstrap rebuilds from project.json / directory name.
+ */
+function recoverCorruptProject(filePath: string, raw: string): Record<string, any> | null {
+  const salvaged = salvageYamlPrefix(raw);
+  backupCorruptFile(filePath);
+  if (!salvaged) return null;
+  repairMetaDefaults(salvaged);
+  return salvaged;
+}
+
+/**
+ * Backfill the required meta/storyboard fields a corrupt-tail split may have
+ * dropped from an otherwise-valid prefix. Only fills what's missing — real
+ * salvaged values (name, ids, version) are never overwritten.
+ */
+function repairMetaDefaults(doc: Record<string, any>): void {
+  const now = new Date().toISOString();
+  if (!doc.meta || typeof doc.meta !== 'object') doc.meta = {};
+  const m = doc.meta;
+  if (typeof m.id !== 'string' || !m.id) m.id = crypto.randomUUID();
+  if (typeof m.name !== 'string' || !m.name) m.name = 'Untitled';
+  if (m.type !== 'script' && m.type !== 'novel') m.type = 'novel';
+  if (typeof m.version !== 'number') m.version = 0;
+  if (typeof m.created_at !== 'string') m.created_at = now;
+  if (typeof m.updated_at !== 'string') m.updated_at = now;
+  if (!doc.storyboard || typeof doc.storyboard !== 'object') doc.storyboard = { shots: [] };
+  if (!Array.isArray(doc.storyboard.shots)) doc.storyboard.shots = [];
 }
 
 const LEGACY_META_FILE = 'project.json';

@@ -4,6 +4,7 @@ import { storyMemoryIndexSchema } from '@orison/shared-contracts';
 import type { StoryMemoryIndex, StoryMemoryEntry } from '@orison/shared-contracts';
 import YAML from 'yaml';
 import { atomicWriteFileSync } from './atomicWrite';
+import { backupCorruptFile } from './corruptRecovery';
 import { loadTagRegistry, saveTagRegistry, normalizeAndRegister } from './tagRegistry';
 
 const MEMORY_FILE = 'story-memory.yaml';
@@ -28,8 +29,15 @@ export function loadMemoryIndex(projectPath: string, novelId: string): StoryMemo
   }
 
   const raw = readFileSync(indexPath, 'utf8');
-  const parsed = YAML.parse(raw);
-  return storyMemoryIndexSchema.parse(parsed);
+  try {
+    return storyMemoryIndexSchema.parse(YAML.parse(raw));
+  } catch {
+    // Corrupt index would otherwise throw on every recall/save. Set the bad
+    // file aside (preserved as a `.corrupt-*` backup) and return an empty index
+    // so the next save rebuilds it instead of wedging the project.
+    backupCorruptFile(indexPath);
+    return storyMemoryIndexSchema.parse({ novelId, entries: [], version: 0 });
+  }
 }
 
 /**

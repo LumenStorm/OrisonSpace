@@ -4,6 +4,7 @@ import YAML from 'yaml';
 import { tagRegistrySchema } from '@orison/shared-contracts';
 import type { TagRegistry, TagCategory, TagRegistryEntry } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from './atomicWrite';
+import { backupCorruptFile } from './corruptRecovery';
 
 const REGISTRY_FILE = 'tag-registry.yaml';
 const MEMORY_DIR = 'memory';
@@ -18,7 +19,15 @@ export function loadTagRegistry(projectPath: string, novelId: string): TagRegist
     return tagRegistrySchema.parse({ novelId, entries: [], version: 0 });
   }
   const raw = readFileSync(filePath, 'utf8');
-  return tagRegistrySchema.parse(YAML.parse(raw));
+  try {
+    return tagRegistrySchema.parse(YAML.parse(raw));
+  } catch {
+    // Corrupt registry would throw on every tag load/save. Set the bad file
+    // aside (preserved as a `.corrupt-*` backup) and return an empty registry
+    // so the next save rebuilds it instead of wedging the project.
+    backupCorruptFile(filePath);
+    return tagRegistrySchema.parse({ novelId, entries: [], version: 0 });
+  }
 }
 
 export function saveTagRegistry(projectPath: string, registry: TagRegistry): void {
