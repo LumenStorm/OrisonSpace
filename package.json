@@ -1,6 +1,6 @@
 {
   "name": "orison-space",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "开源、本地优先的 AI 小说创作 IDE — 大纲/章节/资产卡一体化，AI 生成·续写·润色·审阅，接入任意 OpenAI 兼容模型。Open-source, local-first AI novel-writing IDE.",
   "keywords": [
