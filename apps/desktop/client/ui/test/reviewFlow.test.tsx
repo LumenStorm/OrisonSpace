@@ -100,6 +100,12 @@ describe('review flow', () => {
     // acceptedPatches, which AcceptedPatchesView surfaces in the editor.
     useAppStore.getState().acceptTaskResult();
 
-    expect(await screen.findByDisplayValue('Rewritten: Make the opening darker.')).toBeInTheDocument();
+    // Rendering the full <App/> (plus eager i18n YAML load) and the post-accept
+    // re-render can exceed findBy's 1s default under heavy parallel full-suite
+    // load, causing a load-dependent flake (passes isolated). Wait up to 4s —
+    // still under the 5s testTimeout — so a slow render isn't a false failure.
+    expect(
+      await screen.findByDisplayValue('Rewritten: Make the opening darker.', undefined, { timeout: 4000 }),
+    ).toBeInTheDocument();
   });
 });
