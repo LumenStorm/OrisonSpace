@@ -4,14 +4,17 @@ import { useI18n } from '../i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { GeneralSettingsPage } from './settings/GeneralSettingsPage';
+import { AboutSettingsPage } from './settings/AboutSettingsPage';
 import { ModelSettingsPage } from '../../features/model-settings/ModelSettingsPage';
+import { useToastStore } from '../store/toastStore';
 
 type Props = { onClose: () => void };
-type SettingsPageId = 'general' | 'model';
+type SettingsPageId = 'general' | 'model' | 'about';
 
 const SETTINGS_PAGES: Array<{ id: SettingsPageId; icon: string; labelKey: string }> = [
   { id: 'general', icon: 'tune', labelKey: 'settings.general' },
   { id: 'model', icon: 'smart_toy', labelKey: 'settings.modelConfig' },
+  { id: 'about', icon: 'info', labelKey: 'settings.about' },
 ];
 
 export function SettingsDialog({ onClose }: Props) {
@@ -36,6 +39,7 @@ export function SettingsDialog({ onClose }: Props) {
   })));
 
   const { t } = useI18n(resolvedLocale);
+  const showToast = useToastStore((s) => s.showToast);
   const [activePage, setActivePage] = useState<SettingsPageId>('general');
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogA11y(dialogRef, onClose);
@@ -84,11 +88,17 @@ export function SettingsDialog({ onClose }: Props) {
                 appVersion={appVersion}
                 onCheckForUpdate={() => { void checkForUpdate(); }}
               />
-            ) : (
+            ) : activePage === 'model' ? (
               <ModelSettingsPage
                 t={t}
                 modelConfig={modelConfig}
                 setModelConfig={setModelConfig}
+              />
+            ) : (
+              <AboutSettingsPage
+                t={t}
+                appVersion={appVersion}
+                onCopied={() => showToast(t('settings.aboutCopied'), 'success')}
               />
             )}
           </section>

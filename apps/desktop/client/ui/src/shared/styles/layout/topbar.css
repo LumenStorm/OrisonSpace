@@ -537,6 +537,13 @@
   line-height: 1.45;
 }
 
+/* "About" page free/anti-infringement notice — set off from the link rows. */
+.about-license-notice {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--outline-variant, var(--outline));
+}
+
 .model-page-header .settings-save-button {
   display: inline-flex;
   align-items: center;

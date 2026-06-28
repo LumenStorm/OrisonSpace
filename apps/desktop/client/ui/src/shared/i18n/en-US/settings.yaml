@@ -1,6 +1,7 @@
 settings:
   general: "General"
   modelConfig: "Models"
+  about: "About"
   modelSubtitle: "Manage a reusable model library and assign profiles to novel, image, and video usage."
   theme: "Theme"
   themeSystem: "System"
@@ -89,6 +90,14 @@ settings:
   modelsSection: "Models"
   noModelsHint: "Click refresh to load available models from the provider."
   removeModel: "Remove model"
+  aboutTagline: "One line to video — AI-powered storytelling"
+  aboutHomepage: "Project homepage"
+  aboutDeveloper: "Developer"
+  aboutFeedback: "Feedback"
+  aboutFeedbackValue: "Submit an issue"
+  aboutQQGroup: "QQ group"
+  aboutCopied: "Group number copied"
+  aboutLicenseNotice: "This is free and open-source software. Reselling, repackaging for sale, or other infringing distribution is prohibited."
 welcome:
   brand: "Orison Space"
   tagline: "One line to video — AI-powered storytelling"

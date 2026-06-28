@@ -86,6 +86,7 @@ export const exposedDesktopApi = {
   importFonts: () => ipcRenderer.invoke('config:import-fonts') as Promise<ImportedFont[]>,
   showItemInFolder: (fullPath: string) => ipcRenderer.send('shell:show-item-in-folder', fullPath),
   openPath: (fullPath: string) => ipcRenderer.send('shell:open-path', fullPath),
+  openExternal: (url: string) => ipcRenderer.send('shell:open-external', url),
   // 文件树操作
   readDirectory: (projectDir: string, maxDepth?: number) =>
     ipcRenderer.invoke('project:read-directory', projectDir, maxDepth),

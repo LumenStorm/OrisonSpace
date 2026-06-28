@@ -75,6 +75,7 @@ describe('preload security surface', () => {
       'onBeforeClose',
       'onToolEvent',
       'onUpdateEvent',
+      'openExternal',
       'openLogsDir',
       'openPath',
       'pathExists',

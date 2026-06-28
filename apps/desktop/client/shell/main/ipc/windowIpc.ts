@@ -39,4 +39,15 @@ export function registerWindowIpc(getWin: () => BrowserWindow | null) {
     if (!existsSync(fullPath)) return;
     shell.openPath(fullPath);
   });
+
+  // Open an external URL in the user's default browser. Restricted to https so
+  // a renderer-supplied string can't trigger file://, javascript:, or other
+  // schemes (potential local-resource access / abuse).
+  ipcMain.on('shell:open-external', (_event, url: string) => {
+    if (typeof url !== 'string') return;
+    let parsed: URL;
+    try { parsed = new URL(url); } catch { return; }
+    if (parsed.protocol !== 'https:') return;
+    void shell.openExternal(parsed.toString());
+  });
 }

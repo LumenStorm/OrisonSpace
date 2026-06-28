@@ -272,6 +272,8 @@ export type OrisonDesktopApi = {
   importFonts(): Promise<ImportedFont[]>;
   showItemInFolder(fullPath: string): void;
   openPath(fullPath: string): void;
+  /** Open an external https URL in the user's default browser. */
+  openExternal(url: string): void;
   readDirectory(projectDir: string, maxDepth?: number): Promise<FileTreeEntry[]>;
   deleteEntry(fullPath: string): Promise<boolean>;
   renameEntry(oldPath: string, newPath: string): Promise<boolean>;
