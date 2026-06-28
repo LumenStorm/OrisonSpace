@@ -24,58 +24,57 @@ export function AboutSettingsPage({ t, appVersion, onCopied }: Props) {
   };
 
   return (
-    <div className="settings-page">
-      <div className="settings-page-header">
-        <div>
-          <h3 className="settings-page-title">
-            Orison Space
-            {appVersion && <span className="sidebar-settings-version"> v{appVersion}</span>}
-          </h3>
-          <p className="settings-page-subtitle">{t('settings.aboutTagline')}</p>
+    <div className="settings-page about-page">
+      <header className="about-hero">
+        <div className="about-logo" aria-hidden="true">
+          <span className="material-symbols-outlined">ink_pen</span>
         </div>
+        <div className="about-brand">
+          <span className="about-name">Orison Space</span>
+          {appVersion && <span className="about-version">v{appVersion}</span>}
+        </div>
+        <p className="about-tagline">{t('settings.aboutTagline')}</p>
+      </header>
+
+      <div className="about-links">
+        <button type="button" className="about-link-card" onClick={() => openExternal(HOMEPAGE_URL)}>
+          <span className="about-link-icon material-symbols-outlined" aria-hidden="true">home</span>
+          <span className="about-link-text">
+            <span className="about-link-label">{t('settings.aboutHomepage')}</span>
+            <span className="about-link-value">github.com/LumenStorm/OrisonSpace</span>
+          </span>
+          <span className="about-link-action material-symbols-outlined" aria-hidden="true">open_in_new</span>
+        </button>
+
+        <button type="button" className="about-link-card" onClick={() => openExternal(DEVELOPER_URL)}>
+          <span className="about-link-icon material-symbols-outlined" aria-hidden="true">code</span>
+          <span className="about-link-text">
+            <span className="about-link-label">{t('settings.aboutDeveloper')}</span>
+            <span className="about-link-value">LightYuki</span>
+          </span>
+          <span className="about-link-action material-symbols-outlined" aria-hidden="true">open_in_new</span>
+        </button>
+
+        <button type="button" className="about-link-card" onClick={() => openExternal(FEEDBACK_URL)}>
+          <span className="about-link-icon material-symbols-outlined" aria-hidden="true">forum</span>
+          <span className="about-link-text">
+            <span className="about-link-label">{t('settings.aboutFeedback')}</span>
+            <span className="about-link-value">{t('settings.aboutFeedbackValue')}</span>
+          </span>
+          <span className="about-link-action material-symbols-outlined" aria-hidden="true">open_in_new</span>
+        </button>
+
+        <button type="button" className="about-link-card" onClick={copyQQ} title={t('settings.aboutCopied')}>
+          <span className="about-link-icon material-symbols-outlined" aria-hidden="true">groups</span>
+          <span className="about-link-text">
+            <span className="about-link-label">{t('settings.aboutQQGroup')}</span>
+            <span className="about-link-value">{QQ_GROUP}</span>
+          </span>
+          <span className="about-link-action material-symbols-outlined" aria-hidden="true">content_copy</span>
+        </button>
       </div>
 
-      <div className="sidebar-settings-row">
-        <span className="sidebar-settings-label">{t('settings.aboutHomepage')}</span>
-        <div className="sidebar-settings-options">
-          <button type="button" className="sidebar-settings-option" onClick={() => openExternal(HOMEPAGE_URL)}>
-            github.com/LumenStorm/OrisonSpace
-            <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="sidebar-settings-row">
-        <span className="sidebar-settings-label">{t('settings.aboutDeveloper')}</span>
-        <div className="sidebar-settings-options">
-          <button type="button" className="sidebar-settings-option" onClick={() => openExternal(DEVELOPER_URL)}>
-            LightYuki
-            <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="sidebar-settings-row">
-        <span className="sidebar-settings-label">{t('settings.aboutFeedback')}</span>
-        <div className="sidebar-settings-options">
-          <button type="button" className="sidebar-settings-option" onClick={() => openExternal(FEEDBACK_URL)}>
-            {t('settings.aboutFeedbackValue')}
-            <span className="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="sidebar-settings-row">
-        <span className="sidebar-settings-label">{t('settings.aboutQQGroup')}</span>
-        <div className="sidebar-settings-options">
-          <button type="button" className="sidebar-settings-option" onClick={copyQQ} title={t('settings.aboutCopied')}>
-            {QQ_GROUP}
-            <span className="material-symbols-outlined" aria-hidden="true">content_copy</span>
-          </button>
-        </div>
-      </div>
-
-      <p className="settings-page-subtitle about-license-notice">{t('settings.aboutLicenseNotice')}</p>
+      <p className="about-license">{t('settings.aboutLicenseNotice')}</p>
     </div>
   );
 }
