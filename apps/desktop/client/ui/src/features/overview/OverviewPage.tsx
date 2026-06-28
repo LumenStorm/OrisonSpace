@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
+import { useToastStore } from '../../shared/store/toastStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
 import { gitIsRepo, gitLog } from '../../shared/api/git';
@@ -30,6 +31,7 @@ export function OverviewPage() {
   const chapters = useAppStore((s) => s.novelChapters) as NovelChapterMeta[];
   const updateProjectMeta = useAppStore((s) => s.updateProjectMeta);
   const saveProject = useAppStore((s) => s.saveProject);
+  const showToast = useToastStore((s) => s.showToast);
   const setActivePage = useAppStore((s) => s.setActivePage);
   const setActiveSidebarPanel = useAppStore((s) => s.setActiveSidebarPanel);
 
@@ -152,9 +154,20 @@ export function OverviewPage() {
     if (!projectPath) return;
     const src = await window.orisonDesktop?.pickCoverImage();
     if (!src) return;
+    const previousCover = project?.coverImage;
     const dest = await window.orisonDesktop.copyCoverImage(src, projectPath);
     updateProjectMeta({ coverImage: dest });
-    await saveProject();
+    try {
+      await saveProject();
+    } catch (err) {
+      // The cover file was copied but the meta write failed (e.g. disk/permission).
+      // Roll the in-memory pointer back so the UI doesn't show a cover that
+      // vanishes on reload, and tell the user instead of failing silently.
+      updateProjectMeta({ coverImage: previousCover });
+      const reason = err instanceof Error ? err.message : String(err);
+      showToast(t('creative.coverSaveFailed', { reason }), 'error');
+      return;
+    }
     // The destination path is stable (cover.<ext>); bump a cache-buster so the
     // <img> re-fetches when the file is replaced in place.
     setCoverBust((n) => n + 1);

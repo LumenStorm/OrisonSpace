@@ -33,6 +33,7 @@ overview:
   openTimeline: "Open timeline"
   setCover: "Set cover"
   changeCover: "Change cover"
+  coverSaveFailed: "Failed to save cover: {reason}"
   activity: "Recent Activity"
   noActivity: "No activity yet"
   versionNode: "Version"

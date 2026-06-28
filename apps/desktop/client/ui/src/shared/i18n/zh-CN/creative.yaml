@@ -33,6 +33,7 @@ overview:
   openTimeline: "打开时间线"
   setCover: "设置封面"
   changeCover: "更换封面"
+  coverSaveFailed: "封面保存失败：{reason}"
   activity: "最近动态"
   noActivity: "暂无动态"
   versionNode: "版本"
