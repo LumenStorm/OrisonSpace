@@ -1,5 +1,5 @@
 import { dialog, ipcMain } from 'electron';
-import { existsSync, mkdirSync, copyFileSync, cpSync, readFileSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, copyFileSync, cpSync, readFileSync, readdirSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
@@ -162,6 +162,16 @@ export function registerProjectIpc() {
     const ext = path.extname(src);
     const dest = path.join(projectDir, `cover${ext}`);
     assertWithinProject(projectDir, dest);
+    // A project has exactly ONE cover. Because the file is named `cover.<ext>`,
+    // uploading a different format (png → jpg) would otherwise leave the old
+    // `cover.png` orphaned alongside the new `cover.jpg`, and a stale meta
+    // pointer to the old name renders blank. Remove any existing cover.* first
+    // so there's never more than one cover file on disk.
+    for (const name of readdirSync(projectDir)) {
+      if (/^cover\.[^.]+$/i.test(name) && name !== `cover${ext}`) {
+        try { unlinkSync(path.join(projectDir, name)); } catch { /* best effort */ }
+      }
+    }
     copyFileSync(src, dest);
     return dest;
   });
