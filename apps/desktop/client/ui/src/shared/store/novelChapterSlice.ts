@@ -2,12 +2,7 @@ import type { StateCreator } from 'zustand';
 import type { z } from 'zod';
 import type { ModelConfig, ModelRef, storyMemoryEntrySchema } from '@orison/shared-contracts';
 import {
-  performAutoModeAction,
-  refreshAutoMode,
-  startAutoMode,
   startChapterRun,
-  type AutoModeAction,
-  type AutoModeState,
   type NovelChapterRunMode,
 } from '../api/novelChapter';
 import { resolveNovelModelRuntime } from '../model/novelModel';
@@ -47,7 +42,7 @@ export type ChapterCandidateStatus = 'idle' | 'running' | 'pending' | 'accepted'
 
 export type StoryMemoryEntry = z.infer<typeof storyMemoryEntrySchema>;
 
-export type { NovelChapterRunMode, AutoModeState } from '../api/novelChapter';
+export type { NovelChapterRunMode } from '../api/novelChapter';
 
 export type NovelChapterSlice = {
   novelChapters: NovelChapterMeta[];
@@ -69,23 +64,11 @@ export type NovelChapterSlice = {
 
   selectedNovelRef: ModelRef | null;
   setSelectedNovelRef: (ref: ModelRef | null) => void;
-
-  autoModeState: AutoModeState | null;
-  autoModeError: string | null;
-  startAutoMode: (chapterIds?: string[], plotSummary?: string) => Promise<void>;
-  approveAutoModePlan: () => Promise<void>;
-  pauseAutoMode: () => Promise<void>;
-  resumeAutoMode: () => Promise<void>;
-  cancelAutoMode: () => Promise<void>;
-  refreshAutoMode: () => Promise<void>;
 };
 
 const NO_PROJECT_KEY = 'novelChapter.noProject';
 const UNKNOWN_ERROR_KEY = 'novelChapter.unknownError';
 const START_FAILED_PREFIX = 'startChapterRun:';
-const AUTO_PROJECT_KEY = 'autoMode.noProject';
-const AUTO_UNKNOWN_KEY = 'autoMode.unknownError';
-const AUTO_START_PREFIX = 'startAutoMode:';
 
 function statusFromMessage(message: string, prefix: string): string {
   return message.startsWith(prefix) ? message.slice(prefix.length) : message;
@@ -96,13 +79,6 @@ function errorKeyFromStart(error: unknown): string {
     return `novelChapter.startFailed|${statusFromMessage(error.message, START_FAILED_PREFIX)}`;
   }
   return error instanceof Error ? error.message : UNKNOWN_ERROR_KEY;
-}
-
-function errorKeyFromAutoStart(error: unknown): string {
-  if (error instanceof Error && error.message.startsWith(AUTO_START_PREFIX)) {
-    return `autoMode.startFailed|${statusFromMessage(error.message, AUTO_START_PREFIX)}`;
-  }
-  return error instanceof Error ? error.message : AUTO_UNKNOWN_KEY;
 }
 
 function persistChaptersMeta(chapters: NovelChapterMeta[], projectPath?: string) {
@@ -134,8 +110,6 @@ export const createNovelChapterSlice: StateCreator<
       chapterCandidateStatus: 'idle',
       chapterCandidateError: null,
       memoryEntries: [],
-      autoModeState: null,
-      autoModeError: null,
     });
   });
 
@@ -256,73 +230,8 @@ export const createNovelChapterSlice: StateCreator<
     storage.set('selectedNovelRef', ref);
     set({ selectedNovelRef: ref });
   },
-
-  autoModeState: null,
-  autoModeError: null,
-
-  async startAutoMode(chapterIds, plotSummary) {
-    const project = get().currentProject;
-    if (!project?.path) {
-      set({ autoModeError: AUTO_PROJECT_KEY });
-      return;
-    }
-    set({ autoModeError: null });
-    try {
-      const state = await startAutoMode(
-        project.path,
-        chapterIds,
-        plotSummary,
-        resolveNovelModelRuntime(get().modelConfig.keys, get().selectedNovelRef),
-      );
-      set({ autoModeState: state });
-    } catch (error) {
-      set({ autoModeError: errorKeyFromAutoStart(error) });
-    }
-  },
-
-  async pauseAutoMode() {
-    await applyAutoModeAction(get, set, 'pause');
-  },
-
-  async approveAutoModePlan() {
-    await applyAutoModeAction(get, set, 'approve_plan');
-  },
-
-  async resumeAutoMode() {
-    await applyAutoModeAction(get, set, 'resume');
-  },
-
-  async cancelAutoMode() {
-    await applyAutoModeAction(get, set, 'cancel');
-  },
-
-  async refreshAutoMode() {
-    const cur = get().autoModeState;
-    if (!cur) return;
-    try {
-      const state = await refreshAutoMode(cur.autoModeId);
-      if (state) set({ autoModeState: state });
-    } catch (error) {
-      set({ autoModeError: error instanceof Error ? error.message : AUTO_UNKNOWN_KEY });
-    }
-  },
   };
 };
-
-async function applyAutoModeAction(
-  get: () => { autoModeState: AutoModeState | null },
-  set: (partial: { autoModeState?: AutoModeState; autoModeError?: string | null }) => void,
-  action: AutoModeAction,
-): Promise<void> {
-  const cur = get().autoModeState;
-  if (!cur) return;
-  try {
-    const state = await performAutoModeAction(cur.autoModeId, action);
-    set({ autoModeState: state });
-  } catch (error) {
-    set({ autoModeError: error instanceof Error ? error.message : AUTO_UNKNOWN_KEY });
-  }
-}
 
 function mergeMemoryEntries(existing: StoryMemoryEntry[], incoming: StoryMemoryEntry[]): StoryMemoryEntry[] {
   const byId = new Map<string, StoryMemoryEntry>();

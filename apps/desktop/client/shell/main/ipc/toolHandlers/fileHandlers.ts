@@ -7,7 +7,7 @@ import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
 import type { ProjectSearchResult } from '@orison/shared-contracts';
-import { atomicWriteFileSync } from '../../fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 export const readFileHandler: ToolHandler = async ({ params, projectDir }) => {
   const { filePath, offset = 0, limit } = params as { filePath: string; offset?: number; limit?: number };

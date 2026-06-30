@@ -37,8 +37,8 @@ export function AgentMessages({ messages, loading, error }: Props) {
           <p>{t('agent.emptyHint')}</p>
         </div>
       )}
-      {messages.map((msg) => (
-        <AgentMessageItem key={msg.id} message={msg} />
+      {messages.map((msg, i) => (
+        <AgentMessageItem key={msg.id} message={msg} isLatest={i === messages.length - 1} />
       ))}
       {loading && (
         <div className="agent-message-loading">

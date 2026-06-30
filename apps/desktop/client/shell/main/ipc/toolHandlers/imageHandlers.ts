@@ -8,7 +8,7 @@ import { handleGenerateImage } from '../modelGatewayIpc';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
-import { atomicWriteFileSync } from '../../fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 export const generateImageHandler: ToolHandler = async ({ params, projectDir }) => {
   const { prompt, size, quality, n, outputDir } = params as {

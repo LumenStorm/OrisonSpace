@@ -15,7 +15,6 @@
 @import "./layout/notifications.css";
 @import "./layout/sidebar.css";
 
-@import "./inspector.css";
 
 /* editor/ holds what used to be a single 2000-line editor.css. Split order
  * mirrors the original section order (tiptap → script → video → image-gen
@@ -30,7 +29,6 @@
 @import "./editor/timeline.css";
 
 @import "./layout/pages.css";
-@import "./creative.css";
 @import "./base/components.css";
 @import "../../features/agent-panel/agent-panel.css";
 

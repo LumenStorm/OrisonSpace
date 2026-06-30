@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { loadProject, saveProject } from './localProjectRepository';
-import { atomicWriteFileSync } from './atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 // ── 章节元数据 ──
 

@@ -12,7 +12,7 @@ only.
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x (latest) | ✅ |
+| 0.3.x (latest) | ✅ |
 | older | ❌ |
 
 ## Reporting a vulnerability

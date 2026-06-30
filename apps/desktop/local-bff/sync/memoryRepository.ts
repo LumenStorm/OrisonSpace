@@ -3,7 +3,7 @@ import path from 'node:path';
 import { storyMemoryIndexSchema } from '@orison/shared-contracts';
 import type { StoryMemoryIndex, StoryMemoryEntry } from '@orison/shared-contracts';
 import YAML from 'yaml';
-import { atomicWriteFileSync } from './atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { backupCorruptFile } from './corruptRecovery';
 import { loadTagRegistry, saveTagRegistry, normalizeAndRegister } from './tagRegistry';
 

@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./fs/atomicWrite": {
+      "types": "./src/fs/atomicWrite.ts",
+      "import": "./src/fs/atomicWrite.ts",
+      "default": "./src/fs/atomicWrite.ts"
     }
   },
   "scripts": {

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
-import { atomicWriteFileSync } from '../../fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 const CHAPTERS_DIR = 'chapters';
 

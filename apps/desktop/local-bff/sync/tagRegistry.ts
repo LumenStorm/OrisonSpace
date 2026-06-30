@@ -3,7 +3,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { tagRegistrySchema } from '@orison/shared-contracts';
 import type { TagRegistry, TagCategory, TagRegistryEntry } from '@orison/shared-contracts';
-import { atomicWriteFileSync } from './atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { backupCorruptFile } from './corruptRecovery';
 
 const REGISTRY_FILE = 'tag-registry.yaml';

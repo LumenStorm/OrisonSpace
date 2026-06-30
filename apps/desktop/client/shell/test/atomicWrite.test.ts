@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { atomicWriteFileSync } from '../main/fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 const TEST_DIR = path.join(process.cwd(), 'test-tmp-atomic-write');
 

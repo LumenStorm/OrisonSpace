@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -8,10 +8,11 @@ import type { Attachment, SelectionAttachment } from '../../shared/types/attachm
 import { AgentToolCard } from './AgentToolCard';
 import { DiffCard } from './DiffCard';
 import { toolPresentation, toolLabel, parseChildTag } from './toolMeta';
+import { useTypewriter } from './useTypewriter';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-type Props = { message: AgentMessage };
+type Props = { message: AgentMessage; isLatest?: boolean };
 
 function attachmentIcon(type: Attachment['type']): string {
   if (type === 'chapter') return 'description';
@@ -58,23 +59,32 @@ function ChildBadge({ source, role, depth, t }: { source: 'skill' | 'subagent'; 
   );
 }
 
-export function AgentMessageItem({ message }: Props) {
+export function AgentMessageItem({ message, isLatest }: Props) {
   const { resolvedLocale } = useAppStore(useShallow((s) => ({ resolvedLocale: s.resolvedLocale })));
   const { t } = useI18n(resolvedLocale);
   const [stepsOpen, setStepsOpen] = useState(true);
+  const mountedAtRef = useRef(Date.now());
 
   // Strip a child-execution tag (e.g. `[skill:story:d1] ...`) off assistant
   // content so it renders as an indented, labelled step instead of leaking the
   // raw tag into prose. The slice keeps injecting the tag; we only parse it here.
   const childTag = message.role === 'assistant' ? parseChildTag(message.content ?? '') : null;
-  const assistantContent = childTag ? childTag.rest : message.content;
+  const assistantContent = childTag ? childTag.rest : (message.content ?? '');
+
+  // Typewriter: only animate the latest assistant message that arrived recently
+  const shouldAnimate = isLatest && message.role === 'assistant' && (Date.now() - mountedAtRef.current) < 500;
+  const { displayedText, isAnimating, skip } = useTypewriter(
+    shouldAnimate ? assistantContent : assistantContent,
+    15,
+  );
+  const textToRender = shouldAnimate ? displayedText : assistantContent;
 
   const renderedHtml = useMemo(() => {
-    if (message.role === 'assistant' && assistantContent) {
-      return renderMarkdown(assistantContent);
+    if (message.role === 'assistant' && textToRender) {
+      return renderMarkdown(textToRender);
     }
     return null;
-  }, [message.role, assistantContent]);
+  }, [message.role, textToRender]);
 
   if (message.role === 'user') {
     return (
@@ -153,6 +163,11 @@ export function AgentMessageItem({ message }: Props) {
       )}
       {renderedHtml && (
         <div className="agent-msg-content agent-msg-md" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+      )}
+      {shouldAnimate && isAnimating && (
+        <button type="button" className="agent-typewriter-skip" onClick={skip}>
+          {t('agent.skipAnimation')}
+        </button>
       )}
       {message.toolCalls?.map((tc) => {
         const { icon } = toolPresentation(tc.name);

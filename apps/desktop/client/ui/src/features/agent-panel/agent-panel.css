@@ -1234,3 +1234,19 @@
 .agent-toggle-sm input:checked + .agent-toggle-track::after {
   transform: translateX(9px);
 }
+
+.agent-typewriter-skip {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.agent-typewriter-skip:hover {
+  background: var(--hover-overlay);
+}

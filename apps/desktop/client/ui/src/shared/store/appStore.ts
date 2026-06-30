@@ -10,7 +10,6 @@ import { createNovelChapterSlice, type NovelChapterSlice } from './novelChapterS
 import { createOutputSlice, type OutputSlice } from './outputSlice';
 import { createRecentProjectsSlice, type RecentProjectsSlice } from './recentProjectsSlice';
 import { createImageGenSlice, type ImageGenSlice } from './imageGenSlice';
-import { createOrchestrationSlice, type OrchestrationSlice } from './orchestrationSlice';
 import { createBackgroundTasksSlice, type BackgroundTasksSlice } from './backgroundTasksSlice';
 import { createUpdateSlice, type UpdateSlice } from './updateSlice';
 import { createCommandPaletteSlice, type CommandPaletteSlice } from './commandPaletteSlice';
@@ -36,7 +35,6 @@ type AppState = ProjectSlice &
   OutputSlice &
   RecentProjectsSlice &
   ImageGenSlice &
-  OrchestrationSlice &
   BackgroundTasksSlice &
   UpdateSlice &
   CommandPaletteSlice &
@@ -59,7 +57,6 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createOutputSlice(...a),
   ...createRecentProjectsSlice(...a),
   ...createImageGenSlice(...a),
-  ...createOrchestrationSlice(...a),
   ...createBackgroundTasksSlice(...a),
   ...createUpdateSlice(...a),
   ...createCommandPaletteSlice(...a),

@@ -17,7 +17,7 @@
 
 </div>
 
-<!-- TODO: Add screenshot -->
+<!-- Screenshot: run pnpm dev, capture the workspace with project tree + editor + AI panel visible -->
 <!-- ![screenshot](docs/assets/screenshot.png) -->
 
 ---
@@ -36,6 +36,8 @@
 - **Document interop** — DOCX preview, import, and export for chapters/outlines
 - **Themes & i18n** — Light/dark/custom themes, Chinese & English, YAML-driven and extensible
 - **Model freedom** — Connect any OpenAI-compatible endpoint, manage API keys locally
+
+> **Experimental features:** Agent Orchestration (multi-step pipelines), Auto Mode (auto-advance), and video generation are currently experimental and not guaranteed to be stable. Production-ready versions will land in future releases.
 
 ## Who it's for
 

@@ -17,7 +17,7 @@
 
 </div>
 
-<!-- TODO: 添加应用截图 -->
+<!-- 截图位置：运行 pnpm dev 后在 workspace 页面截取，应展示项目管理 + 章节编辑 + AI 辅助 -->
 <!-- ![screenshot](docs/assets/screenshot.png) -->
 
 ---
@@ -36,6 +36,8 @@
 - **文档互通** — 章节/大纲支持 DOCX 预览与导入导出
 - **主题 & 多语言** — 亮色/暗色/自定义主题，中英双语，YAML 驱动可扩展
 - **模型自由** — 接入任何 OpenAI 兼容端点，本地管理 API Key
+
+> **实验性功能 (Experimental)：** Agent Orchestration（多步编排）、Auto Mode（自动推进）、视频生成目前为实验性功能，不保证稳定。正式可用版本将在后续迭代中推出。
 
 ## 适合谁
 

@@ -14,7 +14,6 @@ import { registerLogIpc } from './ipc/logIpc';
 import { registerUpdateIpc, checkForUpdateOnStartup } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
 import { registerAgentIpc } from './ipc/agentIpc';
-import { registerOrchestrationIpc } from './ipc/orchestrationIpc';
 import { fetchOrisonFile } from './orisonFileProtocol';
 import { closeDb } from './db';
 
@@ -74,7 +73,6 @@ function registerAllIpc() {
   registerUpdateIpc(getMainWindow);
   registerGitIpc();
   registerAgentIpc(getMainWindow);
-  registerOrchestrationIpc();
 }
 
 function createWindow() {
@@ -158,9 +156,7 @@ function createWindow() {
 }
 
 /* ── Custom protocol for serving local project files ── */
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'orison-file', privileges: { standard: false, secure: true, supportFetchAPI: true } },
-]);
+// Note: registerSchemesAsPrivileged was removed in Electron 18+ — protocol.handle() handles it natively
 
 app.whenReady().then(() => {
   // Register orison-file:// protocol to serve local files from sandbox

@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import { patchOperationSchema, projectDocumentSchema } from '@orison/shared-contracts';
 import type { ProjectFieldPatch, CreativeFieldKey } from '@orison/shared-contracts';
 import YAML from 'yaml';
-import { atomicWriteFileSync } from './atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { backupCorruptFile, salvageYamlPrefix } from './corruptRecovery';
 
 type ProjectDocument = z.infer<typeof projectDocumentSchema>;

@@ -13,3 +13,6 @@ export * from './ipc';
 export * from './orchestration';
 export * from './config-yaml';
 export * from './model-registry';
+// Note: atomicWriteFileSync is Node.js only — import from sub-path
+// import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite'
+// (kept out of barrel to prevent renderer bundling Node.js APIs)

@@ -9,7 +9,7 @@ import type {
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
 import { parseFlatYaml, stringifyFlatYaml, modelConfigSaveSchema } from '@orison/shared-contracts';
-import { atomicWriteFileSync } from '../fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
 

@@ -218,20 +218,6 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('agent:set-package-enabled', packageName, enabled),
   setSkillEnabled: (packageName: string, skillName: string, enabled: boolean) =>
     ipcRenderer.invoke('agent:set-skill-enabled', packageName, skillName, enabled),
-  // Orchestration
-  startOrchestrationRun: (input: { projectPath: string; requirement: string; configRoot?: string }) =>
-    ipcRenderer.invoke('orchestration:start-run', input),
-  getOrchestrationRun: (runId: string) =>
-    ipcRenderer.invoke('orchestration:get-run', runId),
-  performOrchestrationAction: (action: { runId: string; action: string; nodeId?: string; payload?: unknown }) =>
-    ipcRenderer.invoke('orchestration:action', action),
-  // Auto Mode
-  startAutoMode: (input: { projectPath: string; mode?: string; chapterIds?: string[]; plotSummary?: string; modelRuntime?: unknown }) =>
-    ipcRenderer.invoke('orchestration:auto-mode-start', input),
-  performAutoModeAction: (autoModeId: string, action: string) =>
-    ipcRenderer.invoke('orchestration:auto-mode-action', autoModeId, action),
-  getAutoModeState: (autoModeId: string) =>
-    ipcRenderer.invoke('orchestration:auto-mode-get', autoModeId),
   // Window lifecycle
   onBeforeClose: (callback: () => void) => {
     const listener = () => callback();

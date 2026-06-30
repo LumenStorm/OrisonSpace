@@ -62,6 +62,7 @@ agent:
   attachAsset: "Assets"
   workSteps: "Work steps"
   workStepsCount: "{count} steps"
+  skipAnimation: "Skip"
   childSkill: "Skill"
   childSubagent: "Subagent"
   tool:

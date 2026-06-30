@@ -11,7 +11,7 @@ import path from 'node:path';
 import type { SessionState, SessionMessage } from '../types';
 import type { ContinuationSnapshot } from '../context/continuation';
 import type { SerializedSkillRunState } from '../runtime/skillRunState';
-import { atomicWriteFileSync } from '../fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 let Database: any = null;
 try {

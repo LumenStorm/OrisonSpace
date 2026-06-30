@@ -8,9 +8,34 @@ This project's notable changes are documented here, following [Keep a Changelog]
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### 新增 · Added
+- 总览/大纲页重构：Hero 封面区、快捷行动条、阶段进度、活动流
+- Agent 渐次披露：工具元数据映射、参数摘要、工作步骤分组折叠、child 事件嵌套渲染
+- 时间线初始化入口：`git:init` IPC + 空状态引导卡
+- 资产作为 Agent 引用（attach 菜单）
+- 设置「关于」页（项目主页/开发者/反馈/QQ群 + 免费开源声明）
+- Motion token 系统、a11y 增强、主题微调
+- 架构边界 CI 闸门（dependency-cruiser 升级为可执行规则）
+
+### 变更 · Changed
+- 移除 Auto Mode / Orchestration 空壳（降级为实验功能，待后续重建）
+- 合并三份 `atomicWriteFileSync` 到 `@orison/shared-contracts`
+- 拆分 `projectIpc.ts` 为 projectIpc + projectFileIpc + projectMetaIpc
+- 删除 `features/creative/`、`EditorArea`、`InspectorPanel` 等死代码
+
 ### 修复 · Fixed
 - Agent Panel 一轮影响体验的会话 UX 问题
 - skill `_reference` 读取失败与会话内模型切换
+- 封面保存失败不再静默 — 弹错误 toast 并回滚内存指针
+- 换封面时先删旧 `cover.*`，保证只存在一个封面文件
+- 总览/大纲同步 bug（projectSubscription 按 path 判断切项目）
+- 标签栏滚轮横滚、字体离线渲染、保存反馈
+- `chapter_write` / `memory_update` 补发 `file:changed`，编辑器自动刷新
+- 损坏 `project.yaml` / memory / tag 读取自愈，不再卡死保存
+- 切项目串台、外部文件同步、资产库导入等编辑器体验问题
+- IDE 体验第二轮修复 — 数据安全 / Minimap / 编辑器 / Agent / 稳定性
 
 ## [0.2.0]
 
@@ -33,5 +58,6 @@ This project's notable changes are documented here, following [Keep a Changelog]
 - 自愈创建 `project.yaml` 并保留概览元信息
 - 新增 `closeDb()`，测试清理前释放 SQLite 句柄
 
-[Unreleased]: https://github.com/LumenStorm/OrisonSpace/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LumenStorm/OrisonSpace/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/LumenStorm/OrisonSpace/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LumenStorm/OrisonSpace/releases/tag/v0.2.0

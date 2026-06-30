@@ -6,7 +6,7 @@ import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from '../toolExecution';
-import { atomicWriteFileSync } from '../../fs/atomicWrite';
+import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 export const projectMetaHandler: ToolHandler = async ({ projectDir }) => {
   const metaPath = path.join(projectDir, 'project.yaml');

@@ -62,6 +62,7 @@ agent:
   attachAsset: "资产"
   workSteps: "工作过程"
   workStepsCount: "{count} 个步骤"
+  skipAnimation: "跳过"
   childSkill: "技能"
   childSubagent: "子代理"
   tool:
