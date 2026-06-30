@@ -1,9 +1,11 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { AgentMessage } from '../../shared/store/agentSlice';
 import { AgentMessageItem } from './AgentMessageItem';
+import { ChildExecutionGroup } from './ChildExecutionGroup';
+import { parseChildTag } from './toolMeta';
 
 type Props = {
   messages: AgentMessage[];
@@ -11,16 +13,48 @@ type Props = {
   error: string | null;
 };
 
+type MessageGroup =
+  | { type: 'single'; message: AgentMessage; index: number }
+  | { type: 'child-group'; source: 'skill' | 'subagent'; role: string; depth: number; messages: AgentMessage[] };
+
+function groupMessages(messages: AgentMessage[]): MessageGroup[] {
+  const groups: MessageGroup[] = [];
+  let i = 0;
+  while (i < messages.length) {
+    const msg = messages[i];
+    const tag = parseChildTag(msg.content ?? '');
+    if (!tag) {
+      groups.push({ type: 'single', message: msg, index: i });
+      i++;
+      continue;
+    }
+    const batch: AgentMessage[] = [msg];
+    let j = i + 1;
+    while (j < messages.length) {
+      const nextTag = parseChildTag(messages[j].content ?? '');
+      if (!nextTag || nextTag.source !== tag.source || nextTag.role !== tag.role || nextTag.depth !== tag.depth) break;
+      batch.push(messages[j]);
+      j++;
+    }
+    if (batch.length >= 2) {
+      groups.push({ type: 'child-group', source: tag.source, role: tag.role, depth: tag.depth, messages: batch });
+    } else {
+      groups.push({ type: 'single', message: msg, index: i });
+    }
+    i = j;
+  }
+  return groups;
+}
+
 export function AgentMessages({ messages, loading, error }: Props) {
   const { resolvedLocale } = useAppStore(useShallow((s) => ({ resolvedLocale: s.resolvedLocale })));
   const { t } = useI18n(resolvedLocale);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const grouped = useMemo(() => groupMessages(messages), [messages]);
+
   useEffect(() => {
-    // Only auto-scroll if the user is already near the bottom. Otherwise they've
-    // scrolled up to read history and a forced scroll on every new event would
-    // yank them back down.
     const el = containerRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
@@ -37,9 +71,27 @@ export function AgentMessages({ messages, loading, error }: Props) {
           <p>{t('agent.emptyHint')}</p>
         </div>
       )}
-      {messages.map((msg, i) => (
-        <AgentMessageItem key={msg.id} message={msg} isLatest={i === messages.length - 1} />
-      ))}
+      {grouped.map((group, gi) => {
+        if (group.type === 'single') {
+          return (
+            <AgentMessageItem
+              key={group.message.id}
+              message={group.message}
+              isLatest={group.index === messages.length - 1}
+            />
+          );
+        }
+        return (
+          <ChildExecutionGroup
+            key={`child-${gi}-${group.source}-${group.role}`}
+            source={group.source}
+            role={group.role}
+            depth={group.depth}
+            messages={group.messages}
+            isLatestGroup={group.messages[group.messages.length - 1] === messages[messages.length - 1]}
+          />
+        );
+      })}
       {loading && (
         <div className="agent-message-loading">
           <span className="agent-loading-dot" />

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import type { z } from 'zod';
 import type { outlineV2Schema, outlinePhaseSchema } from '@orison/shared-contracts';
 import { TiptapEditor } from './TiptapEditor';
+import { PhaseBlock } from './PhaseBlock';
+import { OutlineToggle } from './OutlineToggle';
 import { Skeleton } from '../../shared/components/Skeleton';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -46,49 +48,22 @@ export function OutlineEditor() {
   const projectDocumentHydrated = useAppStore((s) => s.projectDocumentHydrated);
   const updateField = useAppStore((s) => s.updateField);
 
-  // Top-level fields
   const [storyType, setStoryType] = useState('');
   const [writingStyle, setWritingStyle] = useState('');
   const [mainGoal, setMainGoal] = useState('');
   const [centralConflict, setCentralConflict] = useState('');
   const [endingDirection, setEndingDirection] = useState('');
-
-  // Phases
   const [phases, setPhases] = useState<OutlinePhase[]>([]);
-  // Master-detail: the phase whose detail pane is open. The phase list is the
-  // master canvas; selecting a beat opens its fields on the side instead of
-  // expanding inline and pushing the page down.
-  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
-  // The "story core" header (type/style/conflict/goal/ending) collapses so the
-  // phase canvas — the spine of the outline — stays the visual focus.
-  const [coreCollapsed, setCoreCollapsed] = useState(false);
-
-  // Auxiliary fields
   const [characters, setCharacters] = useState('');
   const [growthCurve, setGrowthCurve] = useState('');
   const [pacingCurveText, setPacingCurveText] = useState('');
   const [turningPoints, setTurningPoints] = useState<string[]>([]);
   const [constraints, setConstraints] = useState<string[]>([]);
-  const [auxCollapsed, setAuxCollapsed] = useState<Record<string, boolean>>({
-    characters: true, growthCurve: true, pacingCurveText: true,
-    turningPoints: true, constraints: true,
-  });
 
-  // Tracks whether the user has actually edited since the last store sync.
-  // Gates the debounced + unmount flush so we never write back a value we
-  // merely loaded from the store.
   const userEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // The exact object we last wrote to the store. Used to distinguish our own
-  // writes (which must NOT re-hydrate local state — that round-trip was the
-  // bug: it clobbered the in-flight keystroke with a one-render-stale value)
-  // from external changes (project load, agent patch accept).
   const lastWrittenRef = useRef<OutlineV2 | undefined>(undefined);
 
-  // Build the current OutlineV2 from local state. Kept in a ref so the
-  // debounced/unmount flush always reads the latest values without making
-  // `persist` depend on every field (which is what forced the effect to
-  // re-run — and prematurely flush — on every keystroke).
   const buildOutline = (): OutlineV2 => ({
     story_type: storyType || undefined,
     writing_style: writingStyle || undefined,
@@ -112,14 +87,9 @@ export function OutlineEditor() {
     userEditedRef.current = false;
     updateField('outline', next);
   };
-  // Keep the unmount handler pointing at the latest `flush` so it doesn't fire
-  // with a stale closure (projectDocumentHydrated was false on first render).
   const flushRef = useRef(flush);
   flushRef.current = flush;
 
-  // Hydrate local state from the store. Skips our own writes (reference match)
-  // so a debounced save never bounces back and overwrites what the user just
-  // typed. Runs for project load and external (agent) patches.
   useEffect(() => {
     if (storeOutline && storeOutline === lastWrittenRef.current) return;
     userEditedRef.current = false;
@@ -137,32 +107,25 @@ export function OutlineEditor() {
     setConstraints(storeOutline.constraints ?? []);
   }, [storeOutline]);
 
-  // Mark a user edit and (re)arm the debounce. Called from every onChange.
   const markEdited = () => {
     userEditedRef.current = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => flushRef.current(), DEBOUNCE_MS);
   };
 
-  // Flush any pending edit on unmount only (mount-once effect — does NOT
-  // re-run per keystroke, so it can't pre-empt the debounce).
   useEffect(() => () => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = undefined;
     }
     flushRef.current();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!projectDocumentHydrated) return <Skeleton />;
 
-  // Phase helpers
   const addPhase = () => {
     markEdited();
-    const id = genId();
-    setPhases([...phases, { id, title: t('outline.newPhase') }]);
-    setSelectedPhaseId(id);
+    setPhases([...phases, { id: genId(), title: t('outline.newPhase') }]);
   };
 
   const updatePhase = (id: string, patch: Partial<OutlinePhase>) => {
@@ -173,10 +136,8 @@ export function OutlineEditor() {
   const removePhase = (id: string) => {
     markEdited();
     setPhases(phases.filter((p) => p.id !== id));
-    if (selectedPhaseId === id) setSelectedPhaseId(null);
   };
 
-  // Turning points / constraints helpers
   const addTurningPoint = () => { markEdited(); setTurningPoints([...turningPoints, '']); };
   const updateTurningPoint = (i: number, v: string) => { markEdited(); setTurningPoints(turningPoints.map((tp, idx) => idx === i ? v : tp)); };
   const removeTurningPoint = (i: number) => { markEdited(); setTurningPoints(turningPoints.filter((_, idx) => idx !== i)); };
@@ -189,234 +150,108 @@ export function OutlineEditor() {
   const tpDrag = useDragReorder(turningPoints, setTurningPoints, markEdited);
   const cDrag = useDragReorder(constraints, setConstraints, markEdited);
 
-  const toggleAux = (key: string) => setAuxCollapsed((c) => ({ ...c, [key]: !c[key] }));
-
-  // The phase whose detail pane is open. Tolerates a stale id after a delete /
-  // external patch by falling back to none.
-  const selectedPhase = phases.find((p) => p.id === selectedPhaseId) ?? null;
-
   return (
     <div className="outline-editor">
-      {/* ── Story core (collapsible header) ── */}
-      <section className="outline-core-section">
-        <button type="button" className="outline-core-toggle" onClick={() => setCoreCollapsed((v) => !v)}>
-          <span className="material-symbols-outlined">{coreCollapsed ? 'chevron_right' : 'expand_more'}</span>
-          <span className="outline-core-title">{t('outline.storyCore')}</span>
+      {/* ── Story Core ── */}
+      <section className="outline-core">
+        <h2 className="outline-heading">{t('outline.storyCore')}</h2>
+
+        <div className="outline-tag-row">
+          <span className="outline-tag-label">{t('outline.storyType')}</span>
+          <input className="outline-tag-input" value={storyType} onChange={(e) => { markEdited(); setStoryType(e.target.value); }} placeholder={t('outline.storyTypePlaceholder')} />
+          <span className="outline-tag-label">{t('outline.writingStyle')}</span>
+          <input className="outline-tag-input" value={writingStyle} onChange={(e) => { markEdited(); setWritingStyle(e.target.value); }} placeholder={t('outline.writingStylePlaceholder')} />
+        </div>
+
+        <div className="outline-core-field">
+          <label className="outline-core-label">{t('outline.centralConflict')}</label>
+          <textarea className="outline-input outline-core-textarea" value={centralConflict} onChange={(e) => { markEdited(); setCentralConflict(e.target.value); }} placeholder={t('outline.centralConflictPlaceholder')} rows={2} />
+        </div>
+
+        <div className="outline-core-field">
+          <label className="outline-core-label">{t('outline.mainGoal')}</label>
+          <textarea className="outline-input outline-core-textarea" value={mainGoal} onChange={(e) => { markEdited(); setMainGoal(e.target.value); }} placeholder={t('outline.mainGoalPlaceholder')} rows={2} />
+        </div>
+
+        <div className="outline-core-field">
+          <label className="outline-core-label">{t('outline.endingDirection')}</label>
+          <textarea className="outline-input outline-core-textarea" value={endingDirection} onChange={(e) => { markEdited(); setEndingDirection(e.target.value); }} placeholder={t('outline.endingDirectionPlaceholder')} rows={2} />
+        </div>
+      </section>
+
+      <hr className="outline-divider" />
+
+      {/* ── Phases ── */}
+      <section className="outline-phases">
+        <div className="outline-phases-header">
+          <h2 className="outline-heading">{t('outline.phases')}</h2>
+        </div>
+
+        {phases.map((phase, i) => (
+          <PhaseBlock
+            key={phase.id}
+            phase={phase}
+            index={i}
+            onUpdate={updatePhase}
+            onRemove={removePhase}
+            onDragStart={phaseDrag.onDragStart(i)}
+            onDragOver={phaseDrag.onDragOver(i)}
+            onDragEnd={phaseDrag.onDragEnd}
+            t={t}
+          />
+        ))}
+
+        <button type="button" className="outline-add-block" onClick={addPhase}>
+          <span className="material-symbols-outlined">add</span>
+          {t('outline.addPhase')}
         </button>
-        {!coreCollapsed && (
-          <div className="outline-core-body">
-            <div className="outline-style-grid">
-              <div className="outline-style-field">
-                <label className="outline-style-label">{t('outline.storyType')}</label>
-                <input className="outline-style-input" value={storyType} onChange={(e) => { markEdited(); setStoryType(e.target.value); }} placeholder={t('outline.storyTypePlaceholder')} />
-              </div>
-              <div className="outline-style-field">
-                <label className="outline-style-label">{t('outline.writingStyle')}</label>
-                <input className="outline-style-input" value={writingStyle} onChange={(e) => { markEdited(); setWritingStyle(e.target.value); }} placeholder={t('outline.writingStylePlaceholder')} />
-              </div>
-            </div>
-
-            <div className="outline-field">
-              <label className="outline-field-label">{t('outline.centralConflict')}</label>
-              <textarea className="outline-textarea" value={centralConflict} onChange={(e) => { markEdited(); setCentralConflict(e.target.value); }} placeholder={t('outline.centralConflictPlaceholder')} rows={2} />
-            </div>
-
-            <div className="outline-field">
-              <label className="outline-field-label">{t('outline.mainGoal')}</label>
-              <textarea className="outline-textarea" value={mainGoal} onChange={(e) => { markEdited(); setMainGoal(e.target.value); }} placeholder={t('outline.mainGoalPlaceholder')} rows={2} />
-            </div>
-
-            <div className="outline-field">
-              <label className="outline-field-label">{t('outline.endingDirection')}</label>
-              <textarea className="outline-textarea" value={endingDirection} onChange={(e) => { markEdited(); setEndingDirection(e.target.value); }} placeholder={t('outline.endingDirectionPlaceholder')} rows={2} />
-            </div>
-          </div>
-        )}
       </section>
 
-      {/* ── Phase canvas (master-detail) ── */}
-      <section className="outline-phases-section">
-        <div className="outline-section-header">
-          <h3 className="outline-section-title">{t('outline.phases')}</h3>
-          <button type="button" className="outline-add-btn" onClick={addPhase}>
-            <span className="material-symbols-outlined" aria-hidden="true">add</span>
-            {t('outline.addPhase')}
-          </button>
-        </div>
+      <hr className="outline-divider" />
 
-        {phases.length === 0 ? (
-          <div className="outline-empty-hint">{t('outline.noPhasesHint')}</div>
-        ) : (
-          <div className="outline-phase-master-detail">
-            <ol className="outline-phase-track">
-              {phases.map((phase, i) => {
-                const chapters = phase.estimated_chapters ?? 0;
-                return (
-                  <li
-                    key={phase.id}
-                    className={`outline-beat${selectedPhaseId === phase.id ? ' is-selected' : ''}`}
-                    draggable
-                    onDragStart={phaseDrag.onDragStart(i)}
-                    onDragOver={phaseDrag.onDragOver(i)}
-                    onDragEnd={phaseDrag.onDragEnd}
-                    onClick={() => setSelectedPhaseId(selectedPhaseId === phase.id ? null : phase.id)}
-                  >
-                    <span className="material-symbols-outlined outline-beat-drag">drag_indicator</span>
-                    <span className="outline-beat-index">{i + 1}</span>
-                    <div className="outline-beat-body">
-                      <span className="outline-beat-title">{phase.title || t('outline.phaseTitle')}</span>
-                      {phase.goal && <span className="outline-beat-goal">{phase.goal}</span>}
-                      {chapters > 0 && (
-                        <span className="outline-beat-chapters">
-                          <span className="material-symbols-outlined">menu_book</span>
-                          {chapters}
-                        </span>
-                      )}
-                    </div>
-                    <span className="material-symbols-outlined outline-beat-chevron">chevron_right</span>
-                  </li>
-                );
-              })}
-            </ol>
+      {/* ── Auxiliary ── */}
+      <section className="outline-auxiliary">
+        <h2 className="outline-heading">{t('outline.auxiliary')}</h2>
 
-            {selectedPhase && (
-              <div className="outline-beat-detail">
-                <div className="outline-beat-detail-header">
-                  <input
-                    className="outline-phase-title-input"
-                    value={selectedPhase.title}
-                    onChange={(e) => updatePhase(selectedPhase.id, { title: e.target.value })}
-                    placeholder={t('outline.phaseTitle')}
-                  />
-                  <button type="button" className="outline-remove-btn" onClick={() => removePhase(selectedPhase.id)} title={t('outline.removePhase') || ''}>
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
-                </div>
-                <div className="outline-beat-detail-grid">
-                  <div className="outline-phase-field">
-                    <label className="outline-phase-label">{t('outline.phaseGoal')}</label>
-                    <input className="outline-phase-input" value={selectedPhase.goal ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { goal: e.target.value })} />
-                  </div>
-                  <div className="outline-phase-field">
-                    <label className="outline-phase-label">{t('outline.phaseAntagonist')}</label>
-                    <input className="outline-phase-input" value={selectedPhase.antagonist ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { antagonist: e.target.value })} />
-                  </div>
-                  <div className="outline-phase-field">
-                    <label className="outline-phase-label">{t('outline.phaseClimax')}</label>
-                    <input className="outline-phase-input" value={selectedPhase.climax ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { climax: e.target.value })} />
-                  </div>
-                  <div className="outline-phase-field">
-                    <label className="outline-phase-label">{t('outline.phaseHook')}</label>
-                    <input className="outline-phase-input" value={selectedPhase.hook ?? ''} onChange={(e) => updatePhase(selectedPhase.id, { hook: e.target.value })} />
-                  </div>
-                  <div className="outline-phase-field">
-                    <label className="outline-phase-label">{t('outline.estimatedChapters')}</label>
-                    <input className="outline-phase-input" type="number" min={0} value={selectedPhase.estimated_chapters ?? ''} onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === '') { updatePhase(selectedPhase.id, { estimated_chapters: undefined }); return; }
-                      // Clamp to a non-negative integer: guards against negative
-                      // or NaN (paste / spinner) corrupting phase-progress math.
-                      const n = Math.max(0, Math.floor(Number(raw)));
-                      updatePhase(selectedPhase.id, { estimated_chapters: Number.isFinite(n) ? n : undefined });
-                    }} />
-                  </div>
-                </div>
+        <OutlineToggle title={t('outline.characters')}>
+          <TiptapEditor content={characters} placeholder={t('outline.charactersPlaceholder')} onChange={(v) => { markEdited(); setCharacters(v); }} format="markdown" />
+        </OutlineToggle>
+
+        <OutlineToggle title={t('outline.growthCurve')}>
+          <TiptapEditor content={growthCurve} placeholder={t('outline.growthCurvePlaceholder')} onChange={(v) => { markEdited(); setGrowthCurve(v); }} format="markdown" />
+        </OutlineToggle>
+
+        <OutlineToggle title={t('outline.pacingCurve')}>
+          <TiptapEditor content={pacingCurveText} placeholder={t('outline.pacingCurvePlaceholder')} onChange={(v) => { markEdited(); setPacingCurveText(v); }} format="markdown" />
+        </OutlineToggle>
+
+        <OutlineToggle title={t('outline.turningPoints')} onAdd={addTurningPoint}>
+          <div className="outline-list">
+            {turningPoints.map((tp, i) => (
+              <div key={i} className="outline-list-item" draggable onDragStart={tpDrag.onDragStart(i)} onDragOver={tpDrag.onDragOver(i)} onDragEnd={tpDrag.onDragEnd}>
+                <span className="outline-list-drag material-symbols-outlined">drag_indicator</span>
+                <input className="outline-list-input" value={tp} onChange={(e) => updateTurningPoint(i, e.target.value)} placeholder={t('outline.turningPointPlaceholder')} />
+                <button type="button" className="outline-list-remove" onClick={() => removeTurningPoint(i)}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
               </div>
-            )}
+            ))}
           </div>
-        )}
-      </section>
+        </OutlineToggle>
 
-      {/* ── Bottom Section: Auxiliary Settings ── */}
-      <section className="outline-auxiliary-section">
-        <h3 className="outline-section-title">{t('outline.auxiliary')}</h3>
-
-        {/* Characters */}
-        <div className="outline-act">
-          <div className="outline-act-header" onClick={() => toggleAux('characters')}>
-            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.characters ? 'chevron_right' : 'expand_more'}</span>
-            <span className="outline-act-title">{t('outline.characters')}</span>
+        <OutlineToggle title={t('outline.constraints')} onAdd={addConstraint}>
+          <div className="outline-list">
+            {constraints.map((c, i) => (
+              <div key={i} className="outline-list-item" draggable onDragStart={cDrag.onDragStart(i)} onDragOver={cDrag.onDragOver(i)} onDragEnd={cDrag.onDragEnd}>
+                <span className="outline-list-drag material-symbols-outlined">drag_indicator</span>
+                <input className="outline-list-input" value={c} onChange={(e) => updateConstraint(i, e.target.value)} placeholder={t('outline.constraintPlaceholder')} />
+                <button type="button" className="outline-list-remove" onClick={() => removeConstraint(i)}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            ))}
           </div>
-          {!auxCollapsed.characters && (
-            <div className="outline-act-body">
-              <TiptapEditor content={characters} placeholder={t('outline.charactersPlaceholder')} onChange={(v) => { markEdited(); setCharacters(v); }} format="markdown" />
-            </div>
-          )}
-        </div>
-
-        {/* Growth Curve */}
-        <div className="outline-act">
-          <div className="outline-act-header" onClick={() => toggleAux('growthCurve')}>
-            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.growthCurve ? 'chevron_right' : 'expand_more'}</span>
-            <span className="outline-act-title">{t('outline.growthCurve')}</span>
-          </div>
-          {!auxCollapsed.growthCurve && (
-            <div className="outline-act-body">
-              <TiptapEditor content={growthCurve} placeholder={t('outline.growthCurvePlaceholder')} onChange={(v) => { markEdited(); setGrowthCurve(v); }} format="markdown" />
-            </div>
-          )}
-        </div>
-
-        {/* Pacing Curve */}
-        <div className="outline-act">
-          <div className="outline-act-header" onClick={() => toggleAux('pacingCurveText')}>
-            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.pacingCurveText ? 'chevron_right' : 'expand_more'}</span>
-            <span className="outline-act-title">{t('outline.pacingCurve')}</span>
-          </div>
-          {!auxCollapsed.pacingCurveText && (
-            <div className="outline-act-body">
-              <TiptapEditor content={pacingCurveText} placeholder={t('outline.pacingCurvePlaceholder')} onChange={(v) => { markEdited(); setPacingCurveText(v); }} format="markdown" />
-            </div>
-          )}
-        </div>
-
-        {/* Turning Points */}
-        <div className="outline-act">
-          <div className="outline-act-header" onClick={() => toggleAux('turningPoints')}>
-            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.turningPoints ? 'chevron_right' : 'expand_more'}</span>
-            <span className="outline-act-title">{t('outline.turningPoints')}</span>
-            <button type="button" className="outline-add-inline-btn" onClick={(e) => { e.stopPropagation(); addTurningPoint(); }}>
-              <span className="material-symbols-outlined">add</span>
-            </button>
-          </div>
-          {!auxCollapsed.turningPoints && (
-            <div className="outline-act-body">
-              {turningPoints.map((tp, i) => (
-                <div key={i} className="outline-list-item" draggable onDragStart={tpDrag.onDragStart(i)} onDragOver={tpDrag.onDragOver(i)} onDragEnd={tpDrag.onDragEnd}>
-                  <span className="material-symbols-outlined outline-drag-handle">drag_indicator</span>
-                  <input className="outline-list-input" value={tp} onChange={(e) => updateTurningPoint(i, e.target.value)} placeholder={t('outline.turningPointPlaceholder')} />
-                  <button type="button" className="outline-remove-btn" onClick={() => removeTurningPoint(i)}>
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Constraints */}
-        <div className="outline-act">
-          <div className="outline-act-header" onClick={() => toggleAux('constraints')}>
-            <span className="material-symbols-outlined outline-act-chevron">{auxCollapsed.constraints ? 'chevron_right' : 'expand_more'}</span>
-            <span className="outline-act-title">{t('outline.constraints')}</span>
-            <button type="button" className="outline-add-inline-btn" onClick={(e) => { e.stopPropagation(); addConstraint(); }}>
-              <span className="material-symbols-outlined">add</span>
-            </button>
-          </div>
-          {!auxCollapsed.constraints && (
-            <div className="outline-act-body">
-              {constraints.map((c, i) => (
-                <div key={i} className="outline-list-item" draggable onDragStart={cDrag.onDragStart(i)} onDragOver={cDrag.onDragOver(i)} onDragEnd={cDrag.onDragEnd}>
-                  <span className="material-symbols-outlined outline-drag-handle">drag_indicator</span>
-                  <input className="outline-list-input" value={c} onChange={(e) => updateConstraint(i, e.target.value)} placeholder={t('outline.constraintPlaceholder')} />
-                  <button type="button" className="outline-remove-btn" onClick={() => removeConstraint(i)}>
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        </OutlineToggle>
       </section>
     </div>
   );

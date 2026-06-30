@@ -4,12 +4,6 @@ import { generateVideo } from '../../shared/api/generation';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 
-const mockClips = [
-  { id: 'clip-001', label: 'Shot 01 — Establishing' },
-  { id: 'clip-002', label: 'Shot 02 — Mid shot' },
-  { id: 'clip-003', label: 'Shot 03 — Close-up' },
-];
-
 export function VideoEditor() {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const currentProject = useAppStore((s) => s.currentProject);
@@ -75,16 +69,15 @@ export function VideoEditor() {
       </div>
 
       <div className="video-clips-section">
-        <h3 className="video-clips-title">{t('video.clips')}</h3>
+        <div className="video-clips-header">
+          <h3 className="video-clips-title">{t('video.clips')}</h3>
+          <span className="overview-type-badge">Experimental</span>
+        </div>
         <div className="video-clips-grid">
-          {mockClips.map((clip) => (
-            <div key={clip.id} className="video-clip-card">
-              <div className="video-clip-thumb">
-                <span className="material-symbols-outlined" aria-hidden="true">movie</span>
-              </div>
-              <span className="video-clip-label">{clip.label}</span>
-            </div>
-          ))}
+          <div className="assets-panel-empty">
+            <span className="material-symbols-outlined" aria-hidden="true">movie</span>
+            <p className="assets-panel-empty-hint">{t('video.noClips')}</p>
+          </div>
         </div>
       </div>
     </div>

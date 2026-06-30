@@ -1,7 +1,6 @@
 import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
-import { mockFileContents } from '../../shared/data/mockFileContents';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useAppStore } from '../../shared/store/appStore';
 import { useToastStore } from '../../shared/store/toastStore';
@@ -193,7 +192,7 @@ export function ProjectTree() {
     if (entry.isDir) return;
 
     if (!projectPath) {
-      openFile(entry.path, entry.name, mockFileContents[entry.path] ?? '');
+      useToastStore.getState().showToast(t('projectTree.noProjectPath'), 'error');
       return;
     }
 

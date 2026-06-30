@@ -27,6 +27,7 @@
 @import "./editor/novel.css";
 @import "./editor/file.css";
 @import "./editor/timeline.css";
+@import "./editor/outline.css";
 
 @import "./layout/pages.css";
 @import "./base/components.css";

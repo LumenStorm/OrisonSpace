@@ -60,6 +60,8 @@ export const exposedDesktopApi = {
   // 字段同步
   syncField: (projectPath: string, field: string, data: unknown) =>
     ipcRenderer.invoke('field:sync', projectPath, field, data) as Promise<void>,
+  applyAgentFieldPatch: (projectPath: string, fieldPatch: unknown) =>
+    ipcRenderer.invoke('field:apply-agent-patch', projectPath, fieldPatch) as Promise<unknown>,
   loadProjectDocument: (projectDir: string) =>
     ipcRenderer.invoke('project:load-document', projectDir) as Promise<Record<string, unknown> | null>,
   // 模型配置

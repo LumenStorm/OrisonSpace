@@ -3,7 +3,7 @@ import { useAppStore } from '../../shared/store/appStore';
 import { useToastStore } from '../../shared/store/toastStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
-import { gitIsRepo, gitLog } from '../../shared/api/git';
+import { gitIsRepo, gitLog, gitCreateNode, gitStatusCount } from '../../shared/api/git';
 import type { GitCommitEntry } from '@orison/shared-contracts';
 import type { z } from 'zod';
 import type { outlineV2Schema, worldSettingSchema, assetCardSchema } from '@orison/shared-contracts';
@@ -44,6 +44,9 @@ export function OverviewPage() {
   const [synopsis, setSynopsis] = useState('');
   const [versions, setVersions] = useState<GitCommitEntry[]>([]);
   const [coverBust, setCoverBust] = useState(0);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<'ok' | 'warn' | 'error' | null>(null);
+  const [healthHint, setHealthHint] = useState('');
 
   // Identity of the project we last hydrated local fields from. Used to
   // re-seed inputs only on a real project switch, not on our own meta writes.
@@ -112,6 +115,57 @@ export function OverviewPage() {
     })();
     return () => { cancelled = true; };
   }, [projectPath]);
+
+  // Project health check
+  useEffect(() => {
+    if (!projectPath) { setHealthStatus(null); return; }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const isRepo = await gitIsRepo(projectPath);
+        if (cancelled) return;
+        if (!isRepo) {
+          setHealthStatus('warn');
+          setHealthHint(t('overview.healthNoRepo'));
+          return;
+        }
+        const dirtyCount = await gitStatusCount(projectPath);
+        if (cancelled) return;
+        if (dirtyCount > 0) {
+          setHealthStatus('warn');
+          setHealthHint(t('overview.healthUnsaved', { count: dirtyCount }));
+          return;
+        }
+        setHealthStatus('ok');
+        setHealthHint(t('overview.healthOk'));
+      } catch {
+        if (!cancelled) {
+          setHealthStatus('error');
+          setHealthHint(t('overview.healthError'));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [projectPath, versions, t]);
+
+  // Snapshot handler
+  const handleSnapshot = async () => {
+    if (!projectPath || snapshotLoading) return;
+    setSnapshotLoading(true);
+    try {
+      const now = new Date();
+      const msg = `snapshot: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+      await gitCreateNode(projectPath, msg);
+      const log = await gitLog(projectPath, 4);
+      setVersions(log);
+      showToast(t('overview.snapshotSuccess'), 'success');
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      showToast(t('overview.snapshotFailed', { reason }), 'error');
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
 
   // Stats
   const totalChapters = chapters.length;
@@ -247,10 +301,22 @@ export function OverviewPage() {
           <span className="material-symbols-outlined">history</span>
           {t('overview.openTimeline')}
         </button>
+        <button type="button" className="overview-action" onClick={() => { void handleSnapshot(); }} disabled={snapshotLoading}>
+          <span className="material-symbols-outlined">save</span>
+          {snapshotLoading ? t('overview.snapshotSaving') : t('overview.saveSnapshot')}
+        </button>
       </section>
 
       {/* ── Compact stat strip ── */}
       <section className="overview-stat-strip">
+        {healthStatus && (
+          <div className={`overview-stat overview-health overview-health--${healthStatus}`} title={healthHint}>
+            <span className="material-symbols-outlined">
+              {healthStatus === 'ok' ? 'check_circle' : healthStatus === 'warn' ? 'warning' : 'error'}
+            </span>
+            <span className="overview-stat-label">{healthHint}</span>
+          </div>
+        )}
         <div className="overview-stat">
           <span className="material-symbols-outlined">menu_book</span>
           <span className="overview-stat-value">{totalChapters}</span>
