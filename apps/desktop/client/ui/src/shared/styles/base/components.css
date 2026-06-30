@@ -21,7 +21,7 @@
   white-space: nowrap;
   pointer-events: none;
   box-shadow: var(--shadow-elevated);
-  animation: tooltip-in 0.12s ease-out;
+  animation: tooltip-in var(--duration-fast) var(--ease-enter);
 }
 
 @keyframes tooltip-in {
@@ -39,7 +39,7 @@
   background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
   box-shadow: var(--shadow-elevated);
-  animation: ctx-menu-in 0.1s ease-out;
+  animation: ctx-menu-in 0.1s var(--ease-enter);
 }
 
 @keyframes ctx-menu-in {
@@ -148,7 +148,7 @@
   font: inherit;
   font-size: var(--text-md);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--duration-base);
 }
 
 .error-boundary-btn:hover {
@@ -254,7 +254,7 @@
   color: var(--on-surface);
   font-size: 0.8rem;
   box-shadow: var(--shadow-elevated);
-  animation: toast-in 0.15s ease-out;
+  animation: toast-in var(--duration-base) var(--ease-enter);
   pointer-events: auto;
   cursor: pointer;
 }
@@ -278,7 +278,7 @@
   align-items: center;
   justify-content: center;
   background: var(--overlay-backdrop);
-  animation: ctx-menu-in 0.1s ease-out;
+  animation: ctx-menu-in 0.1s var(--ease-enter);
 }
 
 .confirm-dialog {
@@ -320,7 +320,7 @@
   font: inherit;
   font-size: var(--text-base);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--duration-fast);
 }
 
 .confirm-dialog-btn:hover {

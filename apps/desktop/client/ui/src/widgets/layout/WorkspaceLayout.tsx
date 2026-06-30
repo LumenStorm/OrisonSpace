@@ -4,6 +4,7 @@ import { SideNav } from '../../features/side-nav/SideNav';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
+import { PageSkeleton } from '../../shared/components/PageSkeleton';
 import { Tooltip } from '../../shared/components/Tooltip';
 import { useAppStore } from '../../shared/store/appStore';
 import { useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
@@ -96,15 +97,15 @@ export function WorkspaceLayout() {
         <SideNav />
         {projectTreeOpen && (
           <>
-            <Suspense fallback={null}>
+            <Suspense fallback={<PageSkeleton variant="sidebar" />}>
               {activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
             </Suspense>
             <ResizeHandle onResize={handleTreeResize} />
           </>
         )}
         <div style={{ display: 'flex', minWidth: 0, minHeight: 0 }}>
-          <div className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, position: 'relative' }}>
-            <Suspense fallback={null}>
+          <div id="main-content" tabIndex={-1} className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, position: 'relative' }}>
+            <Suspense fallback={<PageSkeleton variant="page" />}>
               {renderMainContent()}
             </Suspense>
             {bottomPanelOpen && <BottomPanel />}

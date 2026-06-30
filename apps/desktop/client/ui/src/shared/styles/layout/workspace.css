@@ -22,11 +22,20 @@
 
 /* ── Resize Handle ── */
 .resize-handle {
+  position: relative;
   width: 4px;
   cursor: col-resize;
   background: transparent;
-  transition: background 0.15s;
+  transition: background var(--duration-base);
   z-index: var(--z-sticky);
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  left: -6px;
+  right: -6px;
 }
 
 .resize-handle:hover,
@@ -38,6 +47,13 @@
   width: 100%;
   height: 4px;
   cursor: row-resize;
+}
+
+.resize-handle-vertical::before {
+  left: 0;
+  right: 0;
+  top: -6px;
+  bottom: -6px;
 }
 
 /* ── Main Content ── */
@@ -82,7 +98,7 @@
 .workspace-bottom-wrapper {
   flex-shrink: 0;
   overflow: hidden;
-  transition: height 0.2s ease;
+  transition: height var(--duration-slow) ease;
 }
 
 .workspace-bottom-wrapper:not(.is-open) {
@@ -127,7 +143,7 @@
   font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color var(--duration-base), border-color var(--duration-base);
 }
 
 .bottom-panel-tab:hover {
@@ -154,7 +170,7 @@
   background: transparent;
   color: var(--on-surface-variant);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--duration-fast);
 }
 
 .bottom-panel-collapse-btn:hover {
@@ -286,7 +302,7 @@
   color: var(--on-surface-variant);
   cursor: pointer;
   z-index: var(--z-sticky);
-  transition: background 0.12s;
+  transition: background var(--duration-fast);
 }
 
 .bottom-panel-expand-btn:hover {
@@ -569,7 +585,7 @@
   background: var(--assets-card-bg);
   cursor: pointer;
   box-shadow: var(--shadow-soft);
-  transition: box-shadow 0.15s;
+  transition: box-shadow var(--duration-base);
 }
 
 .assets-panel-card:hover {
@@ -705,7 +721,7 @@
   font-size: 0.8rem;
   color: var(--on-surface-variant);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
 }
 
 .assets-detail-action:hover {
@@ -752,7 +768,7 @@
   color: var(--on-surface);
   padding: 0.4rem 0.6rem;
   outline: none;
-  transition: border-color 0.12s;
+  transition: border-color var(--duration-fast);
 }
 
 .assets-detail-input:focus,

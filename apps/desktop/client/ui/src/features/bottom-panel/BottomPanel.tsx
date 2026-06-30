@@ -44,7 +44,7 @@ export function BottomPanel() {
           aria-label="Collapse panel"
           onClick={toggleBottomPanel}
         >
-          <span className="material-symbols-outlined">expand_more</span>
+          <span className="material-symbols-outlined" aria-hidden="true">expand_more</span>
         </button>
       </div>
       <div className="bottom-panel-content">

@@ -255,6 +255,8 @@ themes/
 | 字号 | `--text-3xs` … `--text-3xl`（`0.65rem`→`2rem`） | font-size |
 | 层级 | `--z-base` … `--z-tooltip`（0→1600，见下） | z-index |
 | 焦点环 | `--focus-ring-width` / `--focus-ring-offset` | `:focus-visible` 键盘可访问性 |
+| 动效时长 | `--duration-fast` / `--duration-base` / `--duration-slow` | transition-duration / animation-duration |
+| 缓动曲线 | `--ease-standard` / `--ease-enter` / `--ease-exit` / `--ease-spring` | transition-timing-function |
 
 **层级（z-index）顺序**，低 → 高，后者永远盖前者：
 
@@ -268,6 +270,24 @@ themes/
 - 只替换**精确命中** scale stop 的字面量；无对应 stop 的值（如 `0.3rem` / `0.8rem` / `1.2rem`）保留，确保零视觉位移。
 - 同一字面量**按属性区分** token：`0.5rem` 作 padding/gap 用 `--space-md`，作 border-radius 用 `--radius-lg`。
 - 焦点环通过 `global.css` 的全局 `:focus-visible` 基线生效，键盘导航才显示，鼠标点击不触发；主编辑面 `.tiptap` 已排除（光标已表达焦点）。
+
+### 动效（Motion）
+
+| token | 值 | 适用场景 |
+|-------|-----|---------|
+| `--duration-fast` | `0.12s` | 微交互：hover、tooltip、icon 状态变化 |
+| `--duration-base` | `0.15s` | 标准过渡：面板 toggle、边框色变化 |
+| `--duration-slow` | `0.25s` | 布局位移：面板宽度、折叠/展开 |
+| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Material 3 标准曲线，通用 |
+| `--ease-enter` | `cubic-bezier(0, 0, 0, 1)` | 元素进入（从无到有） |
+| `--ease-exit` | `cubic-bezier(0.2, 0, 1, 1)` | 元素退出（从有到无） |
+| `--ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 弹性过冲（强调性反馈） |
+
+**动效迁移约定：**
+- `transition:` 中 `0.12s` → `var(--duration-fast)`，`0.15s` → `var(--duration-base)`，`0.2s`~`0.3s` → `var(--duration-slow)`
+- 非标准值（如 `0.14s`）暂保留，等待后续合并到最近 stop
+- `@keyframes` 中的 `animation-duration`（≥ 0.8s，如 spinner/pulse）不属于 motion token 范畴，不替换
+- `global.css` 中的 `@media (prefers-reduced-motion: reduce)` 全局覆盖所有 transition/animation duration，motion token 自动继承降级
 
 > a11y：`global.css` 还含 `@media (prefers-reduced-motion: reduce)`，跟随系统「减少动态效果」偏好把动画/过渡收敛到近瞬时。
 

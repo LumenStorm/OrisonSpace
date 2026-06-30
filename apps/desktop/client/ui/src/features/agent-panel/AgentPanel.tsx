@@ -46,24 +46,27 @@ export function AgentPanel() {
             className={`agent-panel-icon-btn${view === 'settings' ? ' is-active' : ''}`}
             onClick={() => setView(view === 'settings' ? 'chat' : 'settings')}
             title={t('agent.settings')}
+            aria-label={t('agent.settings')}
           >
-            <span className="material-symbols-outlined">settings</span>
+            <span className="material-symbols-outlined" aria-hidden="true">settings</span>
           </button>
           <button
             type="button"
             className="agent-panel-icon-btn"
             onClick={() => newAgentSession()}
             title={t('agent.newConversation')}
+            aria-label={t('agent.newConversation')}
           >
-            <span className="material-symbols-outlined">add</span>
+            <span className="material-symbols-outlined" aria-hidden="true">add</span>
           </button>
           <button
             type="button"
             className={`agent-panel-icon-btn${view === 'history' ? ' is-active' : ''}`}
             onClick={handleShowHistory}
             title={t('agent.history')}
+            aria-label={t('agent.history')}
           >
-            <span className="material-symbols-outlined">history</span>
+            <span className="material-symbols-outlined" aria-hidden="true">history</span>
           </button>
         </div>
       </div>

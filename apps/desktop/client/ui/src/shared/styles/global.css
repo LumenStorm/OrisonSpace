@@ -46,6 +46,24 @@ body {
   overflow: hidden;
 }
 
+/* ── Skip-link (a11y) ──
+ * Hidden offscreen, visible on focus for keyboard navigation. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: var(--z-tooltip);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: var(--space-lg);
+  top: var(--space-lg);
+}
+
 /* ── Keyboard focus ring (a11y) ──
  * Many controls reset `outline: none` for mouse use. :focus-visible restores
  * a visible ring for keyboard/AT navigation only — it does not fire on click,

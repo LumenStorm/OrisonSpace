@@ -323,6 +323,18 @@
   transform: translateY(-2px);
 }
 
+.projects-grid-card:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-soft);
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.projects-grid-card:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
 .projects-grid-card-new {
   border-style: dashed;
   border-width: 2px;

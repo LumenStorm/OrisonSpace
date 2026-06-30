@@ -210,27 +210,28 @@ export function FileTabBar() {
         </nav>
         <div className="file-tab-bar-actions">
           {splitDirection === 'none' && (
-            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.splitOutline') || 'Split Outline'} onClick={() => setSplit('outline')}>
-              <span className="material-symbols-outlined">view_sidebar</span>
+            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.splitOutline') || 'Split Outline'} aria-label={t('fileEditor.splitOutline') || 'Split Outline'} onClick={() => setSplit('outline')}>
+              <span className="material-symbols-outlined" aria-hidden="true">view_sidebar</span>
             </button>
           )}
           {splitDirection === 'outline' && (
-            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.closeSplit') || 'Close Split'} onClick={() => setSplit('none')}>
-              <span className="material-symbols-outlined">view_sidebar</span>
+            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.closeSplit') || 'Close Split'} aria-label={t('fileEditor.closeSplit') || 'Close Split'} onClick={() => setSplit('none')}>
+              <span className="material-symbols-outlined" aria-hidden="true">view_sidebar</span>
             </button>
           )}
           {splitDirection !== 'none' && splitDirection !== 'outline' && (
-            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.closeSplit') || 'Close Split'} onClick={() => setSplit('none')}>
-              <span className="material-symbols-outlined">view_sidebar</span>
+            <button type="button" className="file-tab-bar-action-btn" title={t('fileEditor.closeSplit') || 'Close Split'} aria-label={t('fileEditor.closeSplit') || 'Close Split'} onClick={() => setSplit('none')}>
+              <span className="material-symbols-outlined" aria-hidden="true">view_sidebar</span>
             </button>
           )}
           <button
             type="button"
             className={`file-tab-bar-action-btn${showMinimap ? ' is-active' : ''}`}
             title={t('fileEditor.minimap') || 'Minimap'}
+            aria-label={t('fileEditor.minimap') || 'Minimap'}
             onClick={() => toggleMinimap()}
           >
-            <span className="material-symbols-outlined">map</span>
+            <span className="material-symbols-outlined" aria-hidden="true">map</span>
           </button>
         </div>
         </div>
