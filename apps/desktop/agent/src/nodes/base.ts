@@ -73,7 +73,7 @@ export function createStorySyncNode(): AgentNode {
   };
 }
 
-export function createMemoryExtractorNode(): AgentNode {
+function createMemoryExtractorNode(): AgentNode {
   return {
     contract: {
       nodeId: 'memory-extractor-agent',

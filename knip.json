@@ -2,31 +2,45 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     "apps/desktop/agent": {
-      "entry": ["src/index.ts", "src/**/*.test.ts"],
-      "project": "src/**/*.ts"
+      "entry": ["src/index.ts"],
+      "project": "src/**/*.ts",
+      "ignore": ["src/**/*.test.ts"]
     },
     "apps/desktop/client/shell": {
       "entry": [
         "main/index.ts",
         "preload/index.ts",
-        "renderer/main.tsx",
-        "**/*.test.ts"
+        "renderer/main.tsx"
       ],
-      "project": ["main/**/*.ts", "preload/**/*.ts", "renderer/**/*.{ts,tsx}"]
+      "project": ["main/**/*.ts", "preload/**/*.ts", "renderer/**/*.{ts,tsx}"],
+      "ignore": ["**/*.test.ts"]
     },
     "apps/desktop/client/ui": {
-      "entry": ["src/index.ts", "src/index.tsx", "src/**/*.{test,spec}.{ts,tsx}"],
-      "project": "src/**/*.{ts,tsx}"
+      "entry": ["src/app/App.tsx"],
+      "project": "src/**/*.{ts,tsx}",
+      "ignore": ["src/**/*.{test,spec}.{ts,tsx}"]
     },
     "apps/desktop/local-bff": {
-      "entry": ["index.ts", "**/*.test.ts"],
-      "project": "**/*.ts"
+      "entry": ["index.ts"],
+      "project": "**/*.ts",
+      "ignore": ["**/*.test.ts"]
     },
-    "packages/*": {
-      "entry": ["src/index.ts", "src/**/*.test.ts"],
-      "project": "src/**/*.ts"
+    "packages/shared-contracts": {
+      "entry": ["src/index.ts"],
+      "project": "src/**/*.ts",
+      "ignore": ["src/**/*.test.ts"]
+    },
+    "packages/model-protocols": {
+      "entry": ["src/index.ts"],
+      "project": "src/**/*.ts",
+      "ignore": ["src/**/*.test.ts"]
+    },
+    "packages/story-sync": {
+      "entry": ["src/index.ts"],
+      "project": "src/**/*.ts",
+      "ignore": ["src/**/*.test.ts"]
     }
   },
-  "ignore": ["**/dist/**", "packages/shared-utils/**", "packages/ui-kit/**"],
+  "ignore": ["**/dist/**"],
   "ignoreDependencies": ["@swc/core", "bcrypt"]
 }

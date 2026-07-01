@@ -66,7 +66,7 @@ describe('OutlineEditor regressions', () => {
     } as any);
 
     const { container, unmount } = render(<OutlineEditor />);
-    const input = container.querySelector('.outline-style-input') as HTMLInputElement;
+    const input = container.querySelector('.outline-tag-input') as HTMLInputElement;
     expect(input).toBeTruthy();
 
     // Type three characters with re-renders between (store updates round-trip).
@@ -77,7 +77,7 @@ describe('OutlineEditor regressions', () => {
     fireEvent.change(input, { target: { value: 'abc' } });
 
     // Mid-burst the input keeps the latest value (not reverted to a stale one).
-    expect((container.querySelector('.outline-style-input') as HTMLInputElement).value).toBe('abc');
+    expect((container.querySelector('.outline-tag-input') as HTMLInputElement).value).toBe('abc');
 
     // Debounce not yet elapsed → no write.
     expect(window.orisonDesktop.syncField).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ describe('OutlineEditor regressions', () => {
     expect(field).toBe('outline');
     expect((data as { story_type?: string }).story_type).toBe('abc');
     // Input still shows what was typed — no clobber from the self-write echo.
-    expect((container.querySelector('.outline-style-input') as HTMLInputElement).value).toBe('abc');
+    expect((container.querySelector('.outline-tag-input') as HTMLInputElement).value).toBe('abc');
 
     unmount();
     await vi.runOnlyPendingTimersAsync();

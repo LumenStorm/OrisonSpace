@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import type { GeneratedImageItem } from './ImageGenEditor';
+import type { GeneratedImageItem } from './imageGenTypes';
 import { useDialogA11y } from '../../shared/hooks/useDialogA11y';
 
 type ImageEditTool = 'brush' | 'circle' | 'mask' | 'crop';

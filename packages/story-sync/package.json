@@ -20,5 +20,8 @@
   },
   "dependencies": {
     "@orison/shared-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.4"
   }
 }

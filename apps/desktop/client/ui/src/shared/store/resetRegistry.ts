@@ -34,6 +34,6 @@ export function runProjectResets(): void {
 }
 
 /** Test helper: drop all registrations so a fresh store can re-register cleanly. */
-export function __clearProjectResets(): void {
+function __clearProjectResets(): void {
   resetFns.length = 0;
 }

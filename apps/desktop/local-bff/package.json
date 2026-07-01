@@ -15,5 +15,8 @@
     "@orison/shared-contracts": "workspace:*",
     "zod": "^3.24.3",
     "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.4"
   }
 }

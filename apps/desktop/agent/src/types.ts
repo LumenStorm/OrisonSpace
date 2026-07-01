@@ -3,7 +3,7 @@ import type { SerializedSkillRunState } from './runtime/skillRunState';
 
 // ── Agent Config ──
 
-export const agentConfigSchema = z.object({
+const agentConfigSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   model: z.object({

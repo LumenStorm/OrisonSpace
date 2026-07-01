@@ -45,7 +45,7 @@ const EMPTY_STATS: TextStats = {
  * 从 HTML/markdown 文本里剥掉标签，转成可统计的纯文本。
  * 标签替换为空格，避免相邻文本被粘连成一个词。
  */
-export function stripMarkup(html: string): string {
+function stripMarkup(html: string): string {
   if (!html) return '';
   return html.replace(/<[^>]+>/g, ' ');
 }
@@ -53,7 +53,7 @@ export function stripMarkup(html: string): string {
 /**
  * 统计纯文本的各项指标。输入应为纯文本（非 HTML）。
  */
-export function countText(text: string): TextStats {
+function countText(text: string): TextStats {
   if (!text) return { ...EMPTY_STATS };
 
   const totalChars = text.length;

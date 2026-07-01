@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { creativeFieldKeySchema } from '@orison/shared-contracts';
 import type { ProjectFieldPatch } from '@orison/shared-contracts';
-import { onFieldEdited, applyFieldPatches } from '../../../../local-bff/index';
+import { onFieldEdited, applyFieldPatches } from '@orison/desktop-local-bff';
 import { assertSafePath } from './pathGuard';
 import { withProjectLock } from '../fs/projectWriteLock';
 

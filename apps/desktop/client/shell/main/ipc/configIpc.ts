@@ -336,7 +336,7 @@ export function readModelConfigFromDisk(): ModelConfig {
   return readModelConfig();
 }
 
-export function getModelDirForTest(): string {
+function getModelDirForTest(): string {
   return getModelDir();
 }
 

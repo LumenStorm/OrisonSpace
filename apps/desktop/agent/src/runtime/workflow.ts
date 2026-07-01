@@ -1005,11 +1005,11 @@ export function isSessionNotFoundError(error: unknown): boolean {
   return error instanceof Error && error.message === 'session not found';
 }
 
-export function isRunAlreadyActiveError(error: unknown): boolean {
+function isRunAlreadyActiveError(error: unknown): boolean {
   return error instanceof SessionRunAlreadyActiveError;
 }
 
-export function createPendingConfirmationState(
+function createPendingConfirmationState(
   sessionId: string,
   callId: string,
   name: string,
@@ -1063,7 +1063,7 @@ function makeChildOnMessage(
   };
 }
 
-export function renderSkillExecutionResult(result: WorkflowExecutionResult): string {
+function renderSkillExecutionResult(result: WorkflowExecutionResult): string {
   const sections: string[] = [];
   if (result.outputs.length > 0) {
     sections.push(result.outputs.join('\n\n'));

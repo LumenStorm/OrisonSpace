@@ -37,10 +37,11 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Orison Space
 
-# macOS 同时出 arm64(Apple Silicon) 与 x64(Intel) 两份包。
-# 关键：两种架构在同一次 electron-builder 调用里产出，因此只生成一份
-# latest-mac.yml（同时引用两个 zip），electron-updater 按 process.arch
-# 自动选择正确架构——无需第二个 runner，也不会出现 feed 互相覆盖。
+# 禁用 blockmap（增量更新），减少 Release 页附件数量。
+generateUpdatesFilesForAllChannels: false
+electronDifferentialDownload: false
+
+# macOS 同时出 arm64(Apple Silicon) 与 x64(Intel) 两份 dmg。
 mac:
   # 单张高分辨率 PNG 即可，electron-builder 在 macOS 构建机上自动转 .icns。
   icon: resources/icon.png
@@ -49,10 +50,6 @@ mac:
   identity: null
   target:
     - target: dmg
-      arch:
-        - arm64
-        - x64
-    - target: zip # electron-updater 的 macOS 自动更新依赖 zip 包
       arch:
         - arm64
         - x64

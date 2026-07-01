@@ -51,7 +51,7 @@ function isNotFound(err: unknown): boolean {
   return err instanceof Error && 'code' in err && (err as { code?: string }).code === 'ENOENT';
 }
 
-export function parseAgentDefinition(raw: string, role: string, location: string): AgentDefinition {
+function parseAgentDefinition(raw: string, role: string, location: string): AgentDefinition {
   const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     return { role, systemPrompt: raw.trim(), location };

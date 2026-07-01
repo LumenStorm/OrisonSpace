@@ -17,9 +17,9 @@ const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
 };
 
 /** Empty string = follow the built-in default (--font-display). */
-export const DEFAULT_READING_FONT_FAMILY = '';
-export const DEFAULT_READING_FONT_WEIGHT = 400;
-export const DEFAULT_READING_FONT_SCALE = 1;
+const DEFAULT_READING_FONT_FAMILY = '';
+const DEFAULT_READING_FONT_WEIGHT = 400;
+const DEFAULT_READING_FONT_SCALE = 1;
 
 export type SettingsSlice = {
   theme: ThemeSetting;

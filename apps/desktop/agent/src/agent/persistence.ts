@@ -212,7 +212,7 @@ export interface PersistedContinuationRecord {
   snapshot: ContinuationSnapshot;
 }
 
-export function persistSessionMeta(session: SessionState): void {
+function persistSessionMeta(session: SessionState): void {
   const metaPath = path.join(sessionsDir(session.projectPath), `${session.id}.meta.json`);
   const meta: SessionMetaState = {
     id: session.id,

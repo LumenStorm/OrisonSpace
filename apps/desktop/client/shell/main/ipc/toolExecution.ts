@@ -16,6 +16,9 @@ import { generateImageHandler, editImageHandler } from './toolHandlers/imageHand
 import { gitStatusHandler, gitLogHandler, gitCommitHandler, gitDiffHandler } from './toolHandlers/gitHandlers';
 import { projectMetaHandler, memoryQueryHandler, memoryUpdateHandler, skillHandler } from './toolHandlers/projectHandlers';
 
+export type { ToolExecuteResponse, ToolHandlerContext, ToolHandler } from './toolHandlers/types';
+import type { ToolHandler, ToolExecuteResponse } from './toolHandlers/types';
+
 const logger = getLogger();
 
 // ─── Types ───
@@ -27,20 +30,6 @@ export interface ToolExecuteRequest {
   sessionId: string;
   requestId?: string;
 }
-
-export interface ToolExecuteResponse {
-  title: string;
-  output: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface ToolHandlerContext {
-  params: Record<string, unknown>;
-  projectDir: string;
-  sessionId: string;
-}
-
-export type ToolHandler = (ctx: ToolHandlerContext) => Promise<ToolExecuteResponse>;
 
 // ─── Registry ───
 

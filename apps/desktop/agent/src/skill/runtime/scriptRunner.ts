@@ -66,7 +66,7 @@ export async function runSkillScript(input: RunSkillScriptInput): Promise<SkillS
   });
 }
 
-export function validateScriptPath(skillDir: string, scriptPath: string): string {
+function validateScriptPath(skillDir: string, scriptPath: string): string {
   const scriptsRoot = path.resolve(skillDir, 'scripts');
   const resolved = path.resolve(skillDir, scriptPath);
   const normalizedScriptsRoot = scriptsRoot.toLowerCase();
@@ -80,11 +80,11 @@ export function validateScriptPath(skillDir: string, scriptPath: string): string
   return resolved;
 }
 
-export function normalizeScriptArgs(args: string[]): string[] {
+function normalizeScriptArgs(args: string[]): string[] {
   return args.filter((arg) => /^[a-zA-Z0-9._=:-]+$/.test(arg) && !arg.startsWith('--'));
 }
 
-export function collectScriptResult(
+function collectScriptResult(
   scriptPath: string,
   exitCode: number,
   stdout: string,

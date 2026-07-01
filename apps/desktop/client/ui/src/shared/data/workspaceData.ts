@@ -1,6 +1,6 @@
 import type { ActivePage } from '../store/appStore';
 
-export const moduleItems: Array<{ key: ActivePage; label: string; icon: string }> = [
+const moduleItems: Array<{ key: ActivePage; label: string; icon: string }> = [
   { key: 'outline', label: 'Outline', icon: 'auto_stories' },
   { key: 'script', label: 'Script', icon: 'description' },
   { key: 'storyboard', label: 'Storyboard', icon: 'view_quilt' },
@@ -8,7 +8,7 @@ export const moduleItems: Array<{ key: ActivePage; label: string; icon: string }
   { key: 'video', label: 'Video', icon: 'movie_filter' },
 ];
 
-export const projectTreeItems = [
+const projectTreeItems = [
   ...moduleItems,
   { key: 'assets', label: 'Assets', icon: 'folder_open' },
   { key: 'design', label: 'Design.md', icon: 'edit_note' }
@@ -32,7 +32,7 @@ export const storyboardFrames = [
   }
 ];
 
-export const inspectorFields = [
+const inspectorFields = [
   {
     label: 'Camera Lens',
     options: ['Macro (100mm)', 'Portrait (50mm)', 'Wide (35mm)', 'Ultra-Wide (14mm)'],

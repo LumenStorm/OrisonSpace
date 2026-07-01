@@ -9,25 +9,13 @@ import { useI18n } from '../../shared/i18n/useI18n';
 import { paramsToRequestPayload } from '../../shared/imageGen/schema';
 import { ImageEditDialog } from './ImageEditDialog';
 import { createImageName, fileNameOf, joinProjectPath, toDataUrl } from './imageGenUtils';
+export type { GeneratedImageItem } from './imageGenTypes';
+import type { GeneratedImageItem } from './imageGenTypes';
 
 const GENERATION_IMAGE_DIR = 'temp/images/generation';
 const MAX_UPLOAD_SIZE = 25 * 1024 * 1024; // 25MB
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const PAGE_SIZE = 12;
-
-export type GeneratedImageItem = {
-  id: string;
-  prompt: string;
-  b64Json: string;
-  mimeType: string;
-  dataUrl: string;
-  tempRelativePath: string;
-  tempFullPath: string;
-  savedRelativePath?: string;
-  assetAdded: boolean;
-  source: 'generated' | 'loaded' | 'edited';
-  loading?: boolean;
-};
 
 type ResolvedSlot = {
   ref: ModelRef;

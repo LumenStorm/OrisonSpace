@@ -1,6 +1,6 @@
 import type { ToolDefinition } from '../types';
 
-export class ToolRegistry {
+class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
 
   register(tool: ToolDefinition): void {

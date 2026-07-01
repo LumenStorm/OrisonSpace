@@ -11,19 +11,16 @@
     },
     "test": {
       "dependsOn": [
-        "^test"
+        "^build"
       ],
       "outputs": []
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ],
       "outputs": []
     },
     "typecheck": {
       "dependsOn": [
-        "^typecheck"
+        "^build"
       ],
       "outputs": []
     }

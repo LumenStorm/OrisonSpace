@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@orison/desktop-agent": "workspace:*",
+    "@orison/desktop-local-bff": "workspace:*",
     "@orison/model-protocols": "workspace:*",
     "@orison/shared-contracts": "workspace:*",
     "@orison/story-sync": "workspace:*",
@@ -31,10 +32,10 @@
     "mammoth": "1.9.0",
     "material-symbols": "0.31.8",
     "pino": "^9.7.0",
-    "pino-pretty": "^13.0.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "turndown": "^7.2.0"
+  },
+  "optionalDependencies": {
+    "pino-pretty": "^13.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -47,6 +48,9 @@
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "js-yaml": "^4.1.1",
-    "png-to-ico": "^3.0.1"
+    "png-to-ico": "^3.0.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vitest": "^3.1.4"
   }
 }

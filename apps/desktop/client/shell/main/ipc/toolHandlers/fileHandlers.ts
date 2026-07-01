@@ -5,7 +5,7 @@ import { existsSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
-import type { ToolHandler } from '../toolExecution';
+import type { ToolHandler } from './types';
 import type { ProjectSearchResult } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 

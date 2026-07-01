@@ -95,7 +95,7 @@ export async function handleGenerateImage(payload: GenerateImagePayload): Promis
   return generateImage(resolved, payload.request);
 }
 
-export async function handleGenerateVideo(payload: GenerateVideoPayload): Promise<VideoGenerationResponse> {
+async function handleGenerateVideo(payload: GenerateVideoPayload): Promise<VideoGenerationResponse> {
   const resolved = resolveModel(payload.ref);
   return generateVideo(resolved, payload.request);
 }

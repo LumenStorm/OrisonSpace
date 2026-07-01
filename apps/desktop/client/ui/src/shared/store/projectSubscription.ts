@@ -1,10 +1,16 @@
 import type { ProjectMeta } from './types';
 import { runProjectResets } from './resetRegistry';
 
+type AppStoreApi = {
+  subscribe: (listener: (state: any) => void) => () => void;
+  getState: () => any;
+  setState: (partial: any) => void;
+};
+
 let prevProject: ProjectMeta | null = null;
 let installed = false;
 
-export function installProjectSubscription(useAppStore: typeof import('./appStore').useAppStore) {
+export function installProjectSubscription(useAppStore: AppStoreApi) {
   if (installed) return;
   installed = true;
 

@@ -5,7 +5,7 @@ import {
   createEmptyProjectDocument,
   loadProject,
   saveProject
-} from '../../../local-bff/sync/localProjectRepository';
+} from '@orison/desktop-local-bff';
 
 const { handle } = vi.hoisted(() => ({
   handle: vi.fn()

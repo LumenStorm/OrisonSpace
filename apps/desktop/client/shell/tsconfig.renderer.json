@@ -1,0 +1,15 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "paths": {
+      "@desktop-ui/*": ["../ui/src/*"],
+      "@orison/shared-contracts": ["../../../../packages/shared-contracts/src/index.ts"],
+      "@orison/shared-contracts/*": ["../../../../packages/shared-contracts/src/*"],
+      "@orison/model-protocols": ["../../../../packages/model-protocols/src/index.ts"],
+      "@orison/model-protocols/*": ["../../../../packages/model-protocols/src/*"]
+    }
+  },
+  "include": ["renderer/**/*.tsx", "renderer/**/*.ts"]
+}

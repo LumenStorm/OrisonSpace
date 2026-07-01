@@ -17,11 +17,11 @@ export interface SkillsConfig {
   packages: Record<string, SkillPackageConfig>;
 }
 
-export function getUserOrisonDir(): string {
+function getUserOrisonDir(): string {
   return path.join(os.homedir(), '.orison');
 }
 
-export function getUserSkillsDir(): string {
+function getUserSkillsDir(): string {
   return path.join(getUserOrisonDir(), 'skills');
 }
 
@@ -38,7 +38,7 @@ export async function loadSkillsConfig(): Promise<SkillsConfig> {
   }
 }
 
-export async function saveSkillsConfig(config: SkillsConfig): Promise<void> {
+async function saveSkillsConfig(config: SkillsConfig): Promise<void> {
   const dir = getUserOrisonDir();
   await mkdir(dir, { recursive: true });
   await writeFile(getSkillsConfigPath(), JSON.stringify(config, null, 2), 'utf-8');

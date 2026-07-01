@@ -41,10 +41,10 @@ module.exports = {
     },
     {
       name: 'no-circular',
-      comment: '禁止模块循环依赖。',
+      comment: '禁止模块循环依赖（type-only imports 不计入）。',
       severity: 'warn',
       from: {},
-      to: { circular: true },
+      to: { circular: true, dependencyTypesNot: ['type-only'] },
     },
   ],
   options: {

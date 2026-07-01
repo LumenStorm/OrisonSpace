@@ -11,7 +11,7 @@ export type FileEntry = {
 };
 
 /** Max entries per directory level to prevent memory blow-up on huge repos. */
-export const MAX_ENTRIES_PER_DIR = 500;
+const MAX_ENTRIES_PER_DIR = 500;
 
 export const ALLOWED_IMAGE_DIRS = new Set(['temp/images/generation', 'assets/images']);
 
@@ -62,7 +62,7 @@ export function readDirectoryRecursive(
   }
 }
 
-export function normalizeRelativePath(relativePath: string): string {
+function normalizeRelativePath(relativePath: string): string {
   const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
   if (!normalized || normalized.split('/').some((part) => part === '..')) {
     throw new Error('Invalid relative path');
@@ -76,7 +76,7 @@ export function buildProjectPath(projectDir: string, relativePath: string): stri
   return fullPath;
 }
 
-export function sanitizeFileName(value: string): string {
+function sanitizeFileName(value: string): string {
   const sanitized = value.replace(/[<>:"/\\|?*\x00-\x1F]/g, '-').replace(/\s+/g, '-').slice(0, 80);
   return sanitized || 'image';
 }

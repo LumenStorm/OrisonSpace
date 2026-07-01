@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export async function renderPrompt(
+async function renderPrompt(
   templatePath: string,
   vars: Record<string, string>,
 ): Promise<string> {

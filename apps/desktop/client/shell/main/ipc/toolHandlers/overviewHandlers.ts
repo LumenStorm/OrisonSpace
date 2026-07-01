@@ -6,7 +6,7 @@
  * 'overview') for the UI patch-review flow. On accept, the UI persists via
  * syncProjectMeta (project.json + project.yaml), avoiding a dual-source drift.
  */
-import type { ToolHandler } from '../toolExecution';
+import type { ToolHandler } from './types';
 
 const OVERVIEW_KEYS = ['name', 'logline', 'synopsis', 'genre', 'theme', 'tone'] as const;
 

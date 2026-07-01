@@ -75,7 +75,7 @@ type FamilySpec = {
  * list `4096x4096`); presets bypass `validateCustomDimensions` and rely on
  * server-side validation only.
  */
-export const CUSTOM_SIZE_LIMITS = {
+const CUSTOM_SIZE_LIMITS = {
   edgeMultiple: 16,
   edgeMin: 256,
   edgeMax: 3840,

@@ -8,7 +8,7 @@ export type JsonRequestOptions = {
   signal?: AbortSignal;
 };
 
-export function trimTrailingSlash(value: string): string {
+function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
 

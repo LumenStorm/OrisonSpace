@@ -12,6 +12,7 @@ describe('preload security surface', () => {
   it('only exposes the whitelisted desktop api', () => {
     expect(Object.keys(exposedDesktopApi).sort()).toEqual([
       'abortAgentRun',
+      'applyAgentFieldPatch',
       'checkForUpdate',
       'close',
       'confirmClose',

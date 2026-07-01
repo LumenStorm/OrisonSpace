@@ -48,24 +48,6 @@ export function normalizeTag(registry: TagRegistry, category: TagCategory, rawNa
   return name;
 }
 
-export function registerTag(
-  registry: TagRegistry,
-  category: TagCategory,
-  name: string,
-  aliases: string[] = [],
-): TagRegistry {
-  const id = `${category}:${name}`;
-  const existing = registry.entries.find(e => e.id === id);
-  if (existing) {
-    const newAliases = aliases.filter(a => !existing.aliases.includes(a));
-    if (newAliases.length) existing.aliases.push(...newAliases);
-    return registry;
-  }
-  const entry: TagRegistryEntry = { id, category, canonicalName: name, aliases, lastSeenChapter: 0 };
-  registry.entries.push(entry);
-  return registry;
-}
-
 export function normalizeAndRegister(
   registry: TagRegistry,
   category: TagCategory,

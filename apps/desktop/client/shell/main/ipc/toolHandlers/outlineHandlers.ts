@@ -9,7 +9,7 @@
  * envelope so the UI can surface the change in the patch-review flow (mirrors
  * rewrite_passage). The user accepts/rejects; acceptance persists via syncField.
  */
-import type { ToolHandler } from '../toolExecution';
+import type { ToolHandler } from './types';
 
 async function readOutlineV2(projectDir: string): Promise<unknown> {
   try {

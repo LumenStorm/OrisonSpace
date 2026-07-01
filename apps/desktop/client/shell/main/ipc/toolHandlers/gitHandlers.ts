@@ -5,7 +5,7 @@ import git from 'isomorphic-git';
 import fs from 'node:fs';
 import { assertSafePath } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
-import type { ToolHandler } from '../toolExecution';
+import type { ToolHandler } from './types';
 
 export const gitStatusHandler: ToolHandler = async ({ projectDir }) => {
   assertSafePath(projectDir);

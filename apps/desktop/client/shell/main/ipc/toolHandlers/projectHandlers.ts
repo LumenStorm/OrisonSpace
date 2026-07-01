@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
-import type { ToolHandler } from '../toolExecution';
+import type { ToolHandler } from './types';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 export const projectMetaHandler: ToolHandler = async ({ projectDir }) => {

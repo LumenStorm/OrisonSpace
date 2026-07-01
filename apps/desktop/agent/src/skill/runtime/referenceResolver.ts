@@ -41,7 +41,7 @@ export async function loadReference(input: LoadReferenceInput): Promise<Resolved
   return payload;
 }
 
-export function buildReferencePayload(
+function buildReferencePayload(
   raw: string,
   mode: 'full' | 'excerpt' | 'summary',
   maxLines = 3,

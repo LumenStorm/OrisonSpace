@@ -10,7 +10,7 @@ export function setExecuteToolFn(fn: ExecuteToolFn) {
   _executeTool = fn;
 }
 
-export function getExecuteToolFn(): ExecuteToolFn {
+function getExecuteToolFn(): ExecuteToolFn {
   if (!_executeTool) throw new Error('executeTool not initialized — call setExecuteToolFn first');
   return _executeTool;
 }
