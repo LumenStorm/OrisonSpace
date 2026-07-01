@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { GeneratedImageItem } from './imageGenTypes';
 import { useDialogA11y } from '../../shared/hooks/useDialogA11y';
+import { translate } from '../../shared/i18n/useI18n';
+import { useAppStore } from '../../shared/store/appStore';
 
 type ImageEditTool = 'brush' | 'circle' | 'mask' | 'crop';
 
@@ -296,7 +298,8 @@ export function ImageEditDialog({ item, onCancel, onSave }: ImageEditDialogProps
 
   function handleResetToOriginal() {
     if (history.length === 0) return;
-    if (!window.confirm('Reset to the original image?')) return;
+    const locale = useAppStore.getState().resolvedLocale ?? 'en-US';
+    if (!window.confirm(translate(locale, 'imageGen.resetConfirm'))) return;
     restoreFromHistory(0);
   }
 

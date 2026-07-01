@@ -40,6 +40,8 @@ bottomPanel:
   output: "输出"
   timeline: "时间线"
   noOutput: "暂无输出"
+  tabsLabel: "底部面板选项卡"
+  collapse: "收起面板"
 findReplace:
   findPlaceholder: "查找..."
   replacePlaceholder: "替换..."
@@ -94,3 +96,6 @@ errorBoundary:
 export:
   title: "导出"
   download: "下载"
+workspace:
+  loading: "加载中"
+  agentPanel: "Agent 面板"

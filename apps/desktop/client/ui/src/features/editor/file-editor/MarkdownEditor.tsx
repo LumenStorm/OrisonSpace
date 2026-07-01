@@ -4,19 +4,22 @@ import { useShallow } from 'zustand/react/shallow';
 import { TiptapEditor, type SelectionInfo } from '../TiptapEditor';
 import { DocOutline } from '../DocOutline';
 import { EditorStatusBar } from './EditorStatusBar';
+import { useI18n } from '../../../shared/i18n/useI18n';
 import type { FileTab } from '../../../shared/store/fileTabsSlice';
 import type { SelectionAttachment } from '../../../shared/types/attachment';
 import { randomUUID } from '../../../shared/util/id';
 
 export function MarkdownEditor({ file }: { file: FileTab }) {
-  const { updateFileContent, addAttachment, setAgentPanelOpen, sendAgentMessage } = useAppStore(
+  const { updateFileContent, addAttachment, setAgentPanelOpen, sendAgentMessage, resolvedLocale } = useAppStore(
     useShallow((s) => ({
       updateFileContent: s.updateFileContent,
       addAttachment: s.addAttachment,
       setAgentPanelOpen: s.setAgentPanelOpen,
       sendAgentMessage: s.sendAgentMessage,
+      resolvedLocale: s.resolvedLocale,
     })),
   );
+  const { t } = useI18n(resolvedLocale);
   const containerRef = useRef<HTMLDivElement>(null);
   const [revision, setRevision] = useState(0);
   // The file currently bound to the live editor instance.
@@ -72,7 +75,7 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [file.content]);
 
-  const handleSelectionAction = useCallback((action: 'review' | 'attach', sel: SelectionInfo) => {
+  const handleSelectionAction = useCallback((action: 'review' | 'attach' | 'continue' | 'polish', sel: SelectionInfo) => {
     const content = contentRef.current;
     const prefix = content.slice(Math.max(0, sel.from - 50), sel.from);
     const suffix = content.slice(sel.to, sel.to + 50);
@@ -88,9 +91,13 @@ export function MarkdownEditor({ file }: { file: FileTab }) {
     addAttachment(att);
     setAgentPanelOpen(true);
     if (action === 'review') {
-      void sendAgentMessage('请评阅以下选段');
+      void sendAgentMessage(t('editor.aiReviewPrompt'));
+    } else if (action === 'continue') {
+      void sendAgentMessage(t('editor.aiContinuePrompt'));
+    } else if (action === 'polish') {
+      void sendAgentMessage(t('editor.aiPolishPrompt'));
     }
-  }, [file.path, addAttachment, setAgentPanelOpen, sendAgentMessage]);
+  }, [file.path, addAttachment, setAgentPanelOpen, sendAgentMessage, t]);
 
   return (
     <div className="file-editor-md" ref={containerRef}>

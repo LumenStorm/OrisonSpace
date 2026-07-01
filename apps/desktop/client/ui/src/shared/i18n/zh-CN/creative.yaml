@@ -292,6 +292,8 @@ novelChapter:
     continue: "续写"
     polish: "润色"
     review: "复审"
+  actionsUnavailable: "章节生成功能重建中"
+  rebuilding: "该功能正在重新设计，请通过 Agent 面板进行章节生成操作。"
 editor:
   startWriting: "开始写作..."
   bold: "粗体"
@@ -317,6 +319,9 @@ editor:
   aiPolish: "AI 润色"
   aiReview: "AI 评阅"
   addToAgent: "加入 Agent 引用"
+  aiContinuePrompt: "请从选中段落的末尾续写"
+  aiPolishPrompt: "请润色以下选段，保持原意，优化表达"
+  aiReviewPrompt: "请评阅以下选段"
   unsaved: "未保存的更改"
   closeTab: "关闭 {name}"
   openFiles: "已打开的文件"

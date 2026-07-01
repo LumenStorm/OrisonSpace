@@ -103,6 +103,16 @@
   margin-bottom: var(--space-xs);
   border: 1px solid transparent;
   border-radius: 0.4rem;
+  cursor: grab;
+}
+
+.novel-chapter-item:active {
+  cursor: grabbing;
+}
+
+.novel-chapter-item--drag-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .novel-chapter-itemActive {
@@ -179,6 +189,12 @@
   border-bottom: 1px solid var(--border-default);
   background: var(--surface);
   overflow-x: auto;
+}
+
+.novel-chapter-actions-disabled-hint {
+  color: var(--outline);
+  font-size: var(--text-sm);
+  cursor: default;
 }
 
 .novel-chapter-actions-bar button,

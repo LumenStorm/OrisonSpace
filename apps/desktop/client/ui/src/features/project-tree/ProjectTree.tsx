@@ -153,7 +153,7 @@ export function ProjectTree() {
       }
       await refreshTree();
     } catch {
-      // Import failures are non-fatal; the tree simply won't change.
+      useToastStore.getState().showToast(t('projectTree.importFailed'), 'error');
     }
   }, [projectPath, refreshTree]);
 

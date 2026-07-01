@@ -104,9 +104,10 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 这样做的目标：
 
-- `apiKey` 仅存在于桌面主进程
-- `apiKey` 不进入 agent
+- `apiKey` 不进入 agent（agent 仅持有 `ModelRef`，通过注入的回调间接调用模型网关）
 - provider 适配逻辑统一收敛
+
+> **已知偏差**：renderer 侧 `shared/model/novelModel.ts` 通过 `model:list-keys` IPC 获取到含 `apiKey` 的键配置并构造 `NovelModelRuntime`。这是 legacy chapter-run 路径的遗留，后续重构应改为仅传 `ModelRef` 到主进程解析。
 
 当前支持的生成类型：
 
@@ -116,10 +117,11 @@ Orison Space 是一个基于 Electron 的桌面创作应用，目标是提供从
 
 ## 六、Story Sync 设计
 
-Story Sync 现在是“两段式”：
+Story Sync 当前为单段式本地执行：
 
-1. desktop main 本地执行 story-sync 提取
-2. agent 对补丁再次校验并在失败时回退规则
+1. desktop main 本地执行 story-sync 提取（`storySync:run` IPC → `@orison/story-sync` → LLM → patches）
+
+> **设计意图**：原计划为”两段式”（第二段由 agent 校验补丁），但 agent 校验阶段未实现。当前仅第一段（主进程 LLM 调用）生效，失败时回退 `fallbackToRules: true` 由调用方处理。
 
 作用：
 

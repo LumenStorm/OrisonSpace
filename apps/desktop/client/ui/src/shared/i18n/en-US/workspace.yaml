@@ -40,6 +40,8 @@ bottomPanel:
   output: "Output"
   timeline: "Timeline"
   noOutput: "No output yet"
+  tabsLabel: "Bottom Panel Tabs"
+  collapse: "Collapse panel"
 findReplace:
   findPlaceholder: "Find..."
   replacePlaceholder: "Replace..."
@@ -94,3 +96,6 @@ errorBoundary:
 export:
   title: "Export"
   download: "Download"
+workspace:
+  loading: "Loading"
+  agentPanel: "Agent Panel"

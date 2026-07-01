@@ -73,7 +73,7 @@ Agent Panel 独立于 Bottom Panel，从顶部到窗口底部全高显示。Bott
 | 💡 建议 (Suggest) | suggest | 全部 tools 可用。写入类 tool 执行后前端弹出 DiffCard，用户 Accept 后才写入编辑器。 |
 | ⚡ 自动 (Auto) | auto | 全部 tools 直接执行，写入类 tool 结果自动同步到编辑器，无需确认。 |
 
-Mode 控制逻辑完全在前端（`agentSlice`），Agent 后端不感知 mode。前端维护写入类 tool 白名单（单一来源 `agentDiffSlice.ts` 导出的 `WRITE_TOOLS`）：`['chapter_write', 'write_file', 'outline_update', 'rewrite_passage']`。
+Mode 控制逻辑完全在前端（`agentSlice`），Agent 后端不感知 mode。前端维护写入类 tool 白名单（单一来源 `agentDiffSlice.ts` 导出的 `WRITE_TOOLS`）：`['chapter_write', 'write_file', 'outline_update', 'overview_update', 'rewrite_passage']`。
 
 ## 双向联动
 

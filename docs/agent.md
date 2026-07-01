@@ -107,11 +107,13 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 { "type": "tool", "data": { "id": "...", "results": [...] } }
 { "type": "child", "data": { "source": "subagent", "role": "...", "depth": 1, "event": {...} } }
 { "type": "confirm_required", "data": { "sessionId": "...", "callId": "...", "name": "...", "input": {...} } }
+{ "type": "compaction", "data": { "compactedCount": 5 } }
 { "type": "done", "data": { "status": "completed" } }
 { "type": "error", "data": { "message": "..." } }
 ```
 
 - `child` 事件用于把嵌套执行(spawn_agent、skill 内部的子 runLoop)中的 assistant / tool 消息回流给前端,UI 可凭 `source` (`subagent` 或 `skill`) 与 `role`、`depth` 加角标渲染。
+- `compaction` 事件在 loop 执行过程中上下文自动压缩时触发，前端收到后弹 toast 提示用户历史消息已被压缩。
 - 同一会话只会产出一条最终 `done`,所有 `child` 事件都属于当前会话的子执行。
 
 ## 内置 Tools
@@ -133,6 +135,7 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 | `rewrite_passage` | 改写章节/文件中的某个选段（不落盘，返回 passage diff 供前端定位回写） |
 | `outline_read` | 读取大纲文件 |
 | `outline_update` | 更新大纲 |
+| `overview_update` | 更新项目概览（名称/简介/梗概），不直接落盘，返回 patch 供前端 review |
 
 ### 故事记忆
 | Tool | 说明 |
@@ -192,7 +195,7 @@ User Message
             └──────────────┘
 ```
 
-- 主对话 loop 上限 30 步；skill / spawn_agent 子 loop 上限 50 步（`maxSteps` 默认值，防止无限 loop）
+- 主对话 loop 上限 50 步；skill / spawn_agent 子 loop 上限 30 步（`maxSteps` 默认值，防止无限 loop）
 - 支持 AbortSignal 中断（基于 TCP socket close 事件，而非 request body close）
 - 同一轮内的多个 tool call 按顺序依次 `await` 执行（非并行），结果按序追加到消息历史
 - 单轮 LLM 输出被 `length` 截断时自动注入续写提示继续下一步

@@ -23,7 +23,7 @@ type TiptapEditorProps = {
   extraContextItems?: ContextMenuItem[];
   bubbleMenu?: boolean;
   disableFind?: boolean;
-  onSelectionAction?: (action: 'review' | 'attach', selection: SelectionInfo) => void;
+  onSelectionAction?: (action: 'review' | 'attach' | 'continue' | 'polish', selection: SelectionInfo) => void;
 };
 
 const menuItems = [
@@ -185,6 +185,16 @@ export function TiptapEditor({
         const { from, to } = editor.state.selection;
         const text = editor.state.doc.textBetween(from, to, '\n');
         if (text) onSelectionAction('review', { text, from, to });
+      }},
+      { type: 'item' as const, label: t('editor.aiContinue'), icon: 'auto_fix_high', disabled: !hasSelection, onClick: () => {
+        const { from, to } = editor.state.selection;
+        const text = editor.state.doc.textBetween(from, to, '\n');
+        if (text) onSelectionAction('continue', { text, from, to });
+      }},
+      { type: 'item' as const, label: t('editor.aiPolish'), icon: 'auto_awesome', disabled: !hasSelection, onClick: () => {
+        const { from, to } = editor.state.selection;
+        const text = editor.state.doc.textBetween(from, to, '\n');
+        if (text) onSelectionAction('polish', { text, from, to });
       }},
       { type: 'item' as const, label: t('editor.addToAgent'), icon: 'attach_file', disabled: !hasSelection, onClick: () => {
         const { from, to } = editor.state.selection;

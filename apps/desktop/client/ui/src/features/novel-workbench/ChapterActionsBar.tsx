@@ -1,17 +1,12 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
-import type { NovelChapterRunMode } from '../../shared/store/novelChapterSlice';
-import { NovelModelSelector } from './NovelModelSelector';
-
-const ACTION_MODES: NovelChapterRunMode[] = ['generate', 'continue', 'polish', 'review'];
+import { Tooltip } from '../../shared/components/Tooltip';
 
 export function ChapterActionsBar() {
-  const { activeId, startRun, status, resolvedLocale } = useAppStore(
+  const { activeId, resolvedLocale } = useAppStore(
     useShallow((s) => ({
       activeId: s.activeChapterId,
-      startRun: s.startChapterRun,
-      status: s.chapterCandidateStatus,
       resolvedLocale: s.resolvedLocale,
     })),
   );
@@ -25,21 +20,13 @@ export function ChapterActionsBar() {
     );
   }
 
-  const isRunning = status === 'running';
-
   return (
     <div className="novel-chapter-actions-bar" aria-label="Chapter Actions">
-      <NovelModelSelector />
-      {ACTION_MODES.map((mode) => (
-        <button
-          key={mode}
-          type="button"
-          disabled={isRunning}
-          onClick={() => void startRun(activeId, mode)}
-        >
-          {t(`novelChapter.actionLabel.${mode}`)}
-        </button>
-      ))}
+      <Tooltip label={t('novelChapter.rebuilding')} placement="bottom">
+        <span className="novel-chapter-actions-disabled-hint">
+          {t('novelChapter.actionsUnavailable')}
+        </span>
+      </Tooltip>
     </div>
   );
 }

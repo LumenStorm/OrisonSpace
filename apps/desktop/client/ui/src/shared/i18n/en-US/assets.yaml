@@ -39,3 +39,4 @@ projectTree:
   deleteConfirmFile: "Delete \"{name}\"? This can't be undone."
   deleteConfirmDir: "Delete the folder \"{name}\" and everything inside it? This can't be undone."
   noProjectPath: "No project is open."
+  importFailed: "File import failed"

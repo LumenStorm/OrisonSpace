@@ -22,6 +22,7 @@ export type EditorSlice = {
   addChapter: (title?: string) => Promise<void>;
   removeChapter: (id: string) => void;
   reorderChapter: (id: string, direction: 'up' | 'down') => void;
+  moveChapter: (fromIndex: number, toIndex: number) => void;
   updateChapter: (id: string, patch: Partial<Omit<Chapter, 'id'>>) => void;
   setActiveChapter: (id: string | null) => void;
   undo: () => void;
@@ -109,6 +110,22 @@ export const createEditorSlice: StateCreator<
     const snapshot = snap(state);
     const next = [...state.chapters];
     [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+    set({
+      undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), snapshot],
+      redoStack: [],
+      chapters: next,
+    });
+  },
+
+  moveChapter: (fromIndex, toIndex) => {
+    const state = get();
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || fromIndex >= state.chapters.length) return;
+    if (toIndex < 0 || toIndex >= state.chapters.length) return;
+    const snapshot = snap(state);
+    const next = [...state.chapters];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
     set({
       undoStack: [...state.undoStack.slice(-MAX_UNDO + 1), snapshot],
       redoStack: [],

@@ -1,9 +1,8 @@
-import { useMemo, useCallback } from 'react';
+import { useCallback } from 'react';
 import { TiptapEditor, type SelectionInfo } from './TiptapEditor';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
-import type { ContextMenuItem } from '../../shared/components/ContextMenu';
 import type { SelectionAttachment } from '../../shared/types/attachment';
 import { randomUUID } from '../../shared/util/id';
 
@@ -24,13 +23,7 @@ export function ScriptEditor() {
 
   const activeChapter = chapters.find((c) => c.id === activeChapterId);
 
-  const extraContextItems: ContextMenuItem[] = useMemo(() => [
-    { type: 'separator' },
-    { type: 'item', label: t('editor.aiContinue'), icon: 'auto_fix_high', disabled: true, onClick: () => {} },
-    { type: 'item', label: t('editor.aiPolish'), icon: 'auto_awesome', disabled: true, onClick: () => {} },
-  ], [t]);
-
-  const handleSelectionAction = useCallback((action: 'review' | 'attach', sel: SelectionInfo) => {
+  const handleSelectionAction = useCallback((action: 'review' | 'attach' | 'continue' | 'polish', sel: SelectionInfo) => {
     if (!activeChapter) return;
     const content = activeChapter.content;
     const prefix = content.slice(Math.max(0, sel.from - 50), sel.from);
@@ -47,9 +40,13 @@ export function ScriptEditor() {
     addAttachment(att);
     setAgentPanelOpen(true);
     if (action === 'review') {
-      void sendAgentMessage('请评阅以下选段');
+      void sendAgentMessage(t('editor.aiReviewPrompt'));
+    } else if (action === 'continue') {
+      void sendAgentMessage(t('editor.aiContinuePrompt'));
+    } else if (action === 'polish') {
+      void sendAgentMessage(t('editor.aiPolishPrompt'));
     }
-  }, [activeChapter, addAttachment, setAgentPanelOpen, sendAgentMessage]);
+  }, [activeChapter, addAttachment, setAgentPanelOpen, sendAgentMessage, t]);
 
   if (!activeChapter) {
     return (
@@ -72,7 +69,6 @@ export function ScriptEditor() {
         placeholder={t('script.startWriting')}
         onChange={(html) => updateChapter(activeChapter.id, { content: html })}
         flush
-        extraContextItems={extraContextItems}
         onSelectionAction={handleSelectionAction}
       />
     </div>

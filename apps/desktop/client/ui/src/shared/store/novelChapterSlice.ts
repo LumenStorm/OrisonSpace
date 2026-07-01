@@ -47,6 +47,7 @@ export type { NovelChapterRunMode } from '../api/novelChapter';
 export type NovelChapterSlice = {
   novelChapters: NovelChapterMeta[];
   setNovelChapters: (chapters: NovelChapterMeta[]) => void;
+  moveNovelChapter: (fromIndex: number, toIndex: number) => void;
 
   activeChapterId: string | null;
   selectChapter: (chapterId: string) => void;
@@ -119,6 +120,19 @@ export const createNovelChapterSlice: StateCreator<
     const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
     set({ novelChapters: sorted });
     persistChaptersMeta(sorted, get().currentProject?.path);
+  },
+
+  moveNovelChapter: (fromIndex, toIndex) => {
+    const { novelChapters } = get();
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || fromIndex >= novelChapters.length) return;
+    if (toIndex < 0 || toIndex >= novelChapters.length) return;
+    const next = [...novelChapters];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    const reordered = next.map((ch, i) => ({ ...ch, sortOrder: i }));
+    set({ novelChapters: reordered });
+    persistChaptersMeta(reordered, get().currentProject?.path);
   },
 
   activeChapterId: null,

@@ -292,6 +292,8 @@ novelChapter:
     continue: "Continue"
     polish: "Polish"
     review: "Review"
+  actionsUnavailable: "Chapter generation is being rebuilt"
+  rebuilding: "This feature is being redesigned. Use the Agent panel for chapter generation."
 editor:
   startWriting: "Start writing..."
   bold: "Bold"
@@ -317,6 +319,9 @@ editor:
   aiPolish: "AI Polish"
   aiReview: "AI Review"
   addToAgent: "Add to Agent"
+  aiContinuePrompt: "Continue writing from the end of this selected passage"
+  aiPolishPrompt: "Polish the following passage — preserve the meaning, improve the expression"
+  aiReviewPrompt: "Review the following passage"
   unsaved: "Unsaved changes"
   closeTab: "Close {name}"
   openFiles: "Open files"

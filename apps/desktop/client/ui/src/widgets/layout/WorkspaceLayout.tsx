@@ -5,8 +5,10 @@ import { AgentPanel } from '../../features/agent-panel/AgentPanel';
 import { BottomPanel } from '../../features/bottom-panel/BottomPanel';
 import { ResizeHandle } from '../../shared/components/ResizeHandle';
 import { PageSkeleton } from '../../shared/components/PageSkeleton';
+import { ErrorBoundary } from '../../shared/components/ErrorBoundary';
 import { Tooltip } from '../../shared/components/Tooltip';
 import { useAppStore } from '../../shared/store/appStore';
+import { useI18n } from '../../shared/i18n/useI18n';
 import { useProjectTreeResize, useAgentPanelResize } from '../../shared/hooks/usePanelResize';
 import { useAutoSave } from '../../shared/hooks/useAutoSave';
 import { ICON_RAIL_WIDTH } from '../../shared/constants';
@@ -37,6 +39,7 @@ export function WorkspaceLayout() {
     mainView,
     splitDirection, splitFilePath,
     bottomPanelOpen,
+    resolvedLocale,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     projectTreeOpen: s.projectTreeOpen,
@@ -50,8 +53,10 @@ export function WorkspaceLayout() {
     splitDirection: s.splitDirection,
     splitFilePath: s.splitFilePath,
     bottomPanelOpen: s.bottomPanelOpen,
+    resolvedLocale: s.resolvedLocale,
   })));
 
+  const { t } = useI18n(resolvedLocale);
   const handleTreeResize = useProjectTreeResize();
   const handleAgentResize = useAgentPanelResize();
   useAutoSave();
@@ -97,25 +102,29 @@ export function WorkspaceLayout() {
         <SideNav />
         {projectTreeOpen && (
           <>
-            <Suspense fallback={<PageSkeleton variant="sidebar" />}>
-              {activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<PageSkeleton variant="sidebar" />}>
+                {activeSidebarPanel === 'timeline' ? <TimelinePanel /> : activeSidebarPanel === 'search' ? <SearchPanel /> : <ProjectTree />}
+              </Suspense>
+            </ErrorBoundary>
             <ResizeHandle onResize={handleTreeResize} />
           </>
         )}
         <div style={{ display: 'flex', minWidth: 0, minHeight: 0 }}>
           <div id="main-content" tabIndex={-1} className="workspace-main" style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, position: 'relative' }}>
-            <Suspense fallback={<PageSkeleton variant="page" />}>
-              {renderMainContent()}
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<PageSkeleton variant="page" />}>
+                {renderMainContent()}
+              </Suspense>
+            </ErrorBoundary>
             {bottomPanelOpen && <BottomPanel />}
           </div>
-          <Tooltip label="Agent" placement="left">
+          <Tooltip label={t('workspace.agentPanel')} placement="left">
             <button
               type="button"
               className={`agent-side-tab${agentPanelOpen ? ' is-open' : ''}`}
               onClick={toggleAgentPanel}
-              aria-label="Agent"
+              aria-label={t('workspace.agentPanel')}
             >
               <span className="material-symbols-outlined">
                 {agentPanelOpen ? 'chevron_right' : 'chevron_left'}

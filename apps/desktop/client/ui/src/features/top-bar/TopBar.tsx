@@ -109,11 +109,19 @@ export function TopBar() {
       active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)
         ? active
         : document.querySelector<HTMLElement>('.code-editor-textarea, .tiptap-content .tiptap');
-    if (!editable) return;
-    editable.focus();
-    editable.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, metaKey: true, shiftKey: shift, bubbles: true }),
-    );
+    if (editable) {
+      editable.focus();
+      editable.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, metaKey: true, shiftKey: shift, bubbles: true }),
+      );
+      return;
+    }
+    const store = useAppStore.getState();
+    if (shift) {
+      store.redoField();
+    } else {
+      store.undoField();
+    }
   }, []);
   const handleUndo = useCallback(() => dispatchEditCommand(false), [dispatchEditCommand]);
   const handleRedo = useCallback(() => dispatchEditCommand(true), [dispatchEditCommand]);

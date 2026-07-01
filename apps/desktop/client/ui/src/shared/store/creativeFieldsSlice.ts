@@ -28,10 +28,16 @@ export type CreativeFieldsSlice = {
   activeCreativeTab: CreativeFieldKey;
   pendingPatch: ProjectFieldPatch | null;
   patchSelections: Record<string, boolean>;
+  fieldUndoStack: Array<{ field: CreativeFieldKey; data: unknown }>;
+  fieldRedoStack: Array<{ field: CreativeFieldKey; data: unknown }>;
 
   setActiveCreativeTab: (tab: CreativeFieldKey) => void;
   loadCreativeFields: (doc: ProjectDocument) => void;
   updateField: (field: CreativeFieldKey, data: unknown) => void;
+  undoField: () => void;
+  redoField: () => void;
+  canUndoField: () => boolean;
+  canRedoField: () => boolean;
   toggleFieldLock: (field: CreativeFieldKey) => void;
   setPendingPatch: (patch: ProjectFieldPatch | null) => void;
   togglePatchSelection: (field: string) => void;
@@ -59,7 +65,7 @@ export const createCreativeFieldsSlice: StateCreator<
   // current project. Clear them on switch; projectSubscription re-hydrates from
   // the new project's project.yaml.
   registerProjectReset(() => {
-    set({ creativeFields: {}, fieldMetadata: {}, pendingPatch: null, patchSelections: {} });
+    set({ creativeFields: {}, fieldMetadata: {}, pendingPatch: null, patchSelections: {}, fieldUndoStack: [], fieldRedoStack: [] });
   });
 
   return {
@@ -68,6 +74,8 @@ export const createCreativeFieldsSlice: StateCreator<
   activeCreativeTab: 'world_setting',
   pendingPatch: null,
   patchSelections: {},
+  fieldUndoStack: [],
+  fieldRedoStack: [],
 
   setActiveCreativeTab: (tab) => set({ activeCreativeTab: tab }),
 
@@ -90,21 +98,68 @@ export const createCreativeFieldsSlice: StateCreator<
   },
 
   updateField: (field, data) => {
-    const { creativeFields, fieldMetadata, currentProject } = get();
+    const { creativeFields, fieldMetadata, fieldUndoStack, currentProject } = get();
+    const previousData = creativeFields[field];
     const meta = fieldMetadata[field] ?? { ...DEFAULT_METADATA };
     set({
       creativeFields: { ...creativeFields, [field]: data },
       fieldMetadata: {
         ...fieldMetadata,
         [field]: { ...meta, version: meta.version + 1, source: 'user', stale: false }
-      }
+      },
+      fieldUndoStack: [...fieldUndoStack.slice(-29), { field, data: previousData }],
+      fieldRedoStack: [],
     });
-    // 持久化到磁盘：通过 IPC 调用 local-bff 的 fieldSyncBridge.onFieldEdited
     if (currentProject?.path && window.orisonDesktop?.syncField) {
       const locale = (get() as any).resolvedLocale ?? 'en-US';
       window.orisonDesktop.syncField(currentProject.path, field, data).catch((err) => reportSyncFailure(locale, field, err));
     }
   },
+
+  undoField: () => {
+    const { fieldUndoStack, fieldRedoStack, creativeFields, fieldMetadata, currentProject } = get();
+    if (fieldUndoStack.length === 0) return;
+    const entry = fieldUndoStack[fieldUndoStack.length - 1];
+    const currentData = creativeFields[entry.field];
+    const meta = fieldMetadata[entry.field] ?? { ...DEFAULT_METADATA };
+    set({
+      creativeFields: { ...creativeFields, [entry.field]: entry.data },
+      fieldMetadata: {
+        ...fieldMetadata,
+        [entry.field]: { ...meta, version: meta.version + 1, source: 'user', stale: false }
+      },
+      fieldUndoStack: fieldUndoStack.slice(0, -1),
+      fieldRedoStack: [...fieldRedoStack, { field: entry.field, data: currentData }],
+    });
+    if (currentProject?.path && window.orisonDesktop?.syncField) {
+      const locale = (get() as any).resolvedLocale ?? 'en-US';
+      window.orisonDesktop.syncField(currentProject.path, entry.field, entry.data).catch((err) => reportSyncFailure(locale, entry.field, err));
+    }
+  },
+
+  redoField: () => {
+    const { fieldUndoStack, fieldRedoStack, creativeFields, fieldMetadata, currentProject } = get();
+    if (fieldRedoStack.length === 0) return;
+    const entry = fieldRedoStack[fieldRedoStack.length - 1];
+    const currentData = creativeFields[entry.field];
+    const meta = fieldMetadata[entry.field] ?? { ...DEFAULT_METADATA };
+    set({
+      creativeFields: { ...creativeFields, [entry.field]: entry.data },
+      fieldMetadata: {
+        ...fieldMetadata,
+        [entry.field]: { ...meta, version: meta.version + 1, source: 'user', stale: false }
+      },
+      fieldUndoStack: [...fieldUndoStack, { field: entry.field, data: currentData }],
+      fieldRedoStack: fieldRedoStack.slice(0, -1),
+    });
+    if (currentProject?.path && window.orisonDesktop?.syncField) {
+      const locale = (get() as any).resolvedLocale ?? 'en-US';
+      window.orisonDesktop.syncField(currentProject.path, entry.field, entry.data).catch((err) => reportSyncFailure(locale, entry.field, err));
+    }
+  },
+
+  canUndoField: () => get().fieldUndoStack.length > 0,
+  canRedoField: () => get().fieldRedoStack.length > 0,
 
   toggleFieldLock: (field) => {
     const { fieldMetadata } = get();

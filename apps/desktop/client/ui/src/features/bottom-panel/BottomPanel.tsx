@@ -25,7 +25,7 @@ export function BottomPanel() {
   return (
     <div className="bottom-panel">
       <div className="bottom-panel-header">
-        <nav className="bottom-panel-tabs" aria-label="Bottom Panel Tabs">
+        <nav className="bottom-panel-tabs" aria-label={t('bottomPanel.tabsLabel')}>
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -41,7 +41,7 @@ export function BottomPanel() {
         <button
           type="button"
           className="bottom-panel-collapse-btn"
-          aria-label="Collapse panel"
+          aria-label={t('bottomPanel.collapse')}
           onClick={toggleBottomPanel}
         >
           <span className="material-symbols-outlined" aria-hidden="true">expand_more</span>

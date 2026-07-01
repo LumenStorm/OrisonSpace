@@ -56,11 +56,11 @@ App
         │   ├── SearchPanel (activeSidebarPanel='search')
         │   └── TimelinePanel (activeSidebarPanel='timeline')
         ├── workspace-main (flex column)
-        │   ├── [文件编辑模式: hasOpenFiles = true]
+        │   ├── [文件编辑模式: mainView='files' && hasOpenFiles = true]
         │   │   ├── FileTabBar
         │   │   ├── FileEditor
         │   │   └── SplitFileEditor (splitDirection !== 'none' 时)
-        │   ├── [页面模式: hasOpenFiles = false, 按 activePage 切换]
+        │   ├── [页面模式: mainView='page', 按 activePage 切换]
         │   │   ├── OverviewPage (activePage='overview')
         │   │   ├── OutlineEditor (activePage='outline')
         │   │   ├── ScriptEditorPage (activePage='novel'|'script')
@@ -150,10 +150,10 @@ workspace-shell
 │   ├── ResizeHandle
 │   └── main-area (Flex row)
 │       ├── workspace-main (Flex column, flex:1)
-│       │   ├── [文件编辑模式: hasOpenFiles = true]
+│       │   ├── [文件编辑模式: mainView='files']
 │       │   │   ├── FileTabBar
 │       │   │   └── workspace-content → FileEditor + SplitFileEditor
-│       │   ├── [页面模式: hasOpenFiles = false]
+│       │   ├── [页面模式: mainView='page']
 │       │   │   └── workspace-panel-content → 按 activePage 渲染对应组件
 │       │   └── BottomPanel (条件渲染 bottomPanelOpen)
 │       ├── ResizeHandle (Agent Panel 宽度)
@@ -162,8 +162,11 @@ workspace-shell
 ```
 
 渲染逻辑：
-1. 如果 `hasOpenFiles` 为 true → 显示 FileTabBar + FileEditor（+ 可选 SplitFileEditor）
-2. 否则按 `activePage` switch 渲染对应页面组件
+1. 内容区由 `mainView: 'page' | 'files'` 状态控制切换模式：
+   - `mainView === 'files'` 且 `hasOpenFiles` 为 true → 显示 FileTabBar + FileEditor（+ 可选 SplitFileEditor）
+   - `mainView === 'page'` → 按 `activePage` switch 渲染对应页面组件
+2. 打开文件时自动设置 `mainView: 'files'`；点击侧栏导航页面入口时设置 `mainView: 'page'`
+3. 两种模式互斥，不会同时渲染
 
 底部面板始终可用（所有模式下都可展开）。底部展开按钮在面板关闭时显示。
 
