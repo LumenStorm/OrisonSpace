@@ -13,6 +13,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { base64ToBlob, normalizeBaseUrl, postJson, postMultipart } from './http';
 import { normalizeImageResponse } from './imageNormalize';
 import { ProtocolHttpError, ProtocolNotImplementedError } from './errors';
+import { withRetry } from './retry';
 import type { ProtocolCallContext } from './types';
 
 // ── Provider factory ──
@@ -26,7 +27,9 @@ export function createProvider(model: ResolvedModel): import('@ai-sdk/provider')
   return openai.chat(model.modelId);
 }
 
-// Some OpenAI-compatible APIs (e.g. DashScope) reject `content: null` on assistant messages.
+// Some OpenAI-compatible APIs (e.g. DashScope) reject `content: null` on
+// assistant messages AND expect `tool_calls[].function.arguments` to be a
+// parsed object rather than a JSON string.
 const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
   if (init?.body && typeof init.body === 'string') {
     try {
@@ -35,6 +38,13 @@ const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
         for (const msg of json.messages) {
           if (msg.role === 'assistant' && msg.content === null) {
             msg.content = '';
+          }
+          if (msg.role === 'assistant' && Array.isArray(msg.tool_calls)) {
+            for (const tc of msg.tool_calls) {
+              if (tc.function && typeof tc.function.arguments === 'string') {
+                try { tc.function.arguments = JSON.parse(tc.function.arguments); } catch { /* keep as-is */ }
+              }
+            }
           }
         }
         init = { ...init, body: JSON.stringify(json) };
@@ -201,12 +211,15 @@ async function generateFromPrompt(
   if (request.background) body.background = request.background;
   if (request.outputFormat) body.output_format = request.outputFormat;
 
-  const raw = await postJson<OpenAiImageResponse>({
-    url: `${baseUrl}/images/generations`,
-    headers: { authorization: `Bearer ${model.apiKey}` },
-    body,
-    signal: ctx?.signal,
-  });
+  const raw = await withRetry(
+    () => postJson<OpenAiImageResponse>({
+      url: `${baseUrl}/images/generations`,
+      headers: { authorization: `Bearer ${model.apiKey}` },
+      body,
+      signal: ctx?.signal,
+    }),
+    { signal: ctx?.signal },
+  );
   return buildImageResponse(model, raw);
 }
 
@@ -218,22 +231,27 @@ async function editImage(
   if (!request.image || !('b64Json' in request.image)) throw new ProtocolHttpError('editImage requires base64 image input', 500);
   const baseUrl = normalizeBaseUrl(model.baseUrl);
 
-  const form = new FormData();
-  form.set('model', model.modelId);
-  form.set('prompt', request.prompt);
-  form.set('image', base64ToBlob(request.image.b64Json, request.image.mimeType), 'image.png');
-  if (request.mask && 'b64Json' in request.mask) {
-    form.set('mask', base64ToBlob(request.mask.b64Json, request.mask.mimeType), 'mask.png');
-  }
-  if (request.n !== undefined) form.set('n', String(request.n));
-  if (request.size) form.set('size', request.size);
+  const raw = await withRetry(
+    () => {
+      const form = new FormData();
+      form.set('model', model.modelId);
+      form.set('prompt', request.prompt);
+      form.set('image', base64ToBlob(request.image!.b64Json, request.image!.mimeType), 'image.png');
+      if (request.mask && 'b64Json' in request.mask) {
+        form.set('mask', base64ToBlob(request.mask.b64Json, request.mask.mimeType), 'mask.png');
+      }
+      if (request.n !== undefined) form.set('n', String(request.n));
+      if (request.size) form.set('size', request.size);
 
-  const raw = await postMultipart<OpenAiImageResponse>({
-    url: `${baseUrl}/images/edits`,
-    headers: { authorization: `Bearer ${model.apiKey}` },
-    formData: form,
-    signal: ctx?.signal,
-  });
+      return postMultipart<OpenAiImageResponse>({
+        url: `${baseUrl}/images/edits`,
+        headers: { authorization: `Bearer ${model.apiKey}` },
+        formData: form,
+        signal: ctx?.signal,
+      });
+    },
+    { signal: ctx?.signal },
+  );
   return buildImageResponse(model, raw);
 }
 

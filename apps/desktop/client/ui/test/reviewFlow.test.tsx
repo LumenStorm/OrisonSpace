@@ -85,7 +85,7 @@ describe('review flow', () => {
     });
   });
 
-  it('surfaces an accepted task-result patch in the editor area', async () => {
+  it('surfaces an accepted task-result patch in the editor area', { timeout: 15000 }, async () => {
     // The editor pages (novel/script) mount AcceptedPatchesView, which renders
     // accepted patch operations as readonly inputs.
     useAppStore.setState({ activePage: 'script' } as any);
@@ -102,10 +102,10 @@ describe('review flow', () => {
 
     // Rendering the full <App/> (plus eager i18n YAML load) and the post-accept
     // re-render can exceed findBy's 1s default under heavy parallel full-suite
-    // load, causing a load-dependent flake (passes isolated). Wait up to 4s —
-    // still under the 5s testTimeout — so a slow render isn't a false failure.
+    // load, causing a load-dependent flake (passes isolated). Wait up to 8s —
+    // CI runners under heavy parallelism are slow.
     expect(
-      await screen.findByDisplayValue('Rewritten: Make the opening darker.', undefined, { timeout: 4000 }),
+      await screen.findByDisplayValue('Rewritten: Make the opening darker.', undefined, { timeout: 8000 }),
     ).toBeInTheDocument();
   });
 });

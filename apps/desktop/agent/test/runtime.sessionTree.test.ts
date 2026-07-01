@@ -6,15 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('runtime session tree', () => {
   let projectPath = '';
+  let closeAllDbs: () => void;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     projectPath = mkdtempSync(path.join(os.tmpdir(), 'orison-session-tree-'));
+    const persistence = await import('../src/agent/persistence');
+    closeAllDbs = persistence.closeAllDbs;
   });
 
-  afterEach(async () => {
-    const { closeDb } = await import('../src/agent/persistence');
-    closeDb(projectPath);
-    rmSync(projectPath, { recursive: true, force: true });
+  afterEach(() => {
+    closeAllDbs();
+    rmSync(projectPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     vi.resetModules();
   });
 

@@ -1,10 +1,15 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ImageGenEditor } from '../src/features/editor/ImageGenEditor';
 import { useAppStore } from '../src/shared/store/appStore';
 import { useConfirmStore } from '../src/shared/store/confirmStore';
 import { defaultParamsFor } from '../src/shared/imageGen/schema';
+
+const TEST_PROJECT_DIR = join(tmpdir(), 'OrisonSpace', 'ImageProject');
+const TEST_PROJECT_DIR_POSIX = TEST_PROJECT_DIR.replace(/\\/g, '/');
 
 // `src/shared/api/filesystem.ts` binds `const api = window.orisonDesktop` at
 // module-load time. In the test environment the preload bridge isn't installed
@@ -30,7 +35,7 @@ describe('ImageGenEditor', () => {
       currentProject: {
         projectId: '00001',
         name: 'Image Project',
-        path: 'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject',
+        path: TEST_PROJECT_DIR,
         type: 'novel',
       },
       modelConfig: {
@@ -64,10 +69,10 @@ describe('ImageGenEditor', () => {
     (window as any).orisonDesktop = {
       saveBase64Image: vi.fn().mockResolvedValue({
         relativePath: 'temp/images/generation/test.png',
-        fullPath: 'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\temp\\images\\generation\\test.png',
+        fullPath: `${TEST_PROJECT_DIR}\\temp\\images\\generation\\test.png`,
         fileName: 'test.png',
       }),
-      moveProjectFile: vi.fn().mockResolvedValue('C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject\\assets\\images\\test.png'),
+      moveProjectFile: vi.fn().mockResolvedValue(`${TEST_PROJECT_DIR}\\assets\\images\\test.png`),
       generateImage: vi.fn().mockResolvedValue({
         provider: 'openai',
         model: 'gpt-image-1',
@@ -141,7 +146,7 @@ describe('ImageGenEditor', () => {
     await userEvent.click(addButton);
 
     expect(window.orisonDesktop.moveProjectFile).toHaveBeenCalledWith(
-      'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject',
+      TEST_PROJECT_DIR,
       'temp/images/generation/test.png',
       'assets/images/test.png',
     );
@@ -185,7 +190,7 @@ describe('ImageGenEditor', () => {
 
     // joinProjectPath 统一输出正斜杠路径（跨平台安全，主进程再按平台归一化）。
     await waitFor(() => expect(window.orisonDesktop.readFileBinary).toHaveBeenCalledWith(
-      'C:/Users/LightYuki/Documents/OrisonSpace/ImageProject/temp/images/generation/loaded.png',
+      `${TEST_PROJECT_DIR_POSIX}/temp/images/generation/loaded.png`,
     ));
     expect(screen.getByAltText('loaded.png')).toBeTruthy();
   });
@@ -243,7 +248,7 @@ describe('ImageGenEditor', () => {
     expect(requestConfirm).toHaveBeenCalled();
     await waitFor(() =>
       expect(window.orisonDesktop.deleteProjectFile).toHaveBeenCalledWith(
-        'C:\\Users\\LightYuki\\Documents\\OrisonSpace\\ImageProject',
+        TEST_PROJECT_DIR,
         'temp/images/generation/test.png',
       ),
     );

@@ -1,5 +1,6 @@
 import type { ImageGenerationResponse } from '@orison/shared-contracts';
 import { ProtocolHttpError } from './errors';
+import { withRetry } from './retry';
 
 type GeneratedImage = ImageGenerationResponse['images'][number];
 
@@ -20,10 +21,12 @@ async function normalizeOne(image: GeneratedImage): Promise<GeneratedImage> {
 }
 
 async function downloadAsBase64(url: string): Promise<{ b64Json: string }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new ProtocolHttpError(`Image download failed with ${response.status}`, response.status);
-  }
-  const buffer = Buffer.from(await response.arrayBuffer());
-  return { b64Json: buffer.toString('base64') };
+  return withRetry(async () => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new ProtocolHttpError(`Image download failed with ${response.status}`, response.status);
+    }
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return { b64Json: buffer.toString('base64') };
+  });
 }
