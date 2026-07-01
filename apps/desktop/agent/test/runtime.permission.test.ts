@@ -10,7 +10,9 @@ describe('runtime permission service', () => {
     projectPath = mkdtempSync(path.join(os.tmpdir(), 'orison-runtime-permission-'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    const { closeDb } = await import('../src/agent/persistence');
+    closeDb(projectPath);
     rmSync(projectPath, { recursive: true, force: true });
     vi.resetModules();
   });

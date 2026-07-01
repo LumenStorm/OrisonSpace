@@ -21,7 +21,9 @@ describe.skipIf(!sqliteUsable)('session persistence schema migration', () => {
     mkdirSync(path.join(projectPath, '.orison', 'sessions'), { recursive: true });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    const { closeDb } = await import('../src/agent/persistence');
+    closeDb(projectPath);
     rmSync(projectPath, { recursive: true, force: true });
     vi.resetModules();
   });

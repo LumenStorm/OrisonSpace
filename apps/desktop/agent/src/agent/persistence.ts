@@ -71,6 +71,16 @@ export function closeAllDbs(): void {
   dbCache.clear();
 }
 
+export function closeDb(projectPath: string): void {
+  const dir = sessionsDir(projectPath);
+  const dbPath = path.join(dir, 'index.db');
+  const db = dbCache.get(dbPath);
+  if (db) {
+    try { db.close(); } catch { /* best effort */ }
+    dbCache.delete(dbPath);
+  }
+}
+
 export function persistSession(session: SessionState, title?: string): void {
   persistSessionMeta(session);
   const db = getDb(session.projectPath);

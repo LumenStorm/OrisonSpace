@@ -14,7 +14,9 @@ describe('runtime workflow run state', { timeout: 30_000 }, () => {
     projectPath = mkdtempSync(path.join(os.tmpdir(), 'orison-runtime-workflow-'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    const { closeDb } = await import('../src/agent/persistence');
+    closeDb(projectPath);
     rmSync(projectPath, { recursive: true, force: true });
     vi.resetModules();
   });

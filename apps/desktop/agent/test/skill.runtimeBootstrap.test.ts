@@ -12,7 +12,9 @@ describe('skill runtime bootstrap', () => {
     externalSkillsRoot = mkdtempSync(path.join(os.tmpdir(), 'orison-external-skills-'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    const { closeDb } = await import('../src/agent/persistence');
+    closeDb(projectPath);
     rmSync(projectPath, { recursive: true, force: true });
     rmSync(externalSkillsRoot, { recursive: true, force: true });
     vi.resetModules();

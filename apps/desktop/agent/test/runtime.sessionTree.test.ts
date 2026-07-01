@@ -11,7 +11,9 @@ describe('runtime session tree', () => {
     projectPath = mkdtempSync(path.join(os.tmpdir(), 'orison-session-tree-'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    const { closeDb } = await import('../src/agent/persistence');
+    closeDb(projectPath);
     rmSync(projectPath, { recursive: true, force: true });
     vi.resetModules();
   });
