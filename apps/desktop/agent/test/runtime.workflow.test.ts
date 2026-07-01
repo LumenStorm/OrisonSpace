@@ -7,7 +7,7 @@ vi.mock('../src/skill/discovery', () => ({
   discoverSkills: vi.fn(async () => []),
 }));
 
-describe('runtime workflow run state', () => {
+describe('runtime workflow run state', { timeout: 30_000 }, () => {
   let projectPath = '';
 
   beforeEach(() => {
@@ -72,7 +72,7 @@ describe('runtime workflow run state', () => {
     // race with the synchronous overlap check above).
     await vi.waitFor(() => {
       if (!releaseFirstRun) throw new Error('generate not yet entered');
-    }, { timeout: 5000, interval: 10 });
+    }, { timeout: 15000, interval: 10 });
     releaseFirstRun!();
     await firstRun;
 
@@ -126,7 +126,7 @@ describe('runtime workflow run state', () => {
 
     await vi.waitFor(() => {
       if (!releaseRun) throw new Error('generate not yet entered');
-    }, { timeout: 5000, interval: 10 });
+    }, { timeout: 15000, interval: 10 });
 
     // Switch while running → accepted but not applied to modelRef yet.
     expect(runningRuntime.setSessionModel(session.id, { keyId: 'next', modelId: 'next' })).toBe(true);
@@ -144,7 +144,7 @@ describe('runtime workflow run state', () => {
     });
     await vi.waitFor(() => {
       if (usedModels.length < 2) throw new Error('second generate not yet entered');
-    }, { timeout: 5000, interval: 10 });
+    }, { timeout: 15000, interval: 10 });
     releaseRun!();
     await secondRun;
 

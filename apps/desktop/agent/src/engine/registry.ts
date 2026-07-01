@@ -1,5 +1,5 @@
 import type { AgentContract } from '@orison/shared-contracts';
-import { getAllAgentContracts, getAgentContract } from './agentContracts';
+import { getAgentContract } from './agentContracts';
 
 interface NodeRegistryEntry {
   id: string;

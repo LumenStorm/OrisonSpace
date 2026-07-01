@@ -1005,11 +1005,11 @@ export function isSessionNotFoundError(error: unknown): boolean {
   return error instanceof Error && error.message === 'session not found';
 }
 
-function isRunAlreadyActiveError(error: unknown): boolean {
+function _isRunAlreadyActiveError(error: unknown): boolean {
   return error instanceof SessionRunAlreadyActiveError;
 }
 
-function createPendingConfirmationState(
+function _createPendingConfirmationState(
   sessionId: string,
   callId: string,
   name: string,

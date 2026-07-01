@@ -77,6 +77,7 @@ export function buildProjectPath(projectDir: string, relativePath: string): stri
 }
 
 function sanitizeFileName(value: string): string {
+  // eslint-disable-next-line no-control-regex
   const sanitized = value.replace(/[<>:"/\\|?*\x00-\x1F]/g, '-').replace(/\s+/g, '-').slice(0, 80);
   return sanitized || 'image';
 }

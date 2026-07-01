@@ -18,7 +18,7 @@ import { closeDb } from '../main/db/index';
 // integration suite when it can't load, instead of failing the whole run.
 let sqliteUsable = true;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Database = require('better-sqlite3');
   new Database(':memory:').close();
 } catch {

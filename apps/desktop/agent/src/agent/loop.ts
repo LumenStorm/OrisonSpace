@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type { ChildStreamEvent, SessionMessage, SkillExecutorRef, ToolCall, ToolContext, ToolDefinition } from '../types';
-import { registry } from '../tool/registry';
 import { logger } from '../logger';
 
 export interface LoopOptions {

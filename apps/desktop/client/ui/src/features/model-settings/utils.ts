@@ -77,7 +77,7 @@ export function nextKeyId(keys: ApiKeyEntry[]): string {
   return `key_${String(index).padStart(3, '0')}`;
 }
 
-function formatModelLabel(key: ApiKeyEntry, modelId: string): string {
+function _formatModelLabel(key: ApiKeyEntry, modelId: string): string {
   const entry = key.models.find((m) => m.id === modelId);
   return `${key.name} · ${entry?.alias ?? modelId}`;
 }

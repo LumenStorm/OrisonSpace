@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { logger } from '../logger';
 
 export interface McpServerConfig {
   command?: string;

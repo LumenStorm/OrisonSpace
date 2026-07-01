@@ -3,7 +3,7 @@ import type { SerializedSkillRunState } from './runtime/skillRunState';
 
 // ── Agent Config ──
 
-const agentConfigSchema = z.object({
+const _agentConfigSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   model: z.object({
@@ -14,7 +14,7 @@ const agentConfigSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
 });
 
-export type AgentConfig = z.infer<typeof agentConfigSchema>;
+export type AgentConfig = z.infer<typeof _agentConfigSchema>;
 
 // ── Tool Types ──
 
@@ -93,7 +93,6 @@ export interface ToolResult {
   terminal?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ToolDefinition<TParams = any> {
   id: string;
   description: string;

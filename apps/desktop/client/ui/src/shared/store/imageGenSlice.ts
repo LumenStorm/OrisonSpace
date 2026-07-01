@@ -6,7 +6,6 @@ import {
   defaultParamsFor,
   detectImageFamily,
   IMAGE_FAMILIES,
-  isCompressionMeaningful,
   parseSizeString,
   sanitizeParams,
   supportsCustomSize,

@@ -61,14 +61,14 @@ export function SideBySideDiff({ diff, oldContent, onClose }: Props) {
 
   const toggleAccept = (idx: number) => {
     const next = new Set(accepted);
-    next.has(idx) ? next.delete(idx) : next.add(idx);
+    if (next.has(idx)) next.delete(idx); else next.add(idx);
     setAccepted(next);
     setRejected((prev) => { const n = new Set(prev); n.delete(idx); return n; });
   };
 
   const toggleReject = (idx: number) => {
     const next = new Set(rejected);
-    next.has(idx) ? next.delete(idx) : next.add(idx);
+    if (next.has(idx)) next.delete(idx); else next.add(idx);
     setRejected(next);
     setAccepted((prev) => { const n = new Set(prev); n.delete(idx); return n; });
   };

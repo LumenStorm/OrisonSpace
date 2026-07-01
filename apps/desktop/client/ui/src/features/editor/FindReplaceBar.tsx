@@ -108,7 +108,7 @@ export function FindReplaceBar({ adapter, onClose, initialMode = 'find' }: Props
       onClose();
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      e.shiftKey ? goPrev() : goNext();
+      if (e.shiftKey) goPrev(); else goNext();
     }
   };
 

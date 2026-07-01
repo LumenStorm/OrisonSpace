@@ -77,7 +77,7 @@ export async function classifyOhStorySkill(skillDir: string): Promise<OhStoryCla
 }
 
 /** Backward-compatible wrapper. Treats `blocked` the same as `not-applicable` (null). */
-async function loadOhStoryCompatibleSkill(skillDir: string): Promise<NormalizedSkill | null> {
+async function _loadOhStoryCompatibleSkill(skillDir: string): Promise<NormalizedSkill | null> {
   const result = await classifyOhStorySkill(skillDir);
   return result.kind === 'loaded' ? result.skill : null;
 }

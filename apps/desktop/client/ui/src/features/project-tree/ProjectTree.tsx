@@ -228,7 +228,7 @@ export function ProjectTree() {
     } catch {
       openFile(fullPath, entry.name, '');
     }
-  }, [openFile, projectPath]);
+  }, [openFile, projectPath, t]);
 
   const handleContextMenu = useCallback((event: React.MouseEvent, entry: FileEntry) => {
     event.preventDefault();
@@ -333,7 +333,7 @@ export function ProjectTree() {
     });
 
     return items;
-  }, [ctxMenu, t, currentProject, projectPath]);
+  }, [ctxMenu, t, currentProject, projectPath, closeFilesUnder]);
 
   const handleRenameConfirm = useCallback(async (oldPath: string, newName: string) => {
     const trimmed = newName.trim();

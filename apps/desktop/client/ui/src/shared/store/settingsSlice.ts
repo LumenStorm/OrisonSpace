@@ -48,6 +48,32 @@ export type SettingsSlice = {
   /** Whether to silently check for updates on startup. */
   autoCheckUpdates: boolean;
   setAutoCheckUpdates: (value: boolean) => void;
+
+  // ── Writing settings ──
+  autoSaveEnabled: boolean;
+  setAutoSaveEnabled: (value: boolean) => void;
+  autoSaveInterval: number;
+  setAutoSaveInterval: (value: number) => void;
+  chapterPrefix: string;
+  setChapterPrefix: (value: string) => void;
+  paragraphIndent: boolean;
+  setParagraphIndent: (value: boolean) => void;
+  showWordCount: boolean;
+  setShowWordCount: (value: boolean) => void;
+
+  // ── Appearance settings ──
+  uiDensity: 'compact' | 'default' | 'spacious';
+  setUiDensity: (value: 'compact' | 'default' | 'spacious') => void;
+  sidebarWidth: number;
+  setSidebarWidth: (value: number) => void;
+  editorLineHeight: number;
+  setEditorLineHeight: (value: number) => void;
+
+  // ── Agent settings ──
+  agentSessionRetention: number;
+  setAgentSessionRetention: (value: number) => void;
+  agentDefaultModel: string;
+  setAgentDefaultModel: (value: string) => void;
 };
 
 function resolveLocale(locale: LocaleSetting): string {
@@ -81,6 +107,16 @@ function applyReadingFont(family: string, weight: number, scale: number) {
 // Apply theme on load
 applyTheme(DEFAULT_USER_PREFERENCES.theme as ThemeSetting);
 
+function applyUiDensity(density: 'compact' | 'default' | 'spacious') {
+  if (typeof document === 'undefined') return;
+  document.documentElement.dataset.density = density;
+}
+
+function applyEditorLineHeight(lineHeight: number) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.setProperty('--editor-line-height', String(lineHeight));
+}
+
 function saveUserPreferencesSnapshot(config: UserPreferencesConfig): void {
   window.orisonDesktop?.saveUserPreferences?.(config).catch(() => {});
 }
@@ -94,6 +130,16 @@ function buildPrefs(get: () => SettingsSlice, overrides: Partial<UserPreferences
     autoCheckUpdates: s.autoCheckUpdates,
     readingFontWeight: s.readingFontWeight,
     readingFontScale: s.readingFontScale,
+    autoSaveEnabled: s.autoSaveEnabled,
+    autoSaveInterval: s.autoSaveInterval,
+    chapterPrefix: s.chapterPrefix,
+    paragraphIndent: s.paragraphIndent,
+    showWordCount: s.showWordCount,
+    uiDensity: s.uiDensity,
+    sidebarWidth: s.sidebarWidth,
+    editorLineHeight: s.editorLineHeight,
+    agentSessionRetention: s.agentSessionRetention,
+    agentDefaultModel: s.agentDefaultModel || undefined,
   };
   if (s.readingFontFamily) base.readingFontFamily = s.readingFontFamily;
   return { ...base, ...overrides };
@@ -122,9 +168,12 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
       const readingFontFamily = config.readingFontFamily ?? DEFAULT_READING_FONT_FAMILY;
       const readingFontWeight = config.readingFontWeight ?? DEFAULT_READING_FONT_WEIGHT;
       const readingFontScale = config.readingFontScale ?? DEFAULT_READING_FONT_SCALE;
+      const uiDensity = config.uiDensity ?? 'default';
+      const editorLineHeight = config.editorLineHeight ?? 1.75;
       applyTheme(theme);
       applyReadingFont(readingFontFamily, readingFontWeight, readingFontScale);
-      // Re-inject user-imported @font-face rules so a saved imported font renders app-wide.
+      applyUiDensity(uiDensity);
+      applyEditorLineHeight(editorLineHeight);
       window.orisonDesktop
         ?.listImportedFonts?.()
         .then((fonts) => injectImportedFonts(fonts))
@@ -138,6 +187,16 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
         readingFontFamily,
         readingFontWeight,
         readingFontScale,
+        autoSaveEnabled: config.autoSaveEnabled ?? true,
+        autoSaveInterval: config.autoSaveInterval ?? 1500,
+        chapterPrefix: config.chapterPrefix ?? 'ch-',
+        paragraphIndent: config.paragraphIndent ?? true,
+        showWordCount: config.showWordCount ?? true,
+        uiDensity,
+        sidebarWidth: config.sidebarWidth ?? 240,
+        editorLineHeight,
+        agentSessionRetention: config.agentSessionRetention ?? 50,
+        agentDefaultModel: config.agentDefaultModel ?? '',
       });
     } catch {
       // Keep defaults when preferences cannot be read.
@@ -203,5 +262,63 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
   setAutoCheckUpdates(value) {
     set({ autoCheckUpdates: value });
     saveUserPreferencesSnapshot(buildPrefs(get, { autoCheckUpdates: value }));
+  },
+
+  // ── Writing settings ──
+  autoSaveEnabled: true,
+  setAutoSaveEnabled(value) {
+    set({ autoSaveEnabled: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { autoSaveEnabled: value }));
+  },
+  autoSaveInterval: 1500,
+  setAutoSaveInterval(value) {
+    set({ autoSaveInterval: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { autoSaveInterval: value }));
+  },
+  chapterPrefix: 'ch-',
+  setChapterPrefix(value) {
+    set({ chapterPrefix: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { chapterPrefix: value }));
+  },
+  paragraphIndent: true,
+  setParagraphIndent(value) {
+    set({ paragraphIndent: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { paragraphIndent: value }));
+  },
+  showWordCount: true,
+  setShowWordCount(value) {
+    set({ showWordCount: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { showWordCount: value }));
+  },
+
+  // ── Appearance settings ──
+  uiDensity: 'default',
+  setUiDensity(value) {
+    applyUiDensity(value);
+    set({ uiDensity: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { uiDensity: value }));
+  },
+  sidebarWidth: 240,
+  setSidebarWidth(value) {
+    set({ sidebarWidth: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { sidebarWidth: value }));
+  },
+  editorLineHeight: 1.75,
+  setEditorLineHeight(value) {
+    applyEditorLineHeight(value);
+    set({ editorLineHeight: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { editorLineHeight: value }));
+  },
+
+  // ── Agent settings ──
+  agentSessionRetention: 50,
+  setAgentSessionRetention(value) {
+    set({ agentSessionRetention: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { agentSessionRetention: value }));
+  },
+  agentDefaultModel: '',
+  setAgentDefaultModel(value) {
+    set({ agentDefaultModel: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { agentDefaultModel: value }));
   },
 });

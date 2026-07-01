@@ -31,7 +31,7 @@ export function ProfileEditor({
   onDelete,
   refreshing,
   refreshError,
-  remoteModels,
+  remoteModels: _remoteModels,
   onRefreshModels,
   notice,
   onDismissNotice,

@@ -140,7 +140,7 @@ export function registerProjectMetaIpc(): void {
     assertSafePath(projectDir);
     return withProjectLock(projectDir, async () => {
       const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
-        await import('../../../../local-bff/index');
+        await import('@orison/desktop-local-bff');
       const doc = migrateLegacyProjectJson(projectDir)
         ?? loadProject(projectDir)
         ?? createEmptyProjectDocument(
@@ -162,7 +162,7 @@ export function registerProjectMetaIpc(): void {
     assertSafePath(projectDir);
     return withProjectLock(projectDir, async () => {
       const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
-        await import('../../../../local-bff/index');
+        await import('@orison/desktop-local-bff');
       // Migration (if any) already lands a valid project.yaml on disk.
       if (migrateLegacyProjectJson(projectDir) ?? loadProject(projectDir)) return;
       // No document yet -> create a fresh one seeded from the supplied meta.
@@ -179,7 +179,7 @@ export function registerProjectMetaIpc(): void {
   ipcMain.handle('project:load-meta', async (_, projectDir: string) => {
     assertSafePath(projectDir);
     try {
-      const { migrateLegacyProjectJson } = await import('../../../../local-bff/index');
+      const { migrateLegacyProjectJson } = await import('@orison/desktop-local-bff');
       const doc = migrateLegacyProjectJson(projectDir);
       if (!doc) return null;
       return projectMetaToLegacyShape(doc.meta);
@@ -191,7 +191,7 @@ export function registerProjectMetaIpc(): void {
   ipcMain.handle('project:load-document', async (_, projectDir: string) => {
     assertSafePath(projectDir);
     try {
-      const { loadProject } = await import('../../../../local-bff/index');
+      const { loadProject } = await import('@orison/desktop-local-bff');
       return loadProject(projectDir) ?? null;
     } catch {
       return null;
@@ -203,7 +203,7 @@ export function registerProjectMetaIpc(): void {
     return withProjectLock(projectDir, async () => {
       try {
         const { loadProject, saveProject, createEmptyProjectDocument, migrateLegacyProjectJson } =
-          await import('../../../../local-bff/index');
+          await import('@orison/desktop-local-bff');
         // project.yaml is the single source of truth; missing -> migrate old json or fallback rebuild.
         const doc = migrateLegacyProjectJson(projectDir)
           ?? loadProject(projectDir)
@@ -229,7 +229,7 @@ export function registerProjectMetaIpc(): void {
     assertSafePath(projectDir);
     return withProjectLock(projectDir, async () => {
       try {
-        const { loadProject, saveProject } = await import('../../../../local-bff/index');
+        const { loadProject, saveProject } = await import('@orison/desktop-local-bff');
         const doc = loadProject(projectDir);
         if (!doc) return { ok: false, error: 'project document not found' };
         const next = structuredClone(doc) as Record<string, any>;

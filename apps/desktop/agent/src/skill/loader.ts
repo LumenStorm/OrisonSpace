@@ -40,7 +40,7 @@ function extractDescription(fm: string): string | undefined {
     return blockLines.join('\n').trim();
   }
 
-  const blockMatch = fm.match(/^description:\s*\|\s*\n([\s\S]*?)(?=^\S|\Z)/m);
+  const blockMatch = fm.match(/^description:\s*\|\s*\n([\s\S]*?)(?=^\S|$)/m);
   if (blockMatch?.[1]) {
     return blockMatch[1]
       .split('\n')

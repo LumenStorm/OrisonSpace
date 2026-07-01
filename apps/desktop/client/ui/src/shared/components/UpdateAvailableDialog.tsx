@@ -20,7 +20,8 @@ export function UpdateAvailableDialog() {
   if (!open || !result) return null;
 
   const openDownload = (url: string) => {
-    window.orisonDesktop?.openPath?.(url) ?? window.open(url, '_blank', 'noopener,noreferrer');
+    if (window.orisonDesktop?.openPath) window.orisonDesktop.openPath(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   let body: React.ReactNode;

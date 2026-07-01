@@ -43,7 +43,7 @@ export function createChildSession(input: CreateChildSessionInput): SessionState
   return child;
 }
 
-function getSessionTreeLink(parentId: string, childId: string): { parentId: string; childId: string } {
+function _getSessionTreeLink(parentId: string, childId: string): { parentId: string; childId: string } {
   const parent = requireSession(parentId);
   if (!parent.children.includes(childId)) {
     throw new Error(`child session "${childId}" is not linked to parent "${parentId}"`);

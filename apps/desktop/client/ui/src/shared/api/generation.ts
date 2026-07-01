@@ -70,7 +70,7 @@ export async function generateImage({
   return window.orisonDesktop.generateImage({ ref, request });
 }
 
-async function generateText({ ref, request }: GenerateTextInput): Promise<TextGenerationResponse> {
+async function _generateText({ ref, request }: GenerateTextInput): Promise<TextGenerationResponse> {
   if (!window.orisonDesktop?.generateText) {
     throw new Error('Desktop model gateway is unavailable');
   }

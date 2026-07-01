@@ -8,7 +8,7 @@ const moduleItems: Array<{ key: ActivePage; label: string; icon: string }> = [
   { key: 'video', label: 'Video', icon: 'movie_filter' },
 ];
 
-const projectTreeItems = [
+const _projectTreeItems = [
   ...moduleItems,
   { key: 'assets', label: 'Assets', icon: 'folder_open' },
   { key: 'design', label: 'Design.md', icon: 'edit_note' }
@@ -32,7 +32,7 @@ export const storyboardFrames = [
   }
 ];
 
-const inspectorFields = [
+const _inspectorFields = [
   {
     label: 'Camera Lens',
     options: ['Macro (100mm)', 'Portrait (50mm)', 'Wide (35mm)', 'Ultra-Wide (14mm)'],

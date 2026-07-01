@@ -1,5 +1,4 @@
 import type { AgentContract } from '@orison/shared-contracts';
-import type { CreativeFieldKey } from '@orison/shared-contracts';
 
 const CONTRACTS: AgentContract[] = [
   {

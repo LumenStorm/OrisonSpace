@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import { tagRegistrySchema } from '@orison/shared-contracts';
-import type { TagRegistry, TagCategory, TagRegistryEntry } from '@orison/shared-contracts';
+import type { TagRegistry, TagCategory } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { backupCorruptFile } from './corruptRecovery';
 

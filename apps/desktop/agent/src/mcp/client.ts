@@ -1,7 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { logger } from '../logger';
 import type { McpServerConfig } from './config';
-import type { ToolDefinition } from '../types';
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';

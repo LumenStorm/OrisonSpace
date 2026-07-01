@@ -7,8 +7,8 @@ import type {
   VideoGenerationRequest,
   VideoGenerationResponse,
 } from './contracts/generation';
-import type { ModelCapability, ModelConfig, DiscoveredModel } from './contracts/model';
-import type { NovelStorySyncPayload, NovelChapterRunRequest } from './contracts/novel-orchestration';
+import type { ModelCapability, ModelConfig } from './contracts/model';
+import type { NovelStorySyncPayload } from './contracts/novel-orchestration';
 
 export const desktopIpcSchema = z.object({
   channel: z.enum([
@@ -210,6 +210,22 @@ export type UserPreferencesConfig = {
   readingFontWeight?: number;
   /** Reading font scale multiplier for editor + agent panel body text (1 = default). */
   readingFontScale?: number;
+
+  // ── Writing settings ──
+  autoSaveEnabled?: boolean;
+  autoSaveInterval?: number;
+  chapterPrefix?: string;
+  paragraphIndent?: boolean;
+  showWordCount?: boolean;
+
+  // ── Appearance settings ──
+  uiDensity?: 'compact' | 'default' | 'spacious';
+  sidebarWidth?: number;
+  editorLineHeight?: number;
+
+  // ── Agent settings ──
+  agentSessionRetention?: number;
+  agentDefaultModel?: string;
 };
 
 /** A font file the user imported into the app's font folder. */

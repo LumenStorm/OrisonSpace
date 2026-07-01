@@ -12,7 +12,7 @@ export function useProjectTreeResize() {
   );
 }
 
-function useBottomPanelResize() {
+function _useBottomPanelResize() {
   const setBottomPanelHeight = useAppStore((s) => s.setBottomPanelHeight);
   return useCallback(
     (delta: number) => {

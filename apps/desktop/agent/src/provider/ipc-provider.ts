@@ -70,7 +70,7 @@ function messagesToPayload(messages: SessionMessage[], system: string, tools: To
   }
 
   const toolDefs = tools.map(t => {
-    const { $schema, ...schema } = zodToJsonSchema(t.parameters, { target: 'jsonSchema7' }) as Record<string, unknown>;
+    const { $schema: _$schema, ...schema } = zodToJsonSchema(t.parameters, { target: 'jsonSchema7' }) as Record<string, unknown>;
     return {
       type: 'function' as const,
       function: {

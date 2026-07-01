@@ -18,7 +18,7 @@ export async function ensureProjectRegistration({
 }
 
 /** Bump last-opened time so the registry list orders most-recent first. Best-effort. */
-async function touchProjectRegistration(project: Pick<ProjectMeta, 'path' | 'coverImage'>): Promise<void> {
+async function _touchProjectRegistration(project: Pick<ProjectMeta, 'path' | 'coverImage'>): Promise<void> {
   try {
     await window.orisonDesktop?.touchProjectRegistration({
       localFingerprint: project.path,

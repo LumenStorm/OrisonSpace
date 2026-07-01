@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import yaml from 'js-yaml';
 
 const desktopUiSrc = path.resolve(__dirname, '../ui/src');
-const bundledWorkspaceDeps = ['@orison/shared-contracts', '@orison/model-protocols', '@orison/story-sync', '@orison/desktop-agent'];
+const bundledWorkspaceDeps = ['@orison/shared-contracts', '@orison/model-protocols', '@orison/story-sync', '@orison/desktop-agent', '@orison/desktop-local-bff'];
 
 const themesDir = path.resolve(desktopUiSrc, 'shared/themes');
 const tokensOut = path.resolve(desktopUiSrc, 'shared/styles/tokens.css');

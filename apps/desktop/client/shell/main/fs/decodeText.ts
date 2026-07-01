@@ -33,7 +33,7 @@ function sniffBomlessUtf16(buffer: Buffer): 'utf-16le' | 'utf-16be' | null {
   let evenNul = 0;
   let oddNul = 0;
   for (let i = 0; i < sample; i++) {
-    if (buffer[i] === 0x00) (i % 2 === 0 ? evenNul++ : oddNul++);
+    if (buffer[i] === 0x00) { if (i % 2 === 0) evenNul++; else oddNul++; }
   }
   const pairs = Math.floor(sample / 2);
   // LE: NULs at odd offsets; BE: NULs at even offsets. Require the dominant

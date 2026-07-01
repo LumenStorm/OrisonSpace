@@ -18,7 +18,7 @@ type CtxMenuState = { x: number; y: number; tab: FileTab } | null;
 
 export function FileTabBar() {
   const {
-    openFiles, activeFilePath, openFile, closeFile, requestCloseFile, cancelCloseConfirm,
+    openFiles, activeFilePath, openFile, closeFile: _closeFile, requestCloseFile, cancelCloseConfirm,
     closeOtherFiles, closeFilesToRight, reopenLastClosedFile, pendingCloseConfirm,
     hasRecentlyClosed, locale, pinnedPaths, togglePinTab, reorderTabs, setSplit,
     splitDirection, showMinimap, toggleMinimap,

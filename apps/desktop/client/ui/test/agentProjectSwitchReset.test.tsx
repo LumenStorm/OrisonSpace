@@ -53,6 +53,6 @@ describe('agent state reset on project switch', () => {
     expect(s.pendingToolConfirm).toBeNull();
     expect(s.agentModelRef).toBeNull();
     // A running stream, if any, is aborted on switch.
-    expect((window as any).orisonDesktop.abortAgentRun).not.toThrow;
+    expect((window as any).orisonDesktop.abortAgentRun).toBeDefined();
   });
 });

@@ -13,7 +13,7 @@ import type { ToolHandler } from './types';
 
 async function readOutlineV2(projectDir: string): Promise<unknown> {
   try {
-    const { loadProject } = await import('../../../../../local-bff/index');
+    const { loadProject } = await import('@orison/desktop-local-bff');
     const doc = loadProject(projectDir) as Record<string, unknown> | null;
     return doc?.outline_v2 ?? null;
   } catch {

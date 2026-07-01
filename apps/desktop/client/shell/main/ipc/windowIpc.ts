@@ -15,7 +15,7 @@ export function registerWindowIpc(getWin: () => BrowserWindow | null) {
   ipcMain.on('window:maximize', () => {
     const win = getWin();
     if (!win) return;
-    win.isMaximized() ? win.unmaximize() : win.maximize();
+    if (win.isMaximized()) win.unmaximize(); else win.maximize();
   });
 
   ipcMain.on('window:close', () => getWin()?.close());

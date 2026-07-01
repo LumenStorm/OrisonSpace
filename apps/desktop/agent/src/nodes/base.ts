@@ -1,6 +1,5 @@
 import type { ReusableAgentNodeContract } from '@orison/shared-contracts';
 import type { NodeRunInput } from '../contracts/run';
-import { creativeFieldKeys } from '@orison/shared-contracts';
 
 interface NodeResult {
   stateKey: string;
@@ -73,7 +72,7 @@ export function createStorySyncNode(): AgentNode {
   };
 }
 
-function createMemoryExtractorNode(): AgentNode {
+function _createMemoryExtractorNode(): AgentNode {
   return {
     contract: {
       nodeId: 'memory-extractor-agent',

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { creativeFieldKeySchema } from './creative-fields';
-import type { CreativeFieldKey } from './creative-fields';
 
 // ── Creative Constraints ──
 

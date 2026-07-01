@@ -7,7 +7,7 @@ type Props = {
   t: (key: string) => string;
 };
 
-export function EditorFooter({ isDirty, isNew, canApply, onApply, onDelete, t }: Props) {
+export function EditorFooter({ isDirty, isNew: _isNew, canApply, onApply, onDelete, t }: Props) {
   const applyLabel = t('settings.applyChanges');
 
   return (

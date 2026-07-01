@@ -27,13 +27,13 @@ export function buildCreativeRunContext(request: {
   let projectDocumentStatus: 'missing' | 'loaded' | 'partial' = 'missing';
 
   if (request.projectDocument) {
-    let found = 0;
+    let _found = 0;
     for (const [key, val] of Object.entries(request.projectDocument)) {
       if (key === 'meta') continue;
       const mapped = FIELD_ALIAS[key];
       if (mapped && val != null) {
         fieldVersions[mapped] = 1;
-        found++;
+        _found++;
       }
     }
     projectDocumentStatus = request.projectDocument.meta ? 'loaded' : 'partial';
