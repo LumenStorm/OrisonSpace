@@ -4,70 +4,56 @@ type Props = {
   setAutoApplyPatches: (value: boolean) => void;
   agentSessionRetention: number;
   setAgentSessionRetention: (value: number) => void;
-  agentDefaultModel: string;
-  setAgentDefaultModel: (value: string) => void;
-  modelOptions: Array<{ value: string; label: string }>;
 };
 
 export function AgentSettingsPage({
   t, autoApplyPatches, setAutoApplyPatches,
   agentSessionRetention, setAgentSessionRetention,
-  agentDefaultModel, setAgentDefaultModel, modelOptions,
 }: Props) {
   return (
     <div className="settings-page">
-      <section className="settings-section">
-        <h3 className="settings-section-title">{t('settings.agentPatchMode')}</h3>
-        <div className="settings-toggle-group">
+      <div className="settings-page-header">
+        <h3 className="settings-page-title">{t('settings.agent')}</h3>
+      </div>
+
+      <div className="sidebar-settings-row">
+        <span className="sidebar-settings-label">{t('settings.agentPatchMode')}</span>
+        <div className="sidebar-settings-options">
           <button
             type="button"
-            className={`settings-toggle-btn${!autoApplyPatches ? ' is-active' : ''}`}
+            className={`sidebar-settings-option${!autoApplyPatches ? ' is-active' : ''}`}
             onClick={() => setAutoApplyPatches(false)}
           >
             {t('settings.patchModeSuggest')}
           </button>
           <button
             type="button"
-            className={`settings-toggle-btn${autoApplyPatches ? ' is-active' : ''}`}
+            className={`sidebar-settings-option${autoApplyPatches ? ' is-active' : ''}`}
             onClick={() => setAutoApplyPatches(true)}
           >
             {t('settings.patchModeAuto')}
           </button>
         </div>
-        <p className="settings-hint">
+        <span className="sidebar-settings-hint">
           {autoApplyPatches ? t('settings.patchModeAutoHint') : t('settings.patchModeSuggestHint')}
-        </p>
-      </section>
+        </span>
+      </div>
 
-      <section className="settings-section">
-        <h3 className="settings-section-title">{t('settings.agentSession')}</h3>
-        <label className="settings-row">
-          <span className="settings-row-label">{t('settings.sessionRetention')}</span>
+      <div className="sidebar-settings-row">
+        <span className="sidebar-settings-label">{t('settings.sessionRetention')}</span>
+        <div className="sidebar-settings-input-row">
           <input
             type="number"
             min={5}
             max={200}
             value={agentSessionRetention}
             onChange={(e) => setAgentSessionRetention(Number(e.target.value))}
-            className="settings-input settings-input--narrow"
+            className="sidebar-settings-input"
+            style={{ width: '80px' }}
           />
-        </label>
-        <p className="settings-hint">{t('settings.sessionRetentionHint')}</p>
-      </section>
-
-      <section className="settings-section">
-        <h3 className="settings-section-title">{t('settings.agentDefaultModel')}</h3>
-        <select
-          value={agentDefaultModel}
-          onChange={(e) => setAgentDefaultModel(e.target.value)}
-          className="settings-select"
-        >
-          <option value="">{t('settings.followGlobal')}</option>
-          {modelOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </section>
+        </div>
+        <span className="sidebar-settings-hint">{t('settings.sessionRetentionHint')}</span>
+      </div>
     </div>
   );
 }

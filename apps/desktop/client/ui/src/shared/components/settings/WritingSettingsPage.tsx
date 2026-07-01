@@ -1,9 +1,5 @@
 type Props = {
   t: (key: string) => string;
-  autoSaveEnabled: boolean;
-  setAutoSaveEnabled: (value: boolean) => void;
-  autoSaveInterval: number;
-  setAutoSaveInterval: (value: number) => void;
   chapterPrefix: string;
   setChapterPrefix: (value: string) => void;
   paragraphIndent: boolean;
@@ -12,82 +8,54 @@ type Props = {
   setShowWordCount: (value: boolean) => void;
 };
 
-const INTERVAL_OPTIONS: Array<{ value: number; key: string }> = [
-  { value: 1000, key: 'settings.interval1s' },
-  { value: 1500, key: 'settings.interval1_5s' },
-  { value: 3000, key: 'settings.interval3s' },
-  { value: 5000, key: 'settings.interval5s' },
-  { value: 10000, key: 'settings.interval10s' },
-];
-
 export function WritingSettingsPage({
-  t, autoSaveEnabled, setAutoSaveEnabled, autoSaveInterval, setAutoSaveInterval,
-  chapterPrefix, setChapterPrefix, paragraphIndent, setParagraphIndent,
+  t, chapterPrefix, setChapterPrefix,
+  paragraphIndent, setParagraphIndent,
   showWordCount, setShowWordCount,
 }: Props) {
   return (
     <div className="settings-page">
-      <section className="settings-section">
-        <h3 className="settings-section-title">{t('settings.autoSave')}</h3>
-        <label className="settings-row">
-          <span className="settings-row-label">{t('settings.autoSaveEnabled')}</span>
-          <input
-            type="checkbox"
-            checked={autoSaveEnabled}
-            onChange={(e) => setAutoSaveEnabled(e.target.checked)}
-            className="settings-checkbox"
-          />
-        </label>
-        <label className="settings-row">
-          <span className="settings-row-label">{t('settings.autoSaveInterval')}</span>
-          <select
-            value={autoSaveInterval}
-            onChange={(e) => setAutoSaveInterval(Number(e.target.value))}
-            className="settings-select"
-            disabled={!autoSaveEnabled}
-          >
-            {INTERVAL_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{t(opt.key)}</option>
-            ))}
-          </select>
-        </label>
-      </section>
+      <div className="settings-page-header">
+        <h3 className="settings-page-title">{t('settings.writing')}</h3>
+      </div>
 
-      <section className="settings-section">
-        <h3 className="settings-section-title">{t('settings.chapter')}</h3>
-        <label className="settings-row">
-          <span className="settings-row-label">{t('settings.chapterPrefix')}</span>
+      <div className="sidebar-settings-row">
+        <span className="sidebar-settings-label">{t('settings.chapterPrefix')}</span>
+        <div className="sidebar-settings-input-row">
           <input
             type="text"
             value={chapterPrefix}
             onChange={(e) => setChapterPrefix(e.target.value)}
-            className="settings-input"
+            className="sidebar-settings-input"
             placeholder="ch-"
+            style={{ width: '120px' }}
           />
-        </label>
-      </section>
+        </div>
+      </div>
 
-      <section className="settings-section">
-        <h3 className="settings-section-title">{t('settings.editor')}</h3>
-        <label className="settings-row">
-          <span className="settings-row-label">{t('settings.paragraphIndent')}</span>
+      <div className="sidebar-settings-row">
+        <span className="sidebar-settings-label">{t('settings.editor')}</span>
+        <div className="sidebar-settings-toggle-row">
           <input
             type="checkbox"
             checked={paragraphIndent}
             onChange={(e) => setParagraphIndent(e.target.checked)}
-            className="settings-checkbox"
+            className="sidebar-settings-checkbox"
+            id="setting-paragraph-indent"
           />
-        </label>
-        <label className="settings-row">
-          <span className="settings-row-label">{t('settings.showWordCount')}</span>
+          <label htmlFor="setting-paragraph-indent">{t('settings.paragraphIndent')}</label>
+        </div>
+        <div className="sidebar-settings-toggle-row">
           <input
             type="checkbox"
             checked={showWordCount}
             onChange={(e) => setShowWordCount(e.target.checked)}
-            className="settings-checkbox"
+            className="sidebar-settings-checkbox"
+            id="setting-show-word-count"
           />
-        </label>
-      </section>
+          <label htmlFor="setting-show-word-count">{t('settings.showWordCount')}</label>
+        </div>
+      </div>
     </div>
   );
 }

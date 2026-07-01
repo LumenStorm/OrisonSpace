@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
@@ -32,20 +32,12 @@ export function SettingsDialog({ onClose }: Props) {
     readingFontScale, setReadingFontScale,
     autoCheckUpdates, setAutoCheckUpdates,
     appVersion, checkForUpdate,
-    // Appearance
-    uiDensity, setUiDensity,
-    sidebarWidth, setSidebarWidth,
     editorLineHeight, setEditorLineHeight,
-    // Writing
-    autoSaveEnabled, setAutoSaveEnabled,
-    autoSaveInterval, setAutoSaveInterval,
     chapterPrefix, setChapterPrefix,
     paragraphIndent, setParagraphIndent,
     showWordCount, setShowWordCount,
-    // Agent
     autoApplyPatches, setAutoApplyPatches,
     agentSessionRetention, setAgentSessionRetention,
-    agentDefaultModel, setAgentDefaultModel,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     theme: s.theme, setTheme: s.setTheme,
@@ -56,20 +48,12 @@ export function SettingsDialog({ onClose }: Props) {
     readingFontScale: s.readingFontScale, setReadingFontScale: s.setReadingFontScale,
     autoCheckUpdates: s.autoCheckUpdates, setAutoCheckUpdates: s.setAutoCheckUpdates,
     appVersion: s.appVersion, checkForUpdate: s.checkForUpdate,
-    // Appearance
-    uiDensity: s.uiDensity, setUiDensity: s.setUiDensity,
-    sidebarWidth: s.sidebarWidth, setSidebarWidth: s.setSidebarWidth,
     editorLineHeight: s.editorLineHeight, setEditorLineHeight: s.setEditorLineHeight,
-    // Writing
-    autoSaveEnabled: s.autoSaveEnabled, setAutoSaveEnabled: s.setAutoSaveEnabled,
-    autoSaveInterval: s.autoSaveInterval, setAutoSaveInterval: s.setAutoSaveInterval,
     chapterPrefix: s.chapterPrefix, setChapterPrefix: s.setChapterPrefix,
     paragraphIndent: s.paragraphIndent, setParagraphIndent: s.setParagraphIndent,
     showWordCount: s.showWordCount, setShowWordCount: s.setShowWordCount,
-    // Agent
     autoApplyPatches: s.autoApplyPatches, setAutoApplyPatches: s.setAutoApplyPatches,
     agentSessionRetention: s.agentSessionRetention, setAgentSessionRetention: s.setAgentSessionRetention,
-    agentDefaultModel: s.agentDefaultModel, setAgentDefaultModel: s.setAgentDefaultModel,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -78,19 +62,14 @@ export function SettingsDialog({ onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogA11y(dialogRef, onClose);
 
-  const modelOptions = useMemo(() => {
-    return modelConfig.keys.map((k) => ({
-      value: k.id ?? k.name ?? '',
-      label: k.name ?? k.id ?? 'Unnamed',
-    }));
-  }, [modelConfig.keys]);
-
   const renderPage = () => {
     switch (activePage) {
       case 'general':
         return (
           <GeneralSettingsPage
             t={t}
+            theme={theme}
+            setTheme={setTheme}
             locale={locale}
             setLocale={setLocale}
             readingFontFamily={readingFontFamily}
@@ -109,12 +88,6 @@ export function SettingsDialog({ onClose }: Props) {
         return (
           <AppearanceSettingsPage
             t={t}
-            theme={theme}
-            setTheme={setTheme}
-            uiDensity={uiDensity}
-            setUiDensity={setUiDensity}
-            sidebarWidth={sidebarWidth}
-            setSidebarWidth={setSidebarWidth}
             editorLineHeight={editorLineHeight}
             setEditorLineHeight={setEditorLineHeight}
           />
@@ -123,10 +96,6 @@ export function SettingsDialog({ onClose }: Props) {
         return (
           <WritingSettingsPage
             t={t}
-            autoSaveEnabled={autoSaveEnabled}
-            setAutoSaveEnabled={setAutoSaveEnabled}
-            autoSaveInterval={autoSaveInterval}
-            setAutoSaveInterval={setAutoSaveInterval}
             chapterPrefix={chapterPrefix}
             setChapterPrefix={setChapterPrefix}
             paragraphIndent={paragraphIndent}
@@ -151,9 +120,6 @@ export function SettingsDialog({ onClose }: Props) {
             setAutoApplyPatches={setAutoApplyPatches}
             agentSessionRetention={agentSessionRetention}
             setAgentSessionRetention={setAgentSessionRetention}
-            agentDefaultModel={agentDefaultModel}
-            setAgentDefaultModel={setAgentDefaultModel}
-            modelOptions={modelOptions}
           />
         );
       case 'about':

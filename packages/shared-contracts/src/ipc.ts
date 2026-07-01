@@ -212,20 +212,15 @@ export type UserPreferencesConfig = {
   readingFontScale?: number;
 
   // ── Writing settings ──
-  autoSaveEnabled?: boolean;
-  autoSaveInterval?: number;
   chapterPrefix?: string;
   paragraphIndent?: boolean;
   showWordCount?: boolean;
 
   // ── Appearance settings ──
-  uiDensity?: 'compact' | 'default' | 'spacious';
-  sidebarWidth?: number;
   editorLineHeight?: number;
 
   // ── Agent settings ──
   agentSessionRetention?: number;
-  agentDefaultModel?: string;
 };
 
 /** A font file the user imported into the app's font folder. */

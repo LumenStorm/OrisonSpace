@@ -3,7 +3,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('session persistence schema migration', () => {
+let sqliteUsable = true;
+try {
+  const { createRequire } = await import('node:module');
+  const req = createRequire(import.meta.url);
+  const Database = req('better-sqlite3');
+  new Database(':memory:').close();
+} catch {
+  sqliteUsable = false;
+}
+
+describe.skipIf(!sqliteUsable)('session persistence schema migration', () => {
   let projectPath = '';
 
   beforeEach(() => {
