@@ -53,7 +53,6 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
 
     // --- Context management: check budget and compact if needed ---
     let allMessages = [...baseMessages, ...result];
-    let cacheConfig: CacheConfig | undefined;
 
     const prepared = await prepareContext({
       systemPrompt,
@@ -82,7 +81,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       logger.info({ compactedCount: prepared.compactedCount }, 'in-loop compaction applied');
     }
 
-    cacheConfig = prepared.cacheConfig;
+    const cacheConfig = prepared.cacheConfig;
 
     const response = await generate(
       allMessages,
