@@ -311,8 +311,11 @@ async function executeCompiledNode(
       break;
     case 'finish':
       break;
-    default:
-      throw new Error(`compiled workflow node "${node.type}" is not supported yet`);
+    default: {
+      const nodeType = (node as any).type;
+      accumulator.outputs.push(`[${nodeType}] node is not yet implemented — skipped.`);
+      break;
+    }
   }
 }
 

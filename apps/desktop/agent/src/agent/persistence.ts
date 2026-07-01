@@ -29,11 +29,14 @@ function sessionsDir(projectPath: string): string {
   return dir;
 }
 
+const dbCache = new Map<string, any>();
+
 function getDb(projectPath: string): any | null {
   if (!Database) return null;
+  const dir = sessionsDir(projectPath);
+  const dbPath = path.join(dir, 'index.db');
+  if (dbCache.has(dbPath)) return dbCache.get(dbPath);
   try {
-    const dir = sessionsDir(projectPath);
-    const dbPath = path.join(dir, 'index.db');
     const db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
     db.exec(`
@@ -53,11 +56,19 @@ function getDb(projectPath: string): any | null {
       )
     `);
     ensureSessionTableSchema(db);
+    dbCache.set(dbPath, db);
     return db;
   } catch {
-    Database = null; // Disable for future calls
+    Database = null;
     return null;
   }
+}
+
+export function closeAllDbs(): void {
+  for (const db of dbCache.values()) {
+    try { db.close(); } catch { /* best effort */ }
+  }
+  dbCache.clear();
 }
 
 export function persistSession(session: SessionState, title?: string): void {
@@ -85,8 +96,8 @@ export function persistSession(session: SessionState, title?: string): void {
       session.createdAt,
       session.updatedAt,
     );
-  } finally {
-    db.close();
+  } catch {
+    // Ignore SQLite write failures — JSONL is the primary store
   }
 }
 
@@ -144,8 +155,8 @@ export function listSessions(projectPath: string): SessionMeta[] {
         ...row,
         children: parseChildrenJson(row.childrenJson),
       }));
-    } finally {
-      db.close();
+    } catch {
+      return [];
     }
   }
   // Fallback: list from JSONL files
@@ -181,8 +192,8 @@ export function deletePersistedSession(projectPath: string, sessionId: string): 
   if (db) {
     try {
       db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
-    } finally {
-      db.close();
+    } catch {
+      // best effort
     }
   }
   const filePath = path.join(sessionsDir(projectPath), `${sessionId}.jsonl`);

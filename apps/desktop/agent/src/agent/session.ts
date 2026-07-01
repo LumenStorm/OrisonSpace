@@ -2,7 +2,36 @@ import { randomUUID } from 'node:crypto';
 import type { SessionState, SessionMessage, RetentionPriority } from '../types';
 import { persistSession, appendMessageToFile, loadMessagesFromFile, deletePersistedSession, loadSessionMeta, overwriteMessagesFile } from './persistence';
 
+const MAX_CACHED_SESSIONS = 20;
 const sessions = new Map<string, SessionState>();
+const accessOrder: string[] = [];
+
+function touchSession(id: string): void {
+  const idx = accessOrder.indexOf(id);
+  if (idx !== -1) accessOrder.splice(idx, 1);
+  accessOrder.push(id);
+  evictOldSessions();
+}
+
+function evictOldSessions(): void {
+  while (sessions.size > MAX_CACHED_SESSIONS && accessOrder.length > 0) {
+    const oldest = accessOrder[0];
+    const session = sessions.get(oldest);
+    if (session && session.status === 'running') {
+      accessOrder.push(accessOrder.shift()!);
+      if (accessOrder[0] === oldest) break;
+      continue;
+    }
+    accessOrder.shift();
+    sessions.delete(oldest);
+  }
+}
+
+export function evictSession(id: string): void {
+  sessions.delete(id);
+  const idx = accessOrder.indexOf(id);
+  if (idx !== -1) accessOrder.splice(idx, 1);
+}
 
 export interface CreateSessionOptions {
   id?: string;
@@ -52,7 +81,9 @@ export function createSession(
 }
 
 export function getSession(id: string): SessionState | undefined {
-  return sessions.get(id);
+  const s = sessions.get(id);
+  if (s) touchSession(id);
+  return s;
 }
 
 export function loadSession(id: string, projectPath: string): SessionState | undefined {
@@ -79,6 +110,7 @@ export function loadSession(id: string, projectPath: string): SessionState | und
     pinnedContext: meta?.pinnedContext,
   };
   sessions.set(id, session);
+  touchSession(id);
   return session;
 }
 

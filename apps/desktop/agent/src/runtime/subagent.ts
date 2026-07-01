@@ -2,6 +2,7 @@ import type { PermissionService } from './permission';
 import { createChildSession } from './sessionTree';
 import type { WorkflowRuntime } from './workflow';
 import type { SessionState } from '../types';
+import { evictSession } from '../agent/session';
 
 export interface SubagentDispatchInput {
   parentSessionId: string;
@@ -58,6 +59,8 @@ export function createSubagentRuntime(options: SubagentRuntimeOptions): Subagent
         prompt: input.prompt,
         role: input.role,
       });
+
+      evictSession(childSession.id);
 
       return {
         session: childSession,

@@ -54,7 +54,7 @@ function messagesToPayload(messages: SessionMessage[], system: string, tools: To
     });
     formatted.push({
       role: 'assistant',
-      content: '已记录上下文设定。',
+      content: 'Acknowledged.',
     });
   }
 
@@ -66,7 +66,7 @@ function messagesToPayload(messages: SessionMessage[], system: string, tools: To
     });
     formatted.push({
       role: 'assistant',
-      content: '已了解之前的对话内容，我会基于这些背景继续协助你。',
+      content: 'Understood. I will continue based on the context above.',
     });
   }
 

@@ -124,6 +124,8 @@ export function registerBuiltinTools() {
       filePath: z.string().optional().describe('File path if the passage is from a file'),
       originalText: z.string().describe('The exact original text to be replaced'),
       replacement: z.string().describe('The new text to replace the original'),
+    }).refine(d => d.chapterId || d.filePath, {
+      message: 'Either chapterId or filePath must be provided',
     }),
   }));
 
@@ -198,7 +200,7 @@ export function registerBuiltinTools() {
 
   registry.register(remoteToolProxy({
     id: 'git_commit',
-    description: 'Stage all changes and create a git commit.',
+    description: 'Stage all tracked and untracked changes, then create a git commit. WARNING: this commits everything in the working tree — use git_status first to verify what will be included.',
     parameters: z.object({
       message: z.string().describe('Commit message'),
       author: z.object({

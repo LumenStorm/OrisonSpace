@@ -1,13 +1,3 @@
-import { readFile } from 'node:fs/promises';
-
-async function _renderPrompt(
-  templatePath: string,
-  vars: Record<string, string>,
-): Promise<string> {
-  const raw = await readFile(templatePath, 'utf-8');
-  return raw.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
-}
-
 export function buildSystemPrompt(opts: {
   orisonPrompt: string;
   projectMeta?: string;

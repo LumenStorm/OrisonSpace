@@ -61,7 +61,11 @@ export async function compactWithSummarization(
     abort,
   } = options;
 
-  const splitIndex = Math.max(0, messages.length - preserveRecent);
+  let splitIndex = Math.max(0, messages.length - preserveRecent);
+  // Ensure we don't split between an assistant (with toolCalls) and its tool results
+  while (splitIndex > 0 && messages[splitIndex]?.role === 'tool') {
+    splitIndex--;
+  }
   const toCompress = messages.slice(0, splitIndex);
   const retained = messages.slice(splitIndex);
 

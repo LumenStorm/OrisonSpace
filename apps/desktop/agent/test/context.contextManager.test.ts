@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { prepareContext, createDefaultContextState, calibrateFromUsage } from '../src/context/contextManager';
+import { prepareContext, createDefaultContextState } from '../src/context/contextManager';
 import { CONTEXT_WINDOW, COMPACTION_TRIGGER_RATIO } from '../src/context/tokenEstimator';
 import type { SessionMessage } from '../src/types';
 
@@ -95,18 +95,5 @@ describe('contextManager', () => {
     });
 
     expect(result.cacheConfig.compactedSummary).toContain('chapter 1');
-  });
-
-  it('calibrateFromUsage updates ratio correctly', () => {
-    const state = createDefaultContextState();
-    const updated = calibrateFromUsage(state, 1200, 1000);
-    // observed = 1200/1000 = 1.2, new = 1.0*0.8 + 1.2*0.2 = 1.04
-    expect(updated.tokenCalibrationRatio).toBeCloseTo(1.04, 5);
-  });
-
-  it('calibrateFromUsage ignores zero values', () => {
-    const state = createDefaultContextState();
-    expect(calibrateFromUsage(state, 0, 1000)).toBe(state);
-    expect(calibrateFromUsage(state, 1000, 0)).toBe(state);
   });
 });

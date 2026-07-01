@@ -35,6 +35,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
   const result: SessionMessage[] = [];
   let steps = 0;
   let contextState = opts.contextState ?? createDefaultContextState();
+  let consecutiveLengthHits = 0;
 
   // Snapshot the base messages at entry — `opts.messages` may be a live reference
   // to session.messages that gets mutated by onMessage → addMessage. We must NOT
@@ -103,7 +104,8 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
 
     if (!response.toolCalls?.length) {
       if (response.finishReason === 'length') {
-        // Output truncated — inject continuation prompt to keep going
+        consecutiveLengthHits++;
+        if (consecutiveLengthHits >= 3) break;
         const contMsg: SessionMessage = {
           id: randomUUID(),
           role: 'user',
@@ -116,8 +118,9 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       }
       break;
     }
+    consecutiveLengthHits = 0;
 
-    // Execute tool calls
+    // Execute tool calls in parallel
     const ctx: ToolContext = {
       sessionId: opts.sessionId,
       projectPath: opts.projectPath,
@@ -128,53 +131,42 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       emitConfirmation: opts.emitConfirmation,
     };
 
-    // 某些工具（如 skill）已经把最终答复流式说给用户了，其结果标记为 terminal。
-    // 这种情况下本轮工具结果照常持久化，但不再让模型就同样内容生成重复收尾。
     let terminal = false;
 
-    for (let i = 0; i < response.toolCalls.length; i++) {
-      const call = response.toolCalls[i];
-      // If aborted mid-loop, synthesize cancelled results for this call and all
-      // remaining calls so every tool_call in the assistant message stays paired
-      // with a tool result. An assistant turn persisted with unmatched tool_calls
-      // makes the next request invalid ("Tool result is missing for tool call").
-      if (abort.aborted) {
-        for (let j = i; j < response.toolCalls.length; j++) {
-          const pending = response.toolCalls[j];
-          const cancelOutput = 'Tool call cancelled: the run was stopped by the user before this tool executed.';
-          const toolMsg: SessionMessage = {
-            id: randomUUID(),
-            role: 'tool',
-            content: cancelOutput,
-            toolResults: [{ toolCallId: pending.id, toolName: pending.name, output: cancelOutput }],
-            createdAt: Date.now(),
-          };
-          result.push(toolMsg);
-          onMessage?.(toolMsg);
-        }
-        throwIfAborted(abort);
-      }
-
-      const tool = tools.find(t => t.id === call.name);
-      if (!tool) {
+    if (abort.aborted) {
+      for (const call of response.toolCalls) {
+        const cancelOutput = 'Tool call cancelled: the run was stopped by the user before this tool executed.';
         const toolMsg: SessionMessage = {
           id: randomUUID(),
           role: 'tool',
-          content: `Error: tool "${call.name}" not found`,
-          toolResults: [{ toolCallId: call.id, toolName: call.name, output: `Error: tool "${call.name}" not found` }],
+          content: cancelOutput,
+          toolResults: [{ toolCallId: call.id, toolName: call.name, output: cancelOutput }],
           createdAt: Date.now(),
         };
         result.push(toolMsg);
         onMessage?.(toolMsg);
-        continue;
+      }
+      throwIfAborted(abort);
+    }
+
+    const toolMessages = await Promise.all(response.toolCalls.map(async (call) => {
+      const tool = tools.find(t => t.id === call.name);
+      if (!tool) {
+        return {
+          id: randomUUID(),
+          role: 'tool' as const,
+          content: `Error: tool "${call.name}" not found`,
+          toolResults: [{ toolCallId: call.id, toolName: call.name, output: `Error: tool "${call.name}" not found` }],
+          createdAt: Date.now(),
+        };
       }
 
       try {
         const params = JSON.parse(call.arguments);
         const toolResult = await tool.execute(params, ctx);
-        const toolMsg: SessionMessage = {
+        return {
           id: randomUUID(),
-          role: 'tool',
+          role: 'tool' as const,
           content: toolResult.output,
           toolResults: [{
             toolCallId: call.id,
@@ -183,25 +175,26 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
             metadata: toolResult.metadata,
           }],
           createdAt: Date.now(),
+          _terminal: toolResult.terminal,
         };
-        result.push(toolMsg);
-        onMessage?.(toolMsg);
-        if (toolResult.terminal) {
-          terminal = true;
-        }
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
         logger.error({ tool: call.name, err: errMsg }, 'tool execution failed');
-        const toolMsg: SessionMessage = {
+        return {
           id: randomUUID(),
-          role: 'tool',
+          role: 'tool' as const,
           content: `Error: ${errMsg}`,
           toolResults: [{ toolCallId: call.id, toolName: call.name, output: `Error: ${errMsg}` }],
           createdAt: Date.now(),
         };
-        result.push(toolMsg);
-        onMessage?.(toolMsg);
       }
+    }));
+
+    for (const msg of toolMessages) {
+      const { _terminal, ...toolMsg } = msg as any;
+      result.push(toolMsg);
+      onMessage?.(toolMsg);
+      if (_terminal) terminal = true;
     }
 
     // 本轮存在 terminal 工具（如 skill）：它已直接对用户说完话，

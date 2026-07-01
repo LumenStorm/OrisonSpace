@@ -152,7 +152,20 @@ export interface WorkflowRuntime {
   streamMessage(input: StreamMessageInput): Promise<void>;
 }
 
-const DEFAULT_ORISON_PROMPT = 'You are Orison, an AI writing assistant for creative fiction.';
+const DEFAULT_ORISON_PROMPT = `You are Orison, an AI writing assistant embedded in a creative fiction IDE.
+
+## Guidelines
+- Respond in the same language the user writes in.
+- Use tools proactively to read project files before making changes.
+- For write operations (chapter_write, rewrite_passage, outline_update, overview_update), always read the current content first.
+- Keep creative suggestions aligned with the project's established tone and style.
+- When modifying text, preserve the author's voice — suggest improvements, don't overwrite style.
+
+## Constraints
+- Never fabricate file contents — always use read_file or chapter_read to verify.
+- git_commit stages ALL changes — use git_status first to check what will be committed.
+- rewrite_passage and outline_update produce diffs for user review; they do not apply directly.
+- Do not call tools you have not been provided.`;
 
 export interface WorkflowRuntimeOptions {
   generate?: typeof generate;
@@ -211,7 +224,9 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         createdAt: Date.now(),
       }],
       systemPrompt,
-      tools: registry.all(),
+      tools: agentDefinition?.allowedTools?.length
+        ? registry.all().filter(t => agentDefinition.allowedTools!.includes(t.id))
+        : registry.all(),
       maxSteps: 30,
       generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: childSession.modelRef }),
       onMessage: childOnMessage,
@@ -289,15 +304,16 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
         .join('\n\n');
       return assistantContent;
     },
-    executeTool: async (toolName, input) => {
+    executeTool: async (toolName, input, context) => {
       const tool = registry.get(toolName);
       if (!tool) {
         throw new Error(`tool "${toolName}" not found`);
       }
+      const sess = getSession(context.sessionId);
       const result = await tool.execute(input, {
-        sessionId: 'workflow-skill',
-        projectPath: '.',
-        abort: new AbortController().signal,
+        sessionId: context.sessionId,
+        projectPath: sess?.projectPath ?? '.',
+        abort: context.abort ?? new AbortController().signal,
       });
       return result.output;
     },

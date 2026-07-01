@@ -1,7 +1,7 @@
 import type { SessionMessage } from '../types';
 import type { PinnedContextItem } from './pinnedContext';
 import type { SummarizationGenerateFn, CompactionResult } from './summarizer';
-import { estimateTokens, estimateMessagesTokens, shouldTriggerCompaction, updateCalibrationRatio, COMPACTION_TARGET_TOKENS } from './tokenEstimator';
+import { estimateTokens, estimateMessagesTokens, shouldTriggerCompaction, COMPACTION_TARGET_TOKENS } from './tokenEstimator';
 import { renderPinnedContext, estimatePinnedTokens } from './pinnedContext';
 import { compactWithSummarization } from './summarizer';
 import { logger } from '../logger';
@@ -125,24 +125,5 @@ export async function prepareContext(input: ContextManagerInput): Promise<Prepar
       pinnedContent: pinnedContent || undefined,
       compactedSummary: finalState.compactedSummary,
     },
-  };
-}
-
-/**
- * Call after receiving API response with usage data to calibrate the estimator.
- */
-export function calibrateFromUsage(
-  contextState: ContextState,
-  actualPromptTokens: number,
-  estimatedTokens: number,
-): ContextState {
-  if (actualPromptTokens <= 0 || estimatedTokens <= 0) return contextState;
-  return {
-    ...contextState,
-    tokenCalibrationRatio: updateCalibrationRatio(
-      contextState.tokenCalibrationRatio,
-      actualPromptTokens,
-      estimatedTokens,
-    ),
   };
 }
