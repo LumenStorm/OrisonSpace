@@ -17,6 +17,7 @@ import { InMemoryArtifactStore, type ArtifactStore } from '../artifact/store';
 import { buildSkillContext, type SkillRuntimeContext } from '../context/builder';
 import { compactConversation, type CompactedConversation } from '../context/compaction';
 import { createContinuationSnapshot, restoreContinuationSnapshot, type ContinuationSnapshot } from '../context/continuation';
+import { createDefaultContextState, type CacheConfig } from '../context/contextManager';
 import { logger } from '../logger';
 import { getDefaultRunStateStore, RunStateStore, SessionRunAlreadyActiveError, type RunCheckpoint, type RunStateSnapshot } from './runState';
 import { createPermissionService, type PermissionService } from './permission';
@@ -684,11 +685,20 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           systemPrompt,
           tools: registry.all(),
           maxSteps: 50,
-          generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }),
+          generate: (msgs, sys, tls, abortSignal, cacheConfig) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }, cacheConfig),
           onMessage: (msg) => addMessage(input.sessionId, msg),
           abort: runAbortSignal,
           skillExecutor: runtime,
           spawnDepth: 0,
+          contextState: session.contextState ?? createDefaultContextState(),
+          pinnedContext: session.pinnedContext,
+          onContextStateUpdate: (state) => {
+            session.contextState = state;
+            persistSession(session);
+          },
+          onCompaction: (count) => {
+            logger.info({ sessionId: input.sessionId, compactedCount: count }, 'context compaction completed in sendMessage');
+          },
         });
 
         updateStatus(input.sessionId, 'completed');
@@ -773,7 +783,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           systemPrompt,
           tools: registry.all(),
           maxSteps: 50,
-          generate: (msgs, sys, tls, abortSignal) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }),
+          generate: (msgs, sys, tls, abortSignal, cacheConfig) => generateImpl(msgs, sys, tls, abortSignal, { modelRef: session.modelRef }, cacheConfig),
           onMessage: (msg) => {
             addMessage(input.sessionId, msg);
             if (msg.role === 'assistant') {
@@ -800,6 +810,18 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           spawnDepth: 0,
           emitChildEvent,
           emitConfirmation: (pending) => input.sendEvent({ type: 'confirm_required', data: pending }),
+          contextState: session.contextState ?? createDefaultContextState(),
+          pinnedContext: session.pinnedContext,
+          onContextStateUpdate: (state) => {
+            session.contextState = state;
+            persistSession(session);
+          },
+          onCompaction: (count) => {
+            input.sendEvent({
+              type: 'compaction',
+              data: { compactedCount: count },
+            });
+          },
         });
 
         updateStatus(input.sessionId, 'completed');

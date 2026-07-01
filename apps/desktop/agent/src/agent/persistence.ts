@@ -11,6 +11,8 @@ import path from 'node:path';
 import type { SessionState, SessionMessage } from '../types';
 import type { ContinuationSnapshot } from '../context/continuation';
 import type { SerializedSkillRunState } from '../runtime/skillRunState';
+import type { ContextState } from '../context/contextManager';
+import type { PinnedContextItem } from '../context/pinnedContext';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 let Database: any = null;
@@ -203,6 +205,8 @@ export interface SessionMetaState {
   updatedAt: number;
   error?: string;
   skillRunState?: SerializedSkillRunState;
+  contextState?: ContextState;
+  pinnedContext?: PinnedContextItem[];
 }
 
 export interface PersistedContinuationRecord {
@@ -228,6 +232,8 @@ function persistSessionMeta(session: SessionState): void {
     updatedAt: session.updatedAt,
     error: session.error,
     skillRunState: session.skillRunState,
+    contextState: session.contextState,
+    pinnedContext: session.pinnedContext,
   };
   atomicWriteFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
 }

@@ -113,6 +113,8 @@ export interface SkillInfo {
 
 export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export type RetentionPriority = 'critical' | 'normal' | 'compressible';
+
 export interface SessionMessage {
   id: string;
   role: MessageRole;
@@ -120,6 +122,7 @@ export interface SessionMessage {
   toolCalls?: ToolCall[];
   toolResults?: ToolCallResult[];
   createdAt: number;
+  retention?: RetentionPriority;
 }
 
 export interface ToolCall {
@@ -158,7 +161,8 @@ export type RuntimeEventPayload =
   | { type: 'confirm_required'; data: PendingConfirmationState }
   | { type: 'done'; data: { status: WorkflowRunStatus } }
   | { type: 'error'; data: { message: string } }
-  | { type: 'child'; data: ChildStreamEvent };
+  | { type: 'child'; data: ChildStreamEvent }
+  | { type: 'compaction'; data: { compactedCount: number } };
 
 export type RuntimeStreamEvent = RuntimeEventPayload;
 
@@ -184,4 +188,12 @@ export interface SessionState {
   updatedAt: number;
   error?: string;
   skillRunState?: SerializedSkillRunState;
+  contextState?: {
+    compactedSummary?: string;
+    compactionCount: number;
+    lastCompactionAt?: number;
+    totalCompactedMessages: number;
+    tokenCalibrationRatio: number;
+  };
+  pinnedContext?: import('./context/pinnedContext').PinnedContextItem[];
 }

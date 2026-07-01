@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { ChildStreamEvent, SessionMessage, SkillExecutorRef, ToolCall, ToolContext, ToolDefinition } from '../types';
+import type { CacheConfig, ContextState } from '../context/contextManager';
+import type { SummarizationGenerateFn } from '../context/summarizer';
+import type { PinnedContextItem } from '../context/pinnedContext';
+import { prepareContext, createDefaultContextState } from '../context/contextManager';
 import { logger } from '../logger';
 
 export interface LoopOptions {
@@ -9,7 +13,7 @@ export interface LoopOptions {
   systemPrompt: string;
   tools: ToolDefinition[];
   maxSteps: number;
-  generate: (messages: SessionMessage[], system: string, tools: ToolDefinition[], abort: AbortSignal) => Promise<{
+  generate: (messages: SessionMessage[], system: string, tools: ToolDefinition[], abort: AbortSignal, cacheConfig?: CacheConfig) => Promise<{
     content: string;
     toolCalls?: ToolCall[];
     finishReason: string;
@@ -20,22 +24,72 @@ export interface LoopOptions {
   spawnDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
   emitConfirmation?: (pending: import('../types').PendingConfirmationState) => void;
+  contextState?: ContextState;
+  pinnedContext?: PinnedContextItem[];
+  onContextStateUpdate?: (state: ContextState) => void;
+  onCompaction?: (compactedCount: number) => void;
 }
 
 export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
-  const { messages, systemPrompt, tools, maxSteps, generate, onMessage, abort } = opts;
+  const { systemPrompt, tools, maxSteps, generate, onMessage, abort } = opts;
   const result: SessionMessage[] = [];
   let steps = 0;
+  let contextState = opts.contextState ?? createDefaultContextState();
+
+  // Snapshot the base messages at entry — `opts.messages` may be a live reference
+  // to session.messages that gets mutated by onMessage → addMessage. We must NOT
+  // re-read it on each iteration.
+  let baseMessages: SessionMessage[] = [...opts.messages];
+
+  // Build a summarization generate function that reuses the same model (no tools)
+  const summarizationGenerate: SummarizationGenerateFn = async (msgs, system, abortSignal) => {
+    const res = await generate(msgs, system, [], abortSignal);
+    return { content: res.content };
+  };
 
   while (steps < maxSteps) {
     throwIfAborted(abort);
     steps++;
 
+    // --- Context management: check budget and compact if needed ---
+    let allMessages = [...baseMessages, ...result];
+    let cacheConfig: CacheConfig | undefined;
+
+    const prepared = await prepareContext({
+      systemPrompt,
+      messages: allMessages,
+      contextState,
+      pinnedContext: opts.pinnedContext,
+      generate: summarizationGenerate,
+      abort,
+    });
+
+    if (prepared.compactionOccurred) {
+      // After compaction, `prepared.messages` is the retained tail.
+      // We need to replace both `baseMessages` and `result` with this new set
+      // so that subsequent iterations only see the compacted view.
+      // Split retained messages back: those from the original base vs those from result.
+      const baseIds = new Set(baseMessages.map(m => m.id));
+      const newBase = prepared.messages.filter(m => baseIds.has(m.id));
+      const newResult = prepared.messages.filter(m => !baseIds.has(m.id));
+
+      baseMessages = newBase;
+      result.splice(0, result.length, ...newResult);
+      allMessages = prepared.messages;
+      contextState = prepared.contextState;
+      opts.onContextStateUpdate?.(contextState);
+      opts.onCompaction?.(prepared.compactedCount);
+      logger.info({ compactedCount: prepared.compactedCount }, 'in-loop compaction applied');
+    }
+
+    cacheConfig = prepared.cacheConfig;
+
     const response = await generate(
-      [...messages, ...result],
+      allMessages,
       systemPrompt,
       tools,
       abort,
+      cacheConfig,
     );
 
     const assistantMsg: SessionMessage = {

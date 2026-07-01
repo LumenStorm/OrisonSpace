@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { SessionState, SessionMessage } from '../types';
+import type { SessionState, SessionMessage, RetentionPriority } from '../types';
 import { persistSession, appendMessageToFile, loadMessagesFromFile, deletePersistedSession, loadSessionMeta, overwriteMessagesFile } from './persistence';
 
 const sessions = new Map<string, SessionState>();
@@ -75,6 +75,8 @@ export function loadSession(id: string, projectPath: string): SessionState | und
     updatedAt: meta?.updatedAt ?? messages[messages.length - 1]?.createdAt ?? Date.now(),
     error: meta?.error,
     skillRunState: meta?.skillRunState,
+    contextState: meta?.contextState,
+    pinnedContext: meta?.pinnedContext,
   };
   sessions.set(id, session);
   return session;
@@ -91,9 +93,21 @@ export function deleteSession(id: string): boolean {
 export function addMessage(sessionId: string, message: SessionMessage): void {
   const session = sessions.get(sessionId);
   if (!session) return;
+  if (!message.retention) {
+    message.retention = classifyRetention(message);
+  }
   session.messages.push(message);
   session.updatedAt = Date.now();
   appendMessageToFile(session.projectPath, sessionId, message);
+}
+
+function classifyRetention(msg: SessionMessage): RetentionPriority {
+  if (msg.role === 'user') return 'critical';
+  if (msg.role === 'tool') {
+    const totalOutput = msg.toolResults?.reduce((sum, r) => sum + r.output.length, 0) ?? 0;
+    return totalOutput > 2000 ? 'compressible' : 'normal';
+  }
+  return 'normal';
 }
 
 export function updateStatus(sessionId: string, status: SessionState['status'], error?: string): void {

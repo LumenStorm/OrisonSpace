@@ -18,6 +18,7 @@ import {
 import { randomUUID } from '../util/id';
 import { registerProjectReset } from './resetRegistry';
 import { storage } from './storage';
+import { useToastStore } from './toastStore';
 
 const AGENT_MODE_KEY = 'agentMode';
 const VALID_MODES: AgentMode[] = ['readonly', 'suggest', 'auto'];
@@ -377,6 +378,15 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
               }],
             }));
           }
+          break;
+        }
+        case 'compaction': {
+          const { compactedCount } = event.data;
+          useToastStore.getState().showToast(
+            `上下文已自动压缩，压缩了 ${compactedCount} 条历史消息`,
+            'info',
+            3000,
+          );
           break;
         }
         case 'done':

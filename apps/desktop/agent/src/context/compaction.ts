@@ -28,3 +28,7 @@ export function compactConversation(input: CompactConversationInput): CompactedC
     tail,
   };
 }
+
+// Re-export the new LLM-based compaction for use in contextManager
+export { compactWithSummarization } from './summarizer';
+export type { CompactionResult, CompactionOptions, SummarizationGenerateFn } from './summarizer';

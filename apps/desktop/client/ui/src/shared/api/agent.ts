@@ -39,7 +39,8 @@ export type AgentStreamEvent =
   | { type: 'confirm_required'; data: { sessionId?: string; callId: string; name: string; input: unknown; createdAt?: number } }
   | { type: 'done'; data: { status: string } }
   | { type: 'error'; data: { message: string } }
-  | { type: 'child'; data: AgentChildStreamEvent };
+  | { type: 'child'; data: AgentChildStreamEvent }
+  | { type: 'compaction'; data: { compactedCount: number } };
 
 export type AgentSkillInfo = {
   name: string;

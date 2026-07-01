@@ -1,4 +1,5 @@
 import type { SessionMessage, ToolCall, ToolDefinition } from '../types';
+import type { CacheConfig } from '../context/contextManager';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export interface GenerateOptions {
@@ -37,8 +38,37 @@ export function setGenerateTextFn(fn: GenerateTextFn) {
   _generateText = fn;
 }
 
-function messagesToPayload(messages: SessionMessage[], system: string, tools: ToolDefinition[]) {
-  const formatted: unknown[] = [{ role: 'system', content: system }];
+function messagesToPayload(messages: SessionMessage[], system: string, tools: ToolDefinition[], cacheConfig?: CacheConfig) {
+  const formatted: unknown[] = [{
+    role: 'system',
+    content: system,
+    ...(cacheConfig?.enablePromptCache && { cache_control: { type: 'ephemeral' } }),
+  }];
+
+  // Inject pinned context as a stable prefix (benefits from prompt caching)
+  if (cacheConfig?.pinnedContent) {
+    formatted.push({
+      role: 'user',
+      content: `[Pinned Context]\n${cacheConfig.pinnedContent}`,
+      ...(cacheConfig.enablePromptCache && { cache_control: { type: 'ephemeral' } }),
+    });
+    formatted.push({
+      role: 'assistant',
+      content: '已记录上下文设定。',
+    });
+  }
+
+  // Inject compacted summary of earlier conversation
+  if (cacheConfig?.compactedSummary) {
+    formatted.push({
+      role: 'user',
+      content: `[Earlier conversation summary]\n${cacheConfig.compactedSummary}`,
+    });
+    formatted.push({
+      role: 'assistant',
+      content: '已了解之前的对话内容，我会基于这些背景继续协助你。',
+    });
+  }
 
   for (const m of messages) {
     if (m.role === 'assistant') {
@@ -90,10 +120,11 @@ export async function generate(
   tools: ToolDefinition[],
   abortSignal: AbortSignal,
   opts: GenerateOptions = {},
+  cacheConfig?: CacheConfig,
 ): Promise<GenerateResult> {
   if (!_generateText) throw new Error('generateText not initialized — call setGenerateTextFn first');
 
-  const payload = messagesToPayload(messages, system, tools);
+  const payload = messagesToPayload(messages, system, tools, cacheConfig);
 
   const body: GenerateTextRequest = {
     ref: opts.modelRef ?? { keyId: 'default', modelId: 'default' },
