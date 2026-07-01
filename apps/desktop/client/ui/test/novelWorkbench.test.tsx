@@ -105,22 +105,19 @@ describe('NovelWorkbench', () => {
     expect(useAppStore.getState().selectChapter).toHaveBeenCalledWith('ch_002');
   });
 
-  it('选中章节后显示生成/继续/润色按钮', () => {
+  it('选中章节后显示功能重建提示', () => {
     useAppStore.setState({ activeChapterId: 'ch_002' } as any);
     render(<NovelWorkbench />);
-    expect(screen.getByRole('button', { name: generateBtnRegex })).toBeTruthy();
-    expect(screen.getByRole('button', { name: continueBtnRegex })).toBeTruthy();
-    expect(screen.getByRole('button', { name: polishBtnRegex })).toBeTruthy();
+    expect(screen.getByText(/(章节生成功能重建中|Chapter generation is being rebuilt|novelChapter\.actionsUnavailable)/)).toBeTruthy();
   });
 
-  it('点击生成本章触发 startChapterRun', async () => {
+  it('功能重建提示替代了原有生成按钮', () => {
     useAppStore.setState({ activeChapterId: 'ch_002' } as any);
     render(<NovelWorkbench />);
-    await userEvent.click(screen.getByRole('button', { name: generateBtnRegex }));
-    expect(useAppStore.getState().startChapterRun).toHaveBeenCalledWith('ch_002', 'generate');
+    expect(screen.queryByRole('button', { name: generateBtnRegex })).toBeNull();
   });
 
-  it('can choose a text model from project model settings for novel writing', async () => {
+  it('model selector is not rendered while chapter actions are disabled', () => {
     useAppStore.setState({
       activeChapterId: 'ch_002',
       selectedNovelRef: null,
@@ -137,13 +134,7 @@ describe('NovelWorkbench', () => {
       },
     } as any);
     render(<NovelWorkbench />);
-
-    await userEvent.selectOptions(
-      screen.getAllByRole('combobox', { name: /(写作模型|Writing model|novelChapter\.model)/ })[0],
-      'key_001:gpt-5.4',
-    );
-
-    expect(useAppStore.getState().selectedNovelRef).toEqual({ keyId: 'key_001', modelId: 'gpt-5.4' });
+    expect(screen.queryByRole('combobox', { name: /(写作模型|Writing model|novelChapter\.model)/ })).toBeNull();
   });
 
   it('candidate 出现时显示 accept / reject 按钮和正文', () => {
