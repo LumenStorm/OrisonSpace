@@ -19,7 +19,7 @@ import { NotificationCenter } from '../notifications/NotificationCenter';
 export function TopBar() {
   const isMac = detectIsMac();
   const {
-    resolvedLocale, closeProject, currentProject, saveProject, saveChaptersToProject,
+    resolvedLocale, closeProject, currentProject, saveProject,
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
@@ -30,7 +30,6 @@ export function TopBar() {
     closeProject: s.closeProject,
     currentProject: s.currentProject,
     saveProject: s.saveProject,
-    saveChaptersToProject: s.saveChaptersToProject,
     saveAllOpenFiles: s.saveAllOpenFiles,
     requestCloseFile: s.requestCloseFile,
     reopenLastClosedFile: s.reopenLastClosedFile,
@@ -69,7 +68,6 @@ export function TopBar() {
     try {
       await saveAllOpenFiles();
       await saveProject();
-      await saveChaptersToProject();
       // Sync word counts from saved files into novelChapters for overview
       const state = useAppStore.getState();
       const projectPath = state.currentProject?.path;
@@ -98,7 +96,7 @@ export function TopBar() {
       const reason = err instanceof Error ? err.message : String(err);
       showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
     }
-  }, [saveProject, saveChaptersToProject, saveAllOpenFiles, refreshWordCount, setSaveStatus, setLastSavedAt, showToast, t]);
+  }, [saveProject, saveAllOpenFiles, refreshWordCount, setSaveStatus, setLastSavedAt, showToast, t]);
 
   // Route undo/redo to the focused editor (textarea / Tiptap contenteditable),
   // which owns its own history. The legacy editorSlice undo stack drove a

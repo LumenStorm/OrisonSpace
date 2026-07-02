@@ -193,6 +193,33 @@ async function checkoutBranch(dir: string, name: string): Promise<void> {
   notifyGitChanged();
 }
 
+/**
+ * Restore the working tree to the state of `oid` and record it as a new node
+ * on the current branch. Keeps history linear: no restore-* branches and no
+ * detached HEAD — "going back" is itself a step forward on the timeline, so
+ * the version being left behind stays reachable.
+ */
+async function restoreVersion(dir: string, oid: string, message: string): Promise<{ oid: string }> {
+  const root = await getGitRoot(dir);
+  // Materialize the snapshot into worktree + index without moving HEAD.
+  await git.checkout({ fs, dir: root, ref: oid, force: true, noUpdateHead: true });
+  // Already at that state? Don't record an empty node.
+  const matrix = await git.statusMatrix({ fs, dir: root });
+  const dirty = matrix.some(([, head, workdir, stage]) => head !== 1 || workdir !== 1 || stage !== 1);
+  if (!dirty) {
+    notifyGitChanged();
+    return { oid: await git.resolveRef({ fs, dir: root, ref: 'HEAD' }) };
+  }
+  const newOid = await git.commit({
+    fs,
+    dir: root,
+    message,
+    author: { name: 'Orison', email: 'user@orison.local' },
+  });
+  notifyGitChanged();
+  return { oid: newOid };
+}
+
 async function statusCount(dir: string): Promise<number> {
   const root = await getGitRoot(dir);
   const matrix = await git.statusMatrix({ fs, dir: root });
@@ -302,6 +329,16 @@ export function registerGitIpc() {
       await checkoutBranch(dir, name);
     } catch (err) {
       logger.warn({ dir, name, err }, 'git:checkout-branch failed');
+      throw err;
+    }
+  });
+
+  ipcMain.handle('git:restore-version', async (_e, dir: string, oid: string, message: string) => {
+    try {
+      assertSafePath(dir);
+      return await restoreVersion(dir, oid, message);
+    } catch (err) {
+      logger.warn({ dir, oid, err }, 'git:restore-version failed');
       throw err;
     }
   });

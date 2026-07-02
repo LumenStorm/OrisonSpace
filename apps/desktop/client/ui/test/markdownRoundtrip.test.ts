@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { htmlToMarkdown, markdownToHtml } from '../src/shared/utils/markdown';
+import { htmlToMarkdown, markdownToHtml, isMarkdownRoundTripLossy } from '../src/shared/utils/markdown';
 
 function roundtrip(md: string): string {
   return htmlToMarkdown(markdownToHtml(md)).trim();
@@ -61,5 +61,64 @@ describe('markdown round-trip', () => {
   it('handles empty input', () => {
     expect(htmlToMarkdown('')).toBe('');
     expect(markdownToHtml('')).toBe('');
+  });
+});
+
+describe('isMarkdownRoundTripLossy', () => {
+  it('accepts plain prose and StarterKit constructs', () => {
+    const md = [
+      '# Chapter 1',
+      '',
+      'A paragraph with **bold**, *italic*, `code` and a [link](https://example.com).',
+      '',
+      '- a list',
+      '- of items',
+      '',
+      '> a quote',
+      '',
+      '```',
+      'fenced code',
+      '```',
+    ].join('\n');
+    expect(isMarkdownRoundTripLossy(md)).toBe(false);
+  });
+
+  it('handles empty input', () => {
+    expect(isMarkdownRoundTripLossy('')).toBe(false);
+  });
+
+  it('flags GFM tables', () => {
+    const md = 'Intro\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n';
+    expect(isMarkdownRoundTripLossy(md)).toBe(true);
+  });
+
+  it('flags images', () => {
+    expect(isMarkdownRoundTripLossy('Text with ![alt](assets/pic.png) inline.')).toBe(true);
+  });
+
+  it('flags YAML front-matter', () => {
+    expect(isMarkdownRoundTripLossy('---\ntitle: x\n---\n\nBody text.')).toBe(true);
+  });
+
+  it('flags structural raw HTML', () => {
+    expect(isMarkdownRoundTripLossy('Before\n\n<div class="note">html block</div>\n\nAfter')).toBe(true);
+    expect(isMarkdownRoundTripLossy('<table><tr><td>x</td></tr></table>')).toBe(true);
+  });
+
+  it('does not flag table-like lines separated by blank paragraphs', () => {
+    // What TipTap produces when a user types pipe characters as plain prose:
+    // paragraphs, not a table. marked never parses these as a table, so the
+    // delimiter-row count survives the round-trip.
+    const md = '| a |\n\n| - |\n\n| b |';
+    expect(isMarkdownRoundTripLossy(md)).toBe(false);
+  });
+
+  it('does not flag image/table syntax inside code fences', () => {
+    const md = 'Example:\n\n```\n![alt](x.png)\n| a | b |\n| - | - |\n```';
+    expect(isMarkdownRoundTripLossy(md)).toBe(false);
+  });
+
+  it('does not flag horizontal rules mid-document', () => {
+    expect(isMarkdownRoundTripLossy('Part one\n\n---\n\nPart two')).toBe(false);
   });
 });

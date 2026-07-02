@@ -1,9 +1,9 @@
 import { useAppStore } from '../../shared/store/appStore';
-import { getFileExtension, isImageFileName } from '../../shared/utils/fileType';
-import { MarkdownEditor } from './file-editor/MarkdownEditor';
-import { CodeEditor } from './file-editor/CodeEditor';
+import { isImageFileName, isDocxFileName } from '../../shared/utils/fileType';
 import { ImagePreview } from './file-editor/ImagePreview';
-import { ReadOnlyPreview } from './file-editor/ReadOnlyPreview';
+import { DocxPreview } from './file-editor/DocxPreview';
+import { TextFileEditor } from './TextFileEditor';
+import { FileConflictBanner } from './FileConflictBanner';
 
 export function SplitFileEditor({ filePath }: { filePath: string }) {
   const openFiles = useAppStore((s) => s.openFiles);
@@ -14,9 +14,16 @@ export function SplitFileEditor({ filePath }: { filePath: string }) {
     return <ImagePreview file={file} />;
   }
 
-  const ext = getFileExtension(file.name);
+  if (file.kind === 'docx' || isDocxFileName(file.name)) {
+    return <DocxPreview file={file} />;
+  }
 
-  if (ext === 'yaml' || ext === 'yml') return <CodeEditor file={file} />;
-  if (ext === 'md' || ext === 'txt' || ext === 'text' || ext === '') return <MarkdownEditor file={file} />;
-  return <ReadOnlyPreview file={file} />;
+  // Same shell as the main pane, so split panes also surface the
+  // external-change conflict banner and the source-mode fallback.
+  return (
+    <div className="file-editor-shell">
+      <FileConflictBanner file={file} />
+      <TextFileEditor file={file} />
+    </div>
+  );
 }

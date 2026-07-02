@@ -174,6 +174,7 @@ export const exposedDesktopApi = {
   gitCurrentBranch: (dir: string) => ipcRenderer.invoke('git:current-branch', dir) as Promise<string>,
   gitCreateBranch: (dir: string, name: string, fromOid?: string) => ipcRenderer.invoke('git:create-branch', dir, name, fromOid) as Promise<void>,
   gitCheckoutBranch: (dir: string, name: string) => ipcRenderer.invoke('git:checkout-branch', dir, name) as Promise<void>,
+  gitRestoreVersion: (dir: string, oid: string, message: string) => ipcRenderer.invoke('git:restore-version', dir, oid, message) as Promise<{ oid: string }>,
   gitStatusCount: (dir: string) => ipcRenderer.invoke('git:status-count', dir) as Promise<number>,
   // Tool event notifications (pushed from Shell when Agent executes tools)
   onToolEvent: (callback: (data: { type: string; [key: string]: unknown }) => void) => {

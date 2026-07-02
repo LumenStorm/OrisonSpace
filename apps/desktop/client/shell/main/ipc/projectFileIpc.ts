@@ -5,6 +5,7 @@ import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 import { decodeFileToUtf8 } from '../fs/decodeText';
+import { findProjectRootFor, snapshotToLocalHistory, snapshotTreeToLocalHistory } from '../fs/localHistory';
 import { notifyUI } from './toolNotify';
 import {
   ALLOWED_IMAGE_DIRS,
@@ -121,9 +122,14 @@ export function registerProjectFileIpc(): void {
     assertSafePath(fullPath);
     try {
       const stat = statSync(fullPath);
+      // Deletion is irreversible — keep a local-history snapshot of the text
+      // content being removed so a mis-click is recoverable by hand.
+      const projectRoot = findProjectRootFor(fullPath);
       if (stat.isDirectory()) {
+        if (projectRoot) snapshotTreeToLocalHistory(projectRoot, fullPath);
         rmSync(fullPath, { recursive: true, force: true });
       } else {
+        if (projectRoot) snapshotToLocalHistory(projectRoot, fullPath);
         unlinkSync(fullPath);
       }
       return true;
@@ -217,6 +223,10 @@ export function registerProjectFileIpc(): void {
     try {
       const dir = path.dirname(fullPath);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      // Local-history snapshot of the previous content before it's replaced
+      // (covers the editor autosave and the agent-diff accept path alike).
+      const projectRoot = findProjectRootFor(fullPath);
+      if (projectRoot) snapshotToLocalHistory(projectRoot, fullPath, content);
       // Always write UTF-8 (no BOM). Combined with read-side LF normalization
       // this gives a stable LF + UTF-8 round-trip. We intentionally do not
       // restore the original encoding/newlines (e.g. GBK or CRLF): normalizing
@@ -264,6 +274,7 @@ export function registerProjectFileIpc(): void {
     const fullPath = buildProjectPath(projectDir, relativePath);
     try {
       if (!existsSync(fullPath)) return true;
+      snapshotToLocalHistory(projectDir, fullPath);
       unlinkSync(fullPath);
       return true;
     } catch {

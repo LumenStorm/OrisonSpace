@@ -35,6 +35,14 @@ export async function gitCheckoutBranch(projectDir: string, branch: string): Pro
   await api?.gitCheckoutBranch(projectDir, branch);
 }
 
+/**
+ * Restore the working tree to `oid`, recorded as a new node on the current
+ * branch (linear history — no restore branches, no detached HEAD).
+ */
+export async function gitRestoreVersion(projectDir: string, oid: string, message: string): Promise<void> {
+  await api?.gitRestoreVersion(projectDir, oid, message);
+}
+
 export async function gitCreateBranch(projectDir: string, name: string, startOid: string): Promise<void> {
   await api?.gitCreateBranch(projectDir, name, startOid);
 }

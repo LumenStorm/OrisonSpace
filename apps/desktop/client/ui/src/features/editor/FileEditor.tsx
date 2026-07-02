@@ -1,10 +1,8 @@
 import { useAppStore } from '../../shared/store/appStore';
-import { getFileExtension, isImageFileName, isDocxFileName } from '../../shared/utils/fileType';
-import { MarkdownEditor } from './file-editor/MarkdownEditor';
-import { CodeEditor } from './file-editor/CodeEditor';
+import { isImageFileName, isDocxFileName } from '../../shared/utils/fileType';
 import { ImagePreview } from './file-editor/ImagePreview';
 import { DocxPreview } from './file-editor/DocxPreview';
-import { ReadOnlyPreview } from './file-editor/ReadOnlyPreview';
+import { TextFileEditor } from './TextFileEditor';
 import { FileConflictBanner } from './FileConflictBanner';
 
 export function FileEditor() {
@@ -22,18 +20,11 @@ export function FileEditor() {
     return <DocxPreview file={file} />;
   }
 
-  const ext = getFileExtension(file.name);
-
-  const isYaml = ext === 'yaml' || ext === 'yml';
-  const isMarkdownLike = ext === 'md' || ext === 'txt' || ext === 'text' || ext === '';
-
   // The conflict banner sits above whichever text editor renders for this file.
   return (
     <div className="file-editor-shell">
       <FileConflictBanner file={file} />
-      {isYaml ? <CodeEditor file={file} />
-        : isMarkdownLike ? <MarkdownEditor file={file} />
-        : <ReadOnlyPreview file={file} />}
+      <TextFileEditor file={file} />
     </div>
   );
 }

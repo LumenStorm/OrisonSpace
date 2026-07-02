@@ -22,13 +22,12 @@ type DiffMeta = {
 const noop = () => {};
 
 export function DiffCard({ result }: Props) {
-  const { pendingDiffs, acceptDiff, rejectDiff, agentMode, resolvedLocale, chapters } = useAppStore(useShallow((s) => ({
+  const { pendingDiffs, acceptDiff, rejectDiff, agentMode, resolvedLocale } = useAppStore(useShallow((s) => ({
     pendingDiffs: s.pendingDiffs,
     acceptDiff: s.acceptDiff,
     rejectDiff: s.rejectDiff,
     agentMode: s.agentMode,
     resolvedLocale: s.resolvedLocale,
-    chapters: s.chapters,
   })));
   const { t } = useI18n(resolvedLocale);
   const [expanded, setExpanded] = useState(false);
@@ -100,9 +99,9 @@ export function DiffCard({ result }: Props) {
     );
   }
 
-  const oldContent = diff
-    ? (chapters.find((c) => (diff.chapterId ? c.id === diff.chapterId : c.title.includes(diff.fileName.replace('.md', ''))))?.content ?? '')
-    : '';
+  // The pre-write on-disk text (captured at tool-execution time) is the correct
+  // "before" side for the diff. Empty string when the write created the file.
+  const oldContent = diff?.previousContent ?? '';
 
   return (
     <>

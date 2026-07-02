@@ -1,5 +1,4 @@
 import type { StateCreator } from 'zustand';
-import type { ChapterAccessor } from './types';
 import type { SelectionAnchor } from '../types/attachment';
 import { resolveAgentConfirmation } from '../api/agent';
 import { registerProjectReset } from './resetRegistry';
@@ -91,10 +90,9 @@ export type AgentDiffSlice = {
   rejectPendingTool: () => void;
 };
 
-type Deps = AgentDiffSlice & ChapterAccessor & {
+type Deps = AgentDiffSlice & {
   agentSessionId: string | null;
   agentLoading: boolean;
-  saveChaptersToProject: () => Promise<void>;
   openFiles: { path: string; content: string }[];
   updateFileContent: (path: string, content: string) => void;
   saveFile: (path: string) => Promise<boolean>;
@@ -126,6 +124,17 @@ function resolveChapterFilePath(state: Deps, chapterId: string | undefined, file
     return normalizePath(`${projectPath}/chapters/${fileName}`);
   }
   return null;
+}
+
+/**
+ * Read a chapter's latest content from its open tab, if any. Passage relocation
+ * needs the current in-editor text; when the chapter file isn't open there is no
+ * in-memory copy to relocate against (returns undefined → caller drops the diff).
+ */
+function readChapterContent(state: Deps, chapterId: string | undefined): string | undefined {
+  const filePath = resolveChapterFilePath(state, chapterId, undefined);
+  if (!filePath) return undefined;
+  return state.openFiles.find((f) => f.path === filePath)?.content;
 }
 
 /**
@@ -294,16 +303,9 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
     if (!diff) return;
 
     if (diff.kind === 'chapter') {
-      // Persist to the manuscript .md file (the source of truth). Previously this
-      // only updated the in-memory legacy chapter list and called a no-op save,
-      // so an accepted whole-chapter rewrite was lost on reload if the chapter's
-      // file wasn't open. Keep the in-memory update too for any open editor view.
-      const chapter = state.chapters.find((c) =>
-        diff.chapterId ? c.id === diff.chapterId : c.title.includes(diff.fileName.replace('.md', '')),
-      );
-      if (chapter) {
-        state.updateChapter(chapter.id, { content: diff.content });
-      }
+      // Persist to the manuscript .md file (the source of truth). If the file is
+      // open as a tab the write routes through it so the editor view stays in
+      // sync; otherwise it goes straight to disk.
       const filePath = resolveChapterFilePath(state, diff.chapterId, diff.fileName);
       if (filePath) {
         persistChapterContent(state, filePath, diff.content);
@@ -314,7 +316,7 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
 
     // passage: relocate in the latest content at accept time
     const current = diff.sourceType === 'chapter'
-      ? state.chapters.find((c) => c.id === diff.chapterId)?.content
+      ? readChapterContent(state, diff.chapterId)
       : state.openFiles.find((f) => f.path === diff.filePath)?.content;
 
     if (current == null) {
@@ -353,7 +355,7 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
     if (!candidate) return;
 
     const current = resolve.sourceType === 'chapter'
-      ? state.chapters.find((c) => c.id === resolve.chapterId)?.content
+      ? readChapterContent(state, resolve.chapterId)
       : state.openFiles.find((f) => f.path === resolve.filePath)?.content;
     if (current == null) {
       set({ pendingPassageResolve: null, pendingDiffs: state.pendingDiffs.filter((d) => d.id !== diffId) });
@@ -418,8 +420,7 @@ function applyPassage(
 ): void {
   const next = current.slice(0, from) + replacement + current.slice(to);
   if (sourceType === 'chapter' && chapterId) {
-    state.updateChapter(chapterId, { content: next });
-    // Persist the spliced chapter to its manuscript file (was a no-op before).
+    // Persist the spliced chapter to its manuscript file (the source of truth).
     const chapterFile = resolveChapterFilePath(state, chapterId, undefined);
     if (chapterFile) persistChapterContent(state, chapterFile, next);
   } else if (sourceType === 'file' && filePath) {
@@ -462,11 +463,6 @@ async function restoreRejectedWrite(state: Deps, diff: ChapterPendingDiff): Prom
     void state.saveFile(absPath);
   } else {
     try { await api.writeFile?.(absPath, previous); } catch { /* best effort */ }
-  }
-  // Keep the in-memory legacy chapter list consistent if this was a chapter.
-  if (diff.chapterId) {
-    const chapter = state.chapters.find((c) => c.id === diff.chapterId);
-    if (chapter) state.updateChapter(chapter.id, { content: previous });
   }
 }
 

@@ -7,16 +7,11 @@ const AUTOSAVE_DEBOUNCE_MS = 1500;
 /** Dispatched by the status bar "retry" affordance to force an immediate save. */
 export const AUTOSAVE_RETRY_EVENT = 'orison:autosave-retry';
 
-/** Serialize the editor chapters so we can skip disk writes when nothing changed. */
-function serializeChapters(chapters: { id: string; title: string; content: string }[]): string {
-  return JSON.stringify(chapters);
-}
-
 /**
  * Background autosave for the workspace.
  *
  * Triggers:
- *  - debounced (1500ms) whenever a dirty file tab or a chapter edit appears
+ *  - debounced (1500ms) whenever a dirty file tab appears
  *  - immediately on window blur (don't lose work when switching apps)
  *  - immediately on an explicit retry request from the status bar
  *
@@ -27,8 +22,6 @@ export function useAutoSave(): void {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let saving = false;
-    // Last chapters snapshot we persisted — gates the chapter write (no dirty concept).
-    let savedChaptersSig = serializeChapters(useAppStore.getState().chapters);
 
     const clearTimer = () => {
       if (timer !== null) {
@@ -48,20 +41,13 @@ export function useAutoSave(): void {
       const dirtyPaths = state.openFiles
         .filter((f) => f.kind === 'text' && f.content !== f.savedContent)
         .map((f) => f.path);
-      const chaptersSig = serializeChapters(state.chapters);
-      const chaptersChanged = chaptersSig !== savedChaptersSig;
 
-      if (dirtyPaths.length === 0 && !chaptersChanged) return;
+      if (dirtyPaths.length === 0) return;
 
       saving = true;
       state.setSaveStatus('saving');
       try {
-        if (dirtyPaths.length > 0) {
-          await state.saveAllOpenFiles();
-        }
-        if (chaptersChanged) {
-          await state.saveChaptersToProject();
-        }
+        await state.saveAllOpenFiles();
 
         // Verify the files we set out to save actually landed on disk.
         const after = useAppStore.getState().openFiles;
@@ -73,7 +59,6 @@ export function useAutoSave(): void {
         if (stillDirty) {
           state.setSaveStatus('error');
         } else {
-          savedChaptersSig = chaptersSig;
           state.setLastSavedAt(Date.now());
           state.setSaveStatus('saved');
           // Content landed on disk; keep the overview word count in sync.
@@ -94,14 +79,12 @@ export function useAutoSave(): void {
       }, AUTOSAVE_DEBOUNCE_MS);
     };
 
-    // Cheap trigger source: only react when the openFiles or chapters arrays
-    // change identity (zustand replaces them immutably on edit).
+    // Cheap trigger source: only react when the openFiles array changes identity
+    // (zustand replaces it immutably on edit).
     let prevFiles = useAppStore.getState().openFiles;
-    let prevChapters = useAppStore.getState().chapters;
     const unsubscribe = useAppStore.subscribe((s) => {
-      if (s.openFiles !== prevFiles || s.chapters !== prevChapters) {
+      if (s.openFiles !== prevFiles) {
         prevFiles = s.openFiles;
-        prevChapters = s.chapters;
         schedule();
       }
     });

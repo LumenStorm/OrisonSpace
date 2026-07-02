@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { useI18n } from '../i18n/useI18n';
+import { useToastStore } from '../store/toastStore';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { ensureProjectRegistration } from '../api/projects';
 
@@ -12,6 +13,7 @@ export function NewProjectDialog({ onClose }: Props) {
   const openProject = useAppStore((s) => s.openProject);
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
+  const showToast = useToastStore((s) => s.showToast);
   const dialogRef = useRef<HTMLDivElement>(null);
   useDialogA11y(dialogRef, onClose);
 
@@ -65,7 +67,10 @@ export function NewProjectDialog({ onClose }: Props) {
 
       openProject({ projectId, name: name.trim(), path: projectDir, type, coverImage });
       onClose();
-    } catch {
+    } catch (err) {
+      // Disk/permission/path failures must be visible, not a dead button.
+      const reason = err instanceof Error ? err.message : String(err);
+      showToast(t('projects.createFailed', { reason }), 'error');
       setCreating(false);
     }
   };

@@ -5,6 +5,7 @@ import { existsSync, readFileSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
+import { snapshotToLocalHistory } from '../../fs/localHistory';
 import type { ToolHandler } from './types';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
@@ -67,6 +68,8 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
     }
   }
 
+  // Agent chapter rewrites are the highest-risk overwrite path — snapshot first.
+  snapshotToLocalHistory(projectDir, filePath, content);
   atomicWriteFileSync(filePath, content, 'utf-8');
   // Notify both chapter-level listeners (word count) and file-level listeners
   // (open-tab reload). Without file:changed, an editor showing this chapter

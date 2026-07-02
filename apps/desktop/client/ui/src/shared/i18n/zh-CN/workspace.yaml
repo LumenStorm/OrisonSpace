@@ -96,6 +96,9 @@ errorBoundary:
 export:
   title: "导出"
   download: "下载"
+  exporting: "导出中…"
+  empty: "没有可导出的内容 — 该项目还没有章节正文。"
+  failed: "导出失败"
 workspace:
   loading: "加载中"
   agentPanel: "Agent 面板"

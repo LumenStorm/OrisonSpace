@@ -400,6 +400,8 @@ export type OrisonDesktopApi = {
   gitCurrentBranch(dir: string): Promise<string>;
   gitCreateBranch(dir: string, name: string, fromOid?: string): Promise<void>;
   gitCheckoutBranch(dir: string, name: string): Promise<void>;
+  /** Restore the working tree to `oid` and commit it as a new node on the current branch. */
+  gitRestoreVersion(dir: string, oid: string, message: string): Promise<{ oid: string }>;
   gitStatusCount(dir: string): Promise<number>;
   onToolEvent(callback: (data: { type: string; [key: string]: unknown }) => void): () => void;
   // Agent

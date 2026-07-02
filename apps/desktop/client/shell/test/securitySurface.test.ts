@@ -47,6 +47,7 @@ describe('preload security surface', () => {
       'gitIsRepo',
       'gitListBranches',
       'gitLog',
+      'gitRestoreVersion',
       'gitStatusCount',
       'importAssets',
       'importDocx',

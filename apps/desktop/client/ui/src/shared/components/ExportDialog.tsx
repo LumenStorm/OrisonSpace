@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { useToastStore } from '../../shared/store/toastStore';
+import { normalizePath } from '../../shared/utils/paths';
+import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
 
 type ExportFormat = 'md' | 'txt' | 'pdf';
 
@@ -14,6 +17,7 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Strip markdown syntax to plain text (for txt/pdf export). Input is markdown, not HTML. */
 function stripMarkdown(md: string): string {
   return md
     .replace(/^#{1,6}\s+/gm, '')
@@ -24,38 +28,81 @@ function stripMarkdown(md: string): string {
     .replace(/\[(.+?)\]\(.*?\)/g, '$1');
 }
 
+/** Build a safe, dated export filename from the project name. */
+function exportFilename(projectName: string | undefined, ext: string): string {
+  const base = (projectName ?? 'export').replace(/[\\/:*?"<>|]/g, '_').trim() || 'export';
+  const date = new Date().toISOString().slice(0, 10);
+  return `${base}-${date}.${ext}`;
+}
+
 export function ExportDialog({ onClose }: { onClose: () => void }) {
-  const { chapters, resolvedLocale } = useAppStore(useShallow((s) => ({
-    chapters: s.chapters,
+  const { novelChapters, resolvedLocale, project } = useAppStore(useShallow((s) => ({
+    novelChapters: s.novelChapters as NovelChapterMeta[],
     resolvedLocale: s.resolvedLocale,
+    project: s.currentProject,
   })));
   const { t } = useI18n(resolvedLocale);
+  const showToast = useToastStore((s) => s.showToast);
   const [format, setFormat] = useState<ExportFormat>('md');
+  const [busy, setBusy] = useState(false);
 
-  const handleExport = () => {
-    const combined = chapters.map((c) => `# ${c.title}\n\n${c.content}`).join('\n\n---\n\n');
-    const filename = `export.${format === 'pdf' ? 'pdf' : format}`;
-
-    if (format === 'md') {
-      downloadBlob(new Blob([combined], { type: 'text/markdown' }), filename);
-    } else if (format === 'txt') {
-      downloadBlob(new Blob([stripMarkdown(combined)], { type: 'text/plain' }), filename);
-    } else {
-      // PDF: use browser print
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.write(`<html><head><title>Export</title><style>body{font-family:serif;padding:2rem;line-height:1.6;}</style></head><body><pre style="white-space:pre-wrap;">${combined.replace(/</g, '&lt;')}</pre></body></html>`);
-        win.document.close();
-        win.print();
+  /** Read every chapter's manuscript file (the source of truth) and stitch them together. */
+  const collectManuscript = async (): Promise<string> => {
+    const projectPath = project?.path;
+    if (!projectPath) return '';
+    const base = normalizePath(projectPath);
+    const ordered = [...novelChapters].sort((a, b) => a.sortOrder - b.sortOrder);
+    const parts: string[] = [];
+    for (const ch of ordered) {
+      const sections = [...ch.sections].sort((a, b) => a.sortOrder - b.sortOrder);
+      let body = '';
+      for (const sec of sections) {
+        const content = await window.orisonDesktop?.readFile(`${base}/${sec.contentFile}`);
+        if (content) body += (body ? '\n\n' : '') + content;
       }
+      parts.push(`# ${ch.title}\n\n${body}`);
     }
-    onClose();
+    return parts.join('\n\n---\n\n');
+  };
+
+  const handleExport = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const combined = await collectManuscript();
+      if (!combined.trim()) {
+        showToast(t('export.empty'), 'error');
+        return;
+      }
+      const filename = exportFilename(project?.name, format === 'pdf' ? 'pdf' : format);
+
+      if (format === 'md') {
+        downloadBlob(new Blob([combined], { type: 'text/markdown' }), filename);
+      } else if (format === 'txt') {
+        downloadBlob(new Blob([stripMarkdown(combined)], { type: 'text/plain' }), filename);
+      } else {
+        // PDF: use browser print on plain text.
+        const win = window.open('', '_blank');
+        if (win) {
+          const safe = stripMarkdown(combined).replace(/</g, '&lt;');
+          win.document.write(`<html><head><title>${filename}</title><style>body{font-family:serif;padding:2rem;line-height:1.6;}</style></head><body><pre style="white-space:pre-wrap;">${safe}</pre></body></html>`);
+          win.document.close();
+          win.print();
+        }
+      }
+      onClose();
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      showToast(`${t('export.failed')} — ${reason}`, 'error');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div className="dialog-backdrop" onClick={onClose}>
       <div className="dialog-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <h2 className="dialog-title">{t('export.title') || 'Export'}</h2>
+        <h2 className="dialog-title">{t('export.title')}</h2>
         <div className="export-format-options">
           {(['md', 'txt', 'pdf'] as ExportFormat[]).map((f) => (
             <label key={f} className="export-format-option">
@@ -66,10 +113,10 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         </div>
         <div className="dialog-actions">
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            {t('common.cancel') || 'Cancel'}
+            {t('common.cancel')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleExport}>
-            {t('export.download') || 'Download'}
+          <button type="button" className="btn btn-primary" onClick={() => { void handleExport(); }} disabled={busy}>
+            {busy ? t('export.exporting') : t('export.download')}
           </button>
         </div>
       </div>

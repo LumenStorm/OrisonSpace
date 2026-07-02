@@ -2,11 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '../../shared/store/appStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { useToastStore } from '../../shared/store/toastStore';
 import type { GitCommitEntry, GitFileDiff } from '@orison/shared-contracts';
 import {
   gitIsRepo, gitInit, gitLog, gitListBranches, gitCurrentBranch,
   gitCommitDiff, gitCreateNode, gitCheckoutBranch, gitCreateBranch, gitStatusCount,
+  gitRestoreVersion,
 } from '../../shared/api/git';
+
+function errorReason(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 function formatRelativeTime(timestamp: number, t: (key: string, vars?: Record<string, string | number>) => string): string {
   const now = Date.now();
@@ -107,6 +113,7 @@ export function TimelinePanel() {
     })),
   );
   const { t } = useI18n(locale);
+  const showToast = useToastStore((s) => s.showToast);
 
   const [isRepo, setIsRepo] = useState(false);
   const [commits, setCommits] = useState<GitCommitEntry[]>([]);
@@ -172,19 +179,29 @@ export function TimelinePanel() {
 
   const handleCreateNode = useCallback(async () => {
     if (!projectDir || !nodeMessage.trim()) return;
-    await gitCreateNode(projectDir, nodeMessage.trim(), nodeTag.trim() || undefined);
-    setNodeMessage('');
-    setNodeTag('');
-    setShowCreateNode(false);
-  }, [projectDir, nodeMessage, nodeTag]);
+    try {
+      await gitCreateNode(projectDir, nodeMessage.trim(), nodeTag.trim() || undefined);
+      setNodeMessage('');
+      setNodeTag('');
+      setShowCreateNode(false);
+      showToast(t('timeline.nodeCreated'), 'success');
+    } catch (err) {
+      showToast(t('timeline.nodeCreateFailed', { reason: errorReason(err) }), 'error');
+    }
+  }, [projectDir, nodeMessage, nodeTag, showToast, t]);
 
   const handleCreateBranch = useCallback(async () => {
     if (!projectDir || !branchName.trim() || !showCreateBranch) return;
-    await gitCreateBranch(projectDir, branchName.trim(), showCreateBranch);
-    setBranchName('');
-    setShowCreateBranch(null);
-    await refresh();
-  }, [projectDir, branchName, showCreateBranch, refresh]);
+    try {
+      await gitCreateBranch(projectDir, branchName.trim(), showCreateBranch);
+      setBranchName('');
+      setShowCreateBranch(null);
+      await refresh();
+      showToast(t('timeline.branchCreated'), 'success');
+    } catch (err) {
+      showToast(t('timeline.branchCreateFailed', { reason: errorReason(err) }), 'error');
+    }
+  }, [projectDir, branchName, showCreateBranch, refresh, showToast, t]);
 
   const handleCheckout = useCallback(async (name: string) => {
     if (!projectDir) return;
@@ -192,8 +209,12 @@ export function TimelinePanel() {
     if (dirty > 0) {
       if (!window.confirm(t('timeline.dirtyWarning'))) return;
     }
-    await gitCheckoutBranch(projectDir, name);
-  }, [projectDir, t]);
+    try {
+      await gitCheckoutBranch(projectDir, name);
+    } catch (err) {
+      showToast(t('timeline.checkoutFailed', { reason: errorReason(err) }), 'error');
+    }
+  }, [projectDir, t, showToast]);
 
   const handleRestoreVersion = useCallback(async (oid: string) => {
     if (!projectDir) return;
@@ -201,11 +222,16 @@ export function TimelinePanel() {
     if (dirty > 0) {
       if (!window.confirm(t('timeline.dirtyWarning'))) return;
     }
-    const name = `restore-${oid.slice(0, 7)}-${Date.now()}`;
-    await gitCreateBranch(projectDir, name, oid);
-    await gitCheckoutBranch(projectDir, name);
-    await refresh();
-  }, [projectDir, t, refresh]);
+    try {
+      // Restores land as a new node on the current branch (linear history)
+      // instead of permanently creating a restore-* branch per click.
+      await gitRestoreVersion(projectDir, oid, t('timeline.restoreMessage', { id: oid.slice(0, 7) }));
+      await refresh();
+      showToast(t('timeline.restoreSuccess'), 'success');
+    } catch (err) {
+      showToast(t('timeline.restoreFailed', { reason: errorReason(err) }), 'error');
+    }
+  }, [projectDir, t, refresh, showToast]);
 
   const handleInit = useCallback(async () => {
     if (!projectDir) return;

@@ -21,6 +21,7 @@ projects:
   typeNovel: "Novel"
   typeScript: "Script"
   create: "Create"
+  createFailed: "Couldn't create the project: {reason}"
   cancel: "Cancel"
   recentProjects: "Recent Projects"
   refresh: "Refresh"

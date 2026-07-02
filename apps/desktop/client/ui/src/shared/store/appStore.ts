@@ -4,7 +4,6 @@ import { createSettingsSlice, type SettingsSlice } from './settingsSlice';
 import { createPanelsSlice, type PanelsSlice } from './panelsSlice';
 import { createTasksSlice, type TasksSlice } from './tasksSlice';
 import { createCreativeFieldsSlice, type CreativeFieldsSlice } from './creativeFieldsSlice';
-import { createEditorSlice, type EditorSlice } from './editorSlice';
 import { createFileTabsSlice, type FileTabsSlice } from './fileTabsSlice';
 import { createNovelChapterSlice, type NovelChapterSlice } from './novelChapterSlice';
 import { createOutputSlice, type OutputSlice } from './outputSlice';
@@ -29,7 +28,6 @@ type AppState = ProjectSlice &
   PanelsSlice &
   TasksSlice &
   CreativeFieldsSlice &
-  EditorSlice &
   FileTabsSlice &
   NovelChapterSlice &
   OutputSlice &
@@ -51,7 +49,6 @@ export const useAppStore = create<AppState>()((...a) => ({
   ...createPanelsSlice(...a),
   ...createTasksSlice(...a),
   ...createCreativeFieldsSlice(...a),
-  ...createEditorSlice(...a),
   ...createFileTabsSlice(...a),
   ...createNovelChapterSlice(...a),
   ...createOutputSlice(...a),

@@ -2,6 +2,8 @@ import type { StateCreator } from 'zustand';
 import type { ActivePage, BottomPanelTab, SidebarPanel } from './types';
 import { storage } from './storage';
 import { registerProjectReset } from './resetRegistry';
+import { useToastStore } from './toastStore';
+import { translate } from '../i18n/useI18n';
 import {
   PROJECT_TREE_WIDTH_DEFAULT,
   PROJECT_TREE_WIDTH_MIN,
@@ -47,7 +49,7 @@ export type PanelsSlice = {
   toggleMinimap: () => void;
 };
 
-export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set) => {
+export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set, get) => {
   // The split view and file-editing mode are tied to the previous project's open
   // files. On project switch, collapse back to page mode with no split so the new
   // project doesn't inherit a split pointing at a file it doesn't have.
@@ -91,7 +93,28 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
   setMainView: (view) => set({ mainView: view }),
   splitDirection: 'none',
   splitFilePath: null,
-  setSplit: (direction, filePath) => set({ splitDirection: direction, splitFilePath: filePath ?? null }),
+  setSplit: (direction, filePath) => {
+    if (direction === 'none' || direction === 'outline') {
+      set({ splitDirection: direction, splitFilePath: null });
+      return;
+    }
+    // Two live editors on the same document don't share state and overwrite
+    // each other's edits (no shared doc model yet), so a split never shows the
+    // active file. When asked to (TopBar's Split Right/Down passes the active
+    // path), show another open tab instead; with no other tab there is
+    // nothing safe to show.
+    // Cross-slice read of the merged store (typed cleanup tracked in plan 4.3).
+    const s = get() as unknown as { activeFilePath: string | null; openFiles: { path: string }[]; resolvedLocale: string };
+    let target = filePath ?? null;
+    if (!target || target === s.activeFilePath) {
+      target = s.openFiles.find((f) => f.path !== s.activeFilePath)?.path ?? null;
+    }
+    if (!target) {
+      useToastStore.getState().showToast(translate(s.resolvedLocale, 'fileEditor.splitNeedsSecondFile'), 'info');
+      return;
+    }
+    set({ splitDirection: direction, splitFilePath: target });
+  },
   showMinimap: false,
   toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
   };

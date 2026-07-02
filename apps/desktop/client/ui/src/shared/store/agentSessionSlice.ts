@@ -92,8 +92,6 @@ export type AgentSessionSlice = {
 type Deps = AgentSessionSlice & {
   currentProject: { path?: string } | null;
   activeChapterId: string | null;
-  chapters: { id: string; title: string; content: string }[];
-  updateChapter: (id: string, patch: Partial<{ title: string; content: string }>) => void;
   pendingDiffs: PendingDiff[];
   pendingToolConfirm: { callId: string; name: string; input: unknown } | null;
   pendingPassageResolve: unknown | null;
@@ -178,14 +176,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     // them into the prompt.
     const attachments = state.pendingAttachments;
 
-    let messageContent = content;
-    if (state.activeChapterId) {
-      const chapter = state.chapters.find((c) => c.id === state.activeChapterId);
-      if (chapter) {
-        const preview = chapter.content.slice(0, 1500);
-        messageContent = `[Context: editing "${chapter.title}"]\n${preview}\n---\n${content}`;
-      }
-    }
+    const messageContent = content;
 
     let sessionId = state.agentSessionId;
     try {
@@ -311,15 +302,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
 
               // Whole-chapter rewrite.
               if (meta.content) {
-                if (mode === 'auto') {
-                  const currentState = get();
-                  const chapter = currentState.chapters.find((c) =>
-                    meta.chapterId ? c.id === meta.chapterId : c.title.includes((meta.fileName ?? '').replace('.md', '')),
-                  );
-                  if (chapter) {
-                    currentState.updateChapter(chapter.id, { content: meta.content });
-                  }
-                } else {
+                if (mode !== 'auto') {
                   set((s) => ({
                     pendingDiffs: [...s.pendingDiffs, {
                       kind: 'chapter',
@@ -336,6 +319,9 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                     }],
                   }));
                 }
+                // In auto mode the tool already wrote to disk at execution time;
+                // the file watcher reconciles any open .md tab, so there is no
+                // in-memory chapter view to keep in sync here.
               }
             }
 

@@ -210,6 +210,23 @@
   filter: brightness(1.08);
 }
 
+/* Info variant: source-mode fallback notice (a heads-up, not a conflict). */
+.file-conflict-banner--info {
+  background: var(--info-bg);
+}
+
+.file-conflict-banner--info .file-conflict-icon {
+  color: var(--info);
+}
+
+/* Inside the shell a banner may sit above the editor: let the code editor
+   flex instead of overflowing at height:100%. */
+.file-editor-shell > .file-editor-code {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── File Editor: Markdown ── */
 .file-editor-md {
   flex: 1;

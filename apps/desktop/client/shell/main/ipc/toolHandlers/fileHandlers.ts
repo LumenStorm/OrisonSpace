@@ -5,6 +5,7 @@ import { existsSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node
 import path from 'node:path';
 import { assertWithinProject } from '../pathGuard';
 import { notifyUI } from '../toolNotify';
+import { snapshotToLocalHistory } from '../../fs/localHistory';
 import type { ToolHandler } from './types';
 import type { ProjectSearchResult } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
@@ -40,6 +41,8 @@ export const writeFileHandler: ToolHandler = async ({ params, projectDir }) => {
   const existedBefore = existsSync(fullPath);
   const previousContent = existedBefore ? readFileSync(fullPath, 'utf-8') : null;
 
+  // Agent writes are exactly the overwrites local history exists for.
+  snapshotToLocalHistory(projectDir, fullPath, content);
   atomicWriteFileSync(fullPath, content, 'utf-8');
 
   notifyUI({ type: 'file:changed', path: filePath });

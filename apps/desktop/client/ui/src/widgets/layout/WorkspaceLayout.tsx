@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { SideNav } from '../../features/side-nav/SideNav';
 import { AgentPanel } from '../../features/agent-panel/AgentPanel';
@@ -19,7 +19,6 @@ const SearchPanel = lazy(() => import('../../features/search-panel/SearchPanel')
 const TimelinePanel = lazy(() => import('../../features/timeline/TimelinePanel').then((m) => ({ default: m.TimelinePanel })));
 const OverviewPage = lazy(() => import('../../features/overview/OverviewPage').then((m) => ({ default: m.OverviewPage })));
 const OutlineEditor = lazy(() => import('../../features/editor/OutlineEditor').then((m) => ({ default: m.OutlineEditor })));
-const ScriptEditorPage = lazy(() => import('../../features/editor/ScriptEditorPage').then((m) => ({ default: m.ScriptEditorPage })));
 const StoryboardCanvas = lazy(() => import('../../features/editor/StoryboardCanvas').then((m) => ({ default: m.StoryboardCanvas })));
 const ImageGenEditor = lazy(() => import('../../features/editor/ImageGenEditor').then((m) => ({ default: m.ImageGenEditor })));
 const VideoEditor = lazy(() => import('../../features/editor/VideoEditor').then((m) => ({ default: m.VideoEditor })));
@@ -38,6 +37,7 @@ export function WorkspaceLayout() {
     hasOpenFiles,
     mainView,
     splitDirection, splitFilePath,
+    activeFilePath, setSplit,
     bottomPanelOpen,
     resolvedLocale,
   } = useAppStore(useShallow((s) => ({
@@ -52,6 +52,8 @@ export function WorkspaceLayout() {
     mainView: s.mainView,
     splitDirection: s.splitDirection,
     splitFilePath: s.splitFilePath,
+    activeFilePath: s.activeFilePath,
+    setSplit: s.setSplit,
     bottomPanelOpen: s.bottomPanelOpen,
     resolvedLocale: s.resolvedLocale,
   })));
@@ -60,6 +62,17 @@ export function WorkspaceLayout() {
   const handleTreeResize = useProjectTreeResize();
   const handleAgentResize = useAgentPanelResize();
   useAutoSave();
+
+  // Same-file dual panes overwrite each other (independent editor instances,
+  // no shared doc model) — when any tab activation lands the split's file in
+  // the main pane, collapse the split so the document is only mounted once.
+  // setSplit already prevents this at creation; this catches every later
+  // activation path (tab click, cycle, close-fallback, reopen).
+  const splitCollides = (splitDirection === 'horizontal' || splitDirection === 'vertical')
+    && splitFilePath !== null && splitFilePath === activeFilePath;
+  useEffect(() => {
+    if (splitCollides) setSplit('none');
+  }, [splitCollides, setSplit]);
 
   const treeCols = projectTreeOpen
     ? `${projectTreeWidth}px 4px `
@@ -70,7 +83,7 @@ export function WorkspaceLayout() {
   const renderMainContent = () => {
     // File tabs take priority when mainView is 'files'
     if (mainView === 'files' && hasOpenFiles) {
-      const hasSplit = splitDirection !== 'none' && splitFilePath;
+      const hasSplit = splitDirection !== 'none' && splitFilePath && !splitCollides;
       return (
         <>
           <FileTabBar />
@@ -86,8 +99,12 @@ export function WorkspaceLayout() {
     switch (activePage) {
       case 'overview': return <div className="workspace-content workspace-content--flush"><OverviewPage /></div>;
       case 'outline': return <div className="workspace-content workspace-content--flush"><OutlineEditor /></div>;
+      // 'novel'/'script' are legacy page routes; the manuscript is now edited as
+      // .md file tabs (opened from the overview / project tree). Fall through to
+      // the overview so a stale persisted activePage can't render a dead editor.
       case 'novel':
-      case 'script': return <div className="workspace-content workspace-content--flush"><ScriptEditorPage /></div>;
+      case 'script':
+        return <div className="workspace-content workspace-content--flush"><OverviewPage /></div>;
       case 'storyboard': return <div className="workspace-panel-content"><StoryboardCanvas /></div>;
       case 'image_gen': return <div className="workspace-panel-content"><ImageGenEditor /></div>;
       case 'video': return <div className="workspace-panel-content"><VideoEditor /></div>;

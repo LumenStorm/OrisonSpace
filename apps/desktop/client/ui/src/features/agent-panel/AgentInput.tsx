@@ -55,7 +55,7 @@ export function AgentInput() {
     modelConfig: s.modelConfig,
     pendingToolConfirm: s.pendingToolConfirm,
     resolvedLocale: s.resolvedLocale,
-    chapters: s.chapters,
+    chapters: s.novelChapters,
     openFiles: s.openFiles,
     pendingAttachments: s.pendingAttachments,
     addAttachment: s.addAttachment,

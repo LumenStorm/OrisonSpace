@@ -21,6 +21,7 @@ projects:
   typeNovel: "小说"
   typeScript: "剧本"
   create: "创建"
+  createFailed: "创建项目失败：{reason}"
   cancel: "取消"
   recentProjects: "最近项目"
   refresh: "刷新"

@@ -96,6 +96,9 @@ errorBoundary:
 export:
   title: "Export"
   download: "Download"
+  exporting: "Exporting…"
+  empty: "Nothing to export — this project has no chapter content yet."
+  failed: "Export failed"
 workspace:
   loading: "Loading"
   agentPanel: "Agent Panel"
