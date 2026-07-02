@@ -59,7 +59,7 @@ function countMatches(text: string, re: RegExp): number {
 
 /** Leading `--- ... ---` YAML front-matter block (dropped by marked). */
 function hasFrontMatter(md: string): boolean {
-  return /^﻿?---\r?\n[\s\S]*?\r?\n---\r?\n?/.test(md);
+  return /^\uFEFF?---\r?\n[\s\S]*?\r?\n---\r?\n?/.test(md);
 }
 
 /** Remove fenced blocks and inline code, where markdown syntax is literal text. */
