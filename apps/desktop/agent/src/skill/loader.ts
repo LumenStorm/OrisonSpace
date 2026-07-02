@@ -1,9 +1,10 @@
 import type { SkillInfo } from './types';
 
 export function parseSkillFile(raw: string, location: string): SkillInfo | null {
-  const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  const normalized = raw.replace(/\r\n/g, '\n');
+  const fmMatch = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!fmMatch) {
-    return { name: extractName(location), content: raw, location };
+    return { name: extractName(location), content: normalized, location };
   }
 
   const frontmatter = fmMatch[1];

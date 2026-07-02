@@ -119,6 +119,8 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
         const isFirstExecution = !priorRunState || (priorRunState.completedNodeIds?.length ?? 0) === 0;
 
         for (let nodeIdx = 0; nodeIdx < skill.compiledPlan.nodes.length; nodeIdx++) {
+          if (context.abort?.aborted) break;
+
           let node: ExecutionNode = skill.compiledPlan.nodes[nodeIdx];
           if (completedNodeIds.has(node.id)) {
             continue;
@@ -136,17 +138,39 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
             break;
           }
 
+          // ask_user nodes pause the workflow — handled inline to avoid the
+          // double-fire that occurred when executeAskUserNode also pushed a
+          // pendingConfirmation and the loop set pendingUserAction separately.
+          if (node.type === 'ask_user') {
+            pendingUserAction = {
+              type: 'ask_user',
+              nodeId: node.id,
+              question: node.question,
+              choices: node.choices,
+              createdAt: Date.now(),
+            };
+            const confirmation = await options.requestConfirmation('ask_user', {
+              question: node.question,
+              choices: node.choices,
+            }, nestedSkillContext);
+            pendingConfirmations.push(confirmation.pending);
+            currentNodeId = node.id;
+            break;
+          }
+
           // Inject accumulated userResponses into instruction prompt
           if (node.type === 'instruction' && Object.keys(userResponses).length > 0) {
             const responseSummary = formatUserResponses(userResponses, skill.compiledPlan.nodes);
             node = { ...node, content: `${node.content}\n\n${responseSummary}` };
           }
 
-          // If the next node requires an explicit user answer, the current prompt
-          // must not be able to advance the workflow by calling tools on its own.
-          const nextNode = skill.compiledPlan.nodes[nodeIdx + 1];
+          // If the next *un-completed* node requires an explicit user answer, the
+          // current prompt must not advance the workflow by calling tools on its own.
+          const nextNode = skill.compiledPlan.nodes
+            .slice(nodeIdx + 1)
+            .find(n => !completedNodeIds.has(n.id));
           const hasFollowingSpawnAgent = node.type === 'instruction' &&
-            skill.compiledPlan.nodes.slice(nodeIdx + 1).some((n) => n.type === 'spawn_agent');
+            skill.compiledPlan.nodes.slice(nodeIdx + 1).some((n) => !completedNodeIds.has(n.id) && n.type === 'spawn_agent');
           const suppressAllTools = node.type === 'instruction' && nextNode?.type === 'ask_user';
           const suppressSpawnAgent = node.type === 'instruction' &&
             (nextNode?.type === 'ask_user' || isFirstExecution);
@@ -173,18 +197,6 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
             pendingConfirmations,
             nested,
           });
-
-          if (node.type === 'ask_user') {
-            pendingUserAction = {
-              type: 'ask_user',
-              nodeId: node.id,
-              question: node.question,
-              choices: node.choices,
-              createdAt: Date.now(),
-            };
-            currentNodeId = node.id;
-            break;
-          }
 
           completedNodeIds.add(node.id);
           currentNodeId = undefined;

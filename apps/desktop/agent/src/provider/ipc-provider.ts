@@ -39,18 +39,19 @@ export function setGenerateTextFn(fn: GenerateTextFn) {
 }
 
 function messagesToPayload(messages: SessionMessage[], system: string, tools: ToolDefinition[], cacheConfig?: CacheConfig) {
+  // NOTE: Prompt caching (e.g. Anthropic's cache_control) is not currently
+  // supported by the ai-sdk generateText path. The cacheConfig is retained in
+  // the interface for future provider-level integration.
   const formatted: unknown[] = [{
     role: 'system',
     content: system,
-    ...(cacheConfig?.enablePromptCache && { cache_control: { type: 'ephemeral' } }),
   }];
 
-  // Inject pinned context as a stable prefix (benefits from prompt caching)
+  // Inject pinned context as a stable prefix (benefits from prompt caching when supported)
   if (cacheConfig?.pinnedContent) {
     formatted.push({
       role: 'user',
       content: `[Pinned Context]\n${cacheConfig.pinnedContent}`,
-      ...(cacheConfig.enablePromptCache && { cache_control: { type: 'ephemeral' } }),
     });
     formatted.push({
       role: 'assistant',
@@ -62,7 +63,7 @@ function messagesToPayload(messages: SessionMessage[], system: string, tools: To
   if (cacheConfig?.compactedSummary) {
     formatted.push({
       role: 'user',
-      content: `[Earlier conversation summary]\n${cacheConfig.compactedSummary}`,
+      content: `<history_summary readonly="true">\n${cacheConfig.compactedSummary}\n</history_summary>`,
     });
     formatted.push({
       role: 'assistant',

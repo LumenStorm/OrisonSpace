@@ -2,6 +2,7 @@ import { loadReference } from './referenceResolver';
 import type { ExecutionNode } from './executionPlan';
 import type { NormalizedSkill } from '../types';
 import type { WorkflowExecutionContext, WorkflowExecutionResult } from './workflowExecutor';
+import { logger } from '../../logger';
 
 export interface PrimitiveExecutorOptions {
   executePrompt: (prompt: string, skill: NormalizedSkill, context: WorkflowExecutionContext) => Promise<string>;
@@ -45,7 +46,11 @@ export async function executeLoadReferenceNode(
     mode: node.mode,
     cache: context.skillContext?.referenceCache,
   });
-  context.skillContext?.resolvedReferences.push(payload);
+  if (context.skillContext) {
+    context.skillContext.resolvedReferences.push(payload);
+  } else {
+    logger.warn({ refPath: node.path, skill: skill.name }, 'load_reference: skillContext unavailable, reference discarded');
+  }
 }
 
 export async function executeDelegateSkillNode(

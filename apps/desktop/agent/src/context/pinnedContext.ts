@@ -54,7 +54,14 @@ export function renderPinnedContext(items: PinnedContextItem[]): string {
 
   for (const item of sorted) {
     const itemTokens = estimateTokens(item.content) + estimateTokens(item.label) + 20;
-    if (tokensUsed + itemTokens > PINNED_CONTEXT_TOKEN_BUDGET) break;
+    if (tokensUsed + itemTokens > PINNED_CONTEXT_TOKEN_BUDGET) {
+      if (parts.length === 0) {
+        const availableChars = Math.floor((PINNED_CONTEXT_TOKEN_BUDGET - 20) * 3.5);
+        const truncated = item.content.slice(0, availableChars);
+        parts.push(`### ${item.label} [${item.type}]\n${truncated}\n[... truncated]`);
+      }
+      break;
+    }
     parts.push(`### ${item.label} [${item.type}]\n${item.content}`);
     tokensUsed += itemTokens;
   }
