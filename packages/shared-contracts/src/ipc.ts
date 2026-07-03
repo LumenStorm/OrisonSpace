@@ -206,12 +206,34 @@ export type UserPreferencesConfig = {
   // ── Writing settings ──
   paragraphIndent?: boolean;
   showWordCount?: boolean;
+  /** Whether auto-save is enabled. When false, only manual Ctrl+S saves. Defaults to true. */
+  autoSaveEnabled?: boolean;
+  /** Auto-save debounce interval in milliseconds. Defaults to 1500. */
+  autoSaveInterval?: number;
+  /** Whether the manuscript/code editors enable native browser spellcheck. Defaults to false. */
+  spellCheck?: boolean;
+  /** Target character count for the active document. 0 = no goal. Defaults to 0. */
+  wordCountGoal?: number;
 
   // ── Appearance settings ──
   editorLineHeight?: number;
+};
 
-  // ── Agent settings ──
-  agentSessionRetention?: number;
+/** Single source of truth for user-preference defaults, shared by main + renderer. */
+export const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
+  theme: 'system',
+  locale: 'system',
+  autoApplyPatches: true,
+  autoCheckUpdates: true,
+  readingFontWeight: 400,
+  readingFontScale: 1,
+  paragraphIndent: true,
+  showWordCount: true,
+  autoSaveEnabled: true,
+  autoSaveInterval: 1500,
+  spellCheck: false,
+  wordCountGoal: 0,
+  editorLineHeight: 1.75,
 };
 
 /** A font file the user imported into the app's font folder. */

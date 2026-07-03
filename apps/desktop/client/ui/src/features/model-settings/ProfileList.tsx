@@ -18,7 +18,7 @@ export function ProfileList({
   return (
     <section className="model-library-list" aria-label={t('settings.modelList')}>
       <div className="model-library-toolbar">
-        <span className="sidebar-settings-label">{t('settings.modelList')}</span>
+        <span className="form-field-label">{t('settings.modelList')}</span>
         <button
           type="button"
           className="settings-refresh-button"

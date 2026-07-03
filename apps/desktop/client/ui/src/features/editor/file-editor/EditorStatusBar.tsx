@@ -7,9 +7,11 @@ type Props = { content: string; fileType: string };
 export function EditorStatusBar({ content, fileType }: Props) {
   const [expanded, setExpanded] = useState(false);
   const showWordCount = useAppStore((s) => s.showWordCount);
+  const wordCountGoal = useAppStore((s) => s.wordCountGoal);
   // content 可能是纯文本（PlainText/Code）或 markdown 文本，统一先剥标签再统计。
   const stats = useMemo(() => countMarkup(content), [content]);
   const readingMin = Math.max(1, Math.ceil(stats.words / 250));
+  const goalPct = wordCountGoal > 0 ? Math.min(100, Math.round((stats.chars / wordCountGoal) * 100)) : 0;
 
   return (
     <div className="editor-status-bar">
@@ -21,7 +23,14 @@ export function EditorStatusBar({ content, fileType }: Props) {
           className="editor-status-word-btn"
           onClick={() => setExpanded(!expanded)}
         >
-          {stats.chars} 字
+          {wordCountGoal > 0 ? (
+            <>
+              {stats.chars} / {wordCountGoal} 字
+              <span className="editor-status-goal-pct">{goalPct}%</span>
+            </>
+          ) : (
+            <>{stats.chars} 字</>
+          )}
         </button>
         {expanded && (
           <div className="editor-status-detail">

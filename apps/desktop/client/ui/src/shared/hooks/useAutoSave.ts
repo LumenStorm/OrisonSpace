@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
 
-/** Idle window before an edit burst is flushed to disk. */
-const AUTOSAVE_DEBOUNCE_MS = 1500;
+/** Fallback idle window before an edit burst is flushed to disk, when the
+ *  user's `autoSaveInterval` setting is unavailable. */
+const AUTOSAVE_DEBOUNCE_FALLBACK_MS = 1500;
 
 /** Dispatched by the status bar "retry" affordance to force an immediate save. */
 export const AUTOSAVE_RETRY_EVENT = 'orison:autosave-retry';
@@ -73,10 +74,11 @@ export function useAutoSave(): void {
 
     const schedule = () => {
       clearTimer();
+      const interval = useAppStore.getState().autoSaveInterval || AUTOSAVE_DEBOUNCE_FALLBACK_MS;
       timer = setTimeout(() => {
         timer = null;
         void runSave();
-      }, AUTOSAVE_DEBOUNCE_MS);
+      }, interval);
     };
 
     // Cheap trigger source: only react when the openFiles array changes identity

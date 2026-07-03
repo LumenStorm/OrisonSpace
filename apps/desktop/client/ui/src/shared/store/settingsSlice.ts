@@ -3,18 +3,10 @@ import type { ThemeSetting, LocaleSetting } from './types';
 import { detectSystemLocale, availableLocales } from '../i18n/useI18n';
 import type { UserPreferencesConfig } from '@orison/shared-contracts';
 import type { ModelConfig } from '@orison/shared-contracts';
+import { DEFAULT_USER_PREFERENCES } from '@orison/shared-contracts';
 import { injectImportedFonts } from '../components/settings/fonts';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
-
-const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
-  theme: 'system',
-  locale: 'system',
-  autoApplyPatches: true,
-  autoCheckUpdates: true,
-  readingFontWeight: 400,
-  readingFontScale: 1,
-};
 
 /** Empty string = follow the built-in default (--font-display). */
 const DEFAULT_READING_FONT_FAMILY = '';
@@ -28,6 +20,9 @@ export type SettingsSlice = {
   resolvedLocale: string;
   setLocale: (locale: LocaleSetting) => void;
   loadUserPreferences: () => Promise<void>;
+  /** Persist the current preference snapshot. Use after mutating a preference
+   *  owned by another slice (e.g. autoSaveEnabled in autoSaveSlice). */
+  persistPreferences: () => void;
   modelConfig: ModelConfig;
   setModelConfig: (config: ModelConfig) => Promise<void>;
   loadModelConfig: () => Promise<void>;
@@ -54,14 +49,19 @@ export type SettingsSlice = {
   setParagraphIndent: (value: boolean) => void;
   showWordCount: boolean;
   setShowWordCount: (value: boolean) => void;
+  /** Auto-save debounce interval in ms. Consumed by useAutoSave. */
+  autoSaveInterval: number;
+  setAutoSaveInterval: (value: number) => void;
+  /** Native browser spellcheck in the manuscript/code editors. */
+  spellCheck: boolean;
+  setSpellCheck: (value: boolean) => void;
+  /** Target character count for the active document. 0 = no goal. */
+  wordCountGoal: number;
+  setWordCountGoal: (value: number) => void;
 
   // ── Appearance settings ──
   editorLineHeight: number;
   setEditorLineHeight: (value: number) => void;
-
-  // ── Agent settings ──
-  agentSessionRetention: number;
-  setAgentSessionRetention: (value: number) => void;
 };
 
 function resolveLocale(locale: LocaleSetting): string {
@@ -111,7 +111,8 @@ function saveUserPreferencesSnapshot(config: UserPreferencesConfig): void {
 }
 
 function buildPrefs(get: () => SettingsSlice, overrides: Partial<UserPreferencesConfig> = {}): UserPreferencesConfig {
-  const s = get();
+  // get() returns the full merged store at runtime; autoSaveEnabled lives in autoSaveSlice.
+  const s = get() as SettingsSlice & { autoSaveEnabled: boolean };
   const base: UserPreferencesConfig = {
     theme: s.theme,
     locale: s.locale,
@@ -121,8 +122,11 @@ function buildPrefs(get: () => SettingsSlice, overrides: Partial<UserPreferences
     readingFontScale: s.readingFontScale,
     paragraphIndent: s.paragraphIndent,
     showWordCount: s.showWordCount,
+    autoSaveEnabled: s.autoSaveEnabled,
+    autoSaveInterval: s.autoSaveInterval,
+    spellCheck: s.spellCheck,
+    wordCountGoal: s.wordCountGoal,
     editorLineHeight: s.editorLineHeight,
-    agentSessionRetention: s.agentSessionRetention,
   };
   if (s.readingFontFamily) base.readingFontFamily = s.readingFontFamily;
   return { ...base, ...overrides };
@@ -172,12 +176,19 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
         readingFontScale,
         paragraphIndent: config.paragraphIndent ?? true,
         showWordCount: config.showWordCount ?? true,
+        autoSaveEnabled: config.autoSaveEnabled ?? true,
+        autoSaveInterval: config.autoSaveInterval ?? DEFAULT_USER_PREFERENCES.autoSaveInterval,
+        spellCheck: config.spellCheck ?? false,
+        wordCountGoal: config.wordCountGoal ?? 0,
         editorLineHeight,
-        agentSessionRetention: config.agentSessionRetention ?? 50,
-      });
+      } as Partial<SettingsSlice> & { autoSaveEnabled: boolean });
     } catch {
       // Keep defaults when preferences cannot be read.
     }
+  },
+
+  persistPreferences() {
+    saveUserPreferencesSnapshot(buildPrefs(get));
   },
 
   modelConfig: { ...DEFAULT_MODEL_CONFIG },
@@ -253,6 +264,21 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
     set({ showWordCount: value });
     saveUserPreferencesSnapshot(buildPrefs(get, { showWordCount: value }));
   },
+  autoSaveInterval: DEFAULT_USER_PREFERENCES.autoSaveInterval as number,
+  setAutoSaveInterval(value) {
+    set({ autoSaveInterval: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { autoSaveInterval: value }));
+  },
+  spellCheck: false,
+  setSpellCheck(value) {
+    set({ spellCheck: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { spellCheck: value }));
+  },
+  wordCountGoal: 0,
+  setWordCountGoal(value) {
+    set({ wordCountGoal: value });
+    saveUserPreferencesSnapshot(buildPrefs(get, { wordCountGoal: value }));
+  },
 
   // ── Appearance settings ──
   editorLineHeight: 1.75,
@@ -260,12 +286,5 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
     applyEditorLineHeight(value);
     set({ editorLineHeight: value });
     saveUserPreferencesSnapshot(buildPrefs(get, { editorLineHeight: value }));
-  },
-
-  // ── Agent settings ──
-  agentSessionRetention: 50,
-  setAgentSessionRetention(value) {
-    set({ agentSessionRetention: value });
-    saveUserPreferencesSnapshot(buildPrefs(get, { agentSessionRetention: value }));
   },
 });

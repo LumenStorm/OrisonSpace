@@ -87,8 +87,8 @@ export function NewProjectDialog({ onClose }: Props) {
 
         <div className="settings-dialog-body">
           {/* 项目名称 */}
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">{t('projects.projectName')}</span>
+          <div className="form-field-row">
+            <span className="form-field-label">{t('projects.projectName')}</span>
             <input
               className="auth-input"
               type="text"
@@ -101,19 +101,19 @@ export function NewProjectDialog({ onClose }: Props) {
           </div>
 
           {/* 项目类型 */}
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">{t('projects.projectType')}</span>
-            <div className="sidebar-settings-options">
+          <div className="form-field-row">
+            <span className="form-field-label">{t('projects.projectType')}</span>
+            <div className="form-field-options">
               <button
                 type="button"
-                className={`sidebar-settings-option${type === 'novel' ? ' is-active' : ''}`}
+                className={`form-field-option${type === 'novel' ? ' is-active' : ''}`}
                 onClick={() => setType('novel')}
               >
                 {t('projects.typeNovel')}
               </button>
               <button
                 type="button"
-                className={`sidebar-settings-option${type === 'script' ? ' is-active' : ''}`}
+                className={`form-field-option${type === 'script' ? ' is-active' : ''}`}
                 onClick={() => setType('script')}
               >
                 {t('projects.typeScript')}
@@ -122,8 +122,8 @@ export function NewProjectDialog({ onClose }: Props) {
           </div>
 
           {/* 存储位置 */}
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">{t('projects.location')}</span>
+          <div className="form-field-row">
+            <span className="form-field-label">{t('projects.location')}</span>
             <div className="new-project-dir-row">
               <input
                 className="auth-input new-project-dir-input"
@@ -139,10 +139,10 @@ export function NewProjectDialog({ onClose }: Props) {
           </div>
 
           {/* 封面图（可选） */}
-          <div className="sidebar-settings-row">
-            <span className="sidebar-settings-label">
+          <div className="form-field-row">
+            <span className="form-field-label">
               {t('projects.coverImage')}
-              <span className="sidebar-settings-hint" style={{ marginLeft: '0.4rem', marginTop: 0 }}>
+              <span className="form-field-hint" style={{ marginLeft: '0.4rem', marginTop: 0 }}>
                 {t('projects.optional')}
               </span>
             </span>

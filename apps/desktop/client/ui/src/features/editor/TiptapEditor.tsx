@@ -52,6 +52,7 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const resolvedLocale = useAppStore((s) => s.resolvedLocale);
   const { t } = useI18n(resolvedLocale);
+  const spellCheck = useAppStore((s) => s.spellCheck);
   const initialHtml = format === 'markdown' ? markdownToHtml(content) : content;
   const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
@@ -83,6 +84,7 @@ export function TiptapEditor({
     ],
     content: initialHtml,
     editable,
+    editorProps: { attributes: { spellcheck: String(spellCheck) } },
     onUpdate: ({ editor: e }) => {
       if (!onChangeRef.current) return;
       // Capture the editor; serialize lazily inside the debounced flush so the
@@ -100,6 +102,11 @@ export function TiptapEditor({
   // Flush any pending edit when the editor unmounts (tab switch / remount) so
   // the last keystrokes within the debounce window are never dropped.
   useEffect(() => () => flushChange(), [flushChange]);
+
+  // Reactively reflect the spellcheck setting onto the editable element.
+  useEffect(() => {
+    editor?.setOptions({ editorProps: { attributes: { spellcheck: String(spellCheck) } } });
+  }, [editor, spellCheck]);
 
   const handleFindClose = useCallback(() => setFindMode(null), []);
 

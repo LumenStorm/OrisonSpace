@@ -26,6 +26,7 @@ export function caretAfterSwap(from: string, to: string): number {
 
 export function CodeEditor({ file }: { file: FileTab }) {
   const updateFileContent = useAppStore((s) => s.updateFileContent);
+  const spellCheck = useAppStore((s) => s.spellCheck);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
   const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
@@ -205,7 +206,7 @@ export function CodeEditor({ file }: { file: FileTab }) {
           onChange={handleChange}
           onScroll={handleScroll}
           onKeyDown={handleKeyDown}
-          spellCheck={false}
+          spellCheck={spellCheck}
         />
       </div>
       <EditorStatusBar content={file.content} fileType={ext} />

@@ -35,8 +35,11 @@ export function SettingsDialog({ onClose }: Props) {
     editorLineHeight, setEditorLineHeight,
     paragraphIndent, setParagraphIndent,
     showWordCount, setShowWordCount,
+    autoSaveEnabled, setAutoSaveEnabled, persistPreferences,
+    autoSaveInterval, setAutoSaveInterval,
+    spellCheck, setSpellCheck,
+    wordCountGoal, setWordCountGoal,
     autoApplyPatches, setAutoApplyPatches,
-    agentSessionRetention, setAgentSessionRetention,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     theme: s.theme, setTheme: s.setTheme,
@@ -50,8 +53,12 @@ export function SettingsDialog({ onClose }: Props) {
     editorLineHeight: s.editorLineHeight, setEditorLineHeight: s.setEditorLineHeight,
     paragraphIndent: s.paragraphIndent, setParagraphIndent: s.setParagraphIndent,
     showWordCount: s.showWordCount, setShowWordCount: s.setShowWordCount,
+    autoSaveEnabled: s.autoSaveEnabled, setAutoSaveEnabled: s.setAutoSaveEnabled,
+    persistPreferences: s.persistPreferences,
+    autoSaveInterval: s.autoSaveInterval, setAutoSaveInterval: s.setAutoSaveInterval,
+    spellCheck: s.spellCheck, setSpellCheck: s.setSpellCheck,
+    wordCountGoal: s.wordCountGoal, setWordCountGoal: s.setWordCountGoal,
     autoApplyPatches: s.autoApplyPatches, setAutoApplyPatches: s.setAutoApplyPatches,
-    agentSessionRetention: s.agentSessionRetention, setAgentSessionRetention: s.setAgentSessionRetention,
   })));
 
   const { t } = useI18n(resolvedLocale);
@@ -70,12 +77,6 @@ export function SettingsDialog({ onClose }: Props) {
             setTheme={setTheme}
             locale={locale}
             setLocale={setLocale}
-            readingFontFamily={readingFontFamily}
-            setReadingFontFamily={setReadingFontFamily}
-            readingFontWeight={readingFontWeight}
-            setReadingFontWeight={setReadingFontWeight}
-            readingFontScale={readingFontScale}
-            setReadingFontScale={setReadingFontScale}
             autoCheckUpdates={autoCheckUpdates}
             setAutoCheckUpdates={setAutoCheckUpdates}
             appVersion={appVersion}
@@ -88,6 +89,12 @@ export function SettingsDialog({ onClose }: Props) {
             t={t}
             editorLineHeight={editorLineHeight}
             setEditorLineHeight={setEditorLineHeight}
+            readingFontFamily={readingFontFamily}
+            setReadingFontFamily={setReadingFontFamily}
+            readingFontWeight={readingFontWeight}
+            setReadingFontWeight={setReadingFontWeight}
+            readingFontScale={readingFontScale}
+            setReadingFontScale={setReadingFontScale}
           />
         );
       case 'writing':
@@ -98,6 +105,15 @@ export function SettingsDialog({ onClose }: Props) {
             setParagraphIndent={setParagraphIndent}
             showWordCount={showWordCount}
             setShowWordCount={setShowWordCount}
+            autoSaveEnabled={autoSaveEnabled}
+            setAutoSaveEnabled={setAutoSaveEnabled}
+            persistPreferences={persistPreferences}
+            autoSaveInterval={autoSaveInterval}
+            setAutoSaveInterval={setAutoSaveInterval}
+            spellCheck={spellCheck}
+            setSpellCheck={setSpellCheck}
+            wordCountGoal={wordCountGoal}
+            setWordCountGoal={setWordCountGoal}
           />
         );
       case 'model':
@@ -114,8 +130,6 @@ export function SettingsDialog({ onClose }: Props) {
             t={t}
             autoApplyPatches={autoApplyPatches}
             setAutoApplyPatches={setAutoApplyPatches}
-            agentSessionRetention={agentSessionRetention}
-            setAgentSessionRetention={setAgentSessionRetention}
           />
         );
       case 'about':

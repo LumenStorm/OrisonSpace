@@ -57,33 +57,33 @@ export function ProfileEditor({
       ) : null}
 
       <div className="model-editor-section">
-        <span className="sidebar-settings-label">{t('settings.identitySection')}</span>
+        <span className="form-field-label">{t('settings.identitySection')}</span>
 
-        <label className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.profileName')}</span>
+        <label className="form-field-input-row">
+          <span className="form-field-input-label">{t('settings.profileName')}</span>
           <input
-            className="sidebar-settings-input"
+            className="form-field-input"
             value={draft.name}
             placeholder={t('settings.modelNamePlaceholder')}
             onChange={(e) => onChange({ name: e.target.value })}
           />
         </label>
 
-        <label className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.baseUrl')}</span>
+        <label className="form-field-input-row">
+          <span className="form-field-input-label">{t('settings.baseUrl')}</span>
           <input
-            className="sidebar-settings-input"
+            className="form-field-input"
             value={draft.baseUrl}
             placeholder="https://api.openai.com/v1"
             onChange={(e) => onChange({ baseUrl: e.target.value })}
           />
         </label>
 
-        <label className="sidebar-settings-input-row">
-          <span className="sidebar-settings-input-label">{t('settings.apiKey')}</span>
-          <div className="sidebar-settings-input-group">
+        <label className="form-field-input-row">
+          <span className="form-field-input-label">{t('settings.apiKey')}</span>
+          <div className="form-field-input-group">
             <input
-              className="sidebar-settings-input"
+              className="form-field-input"
               type={showApiKey ? 'text' : 'password'}
               value={draft.apiKey}
               placeholder="sk-..."
@@ -105,7 +105,7 @@ export function ProfileEditor({
 
       <div className="model-editor-section">
         <div className="model-editor-section-header">
-          <span className="sidebar-settings-label">{t('settings.modelsSection')}</span>
+          <span className="form-field-label">{t('settings.modelsSection')}</span>
           <button
             type="button"
             className="settings-refresh-button"

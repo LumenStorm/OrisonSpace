@@ -8,19 +8,10 @@ import type {
   ModelConfig,
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
-import { parseFlatYaml, stringifyFlatYaml, modelConfigSaveSchema } from '@orison/shared-contracts';
+import { parseFlatYaml, stringifyFlatYaml, modelConfigSaveSchema, DEFAULT_USER_PREFERENCES } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
-
-const DEFAULT_USER_PREFERENCES: UserPreferencesConfig = {
-  theme: 'system',
-  locale: 'system',
-  autoApplyPatches: true,
-  autoCheckUpdates: true,
-  readingFontWeight: 400,
-  readingFontScale: 1,
-};
 
 let modelDirOverride: string | null = null;
 
@@ -241,6 +232,34 @@ function readUserPreferences(): UserPreferencesConfig {
         typeof raw?.readingFontScale === 'number'
           ? raw.readingFontScale
           : DEFAULT_USER_PREFERENCES.readingFontScale,
+      paragraphIndent:
+        typeof raw?.paragraphIndent === 'boolean'
+          ? raw.paragraphIndent
+          : DEFAULT_USER_PREFERENCES.paragraphIndent,
+      showWordCount:
+        typeof raw?.showWordCount === 'boolean'
+          ? raw.showWordCount
+          : DEFAULT_USER_PREFERENCES.showWordCount,
+      autoSaveEnabled:
+        typeof raw?.autoSaveEnabled === 'boolean'
+          ? raw.autoSaveEnabled
+          : DEFAULT_USER_PREFERENCES.autoSaveEnabled,
+      autoSaveInterval:
+        typeof raw?.autoSaveInterval === 'number'
+          ? raw.autoSaveInterval
+          : DEFAULT_USER_PREFERENCES.autoSaveInterval,
+      spellCheck:
+        typeof raw?.spellCheck === 'boolean'
+          ? raw.spellCheck
+          : DEFAULT_USER_PREFERENCES.spellCheck,
+      wordCountGoal:
+        typeof raw?.wordCountGoal === 'number'
+          ? raw.wordCountGoal
+          : DEFAULT_USER_PREFERENCES.wordCountGoal,
+      editorLineHeight:
+        typeof raw?.editorLineHeight === 'number'
+          ? raw.editorLineHeight
+          : DEFAULT_USER_PREFERENCES.editorLineHeight,
     };
   } catch {
     return { ...DEFAULT_USER_PREFERENCES };
@@ -261,6 +280,13 @@ function writeUserPreferences(config: UserPreferencesConfig): void {
   if (config.readingFontFamily) flat.readingFontFamily = config.readingFontFamily;
   if (typeof config.readingFontWeight === 'number') flat.readingFontWeight = config.readingFontWeight;
   if (typeof config.readingFontScale === 'number') flat.readingFontScale = config.readingFontScale;
+  if (typeof config.paragraphIndent === 'boolean') flat.paragraphIndent = config.paragraphIndent;
+  if (typeof config.showWordCount === 'boolean') flat.showWordCount = config.showWordCount;
+  if (typeof config.autoSaveEnabled === 'boolean') flat.autoSaveEnabled = config.autoSaveEnabled;
+  if (typeof config.autoSaveInterval === 'number') flat.autoSaveInterval = config.autoSaveInterval;
+  if (typeof config.spellCheck === 'boolean') flat.spellCheck = config.spellCheck;
+  if (typeof config.wordCountGoal === 'number') flat.wordCountGoal = config.wordCountGoal;
+  if (typeof config.editorLineHeight === 'number') flat.editorLineHeight = config.editorLineHeight;
   atomicWriteFileSync(p, stringifyFlatYaml(flat), 'utf-8');
 }
 

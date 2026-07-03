@@ -331,6 +331,17 @@
   background: var(--hover-overlay);
 }
 
+/* Goal progress badge shown inside the word-count button when a target is set. */
+.editor-status-goal-pct {
+  margin-left: var(--space-xs);
+  padding: 0.05rem var(--space-2xs);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--text-3xs);
+  font-weight: 500;
+}
+
 .editor-status-detail {
   position: absolute;
   bottom: 100%;

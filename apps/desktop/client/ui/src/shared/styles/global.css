@@ -14,6 +14,7 @@
 @import "./layout/statusbar.css";
 @import "./layout/notifications.css";
 @import "./layout/sidebar.css";
+@import "./layout/settings.css";
 
 
 /* editor/ holds what used to be a single 2000-line editor.css. Split order

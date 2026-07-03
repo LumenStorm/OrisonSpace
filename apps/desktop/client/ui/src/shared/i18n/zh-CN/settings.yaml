@@ -104,11 +104,6 @@ settings:
   theme_system: "跟随系统"
   theme_light: "浅色"
   theme_dark: "深色"
-  uiDensity: "界面密度"
-  densityCompact: "紧凑"
-  densityDefault: "默认"
-  densitySpacious: "宽松"
-  sidebarWidth: "侧边栏宽度"
   editorLineHeight: "编辑器行高"
 
   # ── Writing page ──
@@ -125,6 +120,9 @@ settings:
   editor: "编辑器"
   paragraphIndent: "段落首行缩进"
   showWordCount: "显示字数统计"
+  spellCheck: "拼写检查"
+  wordCountGoal: "字数目标"
+  wordCountGoalHint: "当前文档的目标字数。0 表示不设目标。"
 
   # ── Agent page ──
   agent: "Agent"
@@ -133,11 +131,6 @@ settings:
   patchModeAuto: "自动"
   patchModeSuggestHint: "AI 修改以差异形式展示，由你确认接受或拒绝。"
   patchModeAutoHint: "AI 修改自动应用，仅异常情况需要人工审查。"
-  agentSession: "会话"
-  sessionRetention: "保留最近会话数"
-  sessionRetentionHint: "超出数量的旧会话将自动清理。"
-  agentDefaultModel: "默认模型"
-  followGlobal: "跟随全局指派"
 welcome:
   brand: "Orison Space"
   tagline: "一句话到视频 — AI 驱动的影视创作"

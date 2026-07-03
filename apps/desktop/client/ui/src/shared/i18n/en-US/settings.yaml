@@ -104,11 +104,6 @@ settings:
   theme_system: "System"
   theme_light: "Light"
   theme_dark: "Dark"
-  uiDensity: "UI density"
-  densityCompact: "Compact"
-  densityDefault: "Default"
-  densitySpacious: "Spacious"
-  sidebarWidth: "Sidebar width"
   editorLineHeight: "Editor line height"
 
   # ── Writing page ──
@@ -125,6 +120,9 @@ settings:
   editor: "Editor"
   paragraphIndent: "First-line indent"
   showWordCount: "Show word count"
+  spellCheck: "Spell check"
+  wordCountGoal: "Word count goal"
+  wordCountGoalHint: "Target character count for the active document. 0 means no goal."
 
   # ── Agent page ──
   agent: "Agent"
@@ -133,11 +131,6 @@ settings:
   patchModeAuto: "Auto"
   patchModeSuggestHint: "AI changes are shown as diffs for you to accept or reject."
   patchModeAutoHint: "AI changes are applied automatically. Only escalations require review."
-  agentSession: "Sessions"
-  sessionRetention: "Keep recent sessions"
-  sessionRetentionHint: "Older sessions are automatically cleaned up."
-  agentDefaultModel: "Default model"
-  followGlobal: "Follow global assignment"
 welcome:
   brand: "Orison Space"
   tagline: "One line to video — AI-powered storytelling"

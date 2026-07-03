@@ -59,7 +59,7 @@ export function FontPicker({
     <div className="font-picker" ref={ref}>
       <button
         type="button"
-        className="sidebar-settings-input font-picker-trigger"
+        className="form-field-input font-picker-trigger"
         style={value ? { fontFamily: value } : undefined}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"

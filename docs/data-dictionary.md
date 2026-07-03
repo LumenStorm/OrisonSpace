@@ -204,10 +204,12 @@ readingFontScale: 1           # 字号缩放倍数（1 = 默认）
 # ── 写作设置 ──
 paragraphIndent: true         # 段落首行缩进
 showWordCount: true           # 显示字数统计
+autoSaveEnabled: true         # 是否启用自动保存（关闭后仅手动 Ctrl+S）
+autoSaveInterval: 1500        # 自动保存防抖间隔（毫秒）
+spellCheck: false             # 编辑器原生拼写检查
+wordCountGoal: 0              # 当前文档字数目标（0 = 不设目标）
 # ── 外观设置 ──
-editorLineHeight: 1.6         # 编辑器行高
-# ── Agent 设置 ──
-agentSessionRetention: 30     # 会话保留数量 / 天数
+editorLineHeight: 1.75        # 编辑器行高
 ```
 
 > `updateManifestUrl` 已废弃（被 electron-updater 的 GitHub feed 取代），仅为向后兼容保留读取，不再写入。
