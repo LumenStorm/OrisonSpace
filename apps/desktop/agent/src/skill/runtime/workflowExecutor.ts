@@ -71,9 +71,15 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
       const checkpoints: string[] = [];
       const pendingConfirmations: PendingConfirmationState[] = [];
       const nested: Array<{ skill: string; status: 'completed' }> = [];
-      const priorRunState = context.skillContext?.skillRunState?.skill === skill.name
-        ? context.skillContext.skillRunState
-        : undefined;
+      const priorRunState = (() => {
+        const raw = context.skillContext?.skillRunState?.skill === skill.name
+          ? context.skillContext.skillRunState
+          : undefined;
+        if (!raw) return undefined;
+        // 已完成的运行状态（无暂停点）不应阻止重新执行；视为全新调用。
+        if (!raw.currentNodeId && !raw.pendingUserAction) return undefined;
+        return raw;
+      })();
 
       if (skill.name === 'story' && skill.workflow?.steps?.length === 1) {
         const promptStep = skill.workflow.steps[0];

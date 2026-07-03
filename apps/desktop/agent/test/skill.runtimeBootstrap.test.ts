@@ -156,14 +156,14 @@ description: 长篇网文写作
 用于长篇小说写作。
 `, 'utf-8');
 
-    const shortAnalyzeDir = path.join(externalSkillsRoot, 'story-short-analyze');
+    const shortAnalyzeDir = path.join(externalSkillsRoot, 'story-analyze');
     mkdirSync(shortAnalyzeDir, { recursive: true });
     writeFileSync(path.join(shortAnalyzeDir, 'SKILL.md'), `---
-name: story-short-analyze
+name: story-analyze
 description: 短篇拆文
 ---
 
-# story-short-analyze
+# story-analyze
 
 用于短篇故事分析。
 `, 'utf-8');
@@ -171,7 +171,7 @@ description: 短篇拆文
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
     const generate = vi.fn(async (messages: Array<{ content: string }>) => {
       const content = messages[0]?.content ?? '';
-      if (content.includes('story-short-analyze')) {
+      if (content.includes('story-analyze')) {
         return {
           content: 'generated: short-form analysis result',
           finishReason: 'stop',
@@ -195,7 +195,7 @@ description: 短篇拆文
     const loaded = await runtime.loadSkillsForSession(session.id);
     expect(loaded).toContain('story');
     expect(loaded).toContain('story-long-write');
-    expect(loaded).toContain('story-short-analyze');
+    expect(loaded).toContain('story-analyze');
 
     const result = await runtime.executeSkillByName(session.id, 'story', {
       input: '我想写长篇小说',

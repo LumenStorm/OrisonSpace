@@ -622,14 +622,9 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
 
       const state = runtime.getRunState(sessionId);
       const session = getSession(sessionId);
-      const restoredSkillRunState = (() => {
-        if (!skillName || session?.skillRunState?.skill !== skillName) return undefined;
-        const state = session.skillRunState;
-        // 只在 skill 处于暂停状态（有待恢复的节点或待用户响应）时恢复；
-        // 已完成的运行状态不应阻止重新执行。
-        if (!state.currentNodeId && !state.pendingUserAction) return undefined;
-        return restoreSkillContinuation({ skillRunState: state });
-      })();
+      const restoredSkillRunState = skillName && session?.skillRunState?.skill === skillName
+        ? restoreSkillContinuation({ skillRunState: session.skillRunState })
+        : undefined;
       return buildSkillContext({
         sessionId,
         runStatus: state?.status ?? 'idle',
