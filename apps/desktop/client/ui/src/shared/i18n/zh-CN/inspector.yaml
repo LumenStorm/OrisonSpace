@@ -84,25 +84,6 @@ inspector:
         - "特写"
         - "大特写"
         - "过肩"
-  video:
-    resolution: "分辨率"
-    frameRate: "帧率"
-    outputFormat: "输出格式"
-    rewrite: "生成视频"
-    prompt: "描述视频生成参数..."
-    options:
-      resolution:
-        - "1080p"
-        - "2K"
-        - "4K"
-      frameRate:
-        - "24fps"
-        - "30fps"
-        - "60fps"
-      outputFormat:
-        - "MP4"
-        - "MOV"
-        - "WebM"
 fileEditor:
   readOnly: "此文件类型暂不支持编辑"
   convertToMd: "转为 Markdown"
@@ -126,8 +107,6 @@ fileEditor:
   splitDown: "向下拆分"
   splitOutline: "大纲分屏"
   closeSplit: "关闭分屏"
-  minimap: "小地图"
-  toggleMinimap: "切换小地图"
   externalChangedTitle: "文件已在外部更改"
   externalChangedDesc: "此文件在编辑器之外被修改，而你有未保存的更改。"
   externalDeletedTitle: "文件已被删除"

@@ -33,7 +33,6 @@ export function SettingsDialog({ onClose }: Props) {
     autoCheckUpdates, setAutoCheckUpdates,
     appVersion, checkForUpdate,
     editorLineHeight, setEditorLineHeight,
-    chapterPrefix, setChapterPrefix,
     paragraphIndent, setParagraphIndent,
     showWordCount, setShowWordCount,
     autoApplyPatches, setAutoApplyPatches,
@@ -49,7 +48,6 @@ export function SettingsDialog({ onClose }: Props) {
     autoCheckUpdates: s.autoCheckUpdates, setAutoCheckUpdates: s.setAutoCheckUpdates,
     appVersion: s.appVersion, checkForUpdate: s.checkForUpdate,
     editorLineHeight: s.editorLineHeight, setEditorLineHeight: s.setEditorLineHeight,
-    chapterPrefix: s.chapterPrefix, setChapterPrefix: s.setChapterPrefix,
     paragraphIndent: s.paragraphIndent, setParagraphIndent: s.setParagraphIndent,
     showWordCount: s.showWordCount, setShowWordCount: s.setShowWordCount,
     autoApplyPatches: s.autoApplyPatches, setAutoApplyPatches: s.setAutoApplyPatches,
@@ -96,8 +94,6 @@ export function SettingsDialog({ onClose }: Props) {
         return (
           <WritingSettingsPage
             t={t}
-            chapterPrefix={chapterPrefix}
-            setChapterPrefix={setChapterPrefix}
             paragraphIndent={paragraphIndent}
             setParagraphIndent={setParagraphIndent}
             showWordCount={showWordCount}

@@ -45,8 +45,15 @@ export type PanelsSlice = {
   splitDirection: SplitDirection;
   splitFilePath: string | null;
   setSplit: (direction: SplitDirection, filePath?: string | null) => void;
-  showMinimap: boolean;
-  toggleMinimap: () => void;
+  // Top-level dialogs. Lifted to the store so the command palette (and any other
+  // entry point) can open them, not just the TopBar menu that used to own the
+  // local useState. TopBar renders the dialogs driven by these flags.
+  settingsDialogOpen: boolean;
+  aboutDialogOpen: boolean;
+  newProjectDialogOpen: boolean;
+  setSettingsDialogOpen: (open: boolean) => void;
+  setAboutDialogOpen: (open: boolean) => void;
+  setNewProjectDialogOpen: (open: boolean) => void;
 };
 
 export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> = (set, get) => {
@@ -115,7 +122,11 @@ export const createPanelsSlice: StateCreator<PanelsSlice, [], [], PanelsSlice> =
     }
     set({ splitDirection: direction, splitFilePath: target });
   },
-  showMinimap: false,
-  toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
+  settingsDialogOpen: false,
+  aboutDialogOpen: false,
+  newProjectDialogOpen: false,
+  setSettingsDialogOpen: (open) => set({ settingsDialogOpen: open }),
+  setAboutDialogOpen: (open) => set({ aboutDialogOpen: open }),
+  setNewProjectDialogOpen: (open) => set({ newProjectDialogOpen: open }),
   };
 };

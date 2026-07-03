@@ -4,6 +4,7 @@ import { useToastStore } from '../../shared/store/toastStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
 import { normalizePath } from '../../shared/utils/paths';
+import { openWriting } from '../editor/openWriting';
 import { gitIsRepo, gitLog, gitCreateNode, gitStatusCount } from '../../shared/api/git';
 import type { GitCommitEntry } from '@orison/shared-contracts';
 import type { z } from 'zod';
@@ -35,7 +36,6 @@ export function OverviewPage() {
   const showToast = useToastStore((s) => s.showToast);
   const setActivePage = useAppStore((s) => s.setActivePage);
   const setActiveSidebarPanel = useAppStore((s) => s.setActiveSidebarPanel);
-  const openFile = useAppStore((s) => s.openFile);
 
   const outline = useAppStore((s) => s.creativeFields.outline) as OutlineV2 | undefined;
   const worldSetting = useAppStore((s) => s.creativeFields.world_setting) as WorldSetting | undefined;
@@ -202,26 +202,9 @@ export function OverviewPage() {
 
   const hasActivity = versions.length > 0 || recentChapters.length > 0;
 
-  // Open a chapter's manuscript file as a tab (the source of truth). Falls back
-  // to the outline when the project has no chapters yet, so "Continue writing"
-  // always lands somewhere useful instead of a dead editor page.
-  const openChapter = async (chapter?: NovelChapterMeta) => {
-    const target = chapter ?? recentChapters[0];
-    const contentFile = target?.sections?.[0]?.contentFile;
-    if (!projectPath || !target || !contentFile) {
-      setActivePage('outline');
-      return;
-    }
-    const filePath = `${normalizePath(projectPath)}/${contentFile}`;
-    const name = contentFile.slice(contentFile.lastIndexOf('/') + 1);
-    try {
-      const content = await window.orisonDesktop?.readFile(filePath);
-      openFile(filePath, name, content ?? '');
-    } catch {
-      // File missing/unreadable — surface the outline rather than failing silently.
-      setActivePage('outline');
-    }
-  };
+  // Open a chapter's manuscript file as a tab (the source of truth). Shared with
+  // the side-nav writing entry via openWriting() so both drive one flow.
+  const openChapter = (chapter?: NovelChapterMeta) => openWriting(chapter);
 
   // Pick a cover image, copy it into the project as cover.<ext>, and persist it
   // to the project meta — the same flow as project creation. The cover is a

@@ -150,6 +150,13 @@ export function CodeEditor({ file }: { file: FileTab }) {
     return () => el?.removeEventListener('keydown', handler as EventListener);
   }, []);
 
+  // Open the find bar on a menu-bar / command-palette find request (nonce-keyed).
+  const findRequest = useAppStore((s) => s.findRequest);
+  useEffect(() => {
+    if (!findRequest) return;
+    setFindMode(findRequest.mode);
+  }, [findRequest]);
+
   const adapter: FindReplaceAdapter = useMemo(() => ({
     getText: () => file.content,
     highlight: (match: FindMatch) => {

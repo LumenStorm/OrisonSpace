@@ -1,7 +1,5 @@
 type Props = {
   t: (key: string) => string;
-  chapterPrefix: string;
-  setChapterPrefix: (value: string) => void;
   paragraphIndent: boolean;
   setParagraphIndent: (value: boolean) => void;
   showWordCount: boolean;
@@ -9,7 +7,7 @@ type Props = {
 };
 
 export function WritingSettingsPage({
-  t, chapterPrefix, setChapterPrefix,
+  t,
   paragraphIndent, setParagraphIndent,
   showWordCount, setShowWordCount,
 }: Props) {
@@ -17,20 +15,6 @@ export function WritingSettingsPage({
     <div className="settings-page">
       <div className="settings-page-header">
         <h3 className="settings-page-title">{t('settings.writing')}</h3>
-      </div>
-
-      <div className="sidebar-settings-row">
-        <span className="sidebar-settings-label">{t('settings.chapterPrefix')}</span>
-        <div className="sidebar-settings-input-row">
-          <input
-            type="text"
-            value={chapterPrefix}
-            onChange={(e) => setChapterPrefix(e.target.value)}
-            className="sidebar-settings-input"
-            placeholder="ch-"
-            style={{ width: '120px' }}
-          />
-        </div>
       </div>
 
       <div className="sidebar-settings-row">

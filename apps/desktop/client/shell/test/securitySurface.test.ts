@@ -33,7 +33,6 @@ describe('preload security surface', () => {
       'executeAgentSkill',
       'generateImage',
       'generateText',
-      'generateVideo',
       'getAgentSession',
       'getAppVersion',
       'getLocale',

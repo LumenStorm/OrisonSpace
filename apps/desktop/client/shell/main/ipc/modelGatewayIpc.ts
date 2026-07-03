@@ -2,19 +2,16 @@ import { ipcMain } from 'electron';
 import type {
   GenerateImagePayload,
   GenerateTextPayload,
-  GenerateVideoPayload,
   ImageGenerationResponse,
   ModelRef,
   ResolvedModel,
   TextGenerationResponse,
-  VideoGenerationResponse,
 } from '@orison/shared-contracts';
 import {
   generateTextPayloadSchema,
   generateImagePayloadSchema,
-  generateVideoPayloadSchema,
 } from '@orison/shared-contracts';
-import { generateText, generateImage, generateVideo } from '@orison/model-protocols';
+import { generateText, generateImage } from '@orison/model-protocols';
 import { readModelConfigFromDisk } from './configIpc';
 
 /**
@@ -80,9 +77,6 @@ export function registerModelGatewayIpc() {
   ipcMain.handle('model:generate-image', async (_event, payload: GenerateImagePayload) => {
     return handleGenerateImage(generateImagePayloadSchema.parse(payload));
   });
-  ipcMain.handle('model:generate-video', async (_event, payload: GenerateVideoPayload) => {
-    return handleGenerateVideo(generateVideoPayloadSchema.parse(payload));
-  });
 }
 
 export async function handleGenerateText(payload: GenerateTextPayload): Promise<TextGenerationResponse> {
@@ -93,9 +87,4 @@ export async function handleGenerateText(payload: GenerateTextPayload): Promise<
 export async function handleGenerateImage(payload: GenerateImagePayload): Promise<ImageGenerationResponse> {
   const resolved = resolveModel(payload.ref);
   return generateImage(resolved, payload.request);
-}
-
-async function handleGenerateVideo(payload: GenerateVideoPayload): Promise<VideoGenerationResponse> {
-  const resolved = resolveModel(payload.ref);
-  return generateVideo(resolved, payload.request);
 }

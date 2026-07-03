@@ -91,23 +91,6 @@ export const imageGenerationResponseSchema = z.object({
   })),
 });
 
-export const generatedVideoSchema = z.object({
-  url: z.string().optional(),
-  b64Json: z.string().optional(),
-});
-
-export const videoGenerationRequestSchema = z.object({
-  model: z.string().min(1),
-  prompt: z.string().min(1),
-  size: z.string().optional(),
-  duration: z.number().optional(),
-});
-
-export const videoGenerationResponseSchema = z.object({
-  model: z.string(),
-  videos: z.array(generatedVideoSchema),
-});
-
 /** {keyId, modelId} pointer to a configured key + model. */
 export const modelRefSchema = z.object({
   keyId: z.string().min(1),
@@ -124,11 +107,6 @@ export const generateImagePayloadSchema = z.object({
   request: imageGenerationRequestSchema,
 });
 
-export const generateVideoPayloadSchema = z.object({
-  ref: modelRefSchema,
-  request: videoGenerationRequestSchema,
-});
-
 export type GenerationMessage = z.infer<typeof generationMessageSchema>;
 export type GenerationUsage = z.infer<typeof generationUsageSchema>;
 export type GenerationFinishReason = z.infer<typeof generationFinishReasonSchema>;
@@ -137,8 +115,5 @@ export type TextGenerationRequest = z.infer<typeof textGenerationRequestSchema>;
 export type TextGenerationResponse = z.infer<typeof textGenerationResponseSchema>;
 export type ImageGenerationRequest = z.infer<typeof imageGenerationRequestSchema>;
 export type ImageGenerationResponse = z.infer<typeof imageGenerationResponseSchema>;
-export type VideoGenerationRequest = z.infer<typeof videoGenerationRequestSchema>;
-export type VideoGenerationResponse = z.infer<typeof videoGenerationResponseSchema>;
-export type GeneratedVideo = z.infer<typeof generatedVideoSchema>;
 export type ToolFunction = z.infer<typeof toolFunctionSchema>;
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>;

@@ -4,8 +4,6 @@ import type {
   ImageGenerationResponse,
   TextGenerationRequest,
   TextGenerationResponse,
-  VideoGenerationRequest,
-  VideoGenerationResponse,
 } from './contracts/generation';
 import type { ModelCapability, ModelConfig } from './contracts/model';
 import type { NovelStorySyncPayload } from './contracts/novel-orchestration';
@@ -53,7 +51,6 @@ export const desktopIpcSchema = z.object({
     'model:list-remote-models',
     'model:generate-text',
     'model:generate-image',
-    'model:generate-video',
     'storySync:run',
     'field:sync',
     'field:apply-agent-patch',
@@ -173,11 +170,6 @@ export type GenerateImagePayload = {
   request: ImageGenerationRequest;
 };
 
-export type GenerateVideoPayload = {
-  ref: ModelRef;
-  request: VideoGenerationRequest;
-};
-
 /**
  * Story-sync IPC payload.
  */
@@ -212,7 +204,6 @@ export type UserPreferencesConfig = {
   readingFontScale?: number;
 
   // ── Writing settings ──
-  chapterPrefix?: string;
   paragraphIndent?: boolean;
   showWordCount?: boolean;
 
@@ -328,7 +319,6 @@ export type OrisonDesktopApi = {
   listRemoteModels(request: ListRemoteModelsRequest): Promise<RemoteModel[]>;
   generateText(payload: GenerateTextPayload): Promise<TextGenerationResponse>;
   generateImage(payload: GenerateImagePayload): Promise<ImageGenerationResponse>;
-  generateVideo(payload: GenerateVideoPayload): Promise<VideoGenerationResponse>;
   runStorySync(payload: RunStorySyncPayload): Promise<RunStorySyncResult>;
   loadUserPreferences(): Promise<UserPreferencesConfig>;
   saveUserPreferences(config: UserPreferencesConfig): Promise<void>;

@@ -4,7 +4,6 @@ import type {
   AssetUpsertInput,
   GenerateImagePayload,
   GenerateTextPayload,
-  GenerateVideoPayload,
   GitCommitEntry,
   GitFileDiff,
   ImportedFont,
@@ -24,7 +23,6 @@ import type {
   UpdateCheckResult,
   UpdateEvent,
   UserPreferencesConfig,
-  VideoGenerationResponse,
 } from '@orison/shared-contracts';
 
 export const exposedDesktopApi = {
@@ -74,8 +72,6 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('model:generate-text', payload) as Promise<TextGenerationResponse>,
   generateImage: (payload: GenerateImagePayload) =>
     ipcRenderer.invoke('model:generate-image', payload) as Promise<ImageGenerationResponse>,
-  generateVideo: (payload: GenerateVideoPayload) =>
-    ipcRenderer.invoke('model:generate-video', payload) as Promise<VideoGenerationResponse>,
   // Story-sync 桥（renderer -> desktop main 调 LLM 提补丁）
   runStorySync: (payload: RunStorySyncPayload) =>
     ipcRenderer.invoke('storySync:run', payload) as Promise<RunStorySyncResult>,

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAppStore } from '../../shared/store/appStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { useOpenProject } from '../../shared/hooks/useOpenProject';
 import { buildCommandRegistry, fuzzyMatch, type CommandEntry } from './commandRegistry';
 
 export function CommandPalette() {
@@ -15,6 +16,7 @@ export function CommandPalette() {
     })),
   );
   const { t } = useI18n(locale);
+  const handleOpenProject = useOpenProject();
 
   const [query, setQuery] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -26,13 +28,13 @@ export function CommandPalette() {
     const state = useAppStore.getState();
     return buildCommandRegistry({
       t,
-      openSettings: () => {},
-      openAbout: () => {},
+      openSettings: () => state.setSettingsDialogOpen(true),
+      openAbout: () => state.setAboutDialogOpen(true),
       checkForUpdate: () => { void state.checkForUpdate(); },
       toggleProjectTree: () => state.toggleProjectTree(),
       toggleBottomPanel: () => state.toggleBottomPanel(),
-      newProject: () => {},
-      openProject: () => {},
+      newProject: () => state.setNewProjectDialogOpen(true),
+      openProject: () => { void handleOpenProject(); },
       saveFile: () => {
         const active = state.activeFilePath;
         if (active) void state.saveFile(active);
@@ -43,14 +45,15 @@ export function CommandPalette() {
       },
       reopenClosed: () => { void state.reopenLastClosedFile(); },
       saveVersion: state.currentProject?.path ? () => {
+        // window.prompt is disabled in the Electron renderer, so auto-generate a
+        // timestamped snapshot message — same behaviour as the overview snapshot.
         const dir = state.currentProject!.path;
-        const msg = window.prompt(t('timeline.nodeMessage'));
-        if (msg?.trim()) {
-          void window.orisonDesktop?.gitCreateNode(dir, msg.trim());
-        }
+        const now = new Date();
+        const msg = `snapshot: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        void window.orisonDesktop?.gitCreateNode(dir, msg);
       } : undefined,
     });
-  }, [open, t]);
+  }, [open, t, handleOpenProject]);
 
   const filtered = useMemo(() => {
     if (!query) return commands;

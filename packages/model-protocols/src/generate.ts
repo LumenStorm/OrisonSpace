@@ -5,14 +5,12 @@ import type {
   ResolvedModel,
   TextGenerationRequest,
   TextGenerationResponse,
-  VideoGenerationRequest,
-  VideoGenerationResponse,
 } from '@orison/shared-contracts';
 import { generateText as aiGenerateText, jsonSchema, tool, APICallError } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { base64ToBlob, normalizeBaseUrl, postJson, postMultipart } from './http';
 import { normalizeImageResponse } from './imageNormalize';
-import { ProtocolHttpError, ProtocolNotImplementedError } from './errors';
+import { ProtocolHttpError } from './errors';
 import { withRetry } from './retry';
 import type { ProtocolCallContext } from './types';
 
@@ -266,14 +264,3 @@ async function buildImageResponse(model: ResolvedModel, raw: OpenAiImageResponse
   return normalizeImageResponse(response);
 }
 
-// ── Video generation (placeholder) ──
-
-export async function generateVideo(
-  _model: ResolvedModel,
-  _request: VideoGenerationRequest,
-  _ctx?: ProtocolCallContext,
-): Promise<VideoGenerationResponse> {
-  throw new ProtocolNotImplementedError(
-    'Video generation is not yet implemented. Waiting for a standard OpenAI-compatible video endpoint.',
-  );
-}

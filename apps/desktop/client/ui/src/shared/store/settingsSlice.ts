@@ -50,8 +50,6 @@ export type SettingsSlice = {
   setAutoCheckUpdates: (value: boolean) => void;
 
   // ── Writing settings ──
-  chapterPrefix: string;
-  setChapterPrefix: (value: string) => void;
   paragraphIndent: boolean;
   setParagraphIndent: (value: boolean) => void;
   showWordCount: boolean;
@@ -102,6 +100,12 @@ function applyEditorLineHeight(lineHeight: number) {
   document.documentElement.style.setProperty('--editor-line-height', String(lineHeight));
 }
 
+function applyParagraphIndent(indent: boolean) {
+  if (typeof document === 'undefined') return;
+  // Consumed by the editor paragraph rule (tiptap.css / file.css) as a text-indent.
+  document.documentElement.style.setProperty('--editor-paragraph-indent', indent ? '2em' : '0');
+}
+
 function saveUserPreferencesSnapshot(config: UserPreferencesConfig): void {
   window.orisonDesktop?.saveUserPreferences?.(config).catch(() => {});
 }
@@ -115,7 +119,6 @@ function buildPrefs(get: () => SettingsSlice, overrides: Partial<UserPreferences
     autoCheckUpdates: s.autoCheckUpdates,
     readingFontWeight: s.readingFontWeight,
     readingFontScale: s.readingFontScale,
-    chapterPrefix: s.chapterPrefix,
     paragraphIndent: s.paragraphIndent,
     showWordCount: s.showWordCount,
     editorLineHeight: s.editorLineHeight,
@@ -149,9 +152,11 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
       const readingFontWeight = config.readingFontWeight ?? DEFAULT_READING_FONT_WEIGHT;
       const readingFontScale = config.readingFontScale ?? DEFAULT_READING_FONT_SCALE;
       const editorLineHeight = config.editorLineHeight ?? 1.75;
+      const paragraphIndent = config.paragraphIndent ?? true;
       applyTheme(theme);
       applyReadingFont(readingFontFamily, readingFontWeight, readingFontScale);
       applyEditorLineHeight(editorLineHeight);
+      applyParagraphIndent(paragraphIndent);
       window.orisonDesktop
         ?.listImportedFonts?.()
         .then((fonts) => injectImportedFonts(fonts))
@@ -165,7 +170,6 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
         readingFontFamily,
         readingFontWeight,
         readingFontScale,
-        chapterPrefix: config.chapterPrefix ?? 'ch-',
         paragraphIndent: config.paragraphIndent ?? true,
         showWordCount: config.showWordCount ?? true,
         editorLineHeight,
@@ -238,13 +242,9 @@ export const createSettingsSlice: StateCreator<SettingsSlice, [], [], SettingsSl
   },
 
   // ── Writing settings ──
-  chapterPrefix: 'ch-',
-  setChapterPrefix(value) {
-    set({ chapterPrefix: value });
-    saveUserPreferencesSnapshot(buildPrefs(get, { chapterPrefix: value }));
-  },
   paragraphIndent: true,
   setParagraphIndent(value) {
+    applyParagraphIndent(value);
     set({ paragraphIndent: value });
     saveUserPreferencesSnapshot(buildPrefs(get, { paragraphIndent: value }));
   },

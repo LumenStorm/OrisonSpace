@@ -162,15 +162,6 @@ storyboard:
   cameraLens: "Camera Lens"
   lightingMood: "Lighting Mood"
   shotType: "Shot Type"
-video:
-  previewPlaceholder: "Video preview will appear here"
-  noClips: "No clips yet. Generate video from storyboard shots to populate the timeline."
-  resolution: "Resolution"
-  frameRate: "Frame Rate"
-  outputFormat: "Output Format"
-  promptPlaceholder: "Describe the video content to generate..."
-  generate: "Generate Video"
-  clips: "Video Clips"
 imageGen:
   title: "Image Generation"
   promptPlaceholder: "Describe the image you want to generate..."

@@ -183,20 +183,4 @@ describe('model gateway IPC', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects video generation with ProtocolNotImplementedError', async () => {
-    await seedConfig();
-    registerModelGatewayIpc();
-
-    const fetchMock = vi.fn();
-    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-
-    const handler = pickHandler('model:generate-video');
-    await expect(
-      handler({}, {
-        ref: { keyId: 'key_text', modelId: 'sora-1' },
-        request: { model: 'sora-1', prompt: 'hello' },
-      }),
-    ).rejects.toThrow(/not.*implemented/i);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
 });

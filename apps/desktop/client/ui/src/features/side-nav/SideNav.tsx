@@ -1,13 +1,12 @@
-import { useState } from 'react';
 import { useAppStore, type ActivePage } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { useShallow } from 'zustand/react/shallow';
-import { SettingsDialog } from '../../shared/components/SettingsDialog';
 import { Tooltip } from '../../shared/components/Tooltip';
 import {
   overviewItem, outlineItem, assetsItem,
   productionItems, type PageNavItem,
 } from './navItems';
+import { openWriting } from '../editor/openWriting';
 
 function NavButton({ item, active, onClick, t }: { item: PageNavItem; active: boolean; onClick: () => void; t: (k: string) => string }) {
   return (
@@ -31,6 +30,7 @@ export function SideNav() {
     activeSidebarPanel, setActiveSidebarPanel,
     mainView,
     agentPanelOpen, toggleAgentPanel,
+    showSettings, setShowSettings,
   } = useAppStore(useShallow((s) => ({
     activePage: s.activePage,
     setActivePage: s.setActivePage,
@@ -40,11 +40,11 @@ export function SideNav() {
     mainView: s.mainView,
     agentPanelOpen: s.agentPanelOpen,
     toggleAgentPanel: s.toggleAgentPanel,
+    showSettings: s.settingsDialogOpen,
+    setShowSettings: s.setSettingsDialogOpen,
   })));
 
   const { t } = useI18n(resolvedLocale);
-
-  const [showSettings, setShowSettings] = useState(false);
 
   const handlePage = (page: ActivePage) => setActivePage(page);
 
@@ -94,9 +94,21 @@ export function SideNav() {
 
           <div className="side-nav-separator" />
 
-          {/* --- Group 1: Overview / Outline / Assets / Novel|Script --- */}
+          {/* --- Group 1: Overview / Outline / Writing / Assets --- */}
           <NavButton item={overviewItem} active={isPageActive('overview')} onClick={() => handlePage('overview')} t={t} />
           <NavButton item={outlineItem} active={isPageActive('outline')} onClick={() => handlePage('outline')} t={t} />
+          {/* Writing opens the manuscript as a file tab (the source of truth),
+              not a page route — the legacy novel/script pages were retired. */}
+          <Tooltip label={t('nav.writing')} placement="right">
+            <button
+              type="button"
+              className="icon-rail-btn"
+              onClick={() => { void openWriting(); }}
+              aria-label={t('nav.writing')}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">edit_note</span>
+            </button>
+          </Tooltip>
           <NavButton item={assetsItem} active={isPageActive('assets')} onClick={() => handlePage('assets')} t={t} />
 
           <div className="side-nav-separator" />
@@ -135,8 +147,6 @@ export function SideNav() {
 
         </div>
       </nav>
-
-      {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} />}
     </>
   );
 }

@@ -17,11 +17,10 @@
 
 
 /* editor/ holds what used to be a single 2000-line editor.css. Split order
- * mirrors the original section order (tiptap → script → video → image-gen
+ * mirrors the original section order (tiptap → script → image-gen
  * → image-dialog → novel → file). */
 @import "./editor/tiptap.css";
 @import "./editor/script.css";
-@import "./editor/video.css";
 @import "./editor/image-gen.css";
 @import "./editor/image-dialog.css";
 @import "./editor/novel.css";

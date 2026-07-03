@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ResolvedModel } from '@orison/shared-contracts';
-import { generateText, generateImage, generateVideo, ProtocolHttpError, ProtocolNotImplementedError } from '../src';
+import { generateText, generateImage, ProtocolHttpError } from '../src';
 
 const ORIGINAL_FETCH = globalThis.fetch;
 
@@ -93,18 +93,4 @@ describe('unified protocol', () => {
     });
   });
 
-  describe('generateVideo', () => {
-    it('throws ProtocolNotImplementedError', async () => {
-      const fetchSpy = vi.fn();
-      globalThis.fetch = fetchSpy as unknown as typeof fetch;
-
-      await expect(
-        generateVideo(
-          model({ modelId: 'sora-1.0', capability: 'video' }),
-          { model: 'sora-1.0', prompt: 'waves' },
-        ),
-      ).rejects.toBeInstanceOf(ProtocolNotImplementedError);
-      expect(fetchSpy).not.toHaveBeenCalled();
-    });
-  });
 });

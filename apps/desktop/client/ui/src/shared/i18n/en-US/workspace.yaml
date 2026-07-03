@@ -33,7 +33,6 @@ topbar:
   splitOutline: "Split Outline"
   splitRight: "Split Right"
   splitDown: "Split Down"
-  toggleMinimap: "Toggle Minimap"
 bottomPanel:
   properties: "Properties"
   tasks: "Tasks"

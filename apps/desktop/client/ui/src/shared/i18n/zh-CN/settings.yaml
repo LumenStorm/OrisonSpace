@@ -122,7 +122,6 @@ settings:
   interval5s: "5 秒"
   interval10s: "10 秒"
   chapter: "章节"
-  chapterPrefix: "章节文件名前缀"
   editor: "编辑器"
   paragraphIndent: "段落首行缩进"
   showWordCount: "显示字数统计"

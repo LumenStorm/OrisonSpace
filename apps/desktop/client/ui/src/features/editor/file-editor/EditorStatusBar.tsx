@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { countMarkup } from '../../../shared/utils/wordCount';
+import { useAppStore } from '../../../shared/store/appStore';
 
 type Props = { content: string; fileType: string };
 
 export function EditorStatusBar({ content, fileType }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const showWordCount = useAppStore((s) => s.showWordCount);
   // content 可能是纯文本（PlainText/Code）或 markdown 文本，统一先剥标签再统计。
   const stats = useMemo(() => countMarkup(content), [content]);
   const readingMin = Math.max(1, Math.ceil(stats.words / 250));
@@ -12,6 +14,7 @@ export function EditorStatusBar({ content, fileType }: Props) {
   return (
     <div className="editor-status-bar">
       <span className="editor-status-type">{fileType}</span>
+      {showWordCount && (
       <div className="editor-status-right">
         <button
           type="button"
@@ -29,6 +32,7 @@ export function EditorStatusBar({ content, fileType }: Props) {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

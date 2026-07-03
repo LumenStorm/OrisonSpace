@@ -21,7 +21,7 @@ export function FileTabBar() {
     openFiles, activeFilePath, openFile, closeFile: _closeFile, requestCloseFile, cancelCloseConfirm,
     closeOtherFiles, closeFilesToRight, reopenLastClosedFile, pendingCloseConfirm,
     hasRecentlyClosed, locale, pinnedPaths, togglePinTab, reorderTabs, setSplit,
-    splitDirection, showMinimap, toggleMinimap,
+    splitDirection,
   } = useAppStore(
     useShallow((s) => ({
       openFiles: s.openFiles,
@@ -41,8 +41,6 @@ export function FileTabBar() {
       reorderTabs: s.reorderTabs,
       setSplit: s.setSplit,
       splitDirection: s.splitDirection,
-      showMinimap: s.showMinimap,
-      toggleMinimap: s.toggleMinimap,
     })),
   );
   const { t } = useI18n(locale);
@@ -224,15 +222,6 @@ export function FileTabBar() {
               <span className="material-symbols-outlined" aria-hidden="true">view_sidebar</span>
             </button>
           )}
-          <button
-            type="button"
-            className={`file-tab-bar-action-btn${showMinimap ? ' is-active' : ''}`}
-            title={t('fileEditor.minimap') || 'Minimap'}
-            aria-label={t('fileEditor.minimap') || 'Minimap'}
-            onClick={() => toggleMinimap()}
-          >
-            <span className="material-symbols-outlined" aria-hidden="true">map</span>
-          </button>
         </div>
         </div>
       )}

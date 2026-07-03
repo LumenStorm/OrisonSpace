@@ -15,7 +15,6 @@ import {
   textGenerationRequestSchema,
   textGenerationResponseSchema,
   imageGenerationRequestSchema,
-  videoGenerationRequestSchema,
   apiKeyEntrySchema,
   discoveredModelSchema,
   modelConfigSchema,
@@ -198,15 +197,6 @@ describe('model config v3 schemas', () => {
       prompt: 'a city at dusk',
     });
     expect(image.model).toBe('dall-e-3');
-  });
-
-  it('parses video generation request', () => {
-    const video = videoGenerationRequestSchema.parse({
-      model: 'sora-1.0',
-      prompt: 'rolling waves',
-      duration: 10,
-    });
-    expect(video.model).toBe('sora-1.0');
   });
 
   it('parses text generation response', () => {

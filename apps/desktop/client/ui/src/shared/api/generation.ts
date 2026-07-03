@@ -7,8 +7,6 @@ import type {
   RemoteModel,
   TextGenerationRequest,
   TextGenerationResponse,
-  VideoGenerationRequest,
-  VideoGenerationResponse,
 } from '@orison/shared-contracts';
 
 export type { RemoteModel };
@@ -32,11 +30,6 @@ type GenerateImageInput = {
 type GenerateTextInput = {
   ref: ModelRef;
   request: TextGenerationRequest;
-};
-
-type GenerateVideoInput = {
-  ref: ModelRef;
-  request: VideoGenerationRequest;
 };
 
 export async function loadRemoteModels(request: ListRemoteModelsRequest): Promise<RemoteModel[]> {
@@ -75,11 +68,4 @@ async function _generateText({ ref, request }: GenerateTextInput): Promise<TextG
     throw new Error('Desktop model gateway is unavailable');
   }
   return window.orisonDesktop.generateText({ ref, request });
-}
-
-export async function generateVideo({ ref, request }: GenerateVideoInput): Promise<VideoGenerationResponse> {
-  if (!window.orisonDesktop?.generateVideo) {
-    throw new Error('Desktop model gateway is unavailable');
-  }
-  return window.orisonDesktop.generateVideo({ ref, request });
 }

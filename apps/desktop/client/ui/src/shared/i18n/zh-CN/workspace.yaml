@@ -33,7 +33,6 @@ topbar:
   splitOutline: "大纲分屏"
   splitRight: "向右拆分"
   splitDown: "向下拆分"
-  toggleMinimap: "切换小地图"
 bottomPanel:
   properties: "属性"
   tasks: "任务"

@@ -23,8 +23,10 @@ export function TopBar() {
     saveAllOpenFiles, requestCloseFile, reopenLastClosedFile, cycleActiveFile,
     checkForUpdate, appVersion, openPalette, toggleProjectTree, toggleBottomPanel,
     toggleAgentPanel, toggleNotificationPanel, setTheme, closeAllFiles,
-    splitDirection, setSplit, showMinimap, toggleMinimap, refreshWordCount, openFile,
+    splitDirection, setSplit, refreshWordCount, openFile,
     setSaveStatus, setLastSavedAt,
+    showSettings, setShowSettings, showAbout, setShowAbout,
+    showNewDialog, setShowNewDialog,
   } = useAppStore(useShallow((s) => ({
     resolvedLocale: s.resolvedLocale,
     closeProject: s.closeProject,
@@ -45,20 +47,23 @@ export function TopBar() {
     closeAllFiles: s.closeAllFiles,
     splitDirection: s.splitDirection,
     setSplit: s.setSplit,
-    showMinimap: s.showMinimap,
-    toggleMinimap: s.toggleMinimap,
     refreshWordCount: s.refreshWordCount,
     openFile: s.openFile,
     setSaveStatus: s.setSaveStatus,
     setLastSavedAt: s.setLastSavedAt,
+    showSettings: s.settingsDialogOpen,
+    setShowSettings: s.setSettingsDialogOpen,
+    showAbout: s.aboutDialogOpen,
+    setShowAbout: s.setAboutDialogOpen,
+    showNewDialog: s.newProjectDialogOpen,
+    setShowNewDialog: s.setNewProjectDialogOpen,
   })));
   const showToast = useToastStore((s) => s.showToast);
   const { t } = useI18n(resolvedLocale);
   const handleOpen = useOpenProject();
 
-  const [showNewDialog, setShowNewDialog] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
+  // showNewDialog / showSettings / showAbout are lifted to the store (above) so
+  // the command palette can open them too; shortcuts/export stay local to TopBar.
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -167,10 +172,7 @@ export function TopBar() {
   const modKey = isMac ? '⌘' : 'Ctrl+';
 
   const activeFilePath = useAppStore((s) => s.activeFilePath);
-
-  const dispatchKey = useCallback((key: string, shift = false) => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, metaKey: true, shiftKey: shift, bubbles: true }));
-  }, []);
+  const requestFind = useAppStore((s) => s.requestFind);
 
   const fileItems: MenuItem[] = [
     { type: 'action', label: t('topbar.newProject'), shortcut: `${modKey}N`, handler: () => setShowNewDialog(true) },
@@ -193,8 +195,8 @@ export function TopBar() {
     { type: 'action', label: t('topbar.undo'), shortcut: `${modKey}Z`, handler: handleUndo },
     { type: 'action', label: t('topbar.redo'), shortcut: isMac ? '⌘⇧Z' : 'Ctrl+Shift+Z', handler: handleRedo },
     { type: 'separator' },
-    { type: 'action', label: t('topbar.find'), shortcut: `${modKey}F`, handler: () => dispatchKey('f') },
-    { type: 'action', label: t('topbar.replace'), shortcut: `${modKey}H`, handler: () => dispatchKey('h') },
+    { type: 'action', label: t('topbar.find'), shortcut: `${modKey}F`, handler: () => requestFind('find'), disabled: !activeFilePath },
+    { type: 'action', label: t('topbar.replace'), shortcut: `${modKey}H`, handler: () => requestFind('replace'), disabled: !activeFilePath },
   ];
 
   const viewItems: MenuItem[] = [
@@ -207,7 +209,6 @@ export function TopBar() {
       { type: 'action' as const, label: t('topbar.splitOutline'), handler: () => setSplit(splitDirection === 'outline' ? 'none' : 'outline') },
       { type: 'action' as const, label: t('topbar.splitRight'), handler: () => setSplit(splitDirection !== 'none' && splitDirection !== 'outline' ? 'none' : 'horizontal', activeFilePath) },
       { type: 'action' as const, label: t('topbar.splitDown'), handler: () => setSplit(splitDirection !== 'none' && splitDirection !== 'outline' ? 'none' : 'vertical', activeFilePath) },
-      { type: 'action' as const, label: t('topbar.toggleMinimap'), handler: toggleMinimap },
       { type: 'separator' as const },
     ] : []),
     { type: 'action', label: t('topbar.themeLight'), handler: () => setTheme('light') },

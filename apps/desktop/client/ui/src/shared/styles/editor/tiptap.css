@@ -89,6 +89,10 @@
   color: var(--on-surface);
 }
 
+.tiptap-content .tiptap p {
+  text-indent: var(--editor-paragraph-indent, 0);
+}
+
 .tiptap-content .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;

@@ -2,8 +2,8 @@ import type { z } from 'zod';
 import type { taskRequestSchema, taskResultSchema, patchOperationSchema } from '@orison/shared-contracts';
 
 export type WorkspaceModule = 'outline' | 'novel' | 'script';
-export type WorkspacePanel = 'overview' | 'storyboard' | 'image_gen' | 'video' | 'assets';
-export type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets';
+export type WorkspacePanel = 'overview' | 'image_gen' | 'assets';
+export type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'image_gen' | 'assets';
 export type SidebarPanel = 'explorer' | 'search' | 'timeline';
 export type BottomPanelTab = 'output' | 'tasks';
 export type ThemeSetting = 'system' | 'light' | 'dark' | (string & {});

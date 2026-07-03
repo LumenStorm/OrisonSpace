@@ -122,7 +122,6 @@ settings:
   interval5s: "5 seconds"
   interval10s: "10 seconds"
   chapter: "Chapters"
-  chapterPrefix: "Chapter filename prefix"
   editor: "Editor"
   paragraphIndent: "First-line indent"
   showWordCount: "Show word count"
