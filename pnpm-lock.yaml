@@ -122,9 +122,6 @@ importers:
       mammoth:
         specifier: 1.9.0
         version: 1.9.0
-      material-symbols:
-        specifier: 0.31.8
-        version: 0.31.8
       pino:
         specifier: ^9.7.0
         version: 9.14.0
@@ -162,6 +159,9 @@ importers:
       js-yaml:
         specifier: ^4.1.1
         version: 4.1.1
+      material-symbols:
+        specifier: 0.31.8
+        version: 0.31.8
       png-to-ico:
         specifier: ^3.0.1
         version: 3.0.1
