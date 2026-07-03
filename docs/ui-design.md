@@ -74,10 +74,10 @@ Icon Rail 分为 top section 和 bottom section：
 | ─── 分隔线 ─── | | |
 | `dashboard` | 总览 | `setActivePage('overview')` |
 | `auto_stories` | 大纲 | `setActivePage('outline')` |
+| `edit_note` | 写作 | `openWriting()` → 打开 `chapters/*.md` 文件 Tab |
 | `perm_media` | 资产库 | `setActivePage('assets')` |
 | ─── 分隔线 ─── | | |
 | `image` | 图片生成 | `setActivePage('image_gen')` |
-| `movie_filter` | 视频 | `setActivePage('video')` |
 | ─── 分隔线 ─── | | |
 | `assistant` | Agent | toggle 右侧 Agent Panel |
 
@@ -94,7 +94,7 @@ Icon Rail 分为 top section 和 bottom section：
 工作区使用统一的 `ActivePage` 类型控制中间内容区：
 
 ```ts
-type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'storyboard' | 'image_gen' | 'video' | 'assets';
+type ActivePage = 'overview' | 'outline' | 'novel' | 'script' | 'image_gen' | 'assets';
 type SidebarPanel = 'explorer' | 'search' | 'timeline';
 ```
 
@@ -110,11 +110,9 @@ type SidebarPanel = 'explorer' | 'search' | 'timeline';
 |------|------|------|
 | `overview` | `OverviewPage` | 项目总览仪表盘 |
 | `outline` | `OutlineEditor` | Notion block 风格大纲编辑器 |
-| `novel` / `script` | `ScriptEditorPage` | 小说/剧本编辑器 + creative fields |
-| `storyboard` | `StoryboardCanvas` | 分镜面板 |
 | `image_gen` | `ImageGenEditor` | 图片生成面板 |
-| `video` | `VideoEditor` | 视频编辑面板 |
 | `assets` | `AssetsPanel` | 资产库面板 |
+| `novel` / `script` | `OverviewPage` | 遗留兜底：均回退渲染 OverviewPage；稿件正文改为 `openWriting` 打开 `chapters/*.md` 文件 Tab |
 
 左侧面板组件：
 
@@ -287,7 +285,7 @@ BottomPanel 当前包含：
   - 根：`tokens.css`、`global.css`（唯一入口）、`inspector.css`、`creative.css`
   - `base/`：`components.css`、`welcome.css`
   - `layout/`：`workspace.css`、`topbar.css`、`sidebar.css`、`statusbar.css`、`notifications.css`、`pages.css`
-  - `editor/`：`tiptap.css`、`script.css`、`video.css`、`image-gen.css`、`image-dialog.css`、`novel.css`、`file.css`、`timeline.css`
+  - `editor/`：`tiptap.css`、`outline.css`、`script.css`、`image-gen.css`、`image-dialog.css`、`novel.css`、`file.css`、`timeline.css`
 - `global.css` 通过 `@import` 串联所有文件，顺序与原单文件时期一致，级联敏感规则（例如 `.image-gen-inspector-*` 排在 `.image-gen-*` 之后、`components.css` 作为末尾层）必须保留
 - 渲染层只 import 一次 `global.css`，不单独引入子文件
 

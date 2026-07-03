@@ -46,8 +46,9 @@ App
         │   ├── TimelineBtn (时间线，切换左侧面板)
         │   ├── ─── 分隔线 ───
         │   ├── NavButton[] (overview/outline/assets — setActivePage)
+        │   ├── WritingBtn (edit_note — openWriting → 打开 chapters/*.md 文件 Tab)
         │   ├── ─── 分隔线 ───
-        │   ├── NavButton[] (image_gen/video — setActivePage)
+        │   ├── NavButton[] (image_gen — setActivePage)
         │   ├── ─── 分隔线 ───
         │   ├── AgentToggle (toggle 右侧 Agent Panel)
         │   └── SettingsBtn
@@ -63,11 +64,9 @@ App
         │   ├── [页面模式: mainView='page', 按 activePage 切换]
         │   │   ├── OverviewPage (activePage='overview')
         │   │   ├── OutlineEditor (activePage='outline')
-        │   │   ├── ScriptEditorPage (activePage='novel'|'script')
-        │   │   ├── StoryboardCanvas (activePage='storyboard')
         │   │   ├── ImageGenEditor (activePage='image_gen')
-        │   │   ├── VideoEditor (activePage='video')
-        │   │   └── AssetsPanel (activePage='assets')
+        │   │   ├── AssetsPanel (activePage='assets')
+        │   │   └── OverviewPage (activePage='novel'|'script' — legacy fallback)
         │   └── BottomPanel (可折叠，条件渲染 bottomPanelOpen)
         │       ├── Tab: Output
         │       └── Tab: Tasks
@@ -112,17 +111,15 @@ App
 | `TimelinePanel` | `features/timeline/TimelinePanel.tsx` | 时间线面板（左侧面板模式） |
 | `OverviewPage` | `features/overview/OverviewPage.tsx` | 项目总览仪表盘 |
 | `OutlineEditor` | `features/editor/OutlineEditor.tsx` | 大纲编辑器（Notion block 风格） |
-| `ScriptEditorPage` | `features/editor/ScriptEditorPage.tsx` | 小说/剧本编辑器页面 |
 | `ImageGenEditor` | `features/editor/ImageGenEditor.tsx` | 图片生成面板 |
-| `StoryboardCanvas` | `features/editor/StoryboardCanvas.tsx` | 分镜面板 |
 | `AssetsPanel` | `features/assets/AssetsPanel.tsx` | 资产库面板 |
+| `openWriting` | `features/editor/openWriting.ts` | 写作入口：将稿件作为 `chapters/*.md` 文件 Tab 打开（正文事实来源，替代已退役的 novel/script 页面） |
 | `FileTabBar` | `features/editor/FileTabBar.tsx` | 文件标签栏 |
 | `FileEditor` | `features/editor/FileEditor.tsx` | 文件编辑器 |
 | `SplitFileEditor` | `features/editor/SplitFileEditor.tsx` | 分屏文件编辑器 |
 | `FindReplaceBar` | `features/editor/FindReplaceBar.tsx` | 查找替换栏 |
 | `CommandPalette` | `features/command-palette/CommandPalette.tsx` | 命令面板 |
 | `BottomPanel` | `features/bottom-panel/BottomPanel.tsx` | 底部面板容器（output / tasks） |
-| `InspectorPanel` | `features/inspector/InspectorPanel.tsx` | 属性检查面板（集成到各页面内） |
 | `AgentPanel` | `features/agent-panel/AgentPanel.tsx` | Agent 面板主容器 |
 | `AgentMessages` | `features/agent-panel/AgentMessages.tsx` | 消息流列表 |
 | `AgentMessageItem` | `features/agent-panel/AgentMessageItem.tsx` | 单条消息渲染 |
@@ -167,6 +164,7 @@ workspace-shell
    - `mainView === 'page'` → 按 `activePage` switch 渲染对应页面组件
 2. 打开文件时自动设置 `mainView: 'files'`；点击侧栏导航页面入口时设置 `mainView: 'page'`
 3. 两种模式互斥，不会同时渲染
+4. `activePage` 的 `'novel'` / `'script'` 为遗留兜底值，现在都回退渲染 OverviewPage；稿件正文改为通过 `openWriting`（`edit_note` 侧栏入口）以 `chapters/*.md` 文件 Tab 打开
 
 底部面板始终可用（所有模式下都可展开）。底部展开按钮在面板关闭时显示。
 

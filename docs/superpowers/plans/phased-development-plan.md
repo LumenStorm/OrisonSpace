@@ -44,7 +44,7 @@
 
 ### 1.5 标注实验性能力
 
-- Auto Mode / Orchestration / nested sub-agent / Video generation 统一标记为 Alpha/Experimental
+- Auto Mode / Orchestration / nested sub-agent 统一标记为 Alpha/Experimental
 - README 和 UI 文案区分稳定功能和实验功能
 
 ### 验收标准
@@ -347,7 +347,7 @@
 ### 7.5 Auto Mode 重建（独立里程碑，不阻塞 Beta）
 
 - 定义最小稳定场景："对选定章节逐章生成候选，用户逐章确认"
-- orchestrationIpc 从内存 Map stub 改为真实 service
+- 从零重建后台编排服务（旧的 orchestrationIpc stub 已被删除）
 - run state 持久化到项目目录或本地 SQLite
 - 接入 WorkflowRuntime
 - 支持暂停、恢复、取消、失败重试、进度事件

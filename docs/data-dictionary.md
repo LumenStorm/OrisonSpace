@@ -190,14 +190,27 @@ models:
 
 - `~/.orison/user/preferences.yaml`
 
-当前字段：
+当前字段（对应 `UserPreferencesConfig`）：
 
 ```yaml
 theme: system
 locale: system
 autoApplyPatches: true
-updateManifestUrl: ""   # 可选，自定义更新清单地址；不在默认值中
+autoCheckUpdates: true        # 启动时静默检查更新，默认 true
+# ── 阅读字体（编辑器 + Agent 面板正文）──
+readingFontFamily: ""         # CSS font-family 值或字体栈名
+readingFontWeight: 400        # 字重（400 / 500 / 600）
+readingFontScale: 1           # 字号缩放倍数（1 = 默认）
+# ── 写作设置 ──
+paragraphIndent: true         # 段落首行缩进
+showWordCount: true           # 显示字数统计
+# ── 外观设置 ──
+editorLineHeight: 1.6         # 编辑器行高
+# ── Agent 设置 ──
+agentSessionRetention: 30     # 会话保留数量 / 天数
 ```
+
+> `updateManifestUrl` 已废弃（被 electron-updater 的 GitHub feed 取代），仅为向后兼容保留读取，不再写入。
 
 ## 6. 鉴权会话数据
 
@@ -205,16 +218,7 @@ updateManifestUrl: ""   # 可选，自定义更新清单地址；不在默认值
 
 ## 7. Orchestration / Auto Mode 相关文件
 
-Agent 侧 auto mode 持久化位置：
-
-```text
-<projectPath>/runs/auto-mode/<autoModeId>.yaml
-```
-
-用于：
-
-- 进程重启后的会话恢复
-- Agent runtime 内部 restore
+> **已移除**：Auto Mode 执行引擎与其 run 持久化（原设计 `<projectPath>/runs/auto-mode/<autoModeId>.yaml`）随 Python agent 链一并删除，当前不再产生该目录/文件。重建方案见 `docs/internal/auto-mode-rebuild-plan.md`，届时持久化位置需复核。
 
 ## 8. 已废弃/迁移说明
 

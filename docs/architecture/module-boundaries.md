@@ -26,17 +26,13 @@
 - `src/features/<domain>/*` 拥有具体产品域，例如：
   - agent-panel
   - assets
-  - auto-mode
   - bottom-panel
   - command-palette
-  - creative
   - editor
-  - inspector
   - memory
   - model-settings
   - notifications
   - novel-workbench
-  - orchestration
   - overview
   - project-tree
   - search-panel
@@ -69,7 +65,7 @@
   - `tokens.css` / `global.css` 保留在根
   - `base/` 存放基础原语（`components.css` `welcome.css`）
   - `layout/` 存放应用外壳样式（`workspace.css` `topbar.css` `sidebar.css` `pages.css`）
-  - `editor/` 存放编辑器相关样式（`tiptap.css` `script.css` `video.css` `image-gen.css` `image-dialog.css` `novel.css` `file.css` `timeline.css`）
+  - `editor/` 存放编辑器相关样式（`tiptap.css` `outline.css` `script.css` `image-gen.css` `image-dialog.css` `novel.css` `file.css` `timeline.css`）
   - 叶子文件 `inspector.css` / `creative.css` 暂留根目录
 - `global.css` 是唯一入口，按顺序 `@import` 其他文件
   - 级联顺序必须保留：`.image-gen-inspector-*` 必须排在 `.image-gen-*` 之后、`components.css` 保持在所有 editor 样式之后
@@ -122,7 +118,6 @@
 - `apps/desktop/client/shell/main/ipc/modelGatewayIpc.ts`
   - 负责 `model:generate-text`
   - 负责 `model:generate-image`
-  - 负责 `model:generate-video`
   - 是唯一会解密模型 `apiKey` 并调用 provider 的主进程入口
 - 渲染层永远拿不到真实 `apiKey`
 - agent 不持有 provider `apiKey`
@@ -187,8 +182,8 @@
   - `baseUrl` 支持带或不带 `/v1` 后缀（内部通过 `normalizeBaseUrl` 统一补齐）
   - 覆盖直连 OpenAI、NewAPI/OneAPI 中继等所有 provider
   - 返回 `RemoteModel[]`（id + capability + alias），能力由 `model-registry` 推断
-- `generateText / generateImage / generateVideo`
-  - text/image 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）；video 走对应模型的生成端点
+- `generateText / generateImage`
+  - text/image 统一走 OpenAI 兼容端点（`/v1/chat/completions`、`/v1/images/generations`、`/v1/images/edits`）
   - text 生成使用 `@ai-sdk/openai` 的 `.chat()` 方法强制 Chat Completions API（兼容第三方 OpenAI 兼容端点，避免 Responses API）
   - system 消息从 messages 数组中提取，通过 AI SDK 的 `system` 参数传递
   - `baseUrl` 同样兼容带或不带 `/v1`

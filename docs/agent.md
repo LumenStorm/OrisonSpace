@@ -10,7 +10,7 @@ AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构�
 │                                                         │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │  Model Gateway (IPC)                            │    │
-│  │  model:generate-text / -image / -video           │    │
+│  │  model:generate-text / -image                    │    │
 │  └─────────────────────────────────────────────────┘    │
 │         ▲                                               │
 │         │ injected via setGenerateTextFn()               │
@@ -88,6 +88,7 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 |------|------|
 | `agent:create-session` | 创建会话 |
 | `agent:get-session` | 获取会话状态 |
+| `agent:set-session-model` | 设置会话使用的模型（modelRef，下一轮生效） |
 | `agent:list-sessions` | 列出项目会话 |
 | `agent:delete-session` | 删除会话 |
 | `agent:stream-message` | 发送消息并启动流式执行 |
@@ -97,6 +98,9 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 | `agent:list-continuations` | 列出会话 continuations |
 | `agent:restore-continuation` | 恢复 continuation |
 | `agent:abort-run` | 中止当前执行 |
+| `agent:list-skill-packages` | 列出 skill 包及启用状态 |
+| `agent:set-package-enabled` | 启用/禁用 skill 包 |
+| `agent:set-skill-enabled` | 启用/禁用单个 skill |
 
 ### Stream 事件格式
 
@@ -212,8 +216,8 @@ generate_image tool
     │
     ├── 构建请求 payload（prompt, size, quality, n）
     │
-    ├── POST http://localhost:18421/images/generations
-    │   （桌面端 Model Gateway → model-protocols → OpenAI API）
+    ├── 经 shell 注入的 setExecuteToolFn 调用（无 HTTP）
+    │   （桌面端 Model Gateway → model-protocols → OpenAI 兼容 API）
     │
     ├── 接收 base64 图像数据
     │

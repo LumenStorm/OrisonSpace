@@ -24,7 +24,7 @@
   - Auto Mode 多章节自动推进
 - 创作字段编辑可在桌面端本地同步
   - 大纲、细纲、世界观、资产卡、关系图、伏笔注册表、成长 / 节奏 / 情绪曲线等
-- 图片生成已改为桌面主进程直接连模型
+- 图片生成已改为桌面主进程直接连模型（视频生成已下线）
   - 生成结果先落到项目 `temp/images/generation/`
   - 生成页会读取 `temp/images/generation/` 中已有图片
   - 画廊支持分页、按需懒加载二进制、复制 prompt、删除、已入库角标
@@ -33,10 +33,10 @@
   - 预览弹窗支持左右键盘切换
   - 确认保存后移动到 `assets/images/`
 - 模型网关在桌面主进程
-  - 文本 / 图片 / 视频生成都走 IPC
+  - 文本 / 图片生成都走 IPC
   - `apiKey` 不进入 agent
   - 模型列表统一走 OpenAI 兼容层（`GET {baseUrl}/v1/models`），覆盖直连 OpenAI 和 NewAPI/OneAPI 中继
-  - 协议层统一为单一 OpenAI 兼容适配器（`generateText` / `generateImage` / `generateVideo`），移除多 apiFormat 注册表
+  - 协议层统一为单一 OpenAI 兼容适配器（`generateText` / `generateImage`），移除多 apiFormat 注册表
   - 模型能力识别改为 model-registry 模式匹配（glob pattern），不再依赖手动 apiFormat 标注
 
 ### 鉴权与会话
@@ -101,7 +101,7 @@ OrisonSpace/
 │  │  │  │  │  │  ├─ windowIpc.ts        窗口与系统通道
 │  │  │  │  │  │  ├─ configIpc.ts        模型配置、用户偏好
 │  │  │  │  │  │  ├─ modelProviderIpc.ts provider 模型列表
-│  │  │  │  │  │  ├─ modelGatewayIpc.ts  文本 / 图片 / 视频生成入口
+│  │  │  │  │  │  ├─ modelGatewayIpc.ts  文本 / 图片生成入口
 │  │  │  │  │  │  ├─ storySyncIpc.ts     本地 story-sync 执行
 │  │  │  │  │  │  ├─ agentIpc.ts         Agent IPC handlers
 │  │  │  │  │  │  ├─ fieldSyncIpc.ts     创作字段同步
@@ -120,9 +120,9 @@ OrisonSpace/
 │  │  │     │  ├─ layout/             WorkspaceLayout 等跨 feature 外壳
 │  │  │     │  └─ projects/           项目页复用块
 │  │  │     ├─ features/              产品域 feature
-│  │  │     │  ├─ editor/             TiptapEditor / OutlineEditor / ScriptEditor
-│  │  │     │  │                      / VideoEditor / ImageGenEditor / ImageEditDialog
-│  │  │     │  │                      / FileEditor / StoryboardCanvas
+│  │  │     │  ├─ editor/             TiptapEditor / OutlineEditor
+│  │  │     │  │                      / ImageGenEditor / ImageEditDialog
+│  │  │     │  │                      / FileEditor
 │  │  │     │  ├─ agent-panel/        AgentPanel / AgentInput / AgentMessages
 │  │  │     │  │                      / AgentMessageItem / AgentToolCard / DiffCard
 │  │  │     │  │                      / AgentConfirmCard / AgentHistory
@@ -133,8 +133,6 @@ OrisonSpace/
 │  │  │     │  ├─ side-nav/
 │  │  │     │  ├─ top-bar/
 │  │  │     │  ├─ novel-workbench/
-│  │  │     │  ├─ orchestration/
-│  │  │     │  ├─ auto-mode/
 │  │  │     │  ├─ creative/           创作字段编辑器
 │  │  │     │  ├─ memory/             长期记忆面板
 │  │  │     │  └─ tasks/
@@ -164,9 +162,9 @@ OrisonSpace/
 │  │  │           │  ├─ notifications.css
 │  │  │           │  └─ pages.css
 │  │  │           └─ editor/          原 editor.css 拆分而成
-│  │  │              ├─ tiptap.css    Tiptap + Outline + Acts
+│  │  │              ├─ tiptap.css    Tiptap + Acts
+│  │  │              ├─ outline.css   Outline 编辑器
 │  │  │              ├─ script.css    Script / Novel 编辑器外壳
-│  │  │              ├─ video.css
 │  │  │              ├─ image-gen.css 图片生成 + 画廊 + 分页 + model chip
 │  │  │              ├─ image-dialog.css 预览弹窗 + 编辑弹窗
 │  │  │              ├─ novel.css     Novel Workbench + Memory Panel + 子 tab
@@ -178,7 +176,7 @@ OrisonSpace/
 │  │     └─ orchestration/            本地编排辅助
 ├─ packages/
 │  ├─ shared-contracts/               Zod schema、IPC 类型、跨进程契约
-│  ├─ model-protocols/                统一 OpenAI 兼容适配层（text/image/video 生成 + listModels）
+│  ├─ model-protocols/                统一 OpenAI 兼容适配层（text/image 生成 + listModels）
 │  └─ story-sync/                     story-sync 共享逻辑（prompt / parse / patch）
 ├─ docs/
 │  ├─ ipc/desktop-ipc.md              桌面 IPC 参考
@@ -269,7 +267,7 @@ pnpm lint
 - 用户偏好读写
 - 模型配置读写
 - provider 模型列表刷新
-- 文本 / 图片 / 视频生成
+- 文本 / 图片生成
 - story-sync 本地执行
 - 字段同步
 - 自定义标题栏窗口控制
@@ -323,7 +321,7 @@ pnpm lint
 ### 5. 桌面 UI 样式按文件夹分层
 
 - `shared/styles/` 从扁平的单层文件改为 `base/ layout/ editor/` 三层
-- 原 2092 行的 `editor.css` 拆成 7 个子文件：tiptap / script / video / image-gen / image-dialog / novel / file
+- 原 2092 行的 `editor.css` 拆成 8 个子文件：tiptap / outline / script / image-gen / image-dialog / novel / file / timeline
 - `global.css` 作为唯一入口串联所有 `@import`，严格保持原级联顺序，下游消费方 `import '@desktop-ui/shared/styles/global.css'` 无感
 
 ---
@@ -359,14 +357,7 @@ Apache-2.0
 - 带显式 continuation snapshot 的 artifact-aware、reference-aware skill 执行
 - 面向长流程 creative 工作流的 context builder 与 compaction 原语
 
-已落地的宿主 / API 接口：
-
-- `POST /v1/agent/sessions`
-- `GET /v1/agent/sessions`
-- `POST /v1/agent/sessions/:id/stream`
-- `POST /v1/agent/sessions/:id/confirm`
-- `GET /v1/agent/skills?projectPath=...`
-- `POST /v1/agent/sessions/:id/skills/:skillName/execute`
+宿主接口：Agent 已从独立 HTTP 服务改为库内嵌于桌面主进程，全部能力通过 `agent:*` IPC 通道调用（见 [docs/ipc/desktop-ipc.md](docs/ipc/desktop-ipc.md)），不再暴露 `/v1/agent` HTTP 端点。
 
 外部 skill root 已内建支持。skill 现在可以来自：
 

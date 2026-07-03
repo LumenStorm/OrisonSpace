@@ -57,6 +57,7 @@
 | `window:is-maximized` | renderer -> main | invoke | 查询当前是否最大化 |
 | `shell:show-item-in-folder` | renderer -> main | send | 在系统文件管理器中定位文件 |
 | `shell:open-path` | renderer -> main | send | 用系统默认方式打开路径 |
+| `shell:open-external` | renderer -> main | send | 在系统默认浏览器中打开外部 https URL |
 | `app:before-close` | main -> renderer | event | 窗口即将关闭，渲染层执行未保存守卫 |
 | `app:close-confirmed` | renderer -> main | send | 渲染层确认可以关闭 |
 
@@ -68,6 +69,8 @@
 | `config:save-model` | renderer -> main | invoke | 保存模型配置 |
 | `config:load-user-preferences` | renderer -> main | invoke | 读取用户偏好 |
 | `config:save-user-preferences` | renderer -> main | invoke | 保存用户偏好 |
+| `config:list-imported-fonts` | renderer -> main | invoke | 枚举用户已导入到应用字体目录的字体 |
+| `config:import-fonts` | renderer -> main | invoke | 打开文件选择器导入字体文件，返回全部已导入字体 |
 
 ### 模型网关通道
 
@@ -76,7 +79,6 @@
 | `model:list-remote-models` | renderer -> main | invoke | 请求远端模型列表 |
 | `model:generate-text` | renderer -> main | invoke | 文本生成 |
 | `model:generate-image` | renderer -> main | invoke | 图片生成 |
-| `model:generate-video` | renderer -> main | invoke | 视频生成 |
 | `storySync:run` | renderer -> main | invoke | 本地执行 story-sync 提取 |
 
 ### 任务持久化通道
@@ -103,6 +105,7 @@
 | 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
 | `field:sync` | renderer -> main | invoke | 将单个创作字段同步回项目文件 |
+| `field:apply-agent-patch` | renderer -> main | invoke | 应用 agent 生成的字段补丁并回写项目文件 |
 
 ### 版本与更新通道
 
@@ -134,6 +137,7 @@
 | 通道 | 方向 | 类型 | 说明 |
 |---|---|---|---|
 | `git:is-repo` | renderer -> main | invoke | 检查目录是否为 Git 仓库 |
+| `git:init` | renderer -> main | invoke | 在目录中初始化 Git 仓库 |
 | `git:log` | renderer -> main | invoke | 获取所有分支的提交历史（默认 50 条/分支），按时间倒序返回 |
 | `git:commit-diff` | renderer -> main | invoke | 获取指定提交的变更文件列表 |
 | `git:file-at-commit` | renderer -> main | invoke | 读取指定提交中某文件的内容 |
@@ -144,16 +148,7 @@
 | `git:checkout-branch` | renderer -> main | invoke | 切换分支，完成后广播 `git:changed` |
 | `git:status-count` | renderer -> main | invoke | 返回工作区变更文件计数（状态栏角标用） |
 
-### Orchestration / Auto Mode 通道
-
-| 通道 | 方向 | 类型 | 说明 |
-|---|---|---|---|
-| `orchestration:start-run` | renderer -> main | invoke | 启动一次编排 run |
-| `orchestration:get-run` | renderer -> main | invoke | 查询 run 状态 |
-| `orchestration:action` | renderer -> main | invoke | 对 run 执行操作（继续/取消等） |
-| `orchestration:auto-mode-start` | renderer -> main | invoke | 启动全自动模式 |
-| `orchestration:auto-mode-action` | renderer -> main | invoke | 对 auto mode 执行操作 |
-| `orchestration:auto-mode-get` | renderer -> main | invoke | 查询 auto mode 状态 |
+> **未纳入白名单的通道**：`git:restore-version`（将工作树恢复到指定 oid 并作为新节点提交）已在主进程注册且在 preload 暴露（`gitRestoreVersion`），但尚未加入 `ipc.ts` 的 `channel` enum 白名单——这是一处未补全的清单缺口。
 
 `git:log` 返回类型：
 
@@ -183,6 +178,7 @@ type GitFileDiff = {
 |---|---|---|---|
 | `agent:create-session` | renderer -> main | invoke | 创建 agent 会话 |
 | `agent:get-session` | renderer -> main | invoke | 获取会话状态 |
+| `agent:set-session-model` | renderer -> main | invoke | 设置会话使用的模型（modelRef） |
 | `agent:list-sessions` | renderer -> main | invoke | 列出项目会话 |
 | `agent:delete-session` | renderer -> main | invoke | 删除会话 |
 | `agent:stream-message` | renderer -> main | invoke | 发送消息并启动流式执行 |
@@ -225,12 +221,15 @@ window.orisonDesktop = {
   listRemoteModels,
   generateText,
   generateImage,
-  generateVideo,
   runStorySync,
+  applyAgentFieldPatch,
   loadUserPreferences,
   saveUserPreferences,
+  listImportedFonts,
+  importFonts,
   showItemInFolder,
   openPath,
+  openExternal,
   readDirectory,
   deleteEntry,
   renameEntry,
@@ -268,6 +267,7 @@ window.orisonDesktop = {
   onUpdateEvent,
   // Git
   gitIsRepo,
+  gitInit,
   gitLog,
   gitCommitDiff,
   gitFileAtCommit,
@@ -276,17 +276,12 @@ window.orisonDesktop = {
   gitCurrentBranch,
   gitCreateBranch,
   gitCheckoutBranch,
+  gitRestoreVersion,
   gitStatusCount,
-  // Orchestration / Auto Mode
-  startOrchestrationRun,
-  getOrchestrationRun,
-  performOrchestrationAction,
-  startAutoMode,
-  performAutoModeAction,
-  getAutoModeState,
   // Agent
   createAgentSession,
   getAgentSession,
+  setAgentSessionModel,
   listAgentSessions,
   deleteAgentSession,
   streamAgentMessage,
