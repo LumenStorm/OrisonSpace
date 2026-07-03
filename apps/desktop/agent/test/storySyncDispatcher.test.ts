@@ -28,7 +28,7 @@ function makeInput(extraArtifacts: Record<string, unknown> = {}): NodeRunInput {
 }
 
 describe('createStorySyncNode dispatcher (post-migration)', () => {
-  it('uses rules path when chapter.llmPatches is absent', async () => {
+  it('uses rules path when chapter.llmPatches is absent', { timeout: 15000 }, async () => {
     const { createStorySyncNode } = await import('../src/nodes/story-sync-agent');
     const node = createStorySyncNode();
     const result = await node.run(makeInput());

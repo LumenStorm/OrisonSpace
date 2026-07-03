@@ -17,7 +17,7 @@ import { InMemoryArtifactStore, type ArtifactStore } from '../artifact/store';
 import { buildSkillContext, type SkillRuntimeContext } from '../context/builder';
 import { compactConversation, type CompactedConversation } from '../context/compaction';
 import { createContinuationSnapshot, restoreContinuationSnapshot, type ContinuationSnapshot } from '../context/continuation';
-import { createDefaultContextState, type CacheConfig } from '../context/contextManager';
+import { createDefaultContextState } from '../context/contextManager';
 import { logger } from '../logger';
 import { getDefaultRunStateStore, RunStateStore, SessionRunAlreadyActiveError, type RunCheckpoint, type RunStateSnapshot } from './runState';
 import { createPermissionService, type PermissionService } from './permission';
