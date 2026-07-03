@@ -144,14 +144,14 @@ description: 网文工具箱主入口
 根据用户需求自动路由到对应 skill。
 `, 'utf-8');
 
-    const longWriteDir = path.join(externalSkillsRoot, 'story-long-write');
-    mkdirSync(longWriteDir, { recursive: true });
-    writeFileSync(path.join(longWriteDir, 'SKILL.md'), `---
-name: story-long-write
+    const writeDir = path.join(externalSkillsRoot, 'story-write');
+    mkdirSync(writeDir, { recursive: true });
+    writeFileSync(path.join(writeDir, 'SKILL.md'), `---
+name: story-write
 description: 长篇网文写作
 ---
 
-# story-long-write
+# story-write
 
 用于长篇小说写作。
 `, 'utf-8');
@@ -194,7 +194,7 @@ description: 短篇拆文
 
     const loaded = await runtime.loadSkillsForSession(session.id);
     expect(loaded).toContain('story');
-    expect(loaded).toContain('story-long-write');
+    expect(loaded).toContain('story-write');
     expect(loaded).toContain('story-analyze');
 
     const result = await runtime.executeSkillByName(session.id, 'story', {
