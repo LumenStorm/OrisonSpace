@@ -104,7 +104,10 @@ export function streamAgentMessage(
   attachments?: Attachment[],
 ): { promise: Promise<{ status: string }>; cleanup: () => void } {
   const cleanup = api.onAgentStreamEvent((event) => {
-    onEvent(event as AgentStreamEvent);
+    const ev = event as AgentStreamEvent & { sessionId?: string };
+    // 按 sessionId 过滤，忽略其他 session 的事件
+    if (ev.sessionId && ev.sessionId !== sessionId) return;
+    onEvent(ev);
   });
 
   const promise = api.streamAgentMessage({ sessionId, content, attachments });

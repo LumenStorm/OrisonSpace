@@ -36,6 +36,8 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
   let steps = 0;
   let contextState = opts.contextState ?? createDefaultContextState();
   let consecutiveLengthHits = 0;
+  let consecutiveToolErrors = 0;
+  const MAX_CONSECUTIVE_TOOL_ERRORS = 3;
 
   // Snapshot the base messages at entry — `opts.messages` may be a live reference
   // to session.messages that gets mutated by onMessage → addMessage. We must NOT
@@ -162,7 +164,29 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       }
 
       try {
-        const params = JSON.parse(call.arguments);
+        let params: any;
+        try {
+          params = JSON.parse(call.arguments);
+        } catch {
+          // 某些 provider（如 DashScope/Qwen）偶尔返回畸形 arguments，
+          // 例如 "{}{"name":"story",...}" — 尝试提取最后一个有效 JSON 对象
+          const lastBrace = call.arguments.lastIndexOf('{');
+          if (lastBrace > 0) {
+            try {
+              params = JSON.parse(call.arguments.slice(lastBrace));
+            } catch {
+              params = {};
+            }
+          } else {
+            params = {};
+          }
+          // 修正存储的 arguments，防止畸形字符串进入会话历史导致后续 JSON.parse 报错
+          call.arguments = JSON.stringify(params);
+        }
+        // 兼容某些 provider 将参数作为 JSON 字符串嵌套传入的情况
+        if (typeof params === 'string') {
+          try { params = JSON.parse(params); } catch { /* 保持原样 */ }
+        }
         const toolResult = await tool.execute(params, ctx);
         return {
           id: randomUUID(),
@@ -195,6 +219,18 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       result.push(toolMsg);
       onMessage?.(toolMsg);
       if (_terminal) terminal = true;
+    }
+
+    // 检测连续 tool 错误：所有 tool 结果都是 Error 开头则计数
+    const allErrors = toolMessages.every((m: any) => m.content?.startsWith('Error:'));
+    if (allErrors) {
+      consecutiveToolErrors++;
+      if (consecutiveToolErrors >= MAX_CONSECUTIVE_TOOL_ERRORS) {
+        logger.warn('too many consecutive tool errors, breaking loop');
+        break;
+      }
+    } else {
+      consecutiveToolErrors = 0;
     }
 
     // 本轮存在 terminal 工具（如 skill）：它已直接对用户说完话，

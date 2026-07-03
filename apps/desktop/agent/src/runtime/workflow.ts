@@ -139,6 +139,7 @@ export interface WorkflowRuntime {
   dispatchSubagent(input: SubagentDispatchInput): Promise<SubagentDispatchOutput>;
   runSubagent(parentSessionId: string, role: string, prompt: string, options?: SkillExecutorInvokeOptions): Promise<{ content: string }>;
   loadSkillsForSession(sessionId: string): Promise<string[]>;
+  listSkillNames(sessionId: string): Promise<string[]>;
   listSkills(projectPath: string): Promise<Array<{ name: string; description?: string; location: string; format: string; source?: 'project' | 'external'; capabilities: string[] }>>;
   listContinuations(sessionId: string): ContinuationSummary[];
   restoreContinuation(sessionId: string, continuationId: string): RestoredContinuationResponse;
@@ -467,6 +468,10 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
 
     async executeSkill(skillName, context) {
       return skillExecutor.executeSkill(skillName, context);
+    },
+
+    async listSkillNames(sessionId: string) {
+      return runtime.loadSkillsForSession(sessionId);
     },
 
     async executeSkillByName(sessionId, skillName, request, options) {
@@ -979,7 +984,7 @@ async function buildRuntimeSystemPrompt(session: SessionState, extraSkillRoots: 
     const lines: string[] = [
       '## Available Skills',
       '',
-      'Skills are pre-defined creative workflows. When the user\'s message matches a skill\'s trigger keywords or describes a task it is designed for, **immediately call the `skill` tool** with the skill\'s `name`. The skill\'s instructions will then be loaded into your context — follow them step by step, and invoke other skills they reference. Do not paraphrase a skill; invoke it.',
+      'Skills are pre-defined creative workflows. When the user\'s message matches a skill\'s trigger keywords or describes a task it is designed for, **immediately call the `skill` tool with the `name` parameter set to the skill\'s identifier** (e.g. `skill(name: "story-write")`). The skill\'s instructions will then be loaded into your context — follow them step by step, and invoke other skills they reference. Do not paraphrase a skill; invoke it.',
       '',
     ];
 

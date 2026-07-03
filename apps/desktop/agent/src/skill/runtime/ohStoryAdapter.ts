@@ -6,17 +6,18 @@ import type { ExecutionEdge, ExecutionPlan, ExecutionNode } from './executionPla
 
 const ROUTABLE_SKILLS = new Set([
   'story',
-  'story-long-write',
-  'story-short-write',
-  'story-long-analyze',
-  'story-short-analyze',
-  'story-deslop',
+  'story-write',
+  'story-analyze',
   'story-review',
+  'story-revise',
   'story-import',
-  'story-cover',
+  'story-outline',
+  'story-intake',
+  'story-memory-sync',
+  'story-package',
 ]);
 
-const SKILLS_WITH_WIZARD = new Set(['story-long-write', 'story-short-write']);
+const SKILLS_WITH_WIZARD = new Set(['story-write']);
 
 const ROUTER_SKILL = 'story';
 const ROUTER_PROMPT_PREFIX = '__orison_oh_story_router__';
@@ -185,30 +186,22 @@ export function isOhStoryRouterPrompt(prompt: string): boolean {
 
 export function resolveOhStoryRoute(input?: string): string {
   const normalized = (input ?? '').trim();
-  if (!normalized) return 'story-long-write';
+  if (!normalized) return 'story-write';
 
   if (matchesAny(normalized, ['去ai', '去 AI', '去味', '太 ai', '太 AI', 'deslop'])) {
-    return 'story-deslop';
+    return 'story-revise';
   }
 
   if (matchesAny(normalized, ['review', '审稿', '评审', '复盘'])) {
     return 'story-review';
   }
 
-  const wantsAnalyze = matchesAny(normalized, ['拆', '分析', '解析', 'review', '黄金三章']);
-  const wantsShort = matchesAny(normalized, ['短篇', '盐言', '一万字', '短故事']);
-  if (wantsAnalyze && wantsShort) {
-    return 'story-short-analyze';
-  }
+  const wantsAnalyze = matchesAny(normalized, ['拆', '分析', '解析', '黄金三章']);
   if (wantsAnalyze) {
-    return 'story-long-analyze';
+    return 'story-analyze';
   }
 
-  if (wantsShort) {
-    return 'story-short-write';
-  }
-
-  return 'story-long-write';
+  return 'story-write';
 }
 
 function matchesAny(input: string, keywords: string[]): boolean {

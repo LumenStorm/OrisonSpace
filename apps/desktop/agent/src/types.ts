@@ -47,6 +47,7 @@ export interface SkillExecutorRef {
     prompt: string,
     options?: SkillExecutorInvokeOptions,
   ): Promise<{ content: string }>;
+  listSkillNames?(sessionId: string): Promise<string[]>;
 }
 
 export type ChildInnerEvent =

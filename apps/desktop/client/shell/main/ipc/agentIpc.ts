@@ -139,7 +139,7 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
 
     const sendEvent = (event: { type: string; data: unknown }) => {
       try {
-        getWin()?.webContents.send('agent:stream-event', event);
+        getWin()?.webContents.send('agent:stream-event', { ...event, sessionId: input.sessionId });
       } catch {
         // Window may have been closed
       }
@@ -157,6 +157,7 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error({ err: message, sessionId: input.sessionId }, 'agent stream error');
+      sendEvent({ type: 'error', data: { message } });
       return { status: 'error', message };
     } finally {
       streamAbortControllers.delete(input.sessionId);

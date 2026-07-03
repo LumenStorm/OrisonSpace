@@ -208,7 +208,8 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     const sid = sessionId;
     const mode = state.agentMode;
 
-    // Clean up previous stream listener to prevent duplication
+    // 清除旧 listener。sessionId 过滤保证不同 session 的事件不会串扰，
+    // 同 session 的旧 listener 需要清除以防重复接收。
     if (activeAbort) {
       activeAbort.cleanup();
       activeAbort = null;
@@ -381,6 +382,14 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
             activeAbort = null;
           }
           set({ agentLoading: false });
+          // stream 结束后与后端对账，补偿可能因 IPC 时序丢失的消息
+          void fetchAgentSession(sid).then((session) => {
+            if (!session) return;
+            const current = get();
+            if (current.agentSessionId === sid && session.messages.length > current.agentMessages.length) {
+              set({ agentMessages: session.messages });
+            }
+          });
           break;
         case 'error':
           if (activeAbort) {
@@ -407,6 +416,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   },
 
   cancelAgent() {
+    const abortedSessionId = activeAbort?.sessionId;
     if (activeAbort) {
       activeAbort.cleanup();
       void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
@@ -421,6 +431,17 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       pendingDiffs: [],
       pendingPassageResolve: null,
     });
+    // 取消 run 时 listener 已被移除，可能有最后几条已持久化但未推送到 UI 的消息。
+    // 从后端重新同步 session 消息以补偿丢失的事件。
+    if (abortedSessionId) {
+      void fetchAgentSession(abortedSessionId).then((session) => {
+        if (!session) return;
+        const current = get();
+        if (current.agentSessionId === abortedSessionId) {
+          set({ agentMessages: session.messages });
+        }
+      });
+    }
   },
 
   async newAgentSession() {

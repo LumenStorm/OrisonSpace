@@ -26,8 +26,7 @@ export function createProvider(model: ResolvedModel): import('@ai-sdk/provider')
 }
 
 // Some OpenAI-compatible APIs (e.g. DashScope) reject `content: null` on
-// assistant messages AND expect `tool_calls[].function.arguments` to be a
-// parsed object rather than a JSON string.
+// assistant messages.
 const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
   if (init?.body && typeof init.body === 'string') {
     try {
@@ -37,19 +36,22 @@ const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
           if (msg.role === 'assistant' && msg.content === null) {
             msg.content = '';
           }
-          if (msg.role === 'assistant' && Array.isArray(msg.tool_calls)) {
-            for (const tc of msg.tool_calls) {
-              if (tc.function && typeof tc.function.arguments === 'string') {
-                try { tc.function.arguments = JSON.parse(tc.function.arguments); } catch { /* keep as-is */ }
-              }
-            }
-          }
         }
         init = { ...init, body: JSON.stringify(json) };
       }
     } catch { /* not JSON, pass through */ }
   }
-  return globalThis.fetch(input, init);
+  const res = await globalThis.fetch(input, init);
+  if (!res.ok) {
+    const cloned = res.clone();
+    const body = await cloned.text().catch(() => '');
+    console.error('[model-protocols] upstream error', {
+      status: res.status,
+      url: typeof input === 'string' ? input : (input as Request).url,
+      body: body.slice(0, 500),
+    });
+  }
+  return res;
 };
 
 // ── Text generation (via Vercel AI SDK) ──
@@ -107,12 +109,29 @@ export async function generateText(
         role: 'assistant' as const,
         content: [
           ...(m.content ? [{ type: 'text' as const, text: m.content }] : []),
-          ...m.toolCalls.map((tc: any) => ({
-            type: 'tool-call' as const,
-            toolCallId: tc.id,
-            toolName: tc.name,
-            input: tc.arguments ? JSON.parse(tc.arguments) : {},
-          })),
+          ...m.toolCalls.map((tc: any) => {
+            let input: unknown = {};
+            if (tc.arguments) {
+              if (typeof tc.arguments === 'object') {
+                input = tc.arguments;
+              } else {
+                try {
+                  input = JSON.parse(tc.arguments);
+                } catch {
+                  const lastBrace = tc.arguments.lastIndexOf('{');
+                  if (lastBrace > 0) {
+                    try { input = JSON.parse(tc.arguments.slice(lastBrace)); } catch { /* keep {} */ }
+                  }
+                }
+              }
+            }
+            return {
+              type: 'tool-call' as const,
+              toolCallId: tc.id,
+              toolName: tc.name,
+              input,
+            };
+          }),
         ],
       };
     }
@@ -155,7 +174,7 @@ export async function generateText(
     ? result.toolCalls.map((tc: any) => ({
         id: tc.toolCallId as string,
         name: tc.toolName as string,
-        arguments: JSON.stringify(tc.input),
+        arguments: typeof tc.input === 'string' ? tc.input : JSON.stringify(tc.input),
       }))
     : undefined;
 

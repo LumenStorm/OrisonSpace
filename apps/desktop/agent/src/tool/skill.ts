@@ -12,10 +12,40 @@ export const skillTool = defineTool({
   async execute(params, ctx) {
     if (!ctx.skillExecutor) {
       return {
-        title: `skill: ${params.name}`,
+        title: `skill: ${params.name ?? '(unknown)'}`,
         output: 'Skill execution is unavailable in this context (no runtime bound).',
       };
     }
+
+    // 渐次披露：name 缺失时，列出可用 skill 概要让模型自行选择
+    if (!params.name) {
+      const available = await ctx.skillExecutor.listSkillNames?.(ctx.sessionId);
+      if (available && available.length > 0) {
+        return {
+          title: 'skill: discover',
+          output: [
+            'No skill name was provided. Here are the available skills:',
+            '',
+            ...available.map(n => `- ${n}`),
+            '',
+            'To invoke a skill, call this tool again with the `name` parameter set to one of the above identifiers.',
+          ].join('\n'),
+        };
+      }
+      return {
+        title: 'skill: discover',
+        output: 'No skill name was provided and no skills are currently loaded for this session.',
+      };
+    }
+
+    // 技能内部执行时禁止递归调用 skill，引导模型直接完成任务
+    if ((ctx.spawnDepth ?? 0) > 0) {
+      return {
+        title: `skill: ${params.name}`,
+        output: `You are already executing inside a skill. Do NOT call the skill tool again. Complete the task directly using the available tools (read_file, chapter_write, etc.).`,
+      };
+    }
+
     try {
       const result = await ctx.skillExecutor.executeSkillByName(
         ctx.sessionId,
@@ -28,9 +58,6 @@ export const skillTool = defineTool({
           emitConfirmation: ctx.emitConfirmation,
         },
       );
-      // Surface any confirmations the skill paused on so the UI can prompt the
-      // user. Without this, a skill auto-invoked by the model would proceed as
-      // if approved (the pendings were only ever rendered as text).
       if (ctx.emitConfirmation) {
         for (const pending of result.pendingConfirmations) {
           ctx.emitConfirmation(pending as Parameters<NonNullable<typeof ctx.emitConfirmation>>[0]);
@@ -39,12 +66,27 @@ export const skillTool = defineTool({
       return {
         title: `skill: ${params.name}`,
         output: renderResult(result),
-        // skill 内部已经把引导/产物流式说给用户了，这份输出即最终答复。
-        // 标记 terminal，阻止父循环就同样内容再生成一轮重复回复。
         terminal: true,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      // skill 找不到时，渐次披露可用列表引导模型重试
+      if (message.includes('not found')) {
+        const available = await ctx.skillExecutor.listSkillNames?.(ctx.sessionId);
+        if (available && available.length > 0) {
+          return {
+            title: `skill: ${params.name}`,
+            output: [
+              `Skill "${params.name}" was not found.`,
+              '',
+              'Available skills:',
+              ...available.map(n => `- ${n}`),
+              '',
+              'Please call this tool again with `name` set to one of the above.',
+            ].join('\n'),
+          };
+        }
+      }
       return {
         title: `skill: ${params.name}`,
         output: `Skill "${params.name}" failed: ${message}`,
