@@ -1,11 +1,13 @@
 import { ipcMain } from 'electron';
 import { existsSync, mkdirSync, copyFileSync, cpSync, readFileSync, readdirSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
+import { readFile as readFileAsync, stat as statAsync } from 'node:fs/promises';
 import path from 'node:path';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
 import { decodeFileToUtf8 } from '../fs/decodeText';
 import { findProjectRootFor, snapshotToLocalHistory, snapshotTreeToLocalHistory } from '../fs/localHistory';
+import { registerSelfWrite } from '../fs/projectWatcher';
 import { notifyUI } from './toolNotify';
 import {
   ALLOWED_IMAGE_DIRS,
@@ -16,6 +18,13 @@ import {
   readDirectoryRecursive,
 } from './projectIpcHelpers';
 import { searchProjectFiles } from './toolHandlers/fileHandlers';
+
+/**
+ * Per-file word-count cache keyed by absolute path, invalidated by mtime.
+ * Lets project:word-count skip re-reading unchanged files across the frequent
+ * autosave/watcher-driven refreshes. Pruned to live files on each run.
+ */
+const wordCountCache = new Map<string, { mtimeMs: number; count: number }>();
 
 /**
  * Build a non-colliding path within `dir` for an arbitrary file/folder name,
@@ -227,6 +236,10 @@ export function registerProjectFileIpc(): void {
       // (covers the editor autosave and the agent-diff accept path alike).
       const projectRoot = findProjectRootFor(fullPath);
       if (projectRoot) snapshotToLocalHistory(projectRoot, fullPath, content);
+      // Tell the watcher this is our own write so it doesn't broadcast a
+      // file:changed (which would trigger a redundant tree refresh + word-count
+      // rescan). Register just before writing so the event is covered.
+      registerSelfWrite(fullPath);
       // Always write UTF-8 (no BOM). Combined with read-side LF normalization
       // this gives a stable LF + UTF-8 round-trip. We intentionally do not
       // restore the original encoding/newlines (e.g. GBK or CRLF): normalizing
@@ -286,22 +299,47 @@ export function registerProjectFileIpc(): void {
     assertSafePath(projectDir);
     try {
       const entries = readDirectoryRecursive(projectDir, projectDir, 10);
-      let total = 0;
-      const countIn = (list: typeof entries) => {
+      const files: string[] = [];
+      const collect = (list: typeof entries) => {
         for (const e of list) {
-          if (e.isDir && e.children) { countIn(e.children); continue; }
+          if (e.isDir && e.children) { collect(e.children); continue; }
           if (!/\.(md|txt)$/i.test(e.name)) continue;
-          const fullPath = path.join(projectDir, e.path.replace(/^\//, ''));
-          try {
-            // Decode with encoding detection (UTF-8 / BOM / UTF-16 / GBK) so the
-            // count matches what the editor shows. Chinese .txt files are often
-            // GBK on Windows; a blind utf-8 read produces mojibake -> wrong count.
-            const text = decodeFileToUtf8(readFileSync(fullPath)).trim();
-            if (text) total += text.replace(/\s/g, '').length;
-          } catch { /* skip unreadable */ }
+          files.push(path.join(projectDir, e.path.replace(/^\//, '')));
         }
       };
-      countIn(entries);
+      collect(entries);
+
+      // Per-file, mtime-keyed cache: only re-read + recount files that actually
+      // changed since the last word-count. Reads run via fs.promises so the
+      // main process isn't blocked by a synchronous full-project sweep on every
+      // autosave/watcher tick (the old behaviour stalled the whole app).
+      let total = 0;
+      await Promise.all(files.map(async (fullPath) => {
+        try {
+          const { mtimeMs } = await statAsync(fullPath);
+          const cached = wordCountCache.get(fullPath);
+          if (cached && cached.mtimeMs === mtimeMs) {
+            total += cached.count;
+            return;
+          }
+          // Decode with encoding detection (UTF-8 / BOM / UTF-16 / GBK) so the
+          // count matches what the editor shows. Chinese .txt files are often
+          // GBK on Windows; a blind utf-8 read produces mojibake -> wrong count.
+          const text = decodeFileToUtf8(await readFileAsync(fullPath)).trim();
+          const count = text ? text.replace(/\s/g, '').length : 0;
+          wordCountCache.set(fullPath, { mtimeMs, count });
+          total += count;
+        } catch { /* skip unreadable */ }
+      }));
+
+      // Drop cache entries for files no longer present so the map can't grow
+      // unbounded across renames/deletes within a long-lived session.
+      if (wordCountCache.size > files.length) {
+        const live = new Set(files);
+        for (const key of wordCountCache.keys()) {
+          if (!live.has(key)) wordCountCache.delete(key);
+        }
+      }
       return total;
     } catch {
       return 0;

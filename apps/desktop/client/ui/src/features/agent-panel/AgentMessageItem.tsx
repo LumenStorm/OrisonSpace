@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -59,7 +59,7 @@ function ChildBadge({ source, role, depth, t }: { source: 'skill' | 'subagent'; 
   );
 }
 
-export function AgentMessageItem({ message, isLatest }: Props) {
+function AgentMessageItemImpl({ message, isLatest }: Props) {
   const { resolvedLocale } = useAppStore(useShallow((s) => ({ resolvedLocale: s.resolvedLocale })));
   const { t } = useI18n(resolvedLocale);
   const [stepsOpen, setStepsOpen] = useState(true);
@@ -79,12 +79,16 @@ export function AgentMessageItem({ message, isLatest }: Props) {
   );
   const textToRender = shouldAnimate ? displayedText : assistantContent;
 
+  // Parse markdown once, when NOT animating. Running marked+DOMPurify over the
+  // whole (growing) message on every typewriter rAF tick was a CPU sink during
+  // streaming; instead show the in-progress text as plain text and render the
+  // sanitized markdown only after the animation settles.
   const renderedHtml = useMemo(() => {
-    if (message.role === 'assistant' && textToRender) {
-      return renderMarkdown(textToRender);
+    if (message.role === 'assistant' && !isAnimating && assistantContent) {
+      return renderMarkdown(assistantContent);
     }
     return null;
-  }, [message.role, textToRender]);
+  }, [message.role, isAnimating, assistantContent]);
 
   if (message.role === 'user') {
     return (
@@ -161,8 +165,14 @@ export function AgentMessageItem({ message, isLatest }: Props) {
       {childTag && (
         <ChildBadge source={childTag.source} role={childTag.role} depth={childTag.depth} t={t} />
       )}
-      {renderedHtml && (
+      {renderedHtml ? (
         <div className="agent-msg-content agent-msg-md" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+      ) : (
+        // While the typewriter animates, show the in-progress text as plain text
+        // (no per-tick markdown parse); the sanitized markdown renders once done.
+        isAnimating && textToRender && (
+          <div className="agent-msg-content agent-msg-md">{textToRender}</div>
+        )
       )}
       {shouldAnimate && isAnimating && (
         <button type="button" className="agent-typewriter-skip" onClick={skip}>
@@ -181,3 +191,7 @@ export function AgentMessageItem({ message, isLatest }: Props) {
     </div>
   );
 }
+
+// Memoized: a streaming reply appends new messages frequently; without this
+// every already-rendered message re-renders on each new event in the list.
+export const AgentMessageItem = memo(AgentMessageItemImpl);

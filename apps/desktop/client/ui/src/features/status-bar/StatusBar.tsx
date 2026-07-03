@@ -54,7 +54,11 @@ export function StatusBar() {
       gitStatusCount(projectPath).then((n) => { if (!cancelled) setDirtyCount(n); });
     };
     poll();
-    const id = setInterval(poll, 5000);
+    // gitStatusCount runs isomorphic-git statusMatrix — a full working-tree
+    // scan on the main process. Polling every 5s was a recurring stall on large
+    // repos; 30s is frequent enough for a dirty-count badge. (Event-driven
+    // refresh off the project watcher is the longer-term improvement.)
+    const id = setInterval(poll, 30000);
     return () => { cancelled = true; clearInterval(id); };
   }, [projectPath]);
 

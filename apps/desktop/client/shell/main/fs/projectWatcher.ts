@@ -22,6 +22,36 @@ const pendingPaths = new Set<string>();
 
 const DEBOUNCE_MS = 300;
 
+/**
+ * Absolute paths the app itself just wrote, mapped to an expiry timestamp. The
+ * watcher fires for our own saves too; without this every editor autosave would
+ * trigger a redundant tree refresh + word-count rescan. `registerSelfWrite` is
+ * called right before the app writes; the watcher consumes the entry and skips
+ * the broadcast when the change lands within the window.
+ */
+const selfWrites = new Map<string, number>();
+const SELF_WRITE_WINDOW_MS = 2000;
+
+/** Record that the app is about to write `fullPath`, so the watcher ignores it. */
+export function registerSelfWrite(fullPath: string): void {
+  const key = path.resolve(fullPath);
+  selfWrites.set(key, Date.now() + SELF_WRITE_WINDOW_MS);
+  // Opportunistic prune so a long session can't leak stale entries.
+  if (selfWrites.size > 64) {
+    const now = Date.now();
+    for (const [k, expiry] of selfWrites) if (expiry < now) selfWrites.delete(k);
+  }
+}
+
+/** True if `fullPath` was a recent app write; consumes the entry when matched. */
+function isSelfWrite(fullPath: string): boolean {
+  const key = path.resolve(fullPath);
+  const expiry = selfWrites.get(key);
+  if (expiry === undefined) return false;
+  selfWrites.delete(key);
+  return expiry >= Date.now();
+}
+
 /** Directory/file names whose changes should not trigger a tree refresh. */
 function isNoise(changedPath: string | null): boolean {
   if (!changedPath) return false;
@@ -61,6 +91,9 @@ export function watchProject(projectDir: string): void {
     activeWatcher = watch(resolved, { recursive: true }, (_event, filename) => {
       const name = typeof filename === 'string' ? filename : null;
       if (isNoise(name)) return;
+      // Skip changes the app itself just made (editor autosave etc.) so our own
+      // writes don't trigger a redundant tree refresh + word-count rescan.
+      if (name && isSelfWrite(path.resolve(resolved, name))) return;
       if (name) pendingPaths.add(toRelPath(name));
       scheduleNotify();
     });

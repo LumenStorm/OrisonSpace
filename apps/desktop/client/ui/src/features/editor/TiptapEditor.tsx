@@ -56,6 +56,26 @@ export function TiptapEditor({
   const [findMode, setFindMode] = useState<FindReplaceMode | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Serializing the whole doc (getHTML + Turndown) on every keystroke is the
+  // dominant "typing feels laggy" cost, and it drives a store update that
+  // re-renders every openFiles subscriber. Debounce the serialization so it
+  // runs at most every ~200ms during active typing; flush on blur/unmount so
+  // autosave and tab switches never see stale content.
+  const onChangeRef = useRef(onChange);
+  const formatRef = useRef(format);
+  onChangeRef.current = onChange;
+  formatRef.current = format;
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSerialize = useRef<null | (() => void)>(null);
+
+  const flushChange = useCallback(() => {
+    if (flushTimer.current) { clearTimeout(flushTimer.current); flushTimer.current = null; }
+    const run = pendingSerialize.current;
+    pendingSerialize.current = null;
+    run?.();
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -64,11 +84,22 @@ export function TiptapEditor({
     content: initialHtml,
     editable,
     onUpdate: ({ editor: e }) => {
-      if (!onChange) return;
-      const html = e.getHTML();
-      onChange(format === 'markdown' ? htmlToMarkdown(html) : html);
+      if (!onChangeRef.current) return;
+      // Capture the editor; serialize lazily inside the debounced flush so the
+      // expensive getHTML+Turndown runs once per pause, not once per keystroke.
+      pendingSerialize.current = () => {
+        const html = e.getHTML();
+        onChangeRef.current?.(formatRef.current === 'markdown' ? htmlToMarkdown(html) : html);
+      };
+      if (flushTimer.current) clearTimeout(flushTimer.current);
+      flushTimer.current = setTimeout(flushChange, 200);
     },
+    onBlur: () => flushChange(),
   });
+
+  // Flush any pending edit when the editor unmounts (tab switch / remount) so
+  // the last keystrokes within the debounce window are never dropped.
+  useEffect(() => () => flushChange(), [flushChange]);
 
   const handleFindClose = useCallback(() => setFindMode(null), []);
 
@@ -90,6 +121,14 @@ export function TiptapEditor({
     el.addEventListener('keydown', onKey);
     return () => el.removeEventListener('keydown', onKey);
   }, [editable, disableFind]);
+
+  // Open the find bar when the menu bar / command palette issues a find request.
+  // The nonce changes on every request so repeated menu clicks re-trigger it.
+  const findRequest = useAppStore((s) => s.findRequest);
+  useEffect(() => {
+    if (!editable || disableFind || !findRequest) return;
+    setFindMode(findRequest.mode);
+  }, [findRequest, editable, disableFind]);
 
   useEffect(() => {
     if (!editor) return;

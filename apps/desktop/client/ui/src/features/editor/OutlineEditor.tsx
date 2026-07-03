@@ -7,9 +7,19 @@ import { OutlineToggle } from './OutlineToggle';
 import { Skeleton } from '../../shared/components/Skeleton';
 import { useAppStore } from '../../shared/store/appStore';
 import { useI18n } from '../../shared/i18n/useI18n';
+import { randomUUID } from '../../shared/util/id';
 
 type OutlineV2 = z.infer<typeof outlineV2Schema>;
 type OutlinePhase = z.infer<typeof outlinePhaseSchema>;
+
+// The turning-points / constraints lists persist as string[] in the outline
+// schema, but the UI needs a stable key per row: index-based keys make React
+// reuse the wrong DOM node during drag-reorder, stealing input focus/values.
+// So the internal working model carries a stable id and we serialize to/from
+// string[] only at the store boundary.
+type KeyedItem = { id: string; text: string };
+const toKeyed = (list: string[]): KeyedItem[] => list.map((text) => ({ id: randomUUID(), text }));
+const toStrings = (list: KeyedItem[]): string[] => list.map((it) => it.text);
 
 const DEBOUNCE_MS = 500;
 
@@ -57,8 +67,8 @@ export function OutlineEditor() {
   const [characters, setCharacters] = useState('');
   const [growthCurve, setGrowthCurve] = useState('');
   const [pacingCurveText, setPacingCurveText] = useState('');
-  const [turningPoints, setTurningPoints] = useState<string[]>([]);
-  const [constraints, setConstraints] = useState<string[]>([]);
+  const [turningPoints, setTurningPoints] = useState<KeyedItem[]>([]);
+  const [constraints, setConstraints] = useState<KeyedItem[]>([]);
 
   const userEditedRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -74,8 +84,8 @@ export function OutlineEditor() {
     characters: characters || undefined,
     growth_curve: growthCurve || undefined,
     pacing_curve_text: pacingCurveText || undefined,
-    major_turning_points: turningPoints,
-    constraints,
+    major_turning_points: toStrings(turningPoints),
+    constraints: toStrings(constraints),
   });
   const latestRef = useRef<OutlineV2>(buildOutline());
   latestRef.current = buildOutline();
@@ -103,8 +113,8 @@ export function OutlineEditor() {
     setCharacters(storeOutline.characters ?? '');
     setGrowthCurve(storeOutline.growth_curve ?? '');
     setPacingCurveText(storeOutline.pacing_curve_text ?? '');
-    setTurningPoints(storeOutline.major_turning_points ?? []);
-    setConstraints(storeOutline.constraints ?? []);
+    setTurningPoints(toKeyed(storeOutline.major_turning_points ?? []));
+    setConstraints(toKeyed(storeOutline.constraints ?? []));
   }, [storeOutline]);
 
   const markEdited = () => {
@@ -138,12 +148,12 @@ export function OutlineEditor() {
     setPhases(phases.filter((p) => p.id !== id));
   };
 
-  const addTurningPoint = () => { markEdited(); setTurningPoints([...turningPoints, '']); };
-  const updateTurningPoint = (i: number, v: string) => { markEdited(); setTurningPoints(turningPoints.map((tp, idx) => idx === i ? v : tp)); };
+  const addTurningPoint = () => { markEdited(); setTurningPoints([...turningPoints, { id: randomUUID(), text: '' }]); };
+  const updateTurningPoint = (i: number, v: string) => { markEdited(); setTurningPoints(turningPoints.map((tp, idx) => idx === i ? { ...tp, text: v } : tp)); };
   const removeTurningPoint = (i: number) => { markEdited(); setTurningPoints(turningPoints.filter((_, idx) => idx !== i)); };
 
-  const addConstraint = () => { markEdited(); setConstraints([...constraints, '']); };
-  const updateConstraint = (i: number, v: string) => { markEdited(); setConstraints(constraints.map((c, idx) => idx === i ? v : c)); };
+  const addConstraint = () => { markEdited(); setConstraints([...constraints, { id: randomUUID(), text: '' }]); };
+  const updateConstraint = (i: number, v: string) => { markEdited(); setConstraints(constraints.map((c, idx) => idx === i ? { ...c, text: v } : c)); };
   const removeConstraint = (i: number) => { markEdited(); setConstraints(constraints.filter((_, idx) => idx !== i)); };
 
   const phaseDrag = useDragReorder(phases, setPhases, markEdited);
@@ -228,9 +238,9 @@ export function OutlineEditor() {
         <OutlineToggle title={t('outline.turningPoints')} onAdd={addTurningPoint}>
           <div className="outline-list">
             {turningPoints.map((tp, i) => (
-              <div key={i} className="outline-list-item" draggable onDragStart={tpDrag.onDragStart(i)} onDragOver={tpDrag.onDragOver(i)} onDragEnd={tpDrag.onDragEnd}>
+              <div key={tp.id} className="outline-list-item" draggable onDragStart={tpDrag.onDragStart(i)} onDragOver={tpDrag.onDragOver(i)} onDragEnd={tpDrag.onDragEnd}>
                 <span className="outline-list-drag material-symbols-outlined">drag_indicator</span>
-                <input className="outline-list-input" value={tp} onChange={(e) => updateTurningPoint(i, e.target.value)} placeholder={t('outline.turningPointPlaceholder')} />
+                <input className="outline-list-input" value={tp.text} onChange={(e) => updateTurningPoint(i, e.target.value)} placeholder={t('outline.turningPointPlaceholder')} />
                 <button type="button" className="outline-list-remove" onClick={() => removeTurningPoint(i)}>
                   <span className="material-symbols-outlined">close</span>
                 </button>
@@ -242,9 +252,9 @@ export function OutlineEditor() {
         <OutlineToggle title={t('outline.constraints')} onAdd={addConstraint}>
           <div className="outline-list">
             {constraints.map((c, i) => (
-              <div key={i} className="outline-list-item" draggable onDragStart={cDrag.onDragStart(i)} onDragOver={cDrag.onDragOver(i)} onDragEnd={cDrag.onDragEnd}>
+              <div key={c.id} className="outline-list-item" draggable onDragStart={cDrag.onDragStart(i)} onDragOver={cDrag.onDragOver(i)} onDragEnd={cDrag.onDragEnd}>
                 <span className="outline-list-drag material-symbols-outlined">drag_indicator</span>
-                <input className="outline-list-input" value={c} onChange={(e) => updateConstraint(i, e.target.value)} placeholder={t('outline.constraintPlaceholder')} />
+                <input className="outline-list-input" value={c.text} onChange={(e) => updateConstraint(i, e.target.value)} placeholder={t('outline.constraintPlaceholder')} />
                 <button type="button" className="outline-list-remove" onClick={() => removeConstraint(i)}>
                   <span className="material-symbols-outlined">close</span>
                 </button>
