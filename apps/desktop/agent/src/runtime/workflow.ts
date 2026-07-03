@@ -479,6 +479,17 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       const normalized = typeof request === 'string'
         ? { input: request }
         : (request ?? {});
+      // 如果调用方没有提供 input，fallback 到 session 中最新的用户消息，
+      // 避免嵌套模型完全不知道用户意图。
+      if (!normalized.input) {
+        const session = getSession(sessionId);
+        if (session) {
+          const lastUserMsg = [...session.messages].reverse().find(m => m.role === 'user');
+          if (lastUserMsg?.content) {
+            normalized.input = lastUserMsg.content;
+          }
+        }
+      }
       const skillContext = runtime.buildSkillContext(
         sessionId,
         skillName,
@@ -611,9 +622,14 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
 
       const state = runtime.getRunState(sessionId);
       const session = getSession(sessionId);
-      const restoredSkillRunState = skillName && session?.skillRunState?.skill === skillName
-        ? restoreSkillContinuation({ skillRunState: session.skillRunState })
-        : undefined;
+      const restoredSkillRunState = (() => {
+        if (!skillName || session?.skillRunState?.skill !== skillName) return undefined;
+        const state = session.skillRunState;
+        // 只在 skill 处于暂停状态（有待恢复的节点或待用户响应）时恢复；
+        // 已完成的运行状态不应阻止重新执行。
+        if (!state.currentNodeId && !state.pendingUserAction) return undefined;
+        return restoreSkillContinuation({ skillRunState: state });
+      })();
       return buildSkillContext({
         sessionId,
         runStatus: state?.status ?? 'idle',
