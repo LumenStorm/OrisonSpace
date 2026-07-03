@@ -30,7 +30,6 @@
     "electron-updater": "^6.3.9",
     "isomorphic-git": "^1.37.6",
     "mammoth": "1.9.0",
-    "material-symbols": "0.31.8",
     "pino": "^9.7.0",
     "turndown": "^7.2.0"
   },
@@ -48,6 +47,7 @@
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "js-yaml": "^4.1.1",
+    "material-symbols": "0.31.8",
     "png-to-ico": "^3.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
