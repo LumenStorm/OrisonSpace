@@ -20,6 +20,7 @@ function model(overrides: Partial<ResolvedModel> = {}): ResolvedModel {
   return {
     keyId: 'k1',
     modelId: 'gpt-4o',
+    protocol: 'openai-compatible',
     baseUrl: 'https://api.openai.com',
     apiKey: 'sk-test',
     capability: 'text',
@@ -61,6 +62,53 @@ describe('unified protocol', () => {
       await expect(
         generateText(model(), { model: 'gpt-4o', messages: [{ role: 'user', content: 'x' }] }),
       ).rejects.toBeInstanceOf(ProtocolHttpError);
+    });
+
+    it('posts Anthropic-compatible text requests to /messages with x-api-key auth', async () => {
+      globalThis.fetch = buildMock(captured, {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-3-5-sonnet-latest',
+        content: [{ type: 'text', text: 'hello from claude' }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 11, output_tokens: 7 },
+      });
+
+      const result = await generateText(
+        model({
+          protocol: 'anthropic-compatible',
+          modelId: 'claude-3-5-sonnet-latest',
+          baseUrl: 'https://api.anthropic.com',
+        }),
+        {
+          model: 'claude-3-5-sonnet-latest',
+          messages: [
+            { role: 'system', content: 'You are concise.' },
+            { role: 'user', content: 'hi' },
+          ],
+          maxTokens: 256,
+        },
+      );
+
+      expect(captured[0].url).toBe('https://api.anthropic.com/v1/messages');
+      const headers = captured[0].init?.headers as Record<string, string>;
+      expect(headers['x-api-key']).toBe('sk-test');
+      expect(headers['anthropic-version']).toBeTruthy();
+      expect(headers.authorization).toBeUndefined();
+      const body = JSON.parse((captured[0].init?.body as string) ?? '{}');
+      expect(body).toMatchObject({
+        model: 'claude-3-5-sonnet-latest',
+        system: 'You are concise.',
+        max_tokens: 256,
+        messages: [{ role: 'user', content: 'hi' }],
+      });
+      expect(result).toEqual({
+        model: 'claude-3-5-sonnet-latest',
+        text: 'hello from claude',
+        finishReason: 'stop',
+        usage: { promptTokens: 11, completionTokens: 7, totalTokens: 18 },
+      });
     });
   });
 

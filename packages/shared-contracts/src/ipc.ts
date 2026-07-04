@@ -5,7 +5,7 @@ import type {
   TextGenerationRequest,
   TextGenerationResponse,
 } from './contracts/generation';
-import type { ModelCapability, ModelConfig } from './contracts/model';
+import type { ModelCapability, ModelConfig, ModelProtocol } from './contracts/model';
 import type { NovelStorySyncPayload } from './contracts/novel-orchestration';
 
 export const desktopIpcSchema = z.object({
@@ -129,13 +129,14 @@ export type RegisteredProject = {
 
 /* ── Shared types ── */
 
-export type { ModelCapability, DiscoveredModel, ApiKeyConfig, ApiKeyEntry, ModelConfig, ResolvedModel } from './contracts/model';
+export type { ModelCapability, ModelProtocol, DiscoveredModel, ApiKeyConfig, ApiKeyEntry, ModelConfig, ResolvedModel } from './contracts/model';
 
 /**
  * Request to list models from a remote endpoint.
  */
 export type ListRemoteModelsRequest = {
   keyId?: string;
+  protocol?: ModelProtocol;
   apiKey?: string;
   baseUrl?: string;
 };

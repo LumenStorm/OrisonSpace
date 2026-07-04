@@ -28,6 +28,7 @@ const SAMPLE_CONFIG: ModelConfig = {
     {
       id: 'key_text',
       name: 'Text',
+      protocol: 'openai-compatible',
       apiKey: 'sk-text',
       baseUrl: 'https://relay.example.com',
       models: [

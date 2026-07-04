@@ -61,6 +61,7 @@ export function resolveModel(ref: ModelRef): ResolvedModel {
   return {
     keyId: key.id,
     modelId: model.id,
+    protocol: key.protocol,
     baseUrl: key.baseUrl,
     apiKey: key.apiKey,
     capability: model.capability,

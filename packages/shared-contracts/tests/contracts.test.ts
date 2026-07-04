@@ -225,6 +225,7 @@ describe('model config v3 schemas', () => {
     const entry = apiKeyEntrySchema.parse({
       id: 'key-1',
       name: 'My OpenAI',
+      protocol: 'openai-compatible',
       baseUrl: 'https://api.openai.com',
       apiKey: 'sk-xxx',
       models: [
@@ -232,8 +233,36 @@ describe('model config v3 schemas', () => {
         { id: 'dall-e-3', capability: 'image', alias: 'DALL·E', enabled: false },
       ],
     });
+    expect(entry.protocol).toBe('openai-compatible');
     expect(entry.models).toHaveLength(2);
     expect(entry.models[0].enabled).toBe(true);
+  });
+
+  it('defaults old ApiKeyEntry data to OpenAI-compatible protocol', () => {
+    const entry = apiKeyEntrySchema.parse({
+      id: 'legacy-key',
+      name: 'Legacy Relay',
+      baseUrl: 'https://relay.example.com',
+      apiKey: 'sk-legacy',
+      models: [
+        { id: 'gpt-4o', capability: 'text', alias: 'GPT-4o', enabled: true },
+      ],
+    });
+    expect(entry.protocol).toBe('openai-compatible');
+  });
+
+  it('accepts Anthropic-compatible ApiKeyEntry', () => {
+    const entry = apiKeyEntrySchema.parse({
+      id: 'anthropic-key',
+      name: 'Anthropic',
+      protocol: 'anthropic-compatible',
+      baseUrl: 'https://api.anthropic.com',
+      apiKey: 'sk-ant',
+      models: [
+        { id: 'claude-3-5-sonnet-latest', capability: 'text', alias: 'Claude Sonnet', enabled: true },
+      ],
+    });
+    expect(entry.protocol).toBe('anthropic-compatible');
   });
 
   it('parses ModelConfig with multiple keys', () => {

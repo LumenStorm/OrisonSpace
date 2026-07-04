@@ -6,6 +6,7 @@ import type {
   ApiKeyEntry,
   ImportedFont,
   ModelConfig,
+  ModelProtocol,
   UserPreferencesConfig,
 } from '@orison/shared-contracts';
 import { parseFlatYaml, stringifyFlatYaml, modelConfigSaveSchema, DEFAULT_USER_PREFERENCES } from '@orison/shared-contracts';
@@ -94,6 +95,7 @@ function readKeyFile(filePath: string): ApiKeyEntry | null {
     if (!id) return null;
 
     const name = typeof raw.name === 'string' ? raw.name : id;
+    const protocol = readProtocol(raw.protocol);
     const baseUrl = typeof raw.baseUrl === 'string' ? raw.baseUrl : '';
     const apiKey = typeof raw.apiKey === 'string' ? decrypt(raw.apiKey) : '';
 
@@ -109,10 +111,14 @@ function readKeyFile(filePath: string): ApiKeyEntry | null {
       });
     }
 
-    return { id, name, baseUrl, apiKey, models };
+    return { id, name, protocol, baseUrl, apiKey, models };
   } catch {
     return null;
   }
+}
+
+function readProtocol(value: unknown): ModelProtocol {
+  return value === 'anthropic-compatible' ? 'anthropic-compatible' : 'openai-compatible';
 }
 
 function readCapability(value: unknown): 'text' | 'image' | 'video' {
@@ -142,6 +148,7 @@ function writeModelConfig(config: ModelConfig): void {
     const flat: Record<string, string | number | boolean | null> = {
       id: key.id,
       name: key.name,
+      protocol: key.protocol,
       baseUrl: key.baseUrl,
       apiKey: encrypt(apiKey),
     };
@@ -172,6 +179,7 @@ function migrateFromProfiles(): ModelConfig | null {
       if (!id) continue;
 
       const name = typeof raw.name === 'string' ? raw.name : id;
+      const protocol = readProtocol(raw.protocol);
       const baseUrl = typeof raw.baseUrl === 'string' ? raw.baseUrl : '';
       const apiKey = typeof raw.apiKey === 'string' ? decrypt(raw.apiKey) : '';
 
@@ -187,7 +195,7 @@ function migrateFromProfiles(): ModelConfig | null {
         models.push({ id: modelId, capability, alias, enabled: true });
       }
 
-      if (models.length > 0) keys.push({ id, name, baseUrl, apiKey, models });
+      if (models.length > 0) keys.push({ id, name, protocol, baseUrl, apiKey, models });
     } catch { /* skip broken files */ }
   }
 

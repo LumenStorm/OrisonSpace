@@ -70,11 +70,23 @@ export function ProfileEditor({
         </label>
 
         <label className="form-field-input-row">
+          <span className="form-field-input-label">{t('settings.modelProtocol')}</span>
+          <select
+            className="form-field-input"
+            value={draft.protocol}
+            onChange={(e) => onChange({ protocol: e.target.value as KeyDraft['protocol'] })}
+          >
+            <option value="openai-compatible">{t('settings.protocolOpenAICompatible')}</option>
+            <option value="anthropic-compatible">{t('settings.protocolAnthropicCompatible')}</option>
+          </select>
+        </label>
+
+        <label className="form-field-input-row">
           <span className="form-field-input-label">{t('settings.baseUrl')}</span>
           <input
             className="form-field-input"
             value={draft.baseUrl}
-            placeholder="https://api.openai.com/v1"
+            placeholder={draft.protocol === 'anthropic-compatible' ? 'https://api.anthropic.com' : 'https://api.openai.com/v1'}
             onChange={(e) => onChange({ baseUrl: e.target.value })}
           />
         </label>

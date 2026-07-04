@@ -28,6 +28,7 @@ const SAMPLE_CONFIG: ModelConfig = {
     {
       id: 'key_text',
       name: 'Text',
+      protocol: 'openai-compatible',
       apiKey: 'sk-text',
       baseUrl: 'https://relay.example.com/v1',
       models: [
@@ -158,6 +159,7 @@ describe('model gateway IPC', () => {
         {
           id: 'key_text',
           name: 'Text',
+          protocol: 'openai-compatible',
           apiKey: 'sk-text',
           baseUrl: 'https://relay.example.com/v1',
           models: [

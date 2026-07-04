@@ -56,6 +56,8 @@ const patchNullContentFetch: typeof globalThis.fetch = async (input, init) => {
 
 // ── Text generation (via Vercel AI SDK) ──
 
+const ANTHROPIC_VERSION = '2023-06-01';
+
 function mapFinishReason(raw: string | undefined): GenerationFinishReason | undefined {
   switch (raw) {
     case 'stop': return 'stop';
@@ -67,11 +69,32 @@ function mapFinishReason(raw: string | undefined): GenerationFinishReason | unde
   }
 }
 
+function mapAnthropicFinishReason(raw: string | null | undefined): GenerationFinishReason | undefined {
+  switch (raw) {
+    case 'end_turn':
+    case 'stop_sequence':
+      return 'stop';
+    case 'max_tokens':
+      return 'length';
+    case 'tool_use':
+      return 'tool_use';
+    case null:
+    case undefined:
+      return undefined;
+    default:
+      return 'other';
+  }
+}
+
 export async function generateText(
   model: ResolvedModel,
   request: TextGenerationRequest,
   ctx?: ProtocolCallContext,
 ): Promise<TextGenerationResponse> {
+  if (model.protocol === 'anthropic-compatible') {
+    return generateAnthropicText(model, request, ctx);
+  }
+
   const provider = createProvider(model);
 
   // Convert OpenAI-style tool definitions to Vercel AI SDK v6 tool format
@@ -193,6 +216,133 @@ export async function generateText(
   };
 }
 
+type AnthropicContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; tool_use_id: string; content: string };
+
+type AnthropicMessage = {
+  role: 'user' | 'assistant';
+  content: string | AnthropicContentBlock[];
+};
+
+type AnthropicResponse = {
+  model?: string;
+  content?: AnthropicContentBlock[];
+  stop_reason?: string | null;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+  };
+};
+
+async function generateAnthropicText(
+  model: ResolvedModel,
+  request: TextGenerationRequest,
+  ctx?: ProtocolCallContext,
+): Promise<TextGenerationResponse> {
+  const systemParts: string[] = [];
+  const messages: AnthropicMessage[] = [];
+  for (const message of request.messages) {
+    if (message.role === 'system') {
+      systemParts.push(message.content);
+      continue;
+    }
+    if (message.role === 'user') {
+      messages.push({ role: 'user', content: message.content });
+      continue;
+    }
+    if (message.role === 'assistant') {
+      const content: AnthropicContentBlock[] = [];
+      if (message.content) content.push({ type: 'text', text: message.content });
+      for (const tc of message.toolCalls ?? []) {
+        content.push({
+          type: 'tool_use',
+          id: tc.id,
+          name: tc.name,
+          input: parseToolArguments(tc.arguments),
+        });
+      }
+      messages.push({ role: 'assistant', content: content.length === 1 && content[0]?.type === 'text' ? content[0].text : content });
+      continue;
+    }
+    messages.push({
+      role: 'user',
+      content: [{
+        type: 'tool_result',
+        tool_use_id: message.toolCallId,
+        content: message.content,
+      }],
+    });
+  }
+
+  const body: Record<string, unknown> = {
+    model: model.modelId,
+    max_tokens: request.maxTokens ?? 4096,
+    messages,
+  };
+  if (systemParts.length) body.system = systemParts.join('\n');
+  if (request.temperature !== undefined) body.temperature = request.temperature;
+  if (request.tools?.length) {
+    body.tools = request.tools.map((t) => ({
+      name: t.function.name,
+      description: t.function.description,
+      input_schema: t.function.parameters,
+    }));
+  }
+
+  const response = await withRetry(
+    () => postJson<AnthropicResponse>({
+      url: `${normalizeBaseUrl(model.baseUrl)}/messages`,
+      headers: {
+        'x-api-key': model.apiKey,
+        'anthropic-version': ANTHROPIC_VERSION,
+      },
+      body,
+      signal: ctx?.signal,
+    }),
+    { signal: ctx?.signal },
+  );
+
+  const content = response.content ?? [];
+  const text = content
+    .filter((block): block is Extract<AnthropicContentBlock, { type: 'text' }> => block.type === 'text')
+    .map((block) => block.text)
+    .join('');
+  const toolCalls = content
+    .filter((block): block is Extract<AnthropicContentBlock, { type: 'tool_use' }> => block.type === 'tool_use')
+    .map((block) => ({
+      id: block.id,
+      name: block.name,
+      arguments: typeof block.input === 'string' ? block.input : JSON.stringify(block.input ?? {}),
+    }));
+  const promptTokens = response.usage?.input_tokens;
+  const completionTokens = response.usage?.output_tokens;
+
+  return {
+    model: response.model ?? model.modelId,
+    text,
+    finishReason: mapAnthropicFinishReason(response.stop_reason),
+    usage: response.usage
+      ? {
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens !== undefined && completionTokens !== undefined ? promptTokens + completionTokens : undefined,
+        }
+      : undefined,
+    toolCalls: toolCalls.length ? toolCalls : undefined,
+  };
+}
+
+function parseToolArguments(value: string): unknown {
+  if (!value) return {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
+
 // ── Image generation (POST /images/generations or /images/edits) ──
 // Kept as direct HTTP — Vercel AI SDK does not cover image generation.
 
@@ -282,4 +432,3 @@ async function buildImageResponse(model: ResolvedModel, raw: OpenAiImageResponse
   };
   return normalizeImageResponse(response);
 }
-

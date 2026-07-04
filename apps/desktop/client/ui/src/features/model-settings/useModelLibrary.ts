@@ -154,7 +154,7 @@ export function useModelLibrary({ modelConfig, setModelConfig, t }: Args): Model
     try {
       const models = await loadRemoteModels(draft.id && !draft.apiKey
         ? { keyId: draft.id }
-        : { apiKey: draft.apiKey, baseUrl: draft.baseUrl });
+        : { protocol: draft.protocol, apiKey: draft.apiKey, baseUrl: draft.baseUrl });
       setRemoteModels(models);
 
       // Merge into draft: add new models, keep existing enabled state

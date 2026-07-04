@@ -26,6 +26,7 @@ const SAMPLE_CONFIG: ModelConfig = {
     {
       id: 'key_001',
       name: 'Main relay',
+      protocol: 'openai-compatible',
       apiKey: 'sk-test',
       baseUrl: 'https://relay.example.com/v1',
       models: [
@@ -35,6 +36,7 @@ const SAMPLE_CONFIG: ModelConfig = {
     {
       id: 'key_002',
       name: 'Image relay',
+      protocol: 'openai-compatible',
       apiKey: 'sk-image',
       baseUrl: 'https://relay.example.com/v1',
       models: [
@@ -68,6 +70,7 @@ describe('model config IPC', () => {
     expect(keyFile).toMatchObject({
       id: 'key_001',
       name: 'Main relay',
+      protocol: 'openai-compatible',
       apiKey: 'sk-test',
       baseUrl: 'https://relay.example.com/v1',
       'models.0.id': 'gpt-4o-mini',
@@ -157,6 +160,7 @@ describe('model config IPC', () => {
     expect(result.keys[0]).toMatchObject({
       id: 'model_001',
       name: 'Legacy Profile',
+      protocol: 'openai-compatible',
       apiKey: '',
       baseUrl: 'https://relay.example.com/v1',
     });

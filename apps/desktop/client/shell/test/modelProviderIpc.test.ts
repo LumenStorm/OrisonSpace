@@ -28,6 +28,7 @@ const SAMPLE_CONFIG: ModelConfig = {
     {
       id: 'key_001',
       name: 'Main relay',
+      protocol: 'openai-compatible',
       apiKey: 'sk-from-disk',
       baseUrl: 'https://relay.example.com',
       models: [
@@ -71,6 +72,7 @@ describe('model provider IPC', () => {
 
     const [, handler] = handle.mock.calls[0]!;
     await expect(handler({}, {
+      protocol: 'openai-compatible',
       apiKey: 'sk-test',
       baseUrl: 'https://relay.example.com',
     })).resolves.toEqual([
@@ -82,6 +84,30 @@ describe('model provider IPC', () => {
       'https://relay.example.com/v1/models',
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: 'Bearer sk-test' }),
+      }),
+    );
+  });
+
+  it('fetches Anthropic-compatible model list using protocol-specific auth', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(mockJsonResponse({
+      data: [{ id: 'claude-3-5-sonnet-latest' }],
+    }));
+
+    registerModelProviderIpc();
+
+    const [, handler] = handle.mock.calls[0]!;
+    await expect(handler({}, {
+      protocol: 'anthropic-compatible',
+      apiKey: 'sk-ant',
+      baseUrl: 'https://api.anthropic.com',
+    })).resolves.toEqual([
+      { id: 'claude-3-5-sonnet-latest', capability: 'text', alias: 'Claude 3-5-sonnet-latest' },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.anthropic.com/v1/models',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'x-api-key': 'sk-ant' }),
       }),
     );
   });

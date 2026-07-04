@@ -8,6 +8,7 @@ import { useAppStore } from '../src/shared/store/appStore';
 const baseKey: ApiKeyEntry = {
   id: 'key_001',
   name: 'GPT-4o',
+  protocol: 'openai-compatible',
   baseUrl: 'https://api.openai.com',
   apiKey: 'sk-test',
   models: [
@@ -62,6 +63,7 @@ describe('ModelSettingsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'settings.emptyAction' }));
 
     expect(screen.getByLabelText('settings.profileName')).toBeInTheDocument();
+    expect(screen.getByLabelText('settings.modelProtocol')).toBeInTheDocument();
     expect(screen.getByLabelText('settings.baseUrl')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('sk-...')).toBeInTheDocument();
   });
@@ -128,6 +130,28 @@ describe('ModelSettingsPage', () => {
       expect((window as any).orisonDesktop.listRemoteModels).toHaveBeenCalled();
       // The newly discovered image model is added to the editor's model list.
       expect(screen.getByText('gpt-image-1')).toBeInTheDocument();
+    });
+  });
+
+  it('refreshing a new anthropic-compatible key forwards the selected protocol', async () => {
+    const setModelConfig = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ModelSettingsPage t={tFake} modelConfig={{ keys: [] }} setModelConfig={setModelConfig} />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'settings.emptyAction' }));
+    await userEvent.selectOptions(screen.getByLabelText('settings.modelProtocol'), 'anthropic-compatible');
+    await userEvent.type(screen.getByLabelText('settings.baseUrl'), 'https://api.anthropic.com');
+    await userEvent.type(screen.getByLabelText('settings.apiKey'), 'sk-ant-test');
+
+    await userEvent.click(screen.getByRole('button', { name: 'settings.refreshModels' }));
+
+    await waitFor(() => {
+      expect((window as any).orisonDesktop.listRemoteModels).toHaveBeenCalledWith({
+        protocol: 'anthropic-compatible',
+        apiKey: 'sk-ant-test',
+        baseUrl: 'https://api.anthropic.com',
+      });
     });
   });
 

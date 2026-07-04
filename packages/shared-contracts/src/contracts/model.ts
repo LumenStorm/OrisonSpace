@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const modelCapabilitySchema = z.enum(['text', 'image', 'video']);
+export const modelProtocolSchema = z.enum(['openai-compatible', 'anthropic-compatible']);
 
 export const discoveredModelSchema = z.object({
   id: z.string().min(1),
@@ -12,6 +13,7 @@ export const discoveredModelSchema = z.object({
 export const apiKeyConfigSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
+  protocol: modelProtocolSchema.default('openai-compatible'),
   baseUrl: z.string().url(),
   apiKey: z.string().min(1),
 });
@@ -34,6 +36,7 @@ export const modelConfigSaveSchema = z.object({
 });
 
 export type ModelCapability = z.infer<typeof modelCapabilitySchema>;
+export type ModelProtocol = z.infer<typeof modelProtocolSchema>;
 export type DiscoveredModel = z.infer<typeof discoveredModelSchema>;
 export type ApiKeyConfig = z.infer<typeof apiKeyConfigSchema>;
 export type ApiKeyEntry = z.infer<typeof apiKeyEntrySchema>;
@@ -46,6 +49,7 @@ export type ModelConfig = z.infer<typeof modelConfigSchema>;
 export type ResolvedModel = {
   keyId: string;
   modelId: string;
+  protocol: ModelProtocol;
   baseUrl: string;
   apiKey: string;
   capability: ModelCapability;
