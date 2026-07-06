@@ -68,7 +68,7 @@
 
 Agent runtime 打通"自动召唤 skill / 子代理"的完整嵌套链路:
 
-- LLM 可在对话中直接命中 skill,系统提示按 `priority: required / optional` 自动列出可调用清单
+- LLM 可在对话中按 metadata 发现 skill，并通过 `skill({ name })` 精确加载完整说明
 - skill 内部 prompt 改为完整 runLoop,可继续触发其它 skill / 工具 / 子代理
 - 新 `spawn_agent` 工具,子代理在独立子会话中聚焦完成任务,只回传最终答复
 - `.orison/agents/<role>.md` 定义子代理人设(frontmatter + 正文)
@@ -403,7 +403,7 @@ Apache-2.0
 - **嵌套 IPC 事件透传** — 新增 `child` 事件类型,前端 `agentSlice` 加 `case 'child'`,带 `[subagent:role:dN]` 角标渲染子代理 / 子 skill 的中间消息。
 - **abort 信号串联** — 外层 streamMessage 取消会沿 `SkillExecutorInvokeOptions.abort` 一路下传至所有嵌套 runLoop,立即终止子任务。
 - **递归深度兜底** — `MAX_SPAWN_DEPTH = 5`,超过抛 `SpawnDepthExceededError`,防止 A→B→A 互相调用耗光预算。
-- **系统提示自动罗列外部 skill** — `buildRuntimeSystemPrompt` 现在同时扫项目内 skill、`externalSkillRoots` option、`.orison/agent.runtime.json`,并按 frontmatter 的 `priority: required / optional` 分组提示 LLM。
+- **系统提示自动罗列外部 skill** — `buildRuntimeSystemPrompt` 现在通过 skill catalog 扫项目内 skill、`externalSkillRoots` option、`.orison/agent.runtime.json`，只暴露 name / description 等 metadata。
 
 仍未处理:
 

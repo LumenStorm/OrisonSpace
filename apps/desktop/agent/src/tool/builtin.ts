@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { registry } from './registry';
 import { remoteToolProxy } from './remote';
 import { skillTool } from './skill';
+import { skillResourceListTool, skillResourceReadTool } from './skill_resource';
 import { spawnAgentTool } from './spawn_agent';
 
 export function registerBuiltinTools() {
@@ -63,6 +64,8 @@ export function registerBuiltinTools() {
 
   // Skills — local tool that drives the workflow runtime directly
   registry.register(skillTool);
+  registry.register(skillResourceListTool);
+  registry.register(skillResourceReadTool);
 
   // Subagents — spawn focused child sessions for specialized tasks
   registry.register(spawnAgentTool);

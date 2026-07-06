@@ -8,6 +8,8 @@ This project's notable changes are documented here, following [Keep a Changelog]
 
 ## [Unreleased]
 
+- Agent Skill 改为 OpenCode 风格按需加载：`skill` tool 只加载 `SKILL.md` 内容和资源清单，不再将任意 `SKILL.md` 编译执行为 workflow DAG；后端开始强制执行 session mode 与 skill `allowed-tools` 权限。
+
 ## [0.3.0]
 
 ### 新增 · Added

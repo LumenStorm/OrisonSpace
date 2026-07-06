@@ -51,12 +51,12 @@ Do the thing.
     if (outcome.kind === 'loaded') expect(outcome.skill.name).toBe('manifest-skill');
   });
 
-  it('classifies oh-story blocked skills as blocked', async () => {
+  it('loads authored story skills without adapter blocking', async () => {
     const dir = path.join(root, 'story-setup');
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'SKILL.md'), `---
 name: story-setup
-description: blocked
+description: authored setup skill
 ---
 
 setup.
@@ -64,7 +64,11 @@ setup.
 
     const { loadSkillFromDir } = await import('../src/skill/loadSkillFromDir');
     const outcome = await loadSkillFromDir(dir);
-    expect(outcome.kind).toBe('blocked');
+    expect(outcome.kind).toBe('loaded');
+    if (outcome.kind === 'loaded') {
+      expect(outcome.skill.name).toBe('story-setup');
+      expect(outcome.skill.description).toBe('authored setup skill');
+    }
   });
 
   it('returns skipped for a directory with no recognizable entry', async () => {

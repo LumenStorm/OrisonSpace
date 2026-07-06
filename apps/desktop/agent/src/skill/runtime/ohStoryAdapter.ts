@@ -1,3 +1,9 @@
+/**
+ * Legacy adapter retained only for migration reference.
+ *
+ * Standard skill loading no longer imports this file. Authored SKILL.md names
+ * and native skill loading are the source of truth.
+ */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { NormalizedSkill, WorkflowDefinition } from '../types';

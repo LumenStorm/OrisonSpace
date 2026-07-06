@@ -1,6 +1,6 @@
 # Orison Agent
 
-AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构，作为 `@orison/desktop-agent` 包内嵌于桌面主进程，为创作工作区提供智能写作、workflow 编排、skill 执行能力。
+AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构，作为 `@orison/desktop-agent` 包内嵌于桌面主进程，为创作工作区提供智能写作、工具调用、原生 skill 按需加载能力。
 
 ## 架构概览
 
@@ -32,7 +32,7 @@ AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构�
 │  │       ▼                                         │    │
 │  │  ┌──────────────────────────────────┐           │    │
 │  │  │  Built-in Tools                  │           │    │
-│  │  │  • Skills (workflow nodes)       │           │    │
+│  │  │  • Skills (metadata + loader)    │           │    │
 │  │  │  • spawn_agent (subagent)        │           │    │
 │  │  └──────────────────────────────────┘           │    │
 │  │                                                 │    │
@@ -59,7 +59,7 @@ AI 写作助手的 Agent 编排库。基于 agentic loop + tool calling 架构�
 │  Frontend (renderer process)                            │
 │  • Chat messages (text + tool calls + images)           │
 │  • Tool execution progress                             │
-│  • Skill launcher & continuation restore               │
+│  • Skill settings & session history                    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -94,7 +94,7 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 | `agent:stream-message` | 发送消息并启动流式执行 |
 | `agent:resolve-confirmation` | 用户确认/拒绝工具调用 |
 | `agent:list-skills` | 列出项目 skills |
-| `agent:execute-skill` | 直接执行 skill |
+| `agent:execute-skill` | 兼容入口：按名称加载 skill 内容 |
 | `agent:list-continuations` | 列出会话 continuations |
 | `agent:restore-continuation` | 恢复 continuation |
 | `agent:abort-run` | 中止当前执行 |
@@ -165,7 +165,9 @@ Agent 通过 Electron IPC 与渲染层通信（`agent:*` 通道）：
 ### 技能
 | Tool | 说明 |
 |------|------|
-| `skill` | 按名称调用一个 skill 工作流。Skill 的指令进入子 runLoop 执行,可继续调用嵌套 skill、spawn_agent、其它工具,返回 outputs / checkpoints / pending confirmations。 |
+| `skill` | 按精确名称加载一个 skill。返回完整 `SKILL.md` 内容和资源清单，不执行 workflow，不终止主 loop。 |
+| `skill_resource_list` | 列出某个 skill 目录内已登记资源。 |
+| `skill_resource_read` | 读取某个 skill 目录内已登记资源，禁止读取目录外或未登记文件。 |
 | `spawn_agent` | 派出一个聚焦子代理(例如 `story-architect`、`narrative-writer`、`consistency-checker`)。子代理在独立子会话里全权使用工具,完成后只把最终答复回传父会话。当 `.orison/agents/<role>.md` 存在时会自动加载该 role 的角色 prompt。 |
 
 ## Agentic Loop
@@ -228,44 +230,45 @@ generate_image tool
 
 ## Skills 系统
 
-Skills 是可复用的提示词模板，存放在 `.orison/skills/` 目录：
+Skills 采用 OpenCode 风格的按需加载机制。Runtime 扫描 skill roots 时只读取 metadata 和资源清单；模型判断需要时调用 `skill({ name })`，再把完整 `SKILL.md` 内容放入对话上下文。
 
 ```
-.orison/skills/
-├── worldbuilding/
-│   └── SKILL.md
-├── character-voice/
-│   └── SKILL.md
-└── plot-twist/
-    └── SKILL.md
+.opencode/skills/
+└── brand-voice/
+    ├── SKILL.md
+    ├── references/
+    ├── scripts/
+    └── assets/
 ```
 
-SKILL.md 格式：
-```markdown
+`SKILL.md` frontmatter:
+
+```yaml
 ---
-name: worldbuilding
-description: 生成详细的世界观设定
-priority: required
+name: brand-voice
+description: Keep prose consistent with the project voice guide
+allowed-tools:
+  - read_file
+  - skill_resource_read
+visibility: visible
 ---
-
-你是一个世界观构建专家。根据用户提供的故事背景...
 ```
 
-- `priority: required` 的 skill 会被列在系统提示的"Required skills — call immediately when triggered"段,LLM 命中关键词后应立即调用
-- 不带 `priority` 或 `priority: optional` 的 skill 进入"Optional skills — call when relevant"段
-- 系统提示在每轮对话开头自动注入,LLM 通过 `skill` tool 触发,无需用户手动点按
-- 同一 skill 在多个 skill root 下重复出现时会按发现顺序去重(项目内 > 外部)
+运行方式：
 
-Agent 可通过 `skill` tool 动态加载 skill 内容注入上下文。skill 自身可以在子 runLoop 中继续调用其它 skill 或 spawn_agent,形成 **链式自动召唤**。
+1. Runtime 扫描项目和用户 skill roots，只读取 `name` / `description` / `allowed-tools` / `visibility` 等轻量 metadata。
+2. System prompt 只列出可用 skill 的名称和描述。
+3. 模型需要某个 skill 时调用 `skill({ name })`，名称必须精确匹配。
+4. `skill` tool 返回完整 `SKILL.md` 内容和资源清单。
+5. 模型按 skill 指令继续调用普通工具，或用 `skill_resource_read` 显式读取资源。
 
-### Reference 资料注入
+约束：
 
-Skill 目录下的参考资料会被发现、加载并注入到 skill 的 prompt 中,让模型真正读到这些内容:
-
-- **目录约定** — 参考目录名兼容 `references/`、`reference/`、`_reference/`(三者都会被扫描并去重)。
-- **加载时机** — `load_reference` 节点在同一 phase 的 `instruction` 节点**之前**执行,因此 instruction 的 prompt 能看到引用内容。
-- **注入方式** — 已解析的引用以「Reference materials」段拼接进 skill prompt(在 prompt 与项目树之间)。外部 skill root 的引用文件位于 `read_file` 沙箱之外,这是它们进入上下文的唯一通道。
-- **自动加载** — SKILL.md 显式 markdown 链接(`[label](reference/foo.md)`)的引用以 `full` 模式加载;目录中存在但未被链接的引用文件会在工作流开头自动补 `load_reference` 节点(文件 >5 个时降为 `excerpt` 防止上下文膨胀)。
+- `SKILL.md` 不会自动编译成 workflow DAG。
+- Runtime 不做硬编码关键词 router，也不按子串近似匹配 skill 名称。
+- `references/`、`reference/`、`_reference/`、`scripts/`、`assets/` 只作为 skill 目录内资源登记，不自动注入上下文。
+- `allowed-tools` 与 session mode 在后端 runtime 执行，前端 mode 只是 UI 表达。
+- 单个 skill 的启用/停用由 catalog 过滤，不只是设置页展示状态。
 
 ## Subagent 子代理
 
@@ -306,10 +309,10 @@ tools:
 ```
 [user] 写一个一开始就让主角死的故事
 
-  └─ [skill: story]                            ← LLM 调用 skill 工具
-       └─ [child: skill:story:d1] 路由到 oh-story 子 skill
-            └─ [spawn_agent: story-architect]   ← skill 内部派遣子代理
-                 └─ [child: subagent:story-architect:d2] 在子会话内完成大纲
+  ├─ [tool: skill]                              ← LLM 精确加载相关 skill
+  ├─ [tool: skill_resource_read]                ← skill 指令要求时读取资源
+  └─ [tool: spawn_agent]                        ← 需要专门子任务时派遣子代理
+       └─ [child: subagent:story-architect:d1] 在子会话内完成大纲
 ```
 
 ## MCP 扩展
@@ -349,7 +352,7 @@ Agent Panel 作为工作区右侧独立面板（全高，不受 Bottom Panel 截
 - 写入类 tool 在 suggest 模式下显示 DiffCard（Accept/Reject），选段改写额外提供 `SideBySideDiff` 与 `AgentPassageResolveCard`（候选定位确认）
 - 支持中断/重试（`cancelAgent`）
 - 消息通过 IPC stream 事件实时推送
-- 三档权限模式：Read / Suggest / Auto（前端控制，后端无感知）
+- 三档权限模式：Read / Suggest / Auto（前端传入 runtime，后端过滤和校验工具）
 - 发送时自动附加当前编辑章节上下文，并以结构化 attachment 传递选段引用
 - 所有文本已 i18n 化（`agent.*` 命名空间，键在 `shared/i18n/<locale>/agent.yaml`）
 
@@ -364,16 +367,15 @@ Agent runtime 已作为 `@orison/desktop-agent` 库内嵌于桌面主进程。
 - 带 parent / branch 元数据与兼容性 SQLite 自动迁移的 session tree 持久化
 - run-state 持有、并发重入保护、中断处理与面向恢复的 continuation snapshot
 - runtime 级 permission / confirmation 流与受控 subagent 分发
-- 目录 skill 与 manifest skill 的双格式发现与归一化
-- 通过 runtime 配置加载外部 skill root，适用于 `I:\echo\oh-story-claudecode-main` 这类 skill 包
-- 通过 `executeSkillByName(...)` 执行 artifact-aware、reference-aware skill
+- 目录 skill 与 manifest skill 的双格式发现与归一化；目录 `SKILL.md` 作为 prompt skill，不自动编译 workflow
+- 通过 runtime 配置加载外部 skill root
+- 通过 `skill({ name })` 和兼容 `executeSkillByName(...)` 加载 skill payload
 - 面向长流程 creative 工作流的 context builder、compaction 与 continuation 原语
 
 已落地的 IPC 能力：
 
 - `agent:list-skills` 已支持按配置合并项目内 skill root 与外部 skill root
-- `agent:execute-skill` 已支持 `input`、`artifactIds`、`referenceIds`
-- skill 执行返回里现在会显式带上 `continuation` payload，调用方可以拿到明确恢复入口
+- `agent:execute-skill` 作为兼容入口返回 skill payload 与 continuation payload
 
 当前产品层仍有缺口：
 
@@ -383,21 +385,20 @@ Agent runtime 已作为 `@orison/desktop-agent` 库内嵌于桌面主进程。
 
 ## 嵌套执行链改造（2026-05-23）
 
-本轮重点完善了"agent 自动召唤 skill / subagent"这条链路的运行时边界,使 LLM 可以像 Claude Code 那样自然地嵌套调用:
+本轮重点完善了 agent 自动调用 skill / subagent 的运行时边界:
 
-- **`skill` 工具改为本地工具** — 在 ToolContext 中通过 `SkillExecutorRef` 直连 `WorkflowRuntime`,可在嵌套 runLoop 中继续递归触发其它 skill。
+- **`skill` 工具改为本地内容加载工具** — 在 ToolContext 中通过 `SkillExecutorRef` 直连 `WorkflowRuntime`，按精确名称返回 `SKILL.md` 内容和资源清单。
 - **`spawn_agent` 工具新增** — 在 `runChildAgent` 中创建子会话并跑独立 runLoop,子代理拿到完整工具集 + 父会话的全部能力。
 - **子代理定义文件** — 按 `.orison/agents/<role>.md` → `.claude/agents/<role>.md` → 外部 root 顺序加载 frontmatter + 正文,作为子会话 system prompt 的前置段。
 - **嵌套消息回流** — `RuntimeEventPayload` 新增 `child` 变种,`ChildStreamEvent` 携带 `source` / `role` / `depth` / 内部事件;UI `agentSlice` 已加 `case 'child'`,带 `[subagent:role:dN]` 前缀渲染。
-- **abort 信号串联** — `SkillExecutorInvokeOptions { abort, spawnDepth, emitChildEvent }` 沿调用栈下传,外层取消立刻终止所有嵌套 runLoop。
+- **abort 信号串联** — 外层取消会传递到子代理 runLoop。
 - **递归深度兜底** — `MAX_SPAWN_DEPTH = 5` + `SpawnDepthExceededError`,任意 skill 或 spawn_agent 嵌套超过 5 层直接拒绝。
-- **executePrompt 升级** — 之前是单次 generate 直接调用 LLM,现在改为运行完整 runLoop,允许 skill 步骤内 LLM 继续调用工具。
-- **buildRuntimeSystemPrompt 多 root 扫描** — 系统提示同时列出项目内 skill、`externalSkillRoots`、`.orison/agent.runtime.json` 配置的 root,并按 `required` / `optional` 分组,鼓励 LLM 主动识别并调用。
+- **buildRuntimeSystemPrompt 多 root 扫描** — 系统提示同时列出项目内 skill、`externalSkillRoots`、`.orison/agent.runtime.json` 配置的 root，并只暴露 metadata。
 
 ### 已知未处理
 
 - 子代理的 `model` / `tools` frontmatter 字段当前只做解析,未实际接入 model gateway 路由 / tool registry 收紧。
-- `skill` 工具调用产生的 pending 确认现已经 `emitConfirmation` 通道发成 `confirm_required`(2026-06-19 修复);嵌套 child 事件仍只透传 assistant / tool 两类,subagent 内部的 confirm 需后续按需扩展。
+- `skill` 工具不执行 workflow，因此不会自身产生 pending confirmation；普通工具确认仍走 runtime permission / confirmation 流。
 - Agent Panel UI 对 `child` 事件的渲染是基础的角标版本,尚未做嵌套树状折叠展示。
 
 ### 会话内模型切换(2026-06-19)
@@ -408,6 +409,6 @@ Agent runtime 已作为 `@orison/desktop-agent` 库内嵌于桌面主进程。
 - **运行中切换** — 不再静默拒绝;记录到 `session.pendingModelRef`(内存,不持久化),下一轮 `streamMessage` / `sendMessage` 开始时(读 `modelRef` 之前)apply 并清空,避免污染 in-flight generate。`setSessionModel` 返回 `true` 表示已受理。
 - **前端反馈** — `setAgentModelRef` await `agent:set-session-model` 的 `{ ok }`,失败(如会话不存在)时回滚下拉并经 `agentError` 提示,不再「显示新模型却用旧的」。模型下拉在生成中不再禁用(切换会排队到下一轮)。
 
-### Skill reference 注入(2026-06-19)
+### Skill resource 读取(2026-07-06)
 
-修复「调用 skill 读不到 `_reference`」:此前 reference 被解析后只存进 run-state 快照、从不进 prompt。现在 `executePrompt` 会把 `context.skillContext.resolvedReferences` 注入 prompt;`load_reference` 默认 `full`(原 `summary` 截 ~3 行);目录扫描与链接正则兼容 `references/`、`reference/`、`_reference/`;未被链接的目录型引用自动补 `load_reference` 节点。详见上文「Reference 资料注入」。
+`references/`、`reference/`、`_reference/`、`scripts/`、`assets/` 会作为资源清单出现在 skill payload 中。资源内容不会自动注入上下文；模型必须在 skill 指令要求时调用 `skill_resource_read`，且只能读取该 skill 目录内已登记资源。

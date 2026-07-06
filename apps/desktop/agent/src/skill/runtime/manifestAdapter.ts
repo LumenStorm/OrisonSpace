@@ -11,6 +11,10 @@ interface ManifestSkillShape {
   entry?: string;
   references?: string[];
   scripts?: string[];
+  assets?: string[];
+  allowedTools?: string[];
+  visibility?: 'visible' | 'hidden';
+  permission?: 'readonly' | 'suggest' | 'auto';
 }
 
 export async function loadManifestSkill(manifestPath: string): Promise<NormalizedSkill> {
@@ -28,5 +32,9 @@ export async function loadManifestSkill(manifestPath: string): Promise<Normalize
     workflowMode: manifest.workflowMode ?? 'prompt',
     references: manifest.references ?? [],
     scripts: manifest.scripts ?? [],
+    assets: manifest.assets ?? [],
+    allowedTools: manifest.allowedTools,
+    visibility: manifest.visibility,
+    permission: manifest.permission,
   });
 }

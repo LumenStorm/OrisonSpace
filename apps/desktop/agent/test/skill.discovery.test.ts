@@ -1,75 +1,74 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('skill discovery', () => {
-  let root = '';
+describe('skill catalog visibility', () => {
+  let projectPath = '';
+  let homePath = '';
 
   beforeEach(() => {
-    root = mkdtempSync(path.join(os.tmpdir(), 'orison-skill-discovery-'));
+    projectPath = mkdtempSync(path.join(os.tmpdir(), 'orison-skill-catalog-'));
+    homePath = mkdtempSync(path.join(os.tmpdir(), 'orison-skill-home-'));
+    vi.doMock('node:os', async () => {
+      const actual = await vi.importActual<typeof import('node:os')>('node:os');
+      return {
+        ...actual,
+        default: {
+          ...actual.default,
+          homedir: () => homePath,
+        },
+        homedir: () => homePath,
+      };
+    });
   });
 
   afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(projectPath, { recursive: true, force: true });
+    rmSync(homePath, { recursive: true, force: true });
     vi.resetModules();
   });
 
-  it('discovers both directory and manifest skills from one root', async () => {
-    const skillsDir = path.join(root, 'skills');
-    const directorySkillDir = path.join(skillsDir, 'outline-builder');
-    const manifestSkillDir = path.join(skillsDir, 'scene-expander');
-    mkdirSync(directorySkillDir, { recursive: true });
-    mkdirSync(manifestSkillDir, { recursive: true });
+  it('hides disabled individual skills from listing and execution catalog', async () => {
+    const pkg = path.join(projectPath, '.orison', 'story-tools');
+    const root = path.join(pkg, 'skills');
+    const enabledSkill = path.join(root, 'enabled-skill');
+    const disabledSkill = path.join(root, 'disabled-skill');
+    mkdirSync(enabledSkill, { recursive: true });
+    mkdirSync(disabledSkill, { recursive: true });
 
-    writeFileSync(path.join(directorySkillDir, 'SKILL.md'), `---
-name: outline-builder
-description: Prepare project context
----
+    writeFileSync(path.join(enabledSkill, 'SKILL.md'), [
+      '---',
+      'name: enabled-skill',
+      'description: Enabled skill visible to the agent',
+      '---',
+      'Enabled body.',
+    ].join('\n'), 'utf-8');
+    writeFileSync(path.join(disabledSkill, 'SKILL.md'), [
+      '---',
+      'name: disabled-skill',
+      'description: Disabled skill hidden from the agent',
+      '---',
+      'Disabled body.',
+    ].join('\n'), 'utf-8');
 
-Prepare the context for a long-form writing run.
-`, 'utf-8');
-
-    writeFileSync(path.join(manifestSkillDir, 'skill.json'), JSON.stringify({
-      name: 'scene-expander',
-      description: 'Expand scenes',
-      prompt: 'Expand the scenes.',
-      workflowMode: 'inline',
+    mkdirSync(path.join(homePath, '.orison'), { recursive: true });
+    writeFileSync(path.join(homePath, '.orison', 'skills.json'), JSON.stringify({
+      packages: {
+        'story-tools': {
+          enabled: true,
+          disabledSkills: ['disabled-skill'],
+        },
+      },
     }, null, 2), 'utf-8');
 
-    const { discoverSkills } = await import('../src/skill/discovery');
-    const skills = await discoverSkills(skillsDir);
+    const { buildSkillCatalog } = await import('../src/skill/catalog');
+    const catalog = await buildSkillCatalog(projectPath);
+    const names = catalog.skills.map((skill) => skill.name);
 
-    expect(skills.map((skill) => skill.name).sort()).toEqual(['outline-builder', 'scene-expander']);
-  });
-
-  it('excludes oh-story blocked skills from discovery', async () => {
-    const skillsDir = path.join(root, 'skills');
-    const blockedDir = path.join(skillsDir, 'story-setup');
-    const okDir = path.join(skillsDir, 'scene-expander');
-    mkdirSync(blockedDir, { recursive: true });
-    mkdirSync(okDir, { recursive: true });
-
-    // `story-setup` is in oh-story's BLOCKED_SKILLS — it must neither be listed
-    // nor (elsewhere) registered, so the prompt never invites an uncallable skill.
-    writeFileSync(path.join(blockedDir, 'SKILL.md'), `---
-name: story-setup
-description: Prepare project context
----
-
-Prepare the context.
-`, 'utf-8');
-
-    writeFileSync(path.join(okDir, 'skill.json'), JSON.stringify({
-      name: 'scene-expander',
-      description: 'Expand scenes',
-      prompt: 'Expand the scenes.',
-      workflowMode: 'inline',
-    }, null, 2), 'utf-8');
-
-    const { discoverSkills } = await import('../src/skill/discovery');
-    const skills = await discoverSkills(skillsDir);
-
-    expect(skills.map((skill) => skill.name).sort()).toEqual(['scene-expander']);
+    expect(names).toContain('enabled-skill');
+    expect(names).not.toContain('disabled-skill');
+    expect(catalog.byName.has('enabled-skill')).toBe(true);
+    expect(catalog.byName.has('disabled-skill')).toBe(false);
   });
 });

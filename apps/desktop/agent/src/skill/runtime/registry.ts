@@ -2,44 +2,83 @@ import type { NormalizedSkill } from '../types';
 
 export class SkillRegistry {
   private readonly skills = new Map<string, NormalizedSkill>();
+  private readonly scopedSkills = new Map<string, Map<string, NormalizedSkill>>();
+  private readonly scopedManagedNames = new Map<string, Set<string>>();
 
-  register(skill: NormalizedSkill): void {
-    this.skills.set(skill.name, skill);
+  register(skill: NormalizedSkill, scope?: string): void {
+    this.mapForScope(scope).set(skill.name, skill);
   }
 
-  registerMany(skills: NormalizedSkill[]): void {
+  registerMany(skills: NormalizedSkill[], scope?: string): void {
     for (const skill of skills) {
-      this.register(skill);
+      this.register(skill, scope);
     }
   }
 
-  list(): NormalizedSkill[] {
-    return [...this.skills.values()];
+  replaceAll(skills: NormalizedSkill[], scope?: string): void {
+    const next = new Map(skills.map((skill) => [skill.name, skill]));
+    if (!scope) {
+      this.skills.clear();
+      for (const [name, skill] of next) {
+        this.skills.set(name, skill);
+      }
+      return;
+    }
+    const managedNames = this.scopedManagedNames.get(scope) ?? new Set<string>();
+    for (const name of next.keys()) {
+      managedNames.add(name);
+    }
+    this.scopedManagedNames.set(scope, managedNames);
+    this.scopedSkills.set(scope, next);
   }
 
-  get(name: string): NormalizedSkill | undefined {
+  list(scope?: string): NormalizedSkill[] {
+    if (!scope) {
+      return [...this.skills.values()];
+    }
+    const managedNames = this.scopedManagedNames.get(scope) ?? new Set<string>();
+    const scoped = this.scopedSkills.get(scope) ?? new Map<string, NormalizedSkill>();
+    const merged = new Map(
+      [...this.skills].filter(([name]) => !managedNames.has(name) || scoped.has(name)),
+    );
+    for (const [name, skill] of scoped) {
+      if (!merged.has(name)) {
+        merged.set(name, skill);
+      }
+    }
+    return [...merged.values()];
+  }
+
+  get(name: string, scope?: string): NormalizedSkill | undefined {
+    if (scope) {
+      const scoped = this.scopedSkills.get(scope);
+      const skill = scoped?.get(name);
+      const defaultSkill = this.skills.get(name);
+      if (skill) return defaultSkill ?? skill;
+      if (this.scopedManagedNames.get(scope)?.has(name)) return undefined;
+      return defaultSkill;
+    }
     return this.skills.get(name);
   }
 
-  resolveByTrigger(trigger: string): NormalizedSkill | undefined {
-    const exact = this.skills.get(trigger);
-    if (exact) return exact;
-    // Prefer skill whose name is a substring of the trigger (e.g. trigger
-    // "story-long" matches skill "story-long-write" is wrong; but skill name
-    // "story-long" inside trigger "story-long-write" is fine). Pick the longest
-    // matching name to avoid short names acting as catch-alls.
-    let best: NormalizedSkill | undefined;
-    for (const skill of this.skills.values()) {
-      if (trigger.includes(skill.name) || skill.name.includes(trigger)) {
-        if (!best || skill.name.length > best.name.length) {
-          best = skill;
-        }
-      }
-    }
-    return best;
+  resolveByTrigger(trigger: string, scope?: string): NormalizedSkill | undefined {
+    return this.get(trigger, scope);
   }
 
-  has(name: string): boolean {
-    return this.skills.has(name);
+  has(name: string, scope?: string): boolean {
+    return this.get(name, scope) !== undefined;
+  }
+
+  private mapForScope(scope?: string): Map<string, NormalizedSkill> {
+    if (!scope) {
+      return this.skills;
+    }
+    const existing = this.scopedSkills.get(scope);
+    if (existing) {
+      return existing;
+    }
+    const created = new Map<string, NormalizedSkill>();
+    this.scopedSkills.set(scope, created);
+    return created;
   }
 }

@@ -5,6 +5,14 @@ import type { SummarizationGenerateFn } from '../context/summarizer';
 import type { PinnedContextItem } from '../context/pinnedContext';
 import { prepareContext, createDefaultContextState } from '../context/contextManager';
 import { logger } from '../logger';
+import { assertToolAllowed, filterToolsForPolicy, type SessionPermissionMode } from '../runtime/toolPolicy';
+import { appendToolDescriptions } from '../prompt/render';
+
+interface ActiveSkillMetadata {
+  name?: string;
+  allowedTools?: string[];
+  permission?: SessionPermissionMode;
+}
 
 export interface LoopOptions {
   sessionId: string;
@@ -24,6 +32,7 @@ export interface LoopOptions {
   spawnDepth?: number;
   emitChildEvent?: (event: ChildStreamEvent) => void;
   emitConfirmation?: (pending: import('../types').PendingConfirmationState) => void;
+  permissionMode?: SessionPermissionMode;
   contextState?: ContextState;
   pinnedContext?: PinnedContextItem[];
   onContextStateUpdate?: (state: ContextState) => void;
@@ -37,6 +46,9 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
   let contextState = opts.contextState ?? createDefaultContextState();
   let consecutiveLengthHits = 0;
   let consecutiveToolErrors = 0;
+  const initialActiveSkill = await resolveLatestActiveSkillMetadata(opts, readLatestActiveSkillMetadata(opts.messages));
+  let activeSkillAllowedTools: string[] | undefined = initialActiveSkill?.allowedTools;
+  let activeSkillPermission: SessionPermissionMode | undefined = initialActiveSkill?.permission;
   const MAX_CONSECUTIVE_TOOL_ERRORS = 3;
 
   // Snapshot the base messages at entry — `opts.messages` may be a live reference
@@ -54,11 +66,19 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
     throwIfAborted(abort);
     steps++;
 
+    const visibleTools = filterToolsForPolicy({
+      tools,
+      sessionMode: opts.permissionMode,
+      activeSkillAllowedTools,
+      activeSkillPermission,
+    });
+    const effectiveSystemPrompt = appendToolDescriptions(systemPrompt, visibleTools);
+
     // --- Context management: check budget and compact if needed ---
     let allMessages = [...baseMessages, ...result];
 
     const prepared = await prepareContext({
-      systemPrompt,
+      systemPrompt: effectiveSystemPrompt,
       messages: allMessages,
       contextState,
       pinnedContext: opts.pinnedContext,
@@ -88,8 +108,8 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
 
     const response = await generate(
       allMessages,
-      systemPrompt,
-      tools,
+      effectiveSystemPrompt,
+      visibleTools,
       abort,
       cacheConfig,
     );
@@ -152,7 +172,25 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
     }
 
     const toolMessages = await Promise.all(response.toolCalls.map(async (call) => {
-      const tool = tools.find(t => t.id === call.name);
+      try {
+        assertToolAllowed({
+          toolName: call.name,
+          sessionMode: opts.permissionMode,
+          activeSkillAllowedTools,
+          activeSkillPermission,
+        });
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return {
+          id: randomUUID(),
+          role: 'tool' as const,
+          content: `Error: ${errMsg}`,
+          toolResults: [{ toolCallId: call.id, toolName: call.name, output: `Error: ${errMsg}` }],
+          createdAt: Date.now(),
+        };
+      }
+
+      const tool = visibleTools.find(t => t.id === call.name);
       if (!tool) {
         return {
           id: randomUUID(),
@@ -219,6 +257,13 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       result.push(toolMsg);
       onMessage?.(toolMsg);
       if (_terminal) terminal = true;
+      for (const toolResult of toolMsg.toolResults ?? []) {
+        const nextActiveSkill = readActiveSkillMetadata(toolResult.metadata);
+        if (nextActiveSkill) {
+          activeSkillAllowedTools = nextActiveSkill.allowedTools;
+          activeSkillPermission = nextActiveSkill.permission;
+        }
+      }
     }
 
     // 检测连续 tool 错误：所有 tool 结果都是 Error 开头则计数
@@ -241,6 +286,51 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
   }
 
   return result;
+}
+
+async function resolveLatestActiveSkillMetadata(opts: LoopOptions, metadata: ActiveSkillMetadata | undefined): Promise<ActiveSkillMetadata | undefined> {
+  if (!metadata?.name || !opts.skillExecutor?.loadSkill) {
+    return metadata;
+  }
+  const skill = await opts.skillExecutor.loadSkill(opts.sessionId, metadata.name);
+  if (!skill) {
+    return undefined;
+  }
+  return {
+    name: skill.name,
+    allowedTools: skill.allowedTools,
+    permission: skill.permission,
+  };
+}
+
+function readLatestActiveSkillMetadata(messages: SessionMessage[]): ActiveSkillMetadata | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role !== 'tool') continue;
+    for (let resultIndex = (message.toolResults?.length ?? 0) - 1; resultIndex >= 0; resultIndex -= 1) {
+      const activeSkill = readActiveSkillMetadata(message.toolResults?.[resultIndex]?.metadata);
+      if (activeSkill) return activeSkill;
+    }
+  }
+  return undefined;
+}
+
+function readActiveSkillMetadata(metadata: Record<string, unknown> | undefined): ActiveSkillMetadata | undefined {
+  const activeSkill = metadata?.activeSkill;
+  if (!activeSkill || typeof activeSkill !== 'object') return undefined;
+  const name = (activeSkill as { name?: unknown }).name;
+  const allowedTools = (activeSkill as { allowedTools?: unknown }).allowedTools;
+  const permission = (activeSkill as { permission?: unknown }).permission;
+  const normalizedPermission = permission === 'readonly' || permission === 'suggest' || permission === 'auto'
+    ? permission
+    : undefined;
+  return {
+    allowedTools: Array.isArray(allowedTools)
+      ? allowedTools.filter((tool): tool is string => typeof tool === 'string')
+      : undefined,
+    name: typeof name === 'string' ? name : undefined,
+    permission: normalizedPermission,
+  };
 }
 
 function throwIfAborted(abort: AbortSignal): void {

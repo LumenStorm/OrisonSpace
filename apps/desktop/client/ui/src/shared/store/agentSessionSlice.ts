@@ -1,9 +1,10 @@
 import type { StateCreator } from 'zustand';
 import type { ModelRef } from '@orison/shared-contracts';
 import type { AgentMode } from './types';
-import type { Attachment, SelectionAnchor } from '../types/attachment';
+import type { Attachment } from '../types/attachment';
 import type { PendingDiff } from './agentDiffSlice';
 import { WRITE_TOOLS } from './agentDiffSlice';
+import { recoverSelectionAnchorFromMessages } from './passageAnchor';
 import {
   createAgentSession,
   fetchAgentSession,
@@ -28,32 +29,6 @@ function readPersistedMode(): AgentMode {
 }
 
 export type { AgentMessage, AgentSessionMeta };
-
-/**
- * The runtime echoes passage metadata without the original `SelectionAnchor`
- * (the anchor is UI-captured and never round-trips through the LLM tool call).
- * Recover it from the session's sent selection references so passage relocation
- * can use prefix/suffix context to disambiguate duplicate matches. Most recent
- * matching selection wins. Match on the exact quote, scoped to the same source.
- */
-function recoverAnchor(
-  messages: AgentMessage[],
-  originalText: string,
-  chapterId: string | undefined,
-  filePath: string | undefined,
-): SelectionAnchor | undefined {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const refs = messages[i].references;
-    if (!refs) continue;
-    for (const ref of refs) {
-      if (ref.type !== 'selection') continue;
-      const sameSource = chapterId ? ref.chapterId === chapterId : filePath ? ref.filePath === filePath : true;
-      if (!sameSource) continue;
-      if (ref.anchor.quote === originalText || ref.text === originalText) return ref.anchor;
-    }
-  }
-  return undefined;
-}
 
 let activeAbort: { cleanup: () => void; sessionId: string } | null = null;
 
@@ -284,7 +259,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
                 if (!originalText || meta.replacement == null) continue;
                 // Backfill the anchor from the sent selection when the runtime omits it,
                 // so passage relocation can disambiguate duplicate matches.
-                const anchor = meta.anchor ?? recoverAnchor(get().agentMessages, originalText, meta.chapterId, meta.filePath);
+                const anchor = meta.anchor ?? recoverSelectionAnchorFromMessages(get().agentMessages, originalText, meta.chapterId, meta.filePath);
                 set((s) => ({
                   pendingDiffs: [...s.pendingDiffs, {
                     kind: 'passage',

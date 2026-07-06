@@ -1,10 +1,16 @@
+/**
+ * Legacy manifest workflow executor.
+ *
+ * Standard directory SKILL.md files are OpenCode-style prompt skills and must
+ * not be compiled into this executor. Keep this only for explicit manifest
+ * workflows until those are removed or redesigned.
+ */
 import type { ChildStreamEvent, PendingConfirmationState } from '../../types';
 import { MAX_SPAWN_DEPTH, SpawnDepthExceededError } from '../../types';
 import type { NormalizedSkill, WorkflowStep } from '../types';
 import type { SkillRuntimeContext } from '../../context/builder';
 import { SkillRegistry } from './registry';
 import { createSkillRunState, type PendingSkillUserAction, type SkillRunState } from '../../runtime/skillRunState';
-import { isOhStoryRouterPrompt, resolveOhStoryRoute } from './ohStoryAdapter';
 import {
   executeAskUserNode,
   executeCheckpointNode,
@@ -23,6 +29,8 @@ export interface WorkflowExecutionContext {
   spawnDepth?: number;
   /** Nesting depth of skill→skill delegation; guards against cyclic skill graphs. */
   skillDepth?: number;
+  /** Registry scope used to resolve project-local hot-pluggable skills. */
+  skillScope?: string;
   emitChildEvent?: (event: ChildStreamEvent) => void;
   suppressSpawnAgent?: boolean;
   suppressAllTools?: boolean;
@@ -66,7 +74,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
       }
       // Context handed to any nested skill execution — one level deeper.
       const nestedSkillContext: WorkflowExecutionContext = { ...context, skillDepth: skillDepth + 1 };
-      const skill = requireSkill(options.registry, skillName);
+      const skill = requireSkill(options.registry, skillName, context);
       const outputs: string[] = [];
       const checkpoints: string[] = [];
       const pendingConfirmations: PendingConfirmationState[] = [];
@@ -80,33 +88,6 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
         if (!raw.currentNodeId && !raw.pendingUserAction) return undefined;
         return raw;
       })();
-
-      if (skill.name === 'story' && skill.workflow?.steps?.length === 1) {
-        const promptStep = skill.workflow.steps[0];
-        if (promptStep?.type === 'prompt' && isOhStoryRouterPrompt(promptStep.content)) {
-          const routedSkill = resolveOhStoryRoute(context.input);
-          const nestedResult = await this.executeSkill(routedSkill, nestedSkillContext);
-          outputs.push(...nestedResult.outputs);
-          checkpoints.push(...nestedResult.checkpoints);
-          pendingConfirmations.push(...nestedResult.pendingConfirmations);
-          nested.push({ skill: routedSkill, status: nestedResult.status });
-          return {
-            skill: skill.name,
-            status: 'completed',
-            outputs,
-            checkpoints,
-            pendingConfirmations,
-            nested,
-            skillRunState: createSkillRunState({
-              skill: skill.name,
-              completedNodeIds: skill.workflow.steps.map((step) => step.id),
-              loadedReferenceKeys: nestedResult.skillRunState?.loadedReferenceKeys ?? [],
-              resolvedReferences: nestedResult.skillRunState?.resolvedReferences ?? context.skillContext?.resolvedReferences ?? [],
-              referenceCache: nestedResult.skillRunState?.referenceCache ?? context.skillContext?.referenceCache,
-            }),
-          };
-        }
-      }
 
       if (skill.compiledPlan && !(skill.name === 'story' && skill.workflow?.steps?.length)) {
         const completedNodeIds = new Set(priorRunState?.completedNodeIds ?? []);
@@ -253,7 +234,7 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
             break;
           }
           case 'skill': {
-            const nestedSkill = requireSkill(options.registry, step.skill);
+            const nestedSkill = requireSkill(options.registry, step.skill, nestedSkillContext);
             const nestedResult = await this.executeSkill(nestedSkill.name, nestedSkillContext);
             outputs.push(...nestedResult.outputs);
             checkpoints.push(...nestedResult.checkpoints);
@@ -283,8 +264,8 @@ export function createWorkflowExecutor(options: WorkflowExecutorOptions): Workfl
   };
 }
 
-function requireSkill(registry: SkillRegistry, skillName: string): NormalizedSkill {
-  const skill = registry.get(skillName);
+function requireSkill(registry: SkillRegistry, skillName: string, context: WorkflowExecutionContext): NormalizedSkill {
+  const skill = registry.get(skillName, context.skillScope);
   if (!skill) {
     throw new Error(`skill "${skillName}" not found`);
   }

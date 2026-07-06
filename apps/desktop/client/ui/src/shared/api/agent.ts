@@ -52,8 +52,9 @@ export type AgentSkillInfo = {
 
 export async function createAgentSession(projectPath: string, mode?: AgentMode, modelRef?: ModelRef | null) {
   return api.createAgentSession({
-    agentName: mode ?? 'writer',
+    agentName: 'writer',
     projectPath,
+    mode: mode ?? 'suggest',
     modelRef: modelRef ?? undefined,
   }) as Promise<{ id: string; agentName: string; projectPath: string; status: string; messages: AgentMessage[] }>;
 }

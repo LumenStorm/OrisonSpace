@@ -20,7 +20,7 @@ describe('skill runtime bootstrap', () => {
     vi.resetModules();
   });
 
-  it('loads skills from the project skill root and executes one by name', async () => {
+  it('loads skills from the project skill root and returns one by name', async () => {
     const skillsDir = path.join(projectPath, '.orison', 'skills');
     const skillDir = path.join(skillsDir, 'story-setup');
     mkdirSync(skillDir, { recursive: true });
@@ -35,11 +35,12 @@ describe('skill runtime bootstrap', () => {
     }, null, 2), 'utf-8');
 
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const generate = vi.fn(async () => ({
+      content: 'generated: project story context',
+      finishReason: 'stop',
+    }));
     const runtime = createWorkflowRuntime({
-      generate: vi.fn(async () => ({
-        content: 'generated: project story context',
-        finishReason: 'stop',
-      })),
+      generate,
     });
 
     const session = runtime.createSession({
@@ -54,11 +55,13 @@ describe('skill runtime bootstrap', () => {
     expect(result).toMatchObject({
       skill: 'story-setup',
       status: 'completed',
-      outputs: ['generated: project story context'],
     });
+    expect(result.outputs[0]).toContain('# Skill: story-setup');
+    expect(result.outputs[0]).toContain('Prepare the story context.');
+    expect(generate).not.toHaveBeenCalled();
   });
 
-  it('loads skills from explicit external roots and executes one by name', async () => {
+  it('loads skills from explicit external roots and returns one by name', async () => {
     const externalSkillDir = path.join(externalSkillsRoot, 'scene-expander');
     mkdirSync(externalSkillDir, { recursive: true });
 
@@ -72,12 +75,13 @@ describe('skill runtime bootstrap', () => {
     }, null, 2), 'utf-8');
 
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const generate = vi.fn(async () => ({
+      content: 'generated: external scene expansion',
+      finishReason: 'stop',
+    }));
     const runtime = createWorkflowRuntime({
       externalSkillRoots: [externalSkillsRoot],
-      generate: vi.fn(async () => ({
-        content: 'generated: external scene expansion',
-        finishReason: 'stop',
-      })),
+      generate,
     });
 
     const session = runtime.createSession({
@@ -92,11 +96,13 @@ describe('skill runtime bootstrap', () => {
     expect(result).toMatchObject({
       skill: 'scene-expander',
       status: 'completed',
-      outputs: ['generated: external scene expansion'],
     });
+    expect(result.outputs[0]).toContain('# Skill: scene-expander');
+    expect(result.outputs[0]).toContain('Expand the external scene.');
+    expect(generate).not.toHaveBeenCalled();
   });
 
-  it('executes prompt skills through generate instead of echoing raw prompt text', async () => {
+  it('loads prompt skill content without executing it through generate', async () => {
     const skillsDir = path.join(projectPath, '.orison', 'skills');
     const skillDir = path.join(skillsDir, 'story-setup');
     mkdirSync(skillDir, { recursive: true });
@@ -127,11 +133,12 @@ describe('skill runtime bootstrap', () => {
     expect(result).toMatchObject({
       skill: 'story-setup',
       status: 'completed',
-      outputs: ['generated: story setup result'],
     });
+    expect(result.outputs[0]).toContain('# Skill: story-setup');
+    expect(result.outputs[0]).toContain('Prepare the story context.');
   });
 
-  it('adapts the oh-story compatible subset from an external root and routes the story wrapper', async () => {
+  it('exposes authored story skill names without hardcoded wrapper routing', async () => {
     const storyDir = path.join(externalSkillsRoot, 'story');
     mkdirSync(storyDir, { recursive: true });
     writeFileSync(path.join(storyDir, 'SKILL.md'), `---
@@ -203,8 +210,9 @@ description: 短篇拆文
     expect(result).toMatchObject({
       skill: 'story',
       status: 'completed',
-      outputs: ['generated: long-form writing result'],
     });
+    expect(result.outputs[0]).toContain('# Skill: story');
+    expect(result.outputs[0]).toContain('根据用户需求自动路由到对应 skill。');
 
     const analysisResult = await runtime.executeSkillByName(session.id, 'story', {
       input: '帮我拆短篇，分析这个故事',
@@ -212,11 +220,12 @@ description: 短篇拆文
     expect(analysisResult).toMatchObject({
       skill: 'story',
       status: 'completed',
-      outputs: ['generated: short-form analysis result'],
     });
+    expect(analysisResult.outputs[0]).toContain('# Skill: story');
+    expect(generate).not.toHaveBeenCalled();
   });
 
-  it('does not restore prior skill run state into a different skill context', async () => {
+  it('does not create workflow run state when loading a skill by name', async () => {
     const skillsDir = path.join(projectPath, '.orison', 'skills');
     const setupDir = path.join(skillsDir, 'story-setup');
     const reviewDir = path.join(skillsDir, 'story-review');
@@ -256,7 +265,7 @@ description: 短篇拆文
     await runtime.executeSkillByName(session.id, 'story-setup');
 
     const setupContext = runtime.buildSkillContext(session.id, 'story-setup');
-    expect(setupContext.skillRunState?.skill).toBe('story-setup');
+    expect(setupContext.skillRunState).toBeUndefined();
 
     const reviewContext = runtime.buildSkillContext(session.id, 'story-review');
     expect(reviewContext.skillRunState).toBeUndefined();

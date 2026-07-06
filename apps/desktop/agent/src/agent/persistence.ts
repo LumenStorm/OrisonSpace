@@ -14,6 +14,7 @@ import type { SerializedSkillRunState } from '../runtime/skillRunState';
 import type { ContextState } from '../context/contextManager';
 import type { PinnedContextItem } from '../context/pinnedContext';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
+import type { SessionPermissionMode } from '../runtime/toolPolicy';
 
 let Database: any = null;
 try {
@@ -217,6 +218,7 @@ export interface SessionMetaState {
   agentName: string;
   projectPath: string;
   status: SessionState['status'];
+  permissionMode?: SessionPermissionMode;
   modelRef?: { keyId: string; modelId: string };
   parentId?: string;
   children: string[];
@@ -244,6 +246,7 @@ function persistSessionMeta(session: SessionState): void {
     agentName: session.agentName,
     projectPath: session.projectPath,
     status: session.status,
+    permissionMode: session.permissionMode,
     modelRef: session.modelRef,
     parentId: session.parentId,
     children: session.children ?? [],

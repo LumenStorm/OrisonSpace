@@ -11,7 +11,11 @@ export interface NormalizeSkillInput {
   workflowMode?: SkillWorkflowMode;
   references?: string[];
   scripts?: string[];
+  assets?: string[];
   priority?: 'required' | 'optional';
+  allowedTools?: string[];
+  visibility?: 'visible' | 'hidden';
+  permission?: 'readonly' | 'suggest' | 'auto';
 }
 
 export function normalizeSkill(input: NormalizeSkillInput): NormalizedSkill {
@@ -26,8 +30,12 @@ export function normalizeSkill(input: NormalizeSkillInput): NormalizedSkill {
     assets: {
       references: normalizePaths(input.location, input.references ?? []),
       scripts: normalizePaths(input.location, input.scripts ?? []),
+      assets: normalizePaths(input.location, input.assets ?? []),
     },
     priority: input.priority,
+    allowedTools: input.allowedTools,
+    visibility: input.visibility,
+    permission: input.permission,
   };
 }
 

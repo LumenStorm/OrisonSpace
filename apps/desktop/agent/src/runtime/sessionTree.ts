@@ -1,11 +1,13 @@
 import { createSession, getSession } from '../agent/session';
 import { persistSession } from '../agent/persistence';
 import type { SessionMessage, SessionState } from '../types';
+import type { SessionPermissionMode } from './toolPolicy';
 
 export interface CreatePrimarySessionInput {
   agentName: string;
   projectPath: string;
   modelRef?: { keyId: string; modelId: string };
+  permissionMode?: SessionPermissionMode;
 }
 
 export interface CreateChildSessionInput {
@@ -24,6 +26,7 @@ export function createPrimarySession(input: CreatePrimarySessionInput): SessionS
     agentName: input.agentName,
     projectPath: input.projectPath,
     modelRef: input.modelRef,
+    permissionMode: input.permissionMode,
     sessionRole: 'primary',
     children: [],
   });
@@ -35,6 +38,7 @@ export function createChildSession(input: CreateChildSessionInput): SessionState
     agentName: input.agentName ?? parent.agentName,
     projectPath: parent.projectPath,
     modelRef: input.modelRef ?? parent.modelRef,
+    permissionMode: parent.permissionMode,
     parentId: parent.id,
     sessionRole: 'child',
     children: [],
@@ -66,6 +70,7 @@ export function forkSession(input: ForkSessionInput): SessionState {
     agentName: source.agentName,
     projectPath: source.projectPath,
     modelRef: source.modelRef,
+    permissionMode: source.permissionMode,
     messages: forkMessages,
     parentId: source.id,
     branchFromMessageId: input.branchFromMessageId,

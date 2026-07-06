@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { SessionState, SessionMessage, RetentionPriority } from '../types';
+import type { SessionPermissionMode } from '../runtime/toolPolicy';
 import { persistSession, appendMessageToFile, loadMessagesFromFile, deletePersistedSession, loadSessionMeta, overwriteMessagesFile } from './persistence';
 
 const MAX_CACHED_SESSIONS = 20;
@@ -38,6 +39,7 @@ export interface CreateSessionOptions {
   agentName: string;
   projectPath: string;
   modelRef?: { keyId: string; modelId: string };
+  permissionMode?: SessionPermissionMode;
   messages?: SessionMessage[];
   parentId?: string;
   children?: string[];
@@ -62,6 +64,7 @@ export function createSession(
     agentName: options.agentName,
     projectPath: options.projectPath,
     status: 'idle',
+    permissionMode: options.permissionMode ?? 'suggest',
     messages: options.messages ?? [],
     modelRef: options.modelRef,
     parentId: options.parentId,
@@ -96,6 +99,7 @@ export function loadSession(id: string, projectPath: string): SessionState | und
     agentName: meta?.agentName ?? 'writer',
     projectPath,
     status: meta?.status ?? 'idle',
+    permissionMode: meta?.permissionMode ?? 'suggest',
     messages,
     modelRef: meta?.modelRef,
     parentId: meta?.parentId,

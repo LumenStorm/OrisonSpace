@@ -4,6 +4,9 @@ export interface SkillInfo {
   location: string;
   content: string;
   priority?: 'required' | 'optional';
+  allowedTools?: string[];
+  visibility?: 'visible' | 'hidden';
+  permission?: 'readonly' | 'suggest' | 'auto';
 }
 
 import type { ExecutionPlan } from './runtime/executionPlan';
@@ -25,6 +28,7 @@ export interface WorkflowDefinition {
 export interface NormalizedSkillAssets {
   references: string[];
   scripts: string[];
+  assets?: string[];
 }
 
 export interface NormalizedSkill {
@@ -42,4 +46,7 @@ export interface NormalizedSkill {
   capabilities?: string[];
   rawSource?: string;
   priority?: 'required' | 'optional';
+  allowedTools?: string[];
+  visibility?: 'visible' | 'hidden';
+  permission?: 'readonly' | 'suggest' | 'auto';
 }

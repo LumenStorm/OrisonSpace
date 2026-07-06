@@ -1,19 +1,19 @@
 import { z } from 'zod';
 import { defineTool } from './define';
-import type { SkillExecutionResult } from '../types';
+import { renderSkillPayload } from '../skill/payload';
 
 export const skillTool = defineTool({
   id: 'skill',
-  description: 'Execute a skill workflow by name. The skill\'s instructions and reference files are loaded, its workflow runs to completion (or until a checkpoint), and the outputs / checkpoints / pending confirmations are returned. Use this whenever the user\'s request matches a skill\'s trigger keywords.',
+  description: 'Load a skill by exact name. Returns the full SKILL.md instructions and resource list into the conversation; continue the task using those instructions and explicit tools.',
   parameters: z.object({
-    name: z.string().describe('Name of the skill to execute (must match an entry in Available Skills)'),
-    input: z.string().optional().describe('Optional natural-language request to pass to the skill (e.g. user message, parameters)'),
+    name: z.string().describe('Exact name of the skill to load (must match an entry in Available Skills)'),
+    input: z.string().optional().describe('Optional note about why this skill is being loaded'),
   }),
   async execute(params, ctx) {
     if (!ctx.skillExecutor) {
       return {
         title: `skill: ${params.name ?? '(unknown)'}`,
-        output: 'Skill execution is unavailable in this context (no runtime bound).',
+        output: 'Skill loading is unavailable in this context (no runtime bound).',
       };
     }
 
@@ -38,35 +38,21 @@ export const skillTool = defineTool({
       };
     }
 
-    // 技能内部执行时禁止递归调用 skill，引导模型直接完成任务
-    if ((ctx.spawnDepth ?? 0) > 0) {
-      return {
-        title: `skill: ${params.name}`,
-        output: `You are already executing inside a skill. Do NOT call the skill tool again. Complete the task directly using the available tools (read_file, chapter_write, etc.).`,
-      };
-    }
-
     try {
-      const result = await ctx.skillExecutor.executeSkillByName(
-        ctx.sessionId,
-        params.name,
-        params.input,
-        {
-          abort: ctx.abort,
-          spawnDepth: ctx.spawnDepth ?? 0,
-          emitChildEvent: ctx.emitChildEvent,
-          emitConfirmation: ctx.emitConfirmation,
-        },
-      );
-      if (ctx.emitConfirmation) {
-        for (const pending of result.pendingConfirmations) {
-          ctx.emitConfirmation(pending as Parameters<NonNullable<typeof ctx.emitConfirmation>>[0]);
-        }
+      const skill = await ctx.skillExecutor.loadSkill?.(ctx.sessionId, params.name);
+      if (!skill) {
+        throw new Error(`skill "${params.name}" not found`);
       }
       return {
         title: `skill: ${params.name}`,
-        output: renderResult(result),
-        terminal: true,
+        output: renderSkillPayload(skill),
+        metadata: {
+          activeSkill: {
+            name: skill.name,
+            allowedTools: skill.allowedTools,
+            permission: skill.permission,
+          },
+        },
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -89,25 +75,8 @@ export const skillTool = defineTool({
       }
       return {
         title: `skill: ${params.name}`,
-        output: `Skill "${params.name}" failed: ${message}`,
+        output: `Skill "${params.name}" failed to load: ${message}`,
       };
     }
   },
 });
-
-function renderResult(result: SkillExecutionResult): string {
-  const sections: string[] = [];
-  if (result.outputs.length > 0) {
-    sections.push(result.outputs.join('\n\n'));
-  }
-  if (result.checkpoints.length > 0) {
-    sections.push(`Checkpoints: ${result.checkpoints.join(', ')}`);
-  }
-  if (result.pendingConfirmations.length > 0) {
-    sections.push(`Pending confirmations: ${result.pendingConfirmations.map((item) => item.name).join(', ')}`);
-  }
-  if (result.nested.length > 0) {
-    sections.push(`Nested skills invoked: ${result.nested.map((item) => item.skill).join(', ')}`);
-  }
-  return sections.join('\n\n') || `Skill "${result.skill}" completed.`;
-}

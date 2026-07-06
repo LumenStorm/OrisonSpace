@@ -3,6 +3,7 @@ import type { SelectionAnchor } from '../types/attachment';
 import { resolveAgentConfirmation } from '../api/agent';
 import { registerProjectReset } from './resetRegistry';
 import { normalizePath } from '../utils/paths';
+import { recoverSelectionAnchorFromMessages, type PassageAnchorMessage } from './passageAnchor';
 
 /** Whole-chapter rewrite (existing behaviour). Applied by replacing chapter content wholesale. */
 export type ChapterPendingDiff = {
@@ -101,6 +102,7 @@ type Deps = AgentDiffSlice & {
   currentProject: { path?: string } | null;
   novelChapters: { id: string; sections: { contentFile: string }[] }[];
   refreshWordCount?: () => Promise<void>;
+  agentMessages: PassageAnchorMessage[];
 };
 
 /**
@@ -159,17 +161,119 @@ function persistChapterContent(state: Deps, filePath: string, content: string): 
 
 // ── passage relocation helpers ──
 
-function findAllOccurrences(haystack: string, needle: string): number[] {
-  const out: number[] = [];
+type TextRange = { from: number; to: number };
+
+function findExactOccurrenceRanges(haystack: string, needle: string): TextRange[] {
+  const out: TextRange[] = [];
   if (!needle) return out;
   let from = 0;
   for (;;) {
     const idx = haystack.indexOf(needle, from);
     if (idx === -1) break;
-    out.push(idx);
+    out.push({ from: idx, to: idx + needle.length });
     from = idx + 1;
   }
   return out;
+}
+
+function normalizeLineEndingsWithMap(text: string): { text: string; starts: number[]; ends: number[] } {
+  const chars: string[] = [];
+  const starts: number[] = [];
+  const ends: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '\r') {
+      chars.push('\n');
+      starts.push(i);
+      if (text[i + 1] === '\n') {
+        ends.push(i + 2);
+        i++;
+      } else {
+        ends.push(i + 1);
+      }
+      continue;
+    }
+    chars.push(ch);
+    starts.push(i);
+    ends.push(i + 1);
+  }
+  return { text: chars.join(''), starts, ends };
+}
+
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n?/g, '\n');
+}
+
+function comparableText(text: string): string {
+  return normalizeLineEndings(text).replace(/\s+/g, '').trim();
+}
+
+function findLineEndingNormalizedRanges(haystack: string, needle: string): TextRange[] {
+  const normalizedNeedle = normalizeLineEndings(needle);
+  if (!normalizedNeedle || (normalizedNeedle === needle && haystack.indexOf(needle) !== -1)) return [];
+
+  const normalizedHaystack = normalizeLineEndingsWithMap(haystack);
+  const out: TextRange[] = [];
+  let from = 0;
+  for (;;) {
+    const idx = normalizedHaystack.text.indexOf(normalizedNeedle, from);
+    if (idx === -1) break;
+    const endIdx = idx + normalizedNeedle.length - 1;
+    const originalFrom = normalizedHaystack.starts[idx];
+    const originalTo = normalizedHaystack.ends[endIdx];
+    if (originalFrom != null && originalTo != null) {
+      out.push({ from: originalFrom, to: originalTo });
+    }
+    from = idx + 1;
+  }
+  return out;
+}
+
+function findAllOccurrenceRanges(haystack: string, needle: string): TextRange[] {
+  const exact = findExactOccurrenceRanges(haystack, needle);
+  if (exact.length > 0) return exact;
+  return findLineEndingNormalizedRanges(haystack, needle);
+}
+
+function locateExactText(content: string, text: string, anchor?: SelectionAnchor): LocateResult | null {
+  const occurrences = findAllOccurrenceRanges(content, text);
+
+  if (occurrences.length === 1) {
+    return { status: 'unique', from: occurrences[0].from, to: occurrences[0].to };
+  }
+
+  if (occurrences.length > 1) {
+    const scored = occurrences
+      .map((range) => ({ range, score: scoreOccurrence(content, range.from, range.to - range.from, anchor) }))
+      .sort((a, b) => b.score - a.score);
+    const [best, second] = scored;
+    // Clear winner only if an anchor produced a meaningfully higher score.
+    if (anchor && best.score - second.score >= 1) {
+      return { status: 'unique', from: best.range.from, to: best.range.to };
+    }
+    return {
+      status: 'ambiguous',
+      candidates: occurrences.map((range) => ({ from: range.from, to: range.to, excerpt: makeExcerpt(content, range.from, range.to) })),
+    };
+  }
+
+  return null;
+}
+
+function locateWholeDocumentRewrite(content: string, originalText: string): LocateResult | null {
+  const comparableContent = comparableText(content);
+  const comparableOriginal = comparableText(originalText);
+  if (comparableContent.length < 120 || comparableOriginal.length < 120) return null;
+
+  const shorter = Math.min(comparableContent.length, comparableOriginal.length);
+  const longer = Math.max(comparableContent.length, comparableOriginal.length);
+  const coverage = shorter / longer;
+  if (coverage < 0.85) return null;
+
+  const similarity = diceSimilarity(comparableContent, comparableOriginal);
+  if (similarity < 0.72) return null;
+
+  return { status: 'unique', from: 0, to: content.length };
 }
 
 function makeExcerpt(content: string, from: number, to: number, pad = 24): string {
@@ -236,27 +340,20 @@ function scoreOccurrence(content: string, idx: number, len: number, anchor?: Sel
  * - no exact match → not-found with best-effort fuzzy paragraph candidates
  */
 function locatePassage(content: string, originalText: string, anchor?: SelectionAnchor): LocateResult {
-  const occurrences = findAllOccurrences(content, originalText);
-  const len = originalText.length;
+  const originalMatch = locateExactText(content, originalText, anchor);
+  if (originalMatch) return originalMatch;
 
-  if (occurrences.length === 1) {
-    return { status: 'unique', from: occurrences[0], to: occurrences[0] + len };
+  // The model may echo a lightly edited/truncated originalText. The UI-captured
+  // selection anchor is the more trustworthy source when it still exists in the
+  // latest manuscript, so use it before falling back to fuzzy suggestions.
+  const anchorQuote = anchor?.quote;
+  if (anchorQuote && anchorQuote !== originalText) {
+    const anchorMatch = locateExactText(content, anchorQuote, anchor);
+    if (anchorMatch) return anchorMatch;
   }
 
-  if (occurrences.length > 1) {
-    const scored = occurrences
-      .map((idx) => ({ idx, score: scoreOccurrence(content, idx, len, anchor) }))
-      .sort((a, b) => b.score - a.score);
-    const [best, second] = scored;
-    // Clear winner only if an anchor produced a meaningfully higher score.
-    if (anchor && best.score - second.score >= 1) {
-      return { status: 'unique', from: best.idx, to: best.idx + len };
-    }
-    return {
-      status: 'ambiguous',
-      candidates: occurrences.map((idx) => ({ from: idx, to: idx + len, excerpt: makeExcerpt(content, idx, idx + len) })),
-    };
-  }
+  const wholeDocumentMatch = locateWholeDocumentRewrite(content, originalText);
+  if (wholeDocumentMatch) return wholeDocumentMatch;
 
   // No exact match — offer fuzzy paragraph candidates so the UI can highlight.
   const paragraphs: PassageCandidate[] = [];
@@ -325,7 +422,13 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
       return;
     }
 
-    const located = locatePassage(current, diff.originalText, diff.anchor);
+    const anchor = diff.anchor ?? recoverSelectionAnchorFromMessages(
+      state.agentMessages,
+      diff.originalText,
+      diff.chapterId,
+      diff.filePath,
+    );
+    const located = locatePassage(current, diff.originalText, anchor);
     if (located.status === 'unique') {
       applyPassage(state, diff.sourceType, diff.chapterId, diff.filePath, current, located.from, located.to, diff.replacement);
       set({ pendingDiffs: state.pendingDiffs.filter((d) => d.id !== id) });
@@ -465,4 +568,3 @@ async function restoreRejectedWrite(state: Deps, diff: ChapterPendingDiff): Prom
     try { await api.writeFile?.(absPath, previous); } catch { /* best effort */ }
   }
 }
-

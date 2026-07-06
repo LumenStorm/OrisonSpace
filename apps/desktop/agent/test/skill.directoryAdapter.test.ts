@@ -46,17 +46,12 @@ Call Skill("story-long-write") when the project is ready.
       name: 'story-setup',
       description: 'Prepare long-form story context\nwith structured workflow phases',
       entryPath: path.join(skillDir, 'SKILL.md'),
-      workflowMode: 'workflow',
+      workflowMode: 'prompt',
       rawSource: expect.stringContaining('## Phase 1'),
-      capabilities: expect.arrayContaining(['delegate_skill']),
     });
     expect(skill.assets.references).toEqual([path.join(skillDir, 'references', 'world.md')]);
     expect(skill.assets.scripts).toEqual([path.join(skillDir, 'scripts', 'bootstrap.ts')]);
-    expect(skill.compiledPlan?.nodes.map((node) => node.type)).toEqual(expect.arrayContaining([
-      'instruction',
-      'delegate_skill',
-      'finish',
-    ]));
+    expect(skill.compiledPlan).toBeUndefined();
   });
 
   it('catalogs reference files from _reference and reference directories too', async () => {
@@ -85,7 +80,6 @@ Do the thing.
       path.join(skillDir, '_reference', 'style.md'),
       path.join(skillDir, 'reference', 'lore.md'),
     ]));
-    // Unlinked reference files are auto-loaded so their content reaches the model.
-    expect(skill.compiledPlan?.nodes.filter((node) => node.type === 'load_reference')).toHaveLength(2);
+    expect(skill.compiledPlan).toBeUndefined();
   });
 });

@@ -2,9 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseSkillFile } from '../loader';
 import { normalizeSkill } from './normalize';
-import { compileDirectorySkill } from './compiler';
 import type { NormalizedSkill } from '../types';
-import type { CompiledSkill } from './compilerTypes';
 
 export async function loadDirectorySkill(skillDir: string): Promise<NormalizedSkill> {
   const entryPath = path.join(skillDir, 'SKILL.md');
@@ -21,46 +19,36 @@ export async function loadDirectorySkill(skillDir: string): Promise<NormalizedSk
     location: skillDir,
     entryPath,
     prompt: parsed.content,
-    workflowMode: 'workflow',
+    workflowMode: 'prompt',
     references: await collectReferenceFiles(skillDir),
     scripts: await collectFiles(path.join(skillDir, 'scripts')),
+    assets: await collectFiles(path.join(skillDir, 'assets')),
     priority: parsed.priority,
+    allowedTools: parsed.allowedTools,
+    visibility: parsed.visibility,
+    permission: parsed.permission,
   });
-
-  const compiled = compileDirectorySkill({
-    id: normalized.name,
-    name: normalized.name,
-    source: 'directory',
-    entryPath: normalized.entryPath,
-    location: normalized.location,
-    description: normalized.description,
-    rawPrompt: parsed.content,
-    references: normalized.assets.references,
-    scripts: normalized.assets.scripts,
-    capabilities: normalized.capabilities ?? [],
-    compiledPlan: normalized.compiledPlan ?? {
-      entryNodeId: 'finish',
-      nodes: [],
-      edges: [],
-    },
-    warnings: [],
-  } satisfies CompiledSkill);
 
   return {
     ...normalized,
     rawSource: parsed.content,
-    capabilities: compiled.capabilities,
-    compiledPlan: compiled.compiledPlan,
+    compiledPlan: undefined,
   };
 }
 
 async function collectFiles(dir: string): Promise<string[]> {
   try {
     const entries = await readdir(dir, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isFile())
-      .map((entry) => path.join(dir, entry.name))
-      .sort();
+    const files: string[] = [];
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...await collectFiles(fullPath));
+      } else if (entry.isFile()) {
+        files.push(fullPath);
+      }
+    }
+    return files.sort();
   } catch {
     return [];
   }

@@ -79,4 +79,82 @@ describe('runtime permission service', () => {
     });
     expect(runtime.getPendingConfirmation(session.id)).toBeUndefined();
   });
+
+  it('filters write tools in readonly sessions before model generation', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const { registerBuiltinTools } = await import('../src/tool/builtin');
+    registerBuiltinTools();
+
+    const generate = vi.fn(async (_messages, _system, tools) => {
+      expect(tools.map((tool: any) => tool.id)).toContain('read_file');
+      expect(tools.map((tool: any) => tool.id)).not.toContain('write_file');
+      expect(tools.map((tool: any) => tool.id)).not.toContain('chapter_write');
+      return { content: 'readonly ok', finishReason: 'stop' };
+    });
+
+    const runtime = createWorkflowRuntime({ generate });
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+      mode: 'readonly',
+    } as any);
+
+    await runtime.sendMessage({
+      sessionId: session.id,
+      content: 'Review this project.',
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(generate).toHaveBeenCalledOnce();
+  });
+
+  it('keeps review-safe diff tools but hides direct write tools in suggest sessions', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const { registerBuiltinTools } = await import('../src/tool/builtin');
+    registerBuiltinTools();
+
+    const generate = vi.fn(async (_messages, system, tools) => {
+      const toolIds = tools.map((tool: any) => tool.id);
+      expect(toolIds).toContain('read_file');
+      expect(toolIds).toContain('rewrite_passage');
+      expect(toolIds).toContain('outline_update');
+      expect(toolIds).not.toContain('write_file');
+      expect(toolIds).not.toContain('chapter_write');
+      expect(system).toContain('- rewrite_passage:');
+      expect(system).not.toContain('- write_file:');
+      expect(system).not.toContain('- chapter_write:');
+      return { content: 'suggest policy ok', finishReason: 'stop' };
+    });
+
+    const runtime = createWorkflowRuntime({ generate });
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+      mode: 'suggest',
+    } as any);
+
+    await runtime.sendMessage({
+      sessionId: session.id,
+      content: 'Suggest a change.',
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(generate).toHaveBeenCalledOnce();
+  });
+
+  it('blocks tool execution when an active skill allowed-tools list excludes the tool', async () => {
+    const { assertToolAllowed } = await import('../src/runtime/toolPolicy');
+
+    expect(() => assertToolAllowed({
+      toolName: 'write_file',
+      sessionMode: 'auto',
+      activeSkillAllowedTools: ['read_file'],
+    })).toThrow(/not allowed by active skill/i);
+
+    expect(() => assertToolAllowed({
+      toolName: 'read_file',
+      sessionMode: 'auto',
+      activeSkillAllowedTools: ['read_file'],
+    })).not.toThrow();
+  });
 });

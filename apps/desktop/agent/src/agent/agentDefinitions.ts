@@ -69,7 +69,7 @@ function parseAgentDefinition(raw: string, role: string, location: string): Agen
 }
 
 function extractField(fm: string, field: string): string | undefined {
-  const match = fm.match(new RegExp(`^${field}:\\s*(.+)$`, 'm'));
+  const match = fm.match(new RegExp(`^${field}:[ \\t]*(.+)$`, 'm'));
   return match?.[1]?.trim().replace(/^["']|["']$/g, '');
 }
 

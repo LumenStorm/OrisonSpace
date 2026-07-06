@@ -1,12 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { skillTool } from '../src/tool/skill';
-import type { PendingConfirmationState, ToolContext } from '../src/types';
+import type { ToolContext } from '../src/types';
 
-// #3: when the LLM invokes the `skill` tool mid-loop and the skill pauses on a
-// tool confirmation, that confirmation must be surfaced to the UI via
-// emitConfirmation — not silently swallowed (it used to only render as text).
-
-describe('skill tool confirmation surfacing', () => {
+describe('skill tool native loading', () => {
   function makeCtx(overrides: Partial<ToolContext> = {}): ToolContext {
     return {
       sessionId: 'session-1',
@@ -16,44 +12,51 @@ describe('skill tool confirmation surfacing', () => {
     };
   }
 
-  it('emits a confirm_required for each pending confirmation the skill returns', async () => {
-    const pending: PendingConfirmationState[] = [
-      { sessionId: 'session-1', callId: 'call-1', name: 'write_file', input: { path: 'a.md' }, createdAt: 1 },
-      { sessionId: 'session-1', callId: 'call-2', name: 'chapter_write', input: { id: 'c1' }, createdAt: 2 },
-    ];
+  it('loads a skill payload and exposes active skill metadata without terminal execution', async () => {
     const emitConfirmation = vi.fn();
-    const executeSkillByName = vi.fn().mockResolvedValue({
-      skill: 'story',
-      outputs: ['done'],
-      checkpoints: [],
-      pendingConfirmations: pending,
-      nested: [],
-    });
+    const loadSkill = vi.fn(async () => ({
+      format: 'directory',
+      name: 'story',
+      description: 'Story guidance',
+      location: 'I:/proj/.orison/skills/story',
+      entryPath: 'I:/proj/.orison/skills/story/SKILL.md',
+      prompt: '# Story\n\nFollow the story guidance.',
+      workflowMode: 'prompt',
+      assets: { references: [], scripts: [], assets: [] },
+      allowedTools: ['read_file'],
+    }));
 
     const ctx = makeCtx({
-      skillExecutor: { executeSkillByName, runSubagent: vi.fn() } as any,
+      skillExecutor: { loadSkill, executeSkillByName: vi.fn(), runSubagent: vi.fn() } as any,
       emitConfirmation,
     });
 
     const result = await skillTool.execute({ name: 'story', input: 'go' }, ctx);
 
-    expect(emitConfirmation).toHaveBeenCalledTimes(2);
-    expect(emitConfirmation).toHaveBeenNthCalledWith(1, pending[0]);
-    expect(emitConfirmation).toHaveBeenNthCalledWith(2, pending[1]);
-    expect(result.terminal).toBe(true);
+    expect(loadSkill).toHaveBeenCalledWith('session-1', 'story');
+    expect(emitConfirmation).not.toHaveBeenCalled();
+    expect(result.output).toContain('# Skill: story');
+    expect(result.output).toContain('# Story');
+    expect(result.metadata).toEqual({
+      activeSkill: {
+        name: 'story',
+        allowedTools: ['read_file'],
+      },
+    });
+    expect(result.terminal).toBeUndefined();
   });
 
-  it('does not throw when no emitConfirmation channel is wired (non-streaming path)', async () => {
-    const executeSkillByName = vi.fn().mockResolvedValue({
-      skill: 'story',
-      outputs: ['done'],
-      checkpoints: [],
-      pendingConfirmations: [
-        { sessionId: 'session-1', callId: 'call-1', name: 'write_file', input: {}, createdAt: 1 },
-      ],
-      nested: [],
-    });
-    const ctx = makeCtx({ skillExecutor: { executeSkillByName, runSubagent: vi.fn() } as any });
+  it('does not throw when no emitConfirmation channel is wired', async () => {
+    const loadSkill = vi.fn(async () => ({
+      format: 'directory',
+      name: 'story',
+      location: 'I:/proj/.orison/skills/story',
+      entryPath: 'I:/proj/.orison/skills/story/SKILL.md',
+      prompt: 'Story body.',
+      workflowMode: 'prompt',
+      assets: { references: [], scripts: [], assets: [] },
+    }));
+    const ctx = makeCtx({ skillExecutor: { loadSkill, executeSkillByName: vi.fn(), runSubagent: vi.fn() } as any });
 
     await expect(skillTool.execute({ name: 'story', input: 'go' }, ctx)).resolves.toBeTruthy();
   });

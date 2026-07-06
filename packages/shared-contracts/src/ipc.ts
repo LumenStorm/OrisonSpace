@@ -418,7 +418,7 @@ export type OrisonDesktopApi = {
   gitStatusCount(dir: string): Promise<number>;
   onToolEvent(callback: (data: { type: string; [key: string]: unknown }) => void): () => void;
   // Agent
-  createAgentSession(input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
+  createAgentSession(input: { agentName: string; projectPath: string; mode?: 'readonly' | 'suggest' | 'auto'; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
   getAgentSession(id: string, projectPath?: string): Promise<unknown>;
   setAgentSessionModel(sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined): Promise<{ ok: boolean }>;
   listAgentSessions(projectPath?: string): Promise<unknown>;

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { NormalizedSkill } from './skill/types';
+import type { SessionPermissionMode } from './runtime/toolPolicy';
 import type { SerializedSkillRunState } from './runtime/skillRunState';
 
 // ── Agent Config ──
@@ -35,6 +37,7 @@ export interface SkillExecutorInvokeOptions {
 }
 
 export interface SkillExecutorRef {
+  loadSkill?(sessionId: string, skillName: string): Promise<NormalizedSkill | undefined>;
   executeSkillByName(
     sessionId: string,
     skillName: string,
@@ -172,6 +175,7 @@ export interface SessionState {
   agentName: string;
   projectPath: string;
   status: SessionStatus;
+  permissionMode?: SessionPermissionMode;
   messages: SessionMessage[];
   modelRef?: { keyId: string; modelId: string };
   /**

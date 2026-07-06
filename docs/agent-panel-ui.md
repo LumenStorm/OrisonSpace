@@ -69,11 +69,11 @@ Agent Panel 独立于 Bottom Panel，从顶部到窗口底部全高显示。Bott
 
 | Mode | 标签 | 行为 |
 |------|------|------|
-| 👁️ 只读 (Read) | readonly | Agent 只能分析和建议，写入类 tool 结果被前端忽略。 |
-| 💡 建议 (Suggest) | suggest | 全部 tools 可用。写入类 tool 执行后前端弹出 DiffCard，用户 Accept 后才写入编辑器。 |
-| ⚡ 自动 (Auto) | auto | 全部 tools 直接执行，写入类 tool 结果自动同步到编辑器，无需确认。 |
+| 👁️ 只读 (Read) | readonly | 后端不向模型暴露写入、diff、危险工具；执行前也会拒绝这些工具。 |
+| 💡 建议 (Suggest) | suggest | 后端允许 read/diff，拒绝危险工具；写入结果仍由前端 diff/review 流处理。 |
+| ⚡ 自动 (Auto) | auto | 后端允许完整工具集，但仍受 active skill `allowed-tools` 限制。 |
 
-Mode 控制逻辑完全在前端（`agentSlice`），Agent 后端不感知 mode。前端维护写入类 tool 白名单（单一来源 `agentDiffSlice.ts` 导出的 `WRITE_TOOLS`）：`['chapter_write', 'write_file', 'outline_update', 'overview_update', 'rewrite_passage']`。
+Mode 由前端传入 runtime，并在后端执行工具过滤和执行前校验。前端仍维护写入类 tool 白名单（单一来源 `agentDiffSlice.ts` 导出的 `WRITE_TOOLS`）用于 DiffCard / patch review 展示，但它不再是唯一权限边界。
 
 ## 双向联动
 
@@ -338,7 +338,7 @@ agent-panel
 
 - **切项目重置会话** — agent session 按项目路径隔离。`projectSubscription` 在 `currentProject` 变化时调用 `resetAgentForProjectSwitch`,清空上个项目的 session/messages/pendingDiffs/pendingToolConfirm/agentModelRef/passage 并 abort 在跑的 run。否则旧项目的 pending diff 被 Accept 会按标题写到**新项目**的章节。
 - **流式异常不再卡 spinner** — `sendAgentMessage` 对 `streamAgentMessage` 的 promise 加 `.catch`,在「reject 但未发 error 事件」时复位 `agentLoading` 并报错(带 sessionId 守卫,不误伤新 run)。
-- **skill 确认必达 UI** — LLM 自动调用 `skill` 工具时,skill 内的 pending 确认会经新的 `emitConfirmation` 通道发成 `confirm_required` 事件(此前只在显式 @skill 路径才发,自动召唤时被静默吞掉,工作流当作已批准)。
+- **skill 按需加载** — LLM 自动调用 `skill` 工具时只加载 `SKILL.md` 内容和资源清单，不再执行 skill workflow 或产生 skill 内 pending 确认。
 - **模型连切防回滚错乱** — `setAgentModelRef` 用代次令牌,过期的失败回滚不再覆盖用户当前选择;运行中切换排队到下一轮(见 docs/agent.md)。
 - **Stop 清理残留卡** — `cancelAgent` 同时清 `pendingToolConfirm`/`pendingDiffs`/`pendingPassageResolve`,避免对已 abort 的 run 再确认而重新锁死。
 - **DiffCard 精确匹配** — chapter diff 与 UI toolResults 携带 `toolCallId`,DiffCard 优先按 `toolCallId` 匹配(回退 fileName),避免多个未命名并发改写串卡。
