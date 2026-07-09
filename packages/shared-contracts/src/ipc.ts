@@ -326,7 +326,21 @@ export type OrisonDesktopApi = {
   /** Idempotently ensure `<projectDir>/project.yaml` exists (create-if-absent, no version bump). */
   ensureProjectDocument(projectDir: string, meta: Record<string, unknown>): Promise<void>;
   syncProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
-  syncChaptersMeta(projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>): Promise<void>;
+  syncChaptersMeta(projectDir: string, chapters: Array<{
+    id: string;
+    title: string;
+    sort_order: number;
+    status: string;
+    summary?: string;
+    summary_source?: string;
+    sections?: Array<{
+      id: string;
+      title?: string;
+      sort_order: number;
+      content_file: string;
+      word_count?: number;
+    }>;
+  }>): Promise<void>;
   loadProjectMeta(projectDir: string): Promise<Record<string, unknown> | null>;
   getLocale(): string;
   minimize(): void;

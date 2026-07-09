@@ -1,11 +1,13 @@
 import type { StateCreator } from 'zustand';
 import type { ProjectMeta } from './types';
+import { clearLastProject, loadLastProject, persistLastProject } from './workspaceSession';
 
 export type ProjectSlice = {
   currentProject: ProjectMeta | null;
   projectDocumentHydrated: boolean;
   projectWordCount: number;
   openProject: (project: ProjectMeta) => void;
+  restoreLastProject: () => void;
   /** Update meta fields of the *current* project in place (name/logline/…)
    *  WITHOUT resetting projectDocumentHydrated or re-running the project-switch
    *  subscription. Used by the Overview editor so saving a rename can't be
@@ -30,6 +32,7 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
       projectDocumentHydrated: false,
       projectWordCount: 0,
     });
+    persistLastProject(project);
     // Bump the registry's last-opened time so ProjectsPage orders recents
     // correctly. Best-effort: ordering only, never blocks opening.
     if (project.path) {
@@ -39,13 +42,20 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
       }).catch(() => {});
     }
   },
+  restoreLastProject: () => {
+    if (get().currentProject) return;
+    const project = loadLastProject();
+    if (project) get().openProject(project);
+  },
   updateProjectMeta: (patch) => {
     const current = get().currentProject;
     if (!current) return;
     // In-place meta update: keep the SAME logical project (same path) so the
     // project-switch subscription's path check treats this as an edit, not a
     // switch — no creativeFields wipe, no document reload, no hydrated reset.
-    set({ currentProject: { ...current, ...patch } });
+    const next = { ...current, ...patch };
+    set({ currentProject: next });
+    persistLastProject(next);
   },
   closeProject: () => {
     const state = get() as any;
@@ -57,6 +67,7 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
       projectDocumentHydrated: false,
       projectWordCount: 0,
     });
+    clearLastProject();
   },
   async saveProject() {
     const project = get().currentProject;
@@ -102,7 +113,7 @@ export const createProjectSlice: StateCreator<ProjectSlice, [], [], ProjectSlice
     // Flush in-memory edits first: word count reads md/txt from disk, so an
     // unsaved buffer would otherwise be counted one edit stale (the bug).
     await get().flushDirty();
-    const count = await window.orisonDesktop?.wordCount(project.path) ?? 0;
+    const count = await window.orisonDesktop?.wordCount?.(project.path) ?? 0;
     set({ projectWordCount: count });
   },
 });

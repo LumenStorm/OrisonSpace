@@ -5,8 +5,15 @@ import { useI18n } from '../../shared/i18n/useI18n';
 import { useToastStore } from '../../shared/store/toastStore';
 import { normalizePath } from '../../shared/utils/paths';
 import type { NovelChapterMeta } from '../../shared/store/novelChapterSlice';
+import {
+  buildDocxPackage,
+  buildMarkdownManuscript,
+  buildPlainTextManuscript,
+  exportFilename,
+  type ChapterManuscript,
+} from '../export/exportBuilder';
 
-type ExportFormat = 'md' | 'txt' | 'pdf';
+type ExportFormat = 'md' | 'txt' | 'docx' | 'pdf';
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -15,24 +22,6 @@ function downloadBlob(blob: Blob, filename: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-/** Strip markdown syntax to plain text (for txt/pdf export). Input is markdown, not HTML. */
-function stripMarkdown(md: string): string {
-  return md
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/`(.+?)`/g, '$1')
-    .replace(/!\[.*?\]\(.*?\)/g, '')
-    .replace(/\[(.+?)\]\(.*?\)/g, '$1');
-}
-
-/** Build a safe, dated export filename from the project name. */
-function exportFilename(projectName: string | undefined, ext: string): string {
-  const base = (projectName ?? 'export').replace(/[\\/:*?"<>|]/g, '_').trim() || 'export';
-  const date = new Date().toISOString().slice(0, 10);
-  return `${base}-${date}.${ext}`;
 }
 
 export function ExportDialog({ onClose }: { onClose: () => void }) {
@@ -46,13 +35,13 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [format, setFormat] = useState<ExportFormat>('md');
   const [busy, setBusy] = useState(false);
 
-  /** Read every chapter's manuscript file (the source of truth) and stitch them together. */
-  const collectManuscript = async (): Promise<string> => {
+  /** Read every chapter's manuscript file (the source of truth) and keep chapter boundaries. */
+  const collectChapters = async (): Promise<ChapterManuscript[]> => {
     const projectPath = project?.path;
-    if (!projectPath) return '';
+    if (!projectPath) return [];
     const base = normalizePath(projectPath);
     const ordered = [...novelChapters].sort((a, b) => a.sortOrder - b.sortOrder);
-    const parts: string[] = [];
+    const chapters: ChapterManuscript[] = [];
     for (const ch of ordered) {
       const sections = [...ch.sections].sort((a, b) => a.sortOrder - b.sortOrder);
       let body = '';
@@ -60,31 +49,38 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
         const content = await window.orisonDesktop?.readFile(`${base}/${sec.contentFile}`);
         if (content) body += (body ? '\n\n' : '') + content;
       }
-      parts.push(`# ${ch.title}\n\n${body}`);
+      chapters.push({ title: ch.title, body });
     }
-    return parts.join('\n\n---\n\n');
+    return chapters;
   };
 
   const handleExport = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const combined = await collectManuscript();
-      if (!combined.trim()) {
+      const chapters = await collectChapters();
+      if (!chapters.some((chapter) => chapter.body.trim())) {
         showToast(t('export.empty'), 'error');
         return;
       }
-      const filename = exportFilename(project?.name, format === 'pdf' ? 'pdf' : format);
+      const filename = exportFilename(project?.name, format);
 
       if (format === 'md') {
-        downloadBlob(new Blob([combined], { type: 'text/markdown' }), filename);
+        downloadBlob(new Blob([buildMarkdownManuscript(chapters)], { type: 'text/markdown' }), filename);
       } else if (format === 'txt') {
-        downloadBlob(new Blob([stripMarkdown(combined)], { type: 'text/plain' }), filename);
+        downloadBlob(new Blob([buildPlainTextManuscript(chapters)], { type: 'text/plain' }), filename);
+      } else if (format === 'docx') {
+        downloadBlob(
+          new Blob([buildDocxPackage(chapters)], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          }),
+          filename,
+        );
       } else {
         // PDF: use browser print on plain text.
         const win = window.open('', '_blank');
         if (win) {
-          const safe = stripMarkdown(combined).replace(/</g, '&lt;');
+          const safe = buildPlainTextManuscript(chapters).replace(/</g, '&lt;');
           win.document.write(`<html><head><title>${filename}</title><style>body{font-family:serif;padding:2rem;line-height:1.6;}</style></head><body><pre style="white-space:pre-wrap;">${safe}</pre></body></html>`);
           win.document.close();
           win.print();
@@ -104,7 +100,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       <div className="dialog-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <h2 className="dialog-title">{t('export.title')}</h2>
         <div className="export-format-options">
-          {(['md', 'txt', 'pdf'] as ExportFormat[]).map((f) => (
+          {(['md', 'txt', 'docx', 'pdf'] as ExportFormat[]).map((f) => (
             <label key={f} className="export-format-option">
               <input type="radio" name="format" value={f} checked={format === f} onChange={() => setFormat(f)} />
               <span>{f.toUpperCase()}</span>

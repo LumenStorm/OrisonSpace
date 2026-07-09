@@ -225,7 +225,21 @@ export function registerProjectMetaIpc(): void {
     });
   });
 
-  ipcMain.handle('project:sync-chapters-meta', async (_, projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) => {
+  ipcMain.handle('project:sync-chapters-meta', async (_, projectDir: string, chapters: Array<{
+    id: string;
+    title: string;
+    sort_order: number;
+    status: string;
+    summary?: string;
+    summary_source?: string;
+    sections?: Array<{
+      id: string;
+      title?: string;
+      sort_order: number;
+      content_file: string;
+      word_count?: number;
+    }>;
+  }>) => {
     assertSafePath(projectDir);
     return withProjectLock(projectDir, async () => {
       try {
@@ -236,7 +250,7 @@ export function registerProjectMetaIpc(): void {
         if (!next.novel) next.novel = { chapters: [] };
         next.novel.chapters = chapters.map((ch) => {
           const existing = (next.novel.chapters ?? []).find((e: any) => e.id === ch.id);
-          return { ...existing, ...ch };
+          return { ...existing, ...ch, sections: ch.sections ?? existing?.sections ?? [] };
         });
         next.meta.version = (next.meta.version ?? 0) + 1;
         next.meta.updated_at = new Date().toISOString();

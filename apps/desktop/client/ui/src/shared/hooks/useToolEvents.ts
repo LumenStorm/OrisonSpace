@@ -7,6 +7,9 @@
 import { useEffect } from 'react';
 import { useAppStore } from '../store/appStore';
 import { normalizePath } from '../utils/paths';
+import { deriveChaptersFromDisk } from '../store/chapterDiskDerivation';
+
+const MARKDOWN_EXT = /\.md$/i;
 
 export function useToolEvents() {
   useEffect(() => {
@@ -16,12 +19,29 @@ export function useToolEvents() {
     // Coalesce bursts of writes (e.g. auto-mode generating many chapters) into a
     // single project-wide rescan instead of one full scan per file.
     let wordCountTimer: ReturnType<typeof setTimeout> | null = null;
+    let chapterRefreshTimer: ReturnType<typeof setTimeout> | null = null;
     const scheduleWordCountRefresh = () => {
       if (wordCountTimer !== null) clearTimeout(wordCountTimer);
       wordCountTimer = setTimeout(() => {
         wordCountTimer = null;
         void useAppStore.getState().refreshWordCount();
       }, 400);
+    };
+    const scheduleChapterRefresh = () => {
+      if (chapterRefreshTimer !== null) clearTimeout(chapterRefreshTimer);
+      chapterRefreshTimer = setTimeout(() => {
+        chapterRefreshTimer = null;
+        const state = useAppStore.getState();
+        const projectPath = state.currentProject?.path;
+        if (!projectPath) return;
+        void deriveChaptersFromDisk(projectPath, state.novelChapters)
+          .then((chapters) => {
+            const latest = useAppStore.getState();
+            if (latest.currentProject?.path !== projectPath) return;
+            latest.setNovelChapters(chapters);
+          })
+          .catch(() => {});
+      }, 300);
     };
 
     // Reconcile a single open tab against its on-disk file. Reads the file and
@@ -73,6 +93,9 @@ export function useToolEvents() {
             void reconcileTab(fullPath);
           }
         }
+        if (projectPath && rels.some((rel) => isChapterMarkdownPath(rel, projectPath))) {
+          scheduleChapterRefresh();
+        }
       }
 
       // Any on-disk content change can move the project word count; refresh the
@@ -80,11 +103,24 @@ export function useToolEvents() {
       if (event.type === 'file:changed' || event.type === 'chapter:changed') {
         scheduleWordCountRefresh();
       }
+      if (event.type === 'chapter:changed') {
+        scheduleChapterRefresh();
+      }
     });
 
     return () => {
       if (wordCountTimer !== null) clearTimeout(wordCountTimer);
+      if (chapterRefreshTimer !== null) clearTimeout(chapterRefreshTimer);
       unsubscribe();
     };
   }, []);
+}
+
+function isChapterMarkdownPath(path: string, projectPath: string): boolean {
+  const normalized = normalizePath(path);
+  const project = normalizePath(projectPath).replace(/\/+$/, '');
+  const relative = normalized.startsWith(`${project}/`)
+    ? normalized.slice(project.length + 1)
+    : normalized.replace(/^\/+/, '');
+  return relative.startsWith('chapters/') && MARKDOWN_EXT.test(relative);
 }

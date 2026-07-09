@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { registerProjectReset } from './resetRegistry';
+import { loadProjectSession, persistProjectSession, type ProjectSessionSnapshot } from './workspaceSession';
 
 let tabIdCounter = 0;
 
@@ -20,6 +21,9 @@ export type FileTab = {
    * conflict banner. Cleared on reload or when the user keeps their version.
    */
   externalState?: 'changed' | 'deleted';
+  selectionStart?: number;
+  selectionEnd?: number;
+  scrollTop?: number;
 };
 
 export type RecentlyClosedTab = {
@@ -61,7 +65,9 @@ export type FileTabsSlice = {
   reopenLastClosedFile: () => Promise<void>;
   cycleActiveFile: (direction: 1 | -1) => void;
   updateFileContent: (path: string, content: string) => void;
+  updateFileViewport: (path: string, viewport: { selectionStart?: number; selectionEnd?: number; scrollTop?: number }) => void;
   renameOpenFile: (oldPath: string, newPath: string, newName: string) => void;
+  restoreProjectTabs: (projectPath: string) => Promise<void>;
   saveFile: (path: string) => Promise<boolean>;
   saveAllOpenFiles: () => Promise<{ failed: string[] }>;
   reloadFile: (path: string) => Promise<void>;
@@ -85,7 +91,43 @@ function dropFromRecentlyClosed(prev: RecentlyClosedTab[], path: string): Recent
   return prev.filter((t) => t.path !== path);
 }
 
+function buildSessionSnapshot(state: FileTabsSlice): ProjectSessionSnapshot {
+  const openPathSet = new Set(state.openFiles.map((file) => file.path));
+  return {
+    version: 1,
+    activeFilePath: state.activeFilePath && openPathSet.has(state.activeFilePath) ? state.activeFilePath : state.openFiles[0]?.path ?? null,
+    pinnedPaths: [...state.pinnedPaths].filter((path) => openPathSet.has(path)),
+    openFiles: state.openFiles.map((file) => ({
+      path: file.path,
+      name: file.name,
+      kind: file.kind ?? 'text',
+      selectionStart: file.selectionStart,
+      selectionEnd: file.selectionEnd,
+      scrollTop: file.scrollTop,
+    })),
+  };
+}
+
+function persistProjectTabs(state: FileTabsSlice & { currentProject?: { path?: string } | null }): void {
+  const projectPath = state.currentProject?.path;
+  if (!projectPath) return;
+  persistProjectSession(projectPath, buildSessionSnapshot(state));
+}
+
+function hasViewportChange(
+  file: FileTab,
+  viewport: { selectionStart?: number; selectionEnd?: number; scrollTop?: number },
+): boolean {
+  return (
+    file.selectionStart !== viewport.selectionStart ||
+    file.selectionEnd !== viewport.selectionEnd ||
+    file.scrollTop !== viewport.scrollTop
+  );
+}
+
 export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSlice> = (set, get) => {
+  const persist = () => persistProjectTabs(get() as any);
+
   // When the active project changes, drop every open tab and tab-related state.
   // Without this the previous project's tabs stay in the bar and point at its
   // absolute paths — clicking one reads/writes the wrong project's files.
@@ -113,6 +155,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const existing = state.openFiles.find((f) => f.path === path);
     if (existing) {
       (set as any)({ activeFilePath: path, recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path), mainView: 'files' });
+      persist();
       return;
     }
     // Keep the on-disk text verbatim. A markdownToHtml→htmlToMarkdown round-trip
@@ -134,6 +177,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       recentlyClosed: dropFromRecentlyClosed(state.recentlyClosed, path),
       mainView: 'files',
     });
+    persist();
   },
 
   closeFile: (path) => {
@@ -158,6 +202,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       recentlyClosed: rememberClosedTab(state.recentlyClosed, closing),
       pendingCloseConfirm: state.pendingCloseConfirm === path ? null : state.pendingCloseConfirm,
     });
+    persist();
   },
 
   requestCloseFile: (path) => {
@@ -195,6 +240,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       activeFilePath: keepPath,
       recentlyClosed,
     });
+    persist();
   },
 
   closeFilesToRight: (anchorPath) => {
@@ -217,6 +263,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       nextActive = anchorPath;
     }
     set({ openFiles: remaining, activeFilePath: nextActive, recentlyClosed });
+    persist();
   },
 
   closeAllFiles: () => {
@@ -231,6 +278,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       recentlyClosed = rememberClosedTab(recentlyClosed, tab);
     }
     set({ openFiles: [], activeFilePath: null, recentlyClosed });
+    persist();
   },
 
   async confirmBulkClose(save) {
@@ -248,6 +296,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
         recentlyClosed = rememberClosedTab(recentlyClosed, tab);
       }
       set({ openFiles: [], activeFilePath: null, recentlyClosed });
+      persist();
     } else if (bulk.action === 'other' && bulk.keepPath) {
       const state = get();
       const keep = state.openFiles.find((f) => f.path === bulk.keepPath);
@@ -257,6 +306,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
           recentlyClosed = rememberClosedTab(recentlyClosed, tab);
         }
         set({ openFiles: [keep], activeFilePath: bulk.keepPath, recentlyClosed });
+        persist();
       }
     } else if (bulk.action === 'right' && bulk.keepPath) {
       const state = get();
@@ -272,6 +322,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
           nextActive = bulk.keepPath;
         }
         set({ openFiles: remaining, activeFilePath: nextActive, recentlyClosed });
+        persist();
       }
     }
   },
@@ -304,6 +355,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       : 0;
     const nextIdx = (idx + direction + state.openFiles.length) % state.openFiles.length;
     set({ activeFilePath: state.openFiles[nextIdx].path });
+    persist();
   },
 
   updateFileContent: (path, content) => {
@@ -312,6 +364,18 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
         f.path === path ? { ...f, content } : f,
       ),
     }));
+  },
+
+  updateFileViewport: (path, viewport) => {
+    const state = get();
+    const current = state.openFiles.find((f) => f.path === path);
+    if (!current || !hasViewportChange(current, viewport)) return;
+    set({
+      openFiles: state.openFiles.map((f) =>
+        f.path === path ? { ...f, ...viewport } : f,
+      ),
+    });
+    persist();
   },
 
   renameOpenFile: (oldPath, newPath, newName) => {
@@ -354,6 +418,52 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       splitFilePath: nextSplit,
       pinnedPaths: nextPinned,
     });
+    persist();
+  },
+
+  restoreProjectTabs: async (projectPath) => {
+    const snapshot = loadProjectSession(projectPath);
+    if (!snapshot || snapshot.openFiles.length === 0) return;
+
+    const restored: FileTab[] = [];
+    const restoredPathSet = new Set<string>();
+    for (const saved of snapshot.openFiles) {
+      if (saved.kind === 'image') continue;
+      let content = '';
+      if (saved.kind === 'text') {
+        const raw = await window.orisonDesktop?.readFile(saved.path);
+        if (typeof raw !== 'string') continue;
+        content = raw;
+      } else if (saved.kind === 'docx') {
+        const html = await window.orisonDesktop?.docxToHtml?.(saved.path);
+        content = typeof html === 'string' ? html : '';
+      }
+      restored.push({
+        id: `tab-${++tabIdCounter}`,
+        path: saved.path,
+        name: saved.name,
+        content,
+        savedContent: content,
+        kind: saved.kind,
+        selectionStart: saved.selectionStart,
+        selectionEnd: saved.selectionEnd,
+        scrollTop: saved.scrollTop,
+      });
+      restoredPathSet.add(saved.path);
+    }
+
+    const pinnedPaths = new Set(snapshot.pinnedPaths.filter((path) => restoredPathSet.has(path)));
+    const activeFilePath = snapshot.activeFilePath && restoredPathSet.has(snapshot.activeFilePath)
+      ? snapshot.activeFilePath
+      : restored[0]?.path ?? null;
+
+    (set as any)({
+      openFiles: restored,
+      activeFilePath,
+      pinnedPaths,
+      mainView: restored.length > 0 ? 'files' : (get() as any).mainView,
+    });
+    persist();
   },
 
   closeFilesUnder: (pathOrDir) => {
@@ -451,6 +561,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const pinned = state.openFiles.filter((f) => next.has(f.path));
     const unpinned = state.openFiles.filter((f) => !next.has(f.path));
     set({ pinnedPaths: next, openFiles: [...pinned, ...unpinned] });
+    persist();
   },
 
   reorderTabs: (fromIndex, toIndex) => {
@@ -469,9 +580,11 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       const pinned = files.filter((f) => state.pinnedPaths.has(f.path));
       const unpinned = files.filter((f) => !state.pinnedPaths.has(f.path));
       set({ openFiles: [...pinned, ...unpinned] });
+      persist();
       return;
     }
     set({ openFiles: files });
+    persist();
   },
   };
 };

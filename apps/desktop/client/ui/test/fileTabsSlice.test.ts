@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { create } from 'zustand';
 import { createFileTabsSlice, type FileTabsSlice } from '../src/shared/store/fileTabsSlice';
+import { loadProjectSession, persistProjectSession } from '../src/shared/store/workspaceSession';
 
 declare global {
   interface Window {
@@ -10,17 +11,40 @@ declare global {
 
 const useTestStore = create<FileTabsSlice>()((...a) => createFileTabsSlice(...a));
 
+type SessionTestState = FileTabsSlice & {
+  currentProject: { name: string; path: string; type: 'novel' } | null;
+  mainView?: 'files' | 'page';
+};
+
+const useSessionStore = create<SessionTestState>()((...a) => ({
+  currentProject: { name: 'Session Project', path: '/p', type: 'novel' },
+  mainView: 'page',
+  ...createFileTabsSlice(...(a as any)),
+}));
+
 function reset() {
-  useTestStore.setState({ openFiles: [], activeFilePath: null, recentlyClosed: [] });
+  useTestStore.setState({ openFiles: [], activeFilePath: null, recentlyClosed: [], pinnedPaths: new Set() });
+  useSessionStore.setState({
+    currentProject: { name: 'Session Project', path: '/p', type: 'novel' },
+    mainView: 'page',
+    openFiles: [],
+    activeFilePath: null,
+    recentlyClosed: [],
+    pinnedPaths: new Set(),
+    pendingCloseConfirm: null,
+    pendingBulkClose: null,
+  });
 }
 
 describe('fileTabsSlice', () => {
   beforeEach(() => {
+    localStorage.clear();
     reset();
     (globalThis.window as any) = globalThis.window ?? {};
     (window as any).orisonDesktop = {
       writeFile: vi.fn(async () => true),
       readFile: vi.fn(async (path: string) => `loaded:${path}`),
+      docxToHtml: vi.fn(async (path: string) => `<p>preview:${path}</p>`),
     };
   });
 
@@ -176,5 +200,109 @@ describe('fileTabsSlice', () => {
     expect(tab.externalState).toBeUndefined();
     expect(tab.content).toBe('my edit'); // unsaved edit kept
     expect(tab.savedContent).toBe('hello');
+  });
+
+  it('persists per-project open tabs without storing manuscript content', () => {
+    useSessionStore.getState().openFile('/p/a.md', 'a.md', 'hello manuscript');
+    useSessionStore.getState().openFile('/p/b.md', 'b.md', 'second manuscript');
+    useSessionStore.getState().togglePinTab('/p/b.md');
+    useSessionStore.getState().updateFileViewport('/p/a.md', {
+      selectionStart: 2,
+      selectionEnd: 5,
+      scrollTop: 120,
+    });
+
+    const snapshot = loadProjectSession('/p');
+    expect(snapshot?.activeFilePath).toBe('/p/b.md');
+    expect(snapshot?.pinnedPaths).toEqual(['/p/b.md']);
+    expect(snapshot?.openFiles).toEqual([
+      expect.objectContaining({
+        path: '/p/b.md',
+        name: 'b.md',
+        kind: 'text',
+      }),
+      expect.objectContaining({
+        path: '/p/a.md',
+        name: 'a.md',
+        kind: 'text',
+        selectionStart: 2,
+        selectionEnd: 5,
+        scrollTop: 120,
+      }),
+    ]);
+    expect(JSON.stringify(snapshot)).not.toContain('manuscript');
+  });
+
+  it('restores project tabs by reading current file content from disk', async () => {
+    persistProjectSession('/p', {
+      version: 1,
+      activeFilePath: '/p/b.md',
+      pinnedPaths: ['/p/b.md'],
+      openFiles: [
+        { path: '/p/a.md', name: 'a.md', kind: 'text', selectionStart: 1, selectionEnd: 3, scrollTop: 44 },
+        { path: '/p/b.md', name: 'b.md', kind: 'text' },
+      ],
+    });
+
+    await useSessionStore.getState().restoreProjectTabs('/p');
+
+    const s = useSessionStore.getState();
+    expect(window.orisonDesktop.readFile).toHaveBeenCalledWith('/p/a.md');
+    expect(window.orisonDesktop.readFile).toHaveBeenCalledWith('/p/b.md');
+    expect(s.openFiles.map((f) => ({ path: f.path, content: f.content }))).toEqual([
+      { path: '/p/a.md', content: 'loaded:/p/a.md' },
+      { path: '/p/b.md', content: 'loaded:/p/b.md' },
+    ]);
+    expect(s.activeFilePath).toBe('/p/b.md');
+    expect(s.pinnedPaths.has('/p/b.md')).toBe(true);
+    expect(s.openFiles[0].selectionStart).toBe(1);
+    expect(s.openFiles[0].selectionEnd).toBe(3);
+    expect(s.openFiles[0].scrollTop).toBe(44);
+    expect(s.mainView).toBe('files');
+  });
+
+  it('restores docx tabs by converting them back to preview HTML', async () => {
+    persistProjectSession('/p', {
+      version: 1,
+      activeFilePath: '/p/source.docx',
+      pinnedPaths: [],
+      openFiles: [
+        { path: '/p/source.docx', name: 'source.docx', kind: 'docx' },
+      ],
+    });
+
+    await useSessionStore.getState().restoreProjectTabs('/p');
+
+    const tab = useSessionStore.getState().openFiles[0];
+    expect(window.orisonDesktop.docxToHtml).toHaveBeenCalledWith('/p/source.docx');
+    expect(tab).toMatchObject({
+      path: '/p/source.docx',
+      name: 'source.docx',
+      kind: 'docx',
+      content: '<p>preview:/p/source.docx</p>',
+      savedContent: '<p>preview:/p/source.docx</p>',
+    });
+  });
+
+  it('does not persist viewport again when values are unchanged', () => {
+    useSessionStore.getState().openFile('/p/a.md', 'a.md', 'hello');
+    useSessionStore.getState().updateFileViewport('/p/a.md', {
+      selectionStart: 2,
+      selectionEnd: 2,
+      scrollTop: 20,
+    });
+    const before = loadProjectSession('/p');
+    const beforeOpenFiles = useSessionStore.getState().openFiles;
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+    useSessionStore.getState().updateFileViewport('/p/a.md', {
+      selectionStart: 2,
+      selectionEnd: 2,
+      scrollTop: 20,
+    });
+
+    expect(useSessionStore.getState().openFiles).toBe(beforeOpenFiles);
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(loadProjectSession('/p')).toEqual(before);
   });
 });

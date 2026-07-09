@@ -44,7 +44,21 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:ensure-document', projectDir, meta) as Promise<void>,
   syncProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:sync-meta', projectDir, meta) as Promise<void>,
-  syncChaptersMeta: (projectDir: string, chapters: Array<{ id: string; title: string; sort_order: number; status: string; summary?: string; summary_source?: string }>) =>
+  syncChaptersMeta: (projectDir: string, chapters: Array<{
+    id: string;
+    title: string;
+    sort_order: number;
+    status: string;
+    summary?: string;
+    summary_source?: string;
+    sections?: Array<{
+      id: string;
+      title?: string;
+      sort_order: number;
+      content_file: string;
+      word_count?: number;
+    }>;
+  }>) =>
     ipcRenderer.invoke('project:sync-chapters-meta', projectDir, chapters) as Promise<void>,
   loadProjectMeta: (projectDir: string) =>
     ipcRenderer.invoke('project:load-meta', projectDir) as Promise<Record<string, unknown> | null>,

@@ -15,6 +15,7 @@ export function App() {
   const loadModelConfig = useAppStore((s) => s.loadModelConfig);
   const loadAppVersion = useAppStore((s) => s.loadAppVersion);
   const subscribeUpdateEvents = useAppStore((s) => s.subscribeUpdateEvents);
+  const restoreLastProject = useAppStore((s) => s.restoreLastProject);
 
   useToolEvents();
   useCloseGuard();
@@ -23,8 +24,9 @@ export function App() {
     void loadUserPreferences();
     void loadModelConfig();
     void loadAppVersion();
+    restoreLastProject();
     subscribeUpdateEvents();
-  }, [loadUserPreferences, loadModelConfig, loadAppVersion, subscribeUpdateEvents]);
+  }, [loadUserPreferences, loadModelConfig, loadAppVersion, restoreLastProject, subscribeUpdateEvents]);
 
   return (
     <>

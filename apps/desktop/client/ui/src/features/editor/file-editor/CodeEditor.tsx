@@ -26,6 +26,7 @@ export function caretAfterSwap(from: string, to: string): number {
 
 export function CodeEditor({ file }: { file: FileTab }) {
   const updateFileContent = useAppStore((s) => s.updateFileContent);
+  const updateFileViewport = useAppStore((s) => s.updateFileViewport);
   const spellCheck = useAppStore((s) => s.spellCheck);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
@@ -42,6 +43,7 @@ export function CodeEditor({ file }: { file: FileTab }) {
   // reload / agent patch (both change to the new on-disk text).
   const savedRef = useRef(file.savedContent);
   const contentRef = useRef(file.content);
+  const viewportRafRef = useRef<number | null>(null);
 
   // Reset history when a different file becomes active in this reused editor.
   useEffect(() => {
@@ -70,6 +72,55 @@ export function CodeEditor({ file }: { file: FileTab }) {
 
   const lineCount = useMemo(() => file.content.split('\n').length, [file.content]);
 
+  const readViewport = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return null;
+    return {
+      selectionStart: ta.selectionStart,
+      selectionEnd: ta.selectionEnd,
+      scrollTop: ta.scrollTop,
+    };
+  }, []);
+
+  const flushViewport = useCallback(() => {
+    if (viewportRafRef.current !== null) {
+      cancelAnimationFrame(viewportRafRef.current);
+      viewportRafRef.current = null;
+    }
+    const viewport = readViewport();
+    if (viewport) updateFileViewport(file.path, viewport);
+  }, [file.path, readViewport, updateFileViewport]);
+
+  const recordViewport = useCallback(() => {
+    if (viewportRafRef.current !== null) return;
+    viewportRafRef.current = requestAnimationFrame(() => {
+      viewportRafRef.current = null;
+      const viewport = readViewport();
+      if (viewport) updateFileViewport(file.path, viewport);
+    });
+  }, [file.path, readViewport, updateFileViewport]);
+
+  useEffect(() => () => {
+    if (viewportRafRef.current !== null) {
+      cancelAnimationFrame(viewportRafRef.current);
+      viewportRafRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    requestAnimationFrame(() => {
+      const current = textareaRef.current;
+      if (!current) return;
+      const start = Math.min(file.selectionStart ?? 0, current.value.length);
+      const end = Math.min(file.selectionEnd ?? start, current.value.length);
+      current.setSelectionRange(start, end);
+      current.scrollTop = file.scrollTop ?? 0;
+      if (lineNumRef.current) lineNumRef.current.scrollTop = current.scrollTop;
+    });
+  }, [file.id, file.selectionStart, file.selectionEnd, file.scrollTop]);
+
   // Snapshot the current content onto the undo stack (clears redo).
   const pushHistory = useCallback(() => {
     undoStack.current.push({ content: file.content });
@@ -86,8 +137,13 @@ export function CodeEditor({ file }: { file: FileTab }) {
       lastPushAt.current = now;
       contentRef.current = ta.value;
       updateFileContent(file.path, ta.value);
+      updateFileViewport(file.path, {
+        selectionStart: ta.selectionStart,
+        selectionEnd: ta.selectionEnd,
+        scrollTop: ta.scrollTop,
+      });
     },
-    [file.path, updateFileContent, pushHistory],
+    [file.path, updateFileContent, updateFileViewport, pushHistory],
   );
 
   const restore = useCallback(
@@ -102,10 +158,15 @@ export function CodeEditor({ file }: { file: FileTab }) {
         if (ta) {
           ta.focus();
           ta.setSelectionRange(caret, caret);
+          updateFileViewport(file.path, {
+            selectionStart: caret,
+            selectionEnd: caret,
+            scrollTop: ta.scrollTop,
+          });
         }
       });
     },
-    [file.path, updateFileContent],
+    [file.path, updateFileContent, updateFileViewport],
   );
 
   const handleUndo = useCallback(() => {
@@ -128,7 +189,8 @@ export function CodeEditor({ file }: { file: FileTab }) {
     if (textareaRef.current && lineNumRef.current) {
       lineNumRef.current.scrollTop = textareaRef.current.scrollTop;
     }
-  }, []);
+    recordViewport();
+  }, [recordViewport]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -206,6 +268,10 @@ export function CodeEditor({ file }: { file: FileTab }) {
           onChange={handleChange}
           onScroll={handleScroll}
           onKeyDown={handleKeyDown}
+          onKeyUp={recordViewport}
+          onMouseUp={recordViewport}
+          onSelect={recordViewport}
+          onBlur={flushViewport}
           spellCheck={spellCheck}
         />
       </div>

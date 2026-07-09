@@ -1,5 +1,6 @@
 import type { ProjectMeta } from './types';
 import { runProjectResets } from './resetRegistry';
+import { chaptersFromProjectDocument, deriveChaptersFromDisk } from './chapterDiskDerivation';
 
 type AppStoreApi = {
   subscribe: (listener: (state: any) => void) => () => void;
@@ -71,34 +72,19 @@ export function installProjectSubscription(useAppStore: AppStoreApi) {
       state.loadBgTasks();
 
       if (project.path && window.orisonDesktop?.loadProjectDocument) {
-        window.orisonDesktop.loadProjectDocument(project.path).then((doc) => {
+        window.orisonDesktop.loadProjectDocument(project.path).then(async (doc) => {
           const current = useAppStore.getState();
           if (current.currentProject?.path !== project.path) return;
-          if (!doc) {
-            useAppStore.setState({ projectDocumentHydrated: true });
-            return;
-          }
-          current.loadCreativeFields(doc as any);
-          const chapters = Array.isArray((doc as any).novel?.chapters)
-            ? (doc as any).novel.chapters.map((ch: any) => ({
-              id: ch.id,
-              title: ch.title,
-              sortOrder: ch.sort_order,
-              status: ch.status ?? 'draft',
-              summary: ch.summary,
-              summarySource: ch.summary_source,
-              sections: (ch.sections ?? []).map((s: any) => ({
-                id: s.id,
-                title: s.title,
-                sortOrder: s.sort_order,
-                contentFile: s.content_file,
-                wordCount: s.word_count,
-              })),
-            }))
-            : [];
-          current.setNovelChapters(chapters);
+          if (doc) current.loadCreativeFields(doc as any);
+          const storedChapters = chaptersFromProjectDocument(doc);
+          const chapters = await deriveChaptersFromDisk(project.path, storedChapters);
+          const latest = useAppStore.getState();
+          if (latest.currentProject?.path !== project.path) return;
+          latest.setNovelChapters(chapters);
+          await latest.restoreProjectTabs?.(project.path);
+          if (useAppStore.getState().currentProject?.path !== project.path) return;
           useAppStore.setState({ projectDocumentHydrated: true });
-          current.refreshWordCount();
+          latest.refreshWordCount();
         }).catch(() => {
           if (useAppStore.getState().currentProject?.path === project.path) {
             useAppStore.setState({ projectDocumentHydrated: true });

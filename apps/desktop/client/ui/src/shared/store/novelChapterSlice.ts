@@ -91,6 +91,13 @@ function persistChaptersMeta(chapters: NovelChapterMeta[], projectPath?: string)
     status: ch.status,
     summary: ch.summary,
     summary_source: ch.summarySource,
+    sections: ch.sections.map((sec) => ({
+      id: sec.id,
+      title: sec.title,
+      sort_order: sec.sortOrder,
+      content_file: sec.contentFile,
+      word_count: sec.wordCount,
+    })),
   })));
 }
 
