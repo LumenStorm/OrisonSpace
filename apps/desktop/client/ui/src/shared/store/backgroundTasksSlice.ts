@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { registerProjectReset } from './resetRegistry';
 
 // ── Types ──
 
@@ -69,24 +70,43 @@ export const createBackgroundTasksSlice: StateCreator<
   [],
   [],
   BackgroundTasksSlice
-> = (set, get) => ({
+> = (set, get) => {
+  let loadToken = 0;
+
+  registerProjectReset(() => {
+    loadToken += 1;
+    set({ bgTasks: [] });
+  });
+
+  return {
   bgTasks: [],
 
   async loadBgTasks() {
+    const token = ++loadToken;
     const projectId = get().currentProject?.projectId;
-    if (!projectId || !window.orisonDesktop?.listTasks) return;
-    const records = await window.orisonDesktop.listTasks(projectId, MAX_HISTORY);
-    const tasks: BgTask[] = records.map((r) => ({
-      id: r.taskId,
-      type: r.taskType as BgTaskType,
-      status: r.status === 'queued' ? 'running' : r.status,
-      label: r.name,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-      error: r.errorMessage,
-      result: r.outputPayload ? tryParse(r.outputPayload) : undefined,
-    }));
-    set({ bgTasks: tasks });
+    if (!projectId || !window.orisonDesktop?.listTasks) {
+      if (token === loadToken) set({ bgTasks: [] });
+      return;
+    }
+    try {
+      const records = await window.orisonDesktop.listTasks(projectId, MAX_HISTORY);
+      if (token !== loadToken || get().currentProject?.projectId !== projectId) return;
+      const tasks: BgTask[] = records.map((r) => ({
+        id: r.taskId,
+        type: r.taskType as BgTaskType,
+        status: r.status === 'queued' ? 'running' : r.status,
+        label: r.name,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        error: r.errorMessage,
+        result: r.outputPayload ? tryParse(r.outputPayload) : undefined,
+      }));
+      set({ bgTasks: tasks });
+    } catch {
+      if (token === loadToken && get().currentProject?.projectId === projectId) {
+        set({ bgTasks: [] });
+      }
+    }
   },
 
   submitBgTask(opts) {
@@ -113,9 +133,11 @@ export const createBackgroundTasksSlice: StateCreator<
         controllers.delete(id);
         if (ac.signal.aborted) return;
         const updated: BgTask = { ...task, status: 'completed', result, updatedAt: new Date().toISOString() };
-        set((s) => ({
-          bgTasks: s.bgTasks.map((t) => (t.id === id ? updated : t)),
-        }));
+        if (get().currentProject?.projectId === projectId) {
+          set((s) => ({
+            bgTasks: s.bgTasks.map((t) => (t.id === id ? updated : t)),
+          }));
+        }
         if (projectId) persistTask(updated, projectId);
       },
       (err) => {
@@ -123,9 +145,11 @@ export const createBackgroundTasksSlice: StateCreator<
         if (ac.signal.aborted) return;
         const errMsg = err instanceof Error ? err.message : String(err);
         const updated: BgTask = { ...task, status: 'failed', error: errMsg, updatedAt: new Date().toISOString() };
-        set((s) => ({
-          bgTasks: s.bgTasks.map((t) => (t.id === id ? updated : t)),
-        }));
+        if (get().currentProject?.projectId === projectId) {
+          set((s) => ({
+            bgTasks: s.bgTasks.map((t) => (t.id === id ? updated : t)),
+          }));
+        }
         if (projectId) persistTask(updated, projectId);
       },
     );
@@ -164,7 +188,8 @@ export const createBackgroundTasksSlice: StateCreator<
       window.orisonDesktop?.deleteTask(t.id);
     }
   },
-});
+  };
+};
 
 function tryParse(json: string): unknown {
   try { return JSON.parse(json); } catch { return undefined; }

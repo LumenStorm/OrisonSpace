@@ -69,15 +69,22 @@ export function TopBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
+    const projectPath = currentProject?.path;
+    if (!projectPath) return;
     setSaveStatus('saving');
     try {
-      await saveAllOpenFiles();
+      const result = await saveAllOpenFiles();
+      if (result.failed.length > 0) {
+        throw new Error(result.failed.map((path) => path.split(/[\\/]/).pop() ?? path).join(', '));
+      }
+      if (useAppStore.getState().currentProject?.path !== projectPath) return;
       await saveProject();
+      if (useAppStore.getState().currentProject?.path !== projectPath) return;
       // Sync word counts from saved files into novelChapters for overview
       const state = useAppStore.getState();
-      const projectPath = state.currentProject?.path;
-      if (projectPath && state.novelChapters.length > 0) {
-        const base = normalizePath(projectPath);
+      const currentProjectPath = state.currentProject?.path;
+      if (currentProjectPath && state.novelChapters.length > 0) {
+        const base = normalizePath(currentProjectPath);
         const updated = state.novelChapters.map((ch) => ({
           ...ch,
           sections: ch.sections.map((sec) => {
@@ -101,7 +108,17 @@ export function TopBar() {
       const reason = err instanceof Error ? err.message : String(err);
       showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
     }
-  }, [saveProject, saveAllOpenFiles, refreshWordCount, setSaveStatus, setLastSavedAt, showToast, t]);
+  }, [currentProject?.path, saveProject, saveAllOpenFiles, refreshWordCount, setSaveStatus, setLastSavedAt, showToast, t]);
+
+  const handleCloseProject = useCallback(async () => {
+    const result = await closeProject();
+    if (result.closed) return;
+    if (!result.error && result.failed.length === 0) return;
+    setSaveStatus('error');
+    const reason = result.error
+      ?? result.failed.map((path) => path.split(/[\\/]/).pop() ?? path).join(', ');
+    showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
+  }, [closeProject, setSaveStatus, showToast, t]);
 
   // Route undo/redo to the focused editor (textarea / Tiptap contenteditable),
   // which owns its own history. The legacy editorSlice undo stack drove a
@@ -180,14 +197,14 @@ export function TopBar() {
     { type: 'action', label: t('topbar.openFolder'), handler: handleOpen },
     { type: 'action', label: t('topbar.importDocx'), handler: () => { void handleImportDocx(); }, disabled: !hasSavePath },
     { type: 'action', label: t('topbar.save'), shortcut: `${modKey}S`, handler: handleSave, disabled: !hasSavePath },
-    { type: 'action', label: t('topbar.saveAll'), shortcut: `${modKey}Shift+S`, handler: () => { void saveAllOpenFiles(); } },
+    { type: 'action', label: t('topbar.saveAll'), shortcut: `${modKey}Shift+S`, handler: handleSave },
     { type: 'action', label: t('topbar.export'), handler: () => setShowExport(true), disabled: !hasSavePath },
     { type: 'separator' },
     { type: 'action', label: t('topbar.closeFile'), shortcut: `${modKey}W`, handler: () => { if (activeFilePath) requestCloseFile(activeFilePath); }, disabled: !activeFilePath },
     { type: 'action', label: t('topbar.closeAllFiles'), handler: closeAllFiles, disabled: !activeFilePath },
     { type: 'separator' },
     ...(currentProject
-      ? [{ type: 'action' as const, label: t('topbar.backToProjects'), handler: closeProject }]
+      ? [{ type: 'action' as const, label: t('topbar.backToProjects'), handler: () => { void handleCloseProject(); } }]
       : []),
   ];
 

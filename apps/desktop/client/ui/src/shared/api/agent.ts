@@ -21,6 +21,7 @@ export type AgentSessionMeta = {
   createdAt: number;
   updatedAt: number;
   messageCount: number;
+  permissionMode?: AgentMode;
 };
 
 export type AgentChildStreamEvent = {
@@ -60,7 +61,7 @@ export async function createAgentSession(projectPath: string, mode?: AgentMode, 
 }
 
 export async function fetchAgentSession(sessionId: string, projectPath?: string) {
-  return api.getAgentSession(sessionId, projectPath) as Promise<{ id: string; status: string; messages: AgentMessage[]; modelRef?: ModelRef } | null>;
+  return api.getAgentSession(sessionId, projectPath) as Promise<{ id: string; status: string; messages: AgentMessage[]; modelRef?: ModelRef; permissionMode?: AgentMode } | null>;
 }
 
 /**
@@ -72,8 +73,12 @@ export async function setAgentSessionModel(sessionId: string, projectPath: strin
   return api.setAgentSessionModel(sessionId, projectPath, modelRef ?? undefined);
 }
 
-export async function deleteAgentSession(sessionId: string) {
-  return api.deleteAgentSession(sessionId);
+export async function setAgentSessionMode(sessionId: string, projectPath: string | undefined, mode: AgentMode) {
+  return api.setAgentSessionMode(sessionId, projectPath, mode);
+}
+
+export async function deleteAgentSession(sessionId: string, projectPath?: string) {
+  return api.deleteAgentSession(sessionId, projectPath);
 }
 
 export async function listAgentSessions(projectPath: string) {

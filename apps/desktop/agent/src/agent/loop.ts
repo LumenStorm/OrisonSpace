@@ -113,6 +113,9 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
       abort,
       cacheConfig,
     );
+    // A cancelled response with tool calls must still persist the assistant turn
+    // and synthetic tool results as a valid pair. Plain late text is discarded.
+    if (abort.aborted && !response.toolCalls?.length) throwIfAborted(abort);
 
     const assistantMsg: SessionMessage = {
       id: randomUUID(),
@@ -251,6 +254,7 @@ export async function runLoop(opts: LoopOptions): Promise<SessionMessage[]> {
         };
       }
     }));
+    throwIfAborted(abort);
 
     for (const msg of toolMessages) {
       const { _terminal, ...toolMsg } = msg as any;

@@ -73,10 +73,12 @@ function scheduleNotify() {
     debounceTimer = null;
     const paths = [...pendingPaths];
     pendingPaths.clear();
+    const projectPath = activeDir;
+    if (!projectPath) return;
     // Emit the concrete changed paths so the renderer can reload exactly the
     // affected open tabs (and detect external edits/deletes). An empty `paths`
     // (filename unavailable on some platforms) still triggers a tree rescan.
-    notifyUI({ type: 'file:changed', path: paths[0] ?? '', paths });
+    notifyUI({ type: 'file:changed', projectPath, path: paths[0] ?? '', paths });
   }, DEBOUNCE_MS);
 }
 

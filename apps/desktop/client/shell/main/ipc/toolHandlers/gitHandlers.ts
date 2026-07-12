@@ -58,7 +58,7 @@ export const gitCommitHandler: ToolHandler = async ({ params, projectDir }) => {
     author: author ?? { name: 'Orison Agent', email: 'agent@orison.local' },
   });
 
-  notifyUI({ type: 'git:changed' });
+  notifyUI({ type: 'git:changed', projectPath: projectDir });
   return {
     title: 'git_commit',
     output: `Committed: ${oid.slice(0, 7)} — ${message}`,

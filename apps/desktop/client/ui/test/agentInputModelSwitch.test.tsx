@@ -33,6 +33,7 @@ const modelConfig: ModelConfig = {
 };
 
 function seedStore(overrides: Record<string, unknown> = {}) {
+  useAppStore.getState().resetAgentForProjectSwitch();
   // Set the project first so the auto-installed project subscription fires its
   // agent-reset on THIS change; then seed the agent fields in a second update
   // (same project ref → subscription is a no-op and won't wipe agentSessionId).

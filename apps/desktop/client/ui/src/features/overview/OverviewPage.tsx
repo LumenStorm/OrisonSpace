@@ -63,17 +63,15 @@ export function OverviewPage() {
   useEffect(() => {
     if (!project) return;
     if (hydratedPathRef.current === (project.path ?? null)) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = undefined;
     hydratedPathRef.current = project.path ?? null;
     userEditedRef.current = false;
     setName(project.name ?? '');
     setLogline(project.logline ?? '');
     setSynopsis(project.synopsis ?? '');
+    setSnapshotLoading(false);
   }, [project]);
-
-  // Latest edited values, read by the debounced flush without forcing the
-  // flush callback to depend on every field (which would re-arm per keystroke).
-  const latestRef = useRef({ name, logline, synopsis });
-  latestRef.current = { name, logline, synopsis };
 
   const markEdited = () => {
     userEditedRef.current = true;
@@ -81,13 +79,6 @@ export function OverviewPage() {
     debounceRef.current = setTimeout(() => {
       if (!userEditedRef.current) return;
       userEditedRef.current = false;
-      const { name: n, logline: l, synopsis: s } = latestRef.current;
-      // In-place meta update (same path) → not a project switch. Then persist.
-      updateProjectMeta({
-        name: n || (project?.name ?? ''),
-        logline: l || undefined,
-        synopsis: s || undefined,
-      });
       void saveProject();
     }, DEBOUNCE_MS);
   };
@@ -95,7 +86,11 @@ export function OverviewPage() {
   // Flush any pending edit on unmount.
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-  }, []);
+    if (userEditedRef.current) {
+      userEditedRef.current = false;
+      void saveProject();
+    }
+  }, [saveProject]);
 
   // Load recent version nodes for the activity feed. Best-effort: a project
   // with no repo simply shows an empty activity stream.
@@ -153,19 +148,26 @@ export function OverviewPage() {
   // Snapshot handler
   const handleSnapshot = async () => {
     if (!projectPath || snapshotLoading) return;
+    const capturedProjectPath = projectPath;
+    const isCurrentProject = () => normalizePath(
+      useAppStore.getState().currentProject?.path ?? '',
+    ) === normalizePath(capturedProjectPath);
     setSnapshotLoading(true);
     try {
       const now = new Date();
       const msg = `snapshot: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-      await gitCreateNode(projectPath, msg);
-      const log = await gitLog(projectPath, 4);
+      await gitCreateNode(capturedProjectPath, msg);
+      if (!isCurrentProject()) return;
+      const log = await gitLog(capturedProjectPath, 4);
+      if (!isCurrentProject()) return;
       setVersions(log);
       showToast(t('overview.snapshotSuccess'), 'success');
     } catch (err) {
+      if (!isCurrentProject()) return;
       const reason = err instanceof Error ? err.message : String(err);
       showToast(t('overview.snapshotFailed', { reason }), 'error');
     } finally {
-      setSnapshotLoading(false);
+      if (isCurrentProject()) setSnapshotLoading(false);
     }
   };
 
@@ -211,14 +213,20 @@ export function OverviewPage() {
   // first-class project field, not derived from the assets library.
   const handlePickCover = async () => {
     if (!projectPath) return;
+    const capturedProjectPath = projectPath;
+    const isCurrentProject = () => normalizePath(
+      useAppStore.getState().currentProject?.path ?? '',
+    ) === normalizePath(capturedProjectPath);
     const src = await window.orisonDesktop?.pickCoverImage();
-    if (!src) return;
+    if (!src || !isCurrentProject()) return;
     const previousCover = project?.coverImage;
-    const dest = await window.orisonDesktop.copyCoverImage(src, projectPath);
+    const dest = await window.orisonDesktop.copyCoverImage(src, capturedProjectPath);
+    if (!isCurrentProject()) return;
     updateProjectMeta({ coverImage: dest });
     try {
       await saveProject();
     } catch (err) {
+      if (!isCurrentProject()) return;
       // The cover file was copied but the meta write failed (e.g. disk/permission).
       // Roll the in-memory pointer back so the UI doesn't show a cover that
       // vanishes on reload, and tell the user instead of failing silently.
@@ -227,6 +235,7 @@ export function OverviewPage() {
       showToast(t('creative.coverSaveFailed', { reason }), 'error');
       return;
     }
+    if (!isCurrentProject()) return;
     // The destination path is stable (cover.<ext>); bump a cache-buster so the
     // <img> re-fetches when the file is replaced in place.
     setCoverBust((n) => n + 1);
@@ -268,7 +277,12 @@ export function OverviewPage() {
               className="overview-name-input"
               placeholder={t('overview.projectName')}
               value={name}
-              onChange={(e) => { markEdited(); setName(e.target.value); }}
+              onChange={(e) => {
+                const value = e.target.value;
+                setName(value);
+                updateProjectMeta({ name: value || (project?.name ?? '') });
+                markEdited();
+              }}
             />
             {project?.type && (
               <span className="overview-type-badge">
@@ -280,13 +294,23 @@ export function OverviewPage() {
             className="overview-logline-input"
             placeholder={t('overview.loglinePlaceholder')}
             value={logline}
-            onChange={(e) => { markEdited(); setLogline(e.target.value); }}
+            onChange={(e) => {
+              const value = e.target.value;
+              setLogline(value);
+              updateProjectMeta({ logline: value || undefined });
+              markEdited();
+            }}
           />
           <textarea
             className="overview-synopsis-input"
             placeholder={t('overview.synopsisPlaceholder')}
             value={synopsis}
-            onChange={(e) => { markEdited(); setSynopsis(e.target.value); }}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSynopsis(value);
+              updateProjectMeta({ synopsis: value || undefined });
+              markEdited();
+            }}
             rows={2}
           />
         </div>

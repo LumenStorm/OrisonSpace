@@ -77,6 +77,7 @@ export const desktopIpcSchema = z.object({
     'agent:create-session',
     'agent:get-session',
     'agent:set-session-model',
+    'agent:set-session-mode',
     'agent:list-sessions',
     'agent:delete-session',
     'agent:stream-message',
@@ -314,6 +315,8 @@ export type ProjectSearchResult = {
 /**
  * Canonical type for the preload API surface exposed via contextBridge.
  */
+export type ProjectMutationResult = { ok: true } | { ok: false; error: string };
+
 export type OrisonDesktopApi = {
   pickProjectDirectory(): Promise<string | null>;
   createProjectDirectory(parentDir: string, name: string): Promise<string>;
@@ -321,11 +324,11 @@ export type OrisonDesktopApi = {
   copyCoverImage(src: string, projectDir: string): Promise<string>;
   importDocx(projectDir: string): Promise<string | null>;
   docxToHtml(fullPath: string): Promise<string | null>;
-  docxToMarkdown(fullPath: string): Promise<string | null>;
+  docxToMarkdown(fullPath: string, projectDir: string): Promise<string | null>;
   saveProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
   /** Idempotently ensure `<projectDir>/project.yaml` exists (create-if-absent, no version bump). */
   ensureProjectDocument(projectDir: string, meta: Record<string, unknown>): Promise<void>;
-  syncProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<void>;
+  syncProjectMeta(projectDir: string, meta: Record<string, unknown>): Promise<ProjectMutationResult>;
   syncChaptersMeta(projectDir: string, chapters: Array<{
     id: string;
     title: string;
@@ -340,7 +343,7 @@ export type OrisonDesktopApi = {
       content_file: string;
       word_count?: number;
     }>;
-  }>): Promise<void>;
+  }>): Promise<ProjectMutationResult>;
   loadProjectMeta(projectDir: string): Promise<Record<string, unknown> | null>;
   getLocale(): string;
   minimize(): void;
@@ -435,8 +438,9 @@ export type OrisonDesktopApi = {
   createAgentSession(input: { agentName: string; projectPath: string; mode?: 'readonly' | 'suggest' | 'auto'; modelRef?: { keyId: string; modelId: string } }): Promise<unknown>;
   getAgentSession(id: string, projectPath?: string): Promise<unknown>;
   setAgentSessionModel(sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined): Promise<{ ok: boolean }>;
+  setAgentSessionMode(sessionId: string, projectPath: string | undefined, mode: 'readonly' | 'suggest' | 'auto'): Promise<{ ok: boolean }>;
   listAgentSessions(projectPath?: string): Promise<unknown>;
-  deleteAgentSession(id: string): Promise<boolean>;
+  deleteAgentSession(id: string, projectPath?: string): Promise<boolean>;
   streamAgentMessage(input: { sessionId: string; content: string; attachments?: unknown[] }): Promise<{ status: string; message?: string }>;
   onAgentStreamEvent(callback: (event: { type: string; data: unknown }) => void): () => void;
   resolveAgentConfirmation(sessionId: string, callId: string, approved: boolean): Promise<unknown>;

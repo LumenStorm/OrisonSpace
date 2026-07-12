@@ -1,9 +1,14 @@
 import { useCallback } from 'react';
 import { useAppStore, type ProjectMeta } from '../store/appStore';
 import { ensureProjectRegistration } from '../api/projects';
+import { useToastStore } from '../store/toastStore';
+import { useI18n } from '../i18n/useI18n';
 
 export function useOpenProject(): () => Promise<void> {
   const openProject = useAppStore((s) => s.openProject);
+  const resolvedLocale = useAppStore((s) => s.resolvedLocale);
+  const showToast = useToastStore((s) => s.showToast);
+  const { t } = useI18n(resolvedLocale);
 
   return useCallback(async () => {
     const dir = await window.orisonDesktop?.pickProjectDirectory();
@@ -57,6 +62,11 @@ export function useOpenProject(): () => Promise<void> {
       // A failed write must not block opening the project.
     }
 
-    openProject(project);
-  }, [openProject]);
+    const result = await openProject(project);
+    if (!result.opened && (result.error || result.failed.length > 0)) {
+      const reason = result.error
+        ?? result.failed.map((path) => path.split(/[\\/]/).pop() ?? path).join(', ');
+      showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
+    }
+  }, [openProject, showToast, t]);
 }

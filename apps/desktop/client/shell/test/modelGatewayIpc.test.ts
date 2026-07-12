@@ -18,7 +18,7 @@ vi.mock('electron', () => ({
 }));
 
 import { _setModelConfigDirForTest, registerConfigIpc } from '../main/ipc/configIpc';
-import { registerModelGatewayIpc } from '../main/ipc/modelGatewayIpc';
+import { handleGenerateText, registerModelGatewayIpc } from '../main/ipc/modelGatewayIpc';
 
 const TEST_MODEL_DIR = path.join(process.cwd(), 'test-tmp-model-gateway');
 const ORIGINAL_FETCH = globalThis.fetch;
@@ -130,6 +130,33 @@ describe('model gateway IPC', () => {
       request: { model: 'x', messages: [{ role: 'user', content: 'hi' }] },
     });
     expect(JSON.stringify(result)).not.toContain('sk-text');
+  });
+
+  it('passes an abort signal through to the provider request', async () => {
+    await seedConfig();
+    const controller = new AbortController();
+    let receivedSignal: AbortSignal | null | undefined;
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      receivedSignal = input instanceof Request ? input.signal : init?.signal;
+      receivedSignal?.addEventListener('abort', () => reject(receivedSignal?.reason), { once: true });
+    }));
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const generating = handleGenerateText({
+      ref: { keyId: 'key_text', modelId: 'gpt-4o-mini' },
+      request: {
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: 'hi' }],
+      },
+    }, controller.signal);
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+    expect(receivedSignal).toBe(controller.signal);
+    controller.abort(new DOMException('Aborted', 'AbortError'));
+
+    await expect(generating).rejects.toThrow(/aborted/i);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('rejects when the key does not exist', async () => {

@@ -8,6 +8,7 @@ import {
 import { resolveNovelModelRuntime } from '../model/novelModel';
 import { storage } from './storage';
 import { registerProjectReset } from './resetRegistry';
+import { useToastStore } from './toastStore';
 
 export type ChapterStatus = 'draft' | 'generating' | 'revised' | 'final';
 
@@ -82,9 +83,9 @@ function errorKeyFromStart(error: unknown): string {
   return error instanceof Error ? error.message : UNKNOWN_ERROR_KEY;
 }
 
-function persistChaptersMeta(chapters: NovelChapterMeta[], projectPath?: string) {
-  if (!projectPath || !window.orisonDesktop?.syncChaptersMeta) return;
-  window.orisonDesktop.syncChaptersMeta(projectPath, chapters.map((ch) => ({
+async function persistChaptersMeta(chapters: NovelChapterMeta[], projectPath?: string) {
+  if (!projectPath || !window.orisonDesktop?.syncChaptersMeta) return { ok: true } as const;
+  return window.orisonDesktop.syncChaptersMeta(projectPath, chapters.map((ch) => ({
     id: ch.id,
     title: ch.title,
     sort_order: ch.sortOrder,
@@ -99,6 +100,17 @@ function persistChaptersMeta(chapters: NovelChapterMeta[], projectPath?: string)
       word_count: sec.wordCount,
     })),
   })));
+}
+
+function persistChaptersMetaWithFeedback(chapters: NovelChapterMeta[], projectPath?: string): void {
+  void persistChaptersMeta(chapters, projectPath).then((result) => {
+    if (!result.ok) {
+      useToastStore.getState().showToast(`章节元数据保存失败: ${result.error}`, 'error');
+    }
+  }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    useToastStore.getState().showToast(`章节元数据保存失败: ${message}`, 'error');
+  });
 }
 
 export const createNovelChapterSlice: StateCreator<
@@ -126,7 +138,7 @@ export const createNovelChapterSlice: StateCreator<
   setNovelChapters: (chapters) => {
     const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
     set({ novelChapters: sorted });
-    persistChaptersMeta(sorted, get().currentProject?.path);
+    persistChaptersMetaWithFeedback(sorted, get().currentProject?.path);
   },
 
   moveNovelChapter: (fromIndex, toIndex) => {
@@ -139,7 +151,7 @@ export const createNovelChapterSlice: StateCreator<
     next.splice(toIndex, 0, moved);
     const reordered = next.map((ch, i) => ({ ...ch, sortOrder: i }));
     set({ novelChapters: reordered });
-    persistChaptersMeta(reordered, get().currentProject?.path);
+    persistChaptersMetaWithFeedback(reordered, get().currentProject?.path);
   },
 
   activeChapterId: null,
@@ -224,7 +236,8 @@ export const createNovelChapterSlice: StateCreator<
         chapterCandidate: null,
         chapterCandidateStatus: 'accepted',
       });
-      persistChaptersMeta(updated, project.path);
+      const syncResult = await persistChaptersMeta(updated, project.path);
+      if (!syncResult.ok) throw new Error(syncResult.error);
       // Candidate markdown was written to disk; refresh the project word count.
       void (get() as { refreshWordCount?: () => Promise<void> }).refreshWordCount?.();
     } catch (error) {

@@ -34,7 +34,8 @@ export function useAutoSave(): void {
     const runSave = async () => {
       if (saving) return;
       const state = useAppStore.getState();
-      if (!state.autoSaveEnabled || !state.currentProject?.path) return;
+      const projectPath = state.currentProject?.path;
+      if (!state.autoSaveEnabled || !projectPath) return;
 
       // Snapshot the paths that are dirty now; we verify these specific paths
       // got their savedContent updated, so concurrent edits during the await
@@ -48,25 +49,34 @@ export function useAutoSave(): void {
       saving = true;
       state.setSaveStatus('saving');
       try {
-        await state.saveAllOpenFiles();
+        const result = await state.saveAllOpenFiles();
+        const currentState = useAppStore.getState();
+        if (currentState.currentProject?.path !== projectPath) return;
+        if (result.failed.length > 0) {
+          currentState.setSaveStatus('error');
+          return;
+        }
 
         // Verify the files we set out to save actually landed on disk.
-        const after = useAppStore.getState().openFiles;
+        const after = currentState.openFiles;
         const stillDirty = dirtyPaths.some((path) => {
           const file = after.find((f) => f.path === path);
           return file != null && file.content !== file.savedContent;
         });
 
         if (stillDirty) {
-          state.setSaveStatus('error');
+          currentState.setSaveStatus('error');
         } else {
-          state.setLastSavedAt(Date.now());
-          state.setSaveStatus('saved');
+          currentState.setLastSavedAt(Date.now());
+          currentState.setSaveStatus('saved');
           // Content landed on disk; keep the overview word count in sync.
-          void state.refreshWordCount();
+          void currentState.refreshWordCount();
         }
       } catch {
-        state.setSaveStatus('error');
+        const currentState = useAppStore.getState();
+        if (currentState.currentProject?.path === projectPath) {
+          currentState.setSaveStatus('error');
+        }
       } finally {
         saving = false;
       }

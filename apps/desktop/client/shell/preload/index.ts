@@ -36,14 +36,14 @@ export const exposedDesktopApi = {
     ipcRenderer.invoke('project:import-docx', projectDir) as Promise<string | null>,
   docxToHtml: (fullPath: string) =>
     ipcRenderer.invoke('project:docx-to-html', fullPath) as Promise<string | null>,
-  docxToMarkdown: (fullPath: string) =>
-    ipcRenderer.invoke('project:docx-to-markdown', fullPath) as Promise<string | null>,
+  docxToMarkdown: (fullPath: string, projectDir: string) =>
+    ipcRenderer.invoke('project:docx-to-markdown', fullPath, projectDir) as Promise<string | null>,
   saveProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:save-meta', projectDir, meta) as Promise<void>,
   ensureProjectDocument: (projectDir: string, meta: Record<string, unknown>) =>
     ipcRenderer.invoke('project:ensure-document', projectDir, meta) as Promise<void>,
   syncProjectMeta: (projectDir: string, meta: Record<string, unknown>) =>
-    ipcRenderer.invoke('project:sync-meta', projectDir, meta) as Promise<void>,
+    ipcRenderer.invoke('project:sync-meta', projectDir, meta),
   syncChaptersMeta: (projectDir: string, chapters: Array<{
     id: string;
     title: string;
@@ -59,7 +59,7 @@ export const exposedDesktopApi = {
       word_count?: number;
     }>;
   }>) =>
-    ipcRenderer.invoke('project:sync-chapters-meta', projectDir, chapters) as Promise<void>,
+    ipcRenderer.invoke('project:sync-chapters-meta', projectDir, chapters),
   loadProjectMeta: (projectDir: string) =>
     ipcRenderer.invoke('project:load-meta', projectDir) as Promise<Record<string, unknown> | null>,
   getLocale: () => navigator.language,
@@ -195,16 +195,18 @@ export const exposedDesktopApi = {
     return () => { ipcRenderer.removeListener('tool:event', listener); };
   },
   // Agent
-  createAgentSession: (input: { agentName: string; projectPath: string; modelRef?: { keyId: string; modelId: string } }) =>
+  createAgentSession: (input: { agentName: string; projectPath: string; mode?: 'readonly' | 'suggest' | 'auto'; modelRef?: { keyId: string; modelId: string } }) =>
     ipcRenderer.invoke('agent:create-session', input),
   getAgentSession: (id: string, projectPath?: string) =>
     ipcRenderer.invoke('agent:get-session', id, projectPath),
   setAgentSessionModel: (sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined) =>
     ipcRenderer.invoke('agent:set-session-model', sessionId, projectPath, modelRef),
+  setAgentSessionMode: (sessionId: string, projectPath: string | undefined, mode: 'readonly' | 'suggest' | 'auto') =>
+    ipcRenderer.invoke('agent:set-session-mode', sessionId, projectPath, mode),
   listAgentSessions: (projectPath?: string) =>
     ipcRenderer.invoke('agent:list-sessions', projectPath),
-  deleteAgentSession: (id: string) =>
-    ipcRenderer.invoke('agent:delete-session', id),
+  deleteAgentSession: (id: string, projectPath?: string) =>
+    ipcRenderer.invoke('agent:delete-session', id, projectPath),
   streamAgentMessage: (input: { sessionId: string; content: string; attachments?: unknown[] }) =>
     ipcRenderer.invoke('agent:stream-message', input),
   onAgentStreamEvent: (callback: (event: { type: string; data: unknown }) => void) => {

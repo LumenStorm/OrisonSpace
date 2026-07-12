@@ -64,8 +64,13 @@ export function ImageGenEditor() {
 
   useEffect(() => {
     hydratedPages.current = new Set();
+    setResults([]);
+    setPreview(null);
+    setEditing(null);
+    setUploadedImage(null);
+    setLoading(false);
+    setError(null);
     if (!currentProject?.path) {
-      setResults([]);
       setPage(0);
       return;
     }
@@ -243,7 +248,8 @@ export function ImageGenEditor() {
     submitBgTask({
       type: 'image_gen',
       label: `${isEditMode ? t('imageGen.editLabel') || '编辑' : t('imageGen.genLabel') || '生成'}图片: ${capturedPrompt.slice(0, 40)}`,
-      execute: async (_signal) => {
+      execute: async (signal) => {
+        const saved: GeneratedImageItem[] = [];
         try {
           const response = await generateImage({
             ref,
@@ -251,31 +257,34 @@ export function ImageGenEditor() {
             params: payload,
             image: capturedImage,
           });
+          if (signal.aborted) throw new Error('Image generation cancelled');
 
-          const saved = await Promise.all(
-            response.images.map(async (image, index) => {
-              if (!image.b64Json) throw new Error(t('imageGen.missingBase64'));
+          for (const [index, image] of response.images.entries()) {
+            if (signal.aborted) throw new Error('Image generation cancelled');
+            if (!image.b64Json) throw new Error(t('imageGen.missingBase64'));
 
-              const file = await saveBase64Image(projectPath, {
-                b64Json: image.b64Json,
-                mimeType: image.mimeType ?? 'image/png',
-                directory: GENERATION_IMAGE_DIR,
-                fileName: createImageName(capturedPrompt, index),
-              });
+            const file = await saveBase64Image(projectPath, {
+              b64Json: image.b64Json,
+              mimeType: image.mimeType ?? 'image/png',
+              directory: GENERATION_IMAGE_DIR,
+              fileName: createImageName(capturedPrompt, index),
+            });
+            saved.push({
+              id: `${Date.now()}-${index}`,
+              prompt: capturedPrompt,
+              b64Json: image.b64Json,
+              mimeType: image.mimeType ?? 'image/png',
+              dataUrl: image.dataUrl ?? toDataUrl(image.b64Json, image.mimeType ?? 'image/png'),
+              tempRelativePath: file.relativePath,
+              tempFullPath: file.fullPath,
+              assetAdded: false,
+              source: 'generated' as const,
+            });
+            if (signal.aborted) throw new Error('Image generation cancelled');
+          }
 
-              return {
-                id: `${Date.now()}-${index}`,
-                prompt: capturedPrompt,
-                b64Json: image.b64Json,
-                mimeType: image.mimeType ?? 'image/png',
-                dataUrl: image.dataUrl ?? toDataUrl(image.b64Json, image.mimeType ?? 'image/png'),
-                tempRelativePath: file.relativePath,
-                tempFullPath: file.fullPath,
-                assetAdded: false,
-                source: 'generated' as const,
-              } satisfies GeneratedImageItem;
-            }),
-          );
+          if (signal.aborted) throw new Error('Image generation cancelled');
+          if (useAppStore.getState().currentProject?.path !== projectPath) return saved;
 
           // Update local results for immediate display
           setResults((current) => [...saved, ...current]);
@@ -297,12 +306,22 @@ export function ImageGenEditor() {
 
           return saved;
         } catch (err) {
+          if (signal.aborted) {
+            await Promise.allSettled(
+              saved.map((item) => deleteProjectFile(projectPath, item.tempRelativePath)),
+            );
+            throw err;
+          }
           const msg = err instanceof Error ? err.message : String(err);
-          setError(msg);
-          showToast(msg, 'error');
+          if (useAppStore.getState().currentProject?.path === projectPath) {
+            setError(msg);
+            showToast(msg, 'error');
+          }
           throw err;
         } finally {
-          setLoading(false);
+          if (useAppStore.getState().currentProject?.path === projectPath) {
+            setLoading(false);
+          }
         }
       },
     });
@@ -310,8 +329,10 @@ export function ImageGenEditor() {
 
   async function promoteToAssetFile(item: GeneratedImageItem) {
     if (!currentProject?.path || item.savedRelativePath) return;
+    const projectPath = currentProject.path;
     const targetRelativePath = `assets/images/${fileNameOf(item.tempRelativePath)}`;
-    await moveProjectFile(currentProject.path, item.tempRelativePath, targetRelativePath);
+    await moveProjectFile(projectPath, item.tempRelativePath, targetRelativePath);
+    if (useAppStore.getState().currentProject?.path !== projectPath) return;
     appendOutputEntry({
       scope: 'image',
       level: 'success',
@@ -321,7 +342,7 @@ export function ImageGenEditor() {
     setResults((current) =>
       current.map((entry) =>
         entry.id === item.id
-          ? { ...entry, savedRelativePath: targetRelativePath, tempFullPath: joinProjectPath(currentProject.path, targetRelativePath) }
+          ? { ...entry, savedRelativePath: targetRelativePath, tempFullPath: joinProjectPath(projectPath, targetRelativePath) }
           : entry
       ),
     );
@@ -337,8 +358,9 @@ export function ImageGenEditor() {
       return;
     }
 
+    const projectPath = currentProject.path;
     const editName = createImageName(`${fileNameOf(item.tempRelativePath)} edited`, 0);
-    const editedFile = await saveBase64Image(currentProject.path, {
+    const editedFile = await saveBase64Image(projectPath, {
       b64Json: payload.b64Json,
       mimeType: payload.mimeType,
       directory: GENERATION_IMAGE_DIR,
@@ -346,7 +368,7 @@ export function ImageGenEditor() {
     });
 
     if (payload.maskB64Json) {
-      await saveBase64Image(currentProject.path, {
+      await saveBase64Image(projectPath, {
         b64Json: payload.maskB64Json,
         mimeType: 'image/png',
         directory: GENERATION_IMAGE_DIR,
@@ -366,6 +388,7 @@ export function ImageGenEditor() {
       source: 'edited',
     };
 
+    if (useAppStore.getState().currentProject?.path !== projectPath) return;
     setResults((current) => [editedItem, ...current]);
     setPage(0);
     setEditing(null);
@@ -389,6 +412,7 @@ export function ImageGenEditor() {
     payload: { b64Json: string; mimeType: string; maskB64Json?: string },
   ) {
     if (!currentProject?.path || !resolvedSlot) return;
+    const projectPath = currentProject.path;
     const variantPrompt = prompt.trim() || item.prompt;
     if (!variantPrompt) {
       appendOutputEntry({
@@ -426,7 +450,7 @@ export function ImageGenEditor() {
           if (!image.b64Json) {
             throw new Error(t('imageGen.missingBase64'));
           }
-          const file = await saveBase64Image(currentProject.path!, {
+          const file = await saveBase64Image(projectPath, {
             b64Json: image.b64Json,
             mimeType: image.mimeType ?? 'image/png',
             directory: GENERATION_IMAGE_DIR,
@@ -446,6 +470,7 @@ export function ImageGenEditor() {
         }),
       );
 
+      if (useAppStore.getState().currentProject?.path !== projectPath) return;
       setResults((current) => [...saved, ...current]);
       setPage(0);
       setEditing(null);
@@ -456,6 +481,7 @@ export function ImageGenEditor() {
         detail: saved.map((entry) => entry.tempRelativePath).join(', '),
       });
     } catch (err) {
+      if (useAppStore.getState().currentProject?.path !== projectPath) return;
       const message = err instanceof Error ? err.message : t('imageGen.generateFailed');
       setError(message);
       showToast(message, 'error');
@@ -466,15 +492,17 @@ export function ImageGenEditor() {
         detail: message,
       });
     } finally {
-      setLoading(false);
+      if (useAppStore.getState().currentProject?.path === projectPath) setLoading(false);
     }
   }
 
   async function handleAddAsset(item: GeneratedImageItem) {
     if (!currentProject?.path) return;
+    const projectPath = currentProject.path;
     let nextItem = item;
     if (!item.savedRelativePath) {
       await promoteToAssetFile(item);
+      if (useAppStore.getState().currentProject?.path !== projectPath) return;
       nextItem = { ...item, savedRelativePath: `assets/images/${fileNameOf(item.tempRelativePath)}` };
     }
 
@@ -520,6 +548,7 @@ export function ImageGenEditor() {
 
   async function handleDelete(item: GeneratedImageItem) {
     if (!currentProject?.path) return;
+    const projectPath = currentProject.path;
     if (item.savedRelativePath) return;
     const confirmed = await requestConfirm({
       title: t('imageGen.deleteTitle') || '删除图片',
@@ -530,7 +559,8 @@ export function ImageGenEditor() {
     if (!confirmed) return;
 
     try {
-      await deleteProjectFile(currentProject.path, item.tempRelativePath);
+      await deleteProjectFile(projectPath, item.tempRelativePath);
+      if (useAppStore.getState().currentProject?.path !== projectPath) return;
       setResults((current) => current.filter((entry) => entry.id !== item.id));
       appendOutputEntry({
         scope: 'image',

@@ -94,6 +94,7 @@ describe('preload security surface', () => {
       'saveProjectMeta',
       'saveUserPreferences',
       'searchProject',
+      'setAgentSessionMode',
       'setAgentSessionModel',
       'setPackageEnabled',
       'setSkillEnabled',

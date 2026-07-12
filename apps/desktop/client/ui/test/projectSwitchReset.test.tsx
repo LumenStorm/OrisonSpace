@@ -58,7 +58,7 @@ describe('full project-scoped state reset on project switch', () => {
     expect(s.pendingDiffs).toEqual([]);
   });
 
-  it('flushes dirty open files before tearing down the previous project', () => {
+  it('flushes dirty open files before tearing down the previous project', async () => {
     useAppStore.setState({
       currentProject: { projectId: 'A', name: 'A', path: 'I:/proj-a', type: 'novel' },
     } as any);
@@ -67,12 +67,13 @@ describe('full project-scoped state reset on project switch', () => {
       activeFilePath: 'I:/proj-a/c1.md',
     } as any);
 
-    useAppStore.setState({
-      currentProject: { projectId: 'B', name: 'B', path: 'I:/proj-b', type: 'novel' },
-    } as any);
+    await useAppStore.getState().openProject({
+      projectId: 'B', name: 'B', path: 'I:/proj-b', type: 'novel',
+    });
 
     // The dirty buffer is written to disk by its absolute path before reset.
     expect((window as any).orisonDesktop.writeFile).toHaveBeenCalledWith('I:/proj-a/c1.md', 'edited');
     expect(useAppStore.getState().openFiles).toEqual([]);
+    expect(useAppStore.getState().currentProject?.path).toBe('I:/proj-b');
   });
 });

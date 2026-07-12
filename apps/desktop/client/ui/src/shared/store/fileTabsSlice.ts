@@ -71,6 +71,7 @@ export type FileTabsSlice = {
   saveFile: (path: string) => Promise<boolean>;
   saveAllOpenFiles: () => Promise<{ failed: string[] }>;
   reloadFile: (path: string) => Promise<void>;
+  reconcileExternalFile: (path: string, diskContent: string, expectedSavedContent: string) => void;
   /** Flag a tab as changed/deleted on disk while it had unsaved edits. */
   markExternalChange: (path: string, kind: 'changed' | 'deleted') => void;
   /** Dismiss the external-change banner, keeping the in-editor (unsaved) version. */
@@ -285,7 +286,8 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const bulk = get().pendingBulkClose;
     if (!bulk) return;
     if (save) {
-      await Promise.all(bulk.dirtyPaths.map((p) => get().saveFile(p)));
+      const results = await Promise.all(bulk.dirtyPaths.map((p) => get().saveFile(p)));
+      if (results.some((ok) => !ok)) return;
     }
     set({ pendingBulkClose: null });
     // Re-execute the close operation (now all dirty files are saved or discardable)
@@ -422,6 +424,8 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   },
 
   restoreProjectTabs: async (projectPath) => {
+    const isCurrentProject = () => (get() as any).currentProject?.path === projectPath;
+    if (!isCurrentProject()) return;
     const snapshot = loadProjectSession(projectPath);
     if (!snapshot || snapshot.openFiles.length === 0) return;
 
@@ -432,10 +436,12 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       let content = '';
       if (saved.kind === 'text') {
         const raw = await window.orisonDesktop?.readFile(saved.path);
+        if (!isCurrentProject()) return;
         if (typeof raw !== 'string') continue;
         content = raw;
       } else if (saved.kind === 'docx') {
         const html = await window.orisonDesktop?.docxToHtml?.(saved.path);
+        if (!isCurrentProject()) return;
         content = typeof html === 'string' ? html : '';
       }
       restored.push({
@@ -457,6 +463,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
       ? snapshot.activeFilePath
       : restored[0]?.path ?? null;
 
+    if (!isCurrentProject()) return;
     (set as any)({
       openFiles: restored,
       activeFilePath,
@@ -486,15 +493,18 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     const file = state.openFiles.find((f) => f.path === path);
     if (!file) return false;
     if (file.kind === 'image') return true;
+    const tabId = file.id;
+    const contentToSave = file.content;
     try {
-      const ok = await window.orisonDesktop?.writeFile(file.path, file.content);
+      const ok = await window.orisonDesktop?.writeFile(file.path, contentToSave);
       if (ok === false) return false;
       set((s) => ({
         openFiles: s.openFiles.map((f) =>
-          f.path === path ? { ...f, savedContent: f.content } : f,
+          f.id === tabId && f.path === path ? { ...f, savedContent: contentToSave } : f,
         ),
       }));
-      return true;
+      const current = get().openFiles.find((f) => f.id === tabId && f.path === path);
+      return current != null && current.content === current.savedContent;
     } catch {
       return false;
     }
@@ -527,6 +537,27 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
         ),
       }));
     } catch { /* ignore read errors */ }
+  },
+
+  reconcileExternalFile: (path, diskContent, expectedSavedContent) => {
+    set((state) => ({
+      openFiles: state.openFiles.map((file) => {
+        if (file.path !== path || file.kind !== 'text') return file;
+        if (diskContent === file.savedContent) return file;
+        const changedSinceRead = file.savedContent !== expectedSavedContent;
+        const isDirty = file.content !== file.savedContent;
+        if (changedSinceRead || isDirty) {
+          return { ...file, externalState: 'changed' };
+        }
+        return {
+          ...file,
+          content: diskContent,
+          savedContent: diskContent,
+          externalState: undefined,
+        };
+      }),
+    }));
+    persist();
   },
 
   markExternalChange: (path, kind) => {

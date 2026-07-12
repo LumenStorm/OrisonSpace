@@ -1,4 +1,4 @@
-import { type DragEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
 import { useI18n } from '../../shared/i18n/useI18n';
@@ -39,8 +39,21 @@ export function ProjectTree() {
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [creatingType, setCreatingType] = useState<CreatingType>(null);
   const [dragActive, setDragActive] = useState(false);
+  const treeRequestEpochRef = useRef(0);
 
   const projectPath = currentProject?.path;
+
+  const isCurrentProject = useCallback((capturedPath: string) => (
+    useAppStore.getState().currentProject?.path === capturedPath
+  ), []);
+
+  useEffect(() => {
+    setCtxMenu(null);
+    setRenamingPath(null);
+    setCreatingIn(null);
+    setCreatingType(null);
+    setDragActive(false);
+  }, [projectPath]);
 
   const dirtyPaths = useMemo(
     () => {
@@ -58,14 +71,20 @@ export function ProjectTree() {
   );
 
   useEffect(() => {
+    const requestEpoch = ++treeRequestEpochRef.current;
     if (!currentProject) return;
-    let cancelled = false;
+    const capturedPath = projectPath;
+    const isCurrentRequest = () => (
+      requestEpoch === treeRequestEpochRef.current
+      && useAppStore.getState().currentProject?.path === capturedPath
+    );
 
     const loadTree = async () => {
-      if (projectPath && window.orisonDesktop?.readDirectory) {
+      if (capturedPath && window.orisonDesktop?.readDirectory) {
         try {
-          const entries = await window.orisonDesktop.readDirectory(projectPath, 1);
-          if (!cancelled && entries && entries.length > 0) {
+          const entries = await window.orisonDesktop.readDirectory(capturedPath, 1);
+          if (!isCurrentRequest()) return;
+          if (entries && entries.length > 0) {
             setFileTree([{ name: currentProject.name, path: '/', isDir: true, children: entries }]);
             return;
           }
@@ -73,11 +92,13 @@ export function ProjectTree() {
           // Fall through to mock data.
         }
       }
-      if (!cancelled) setFileTree(buildInitialTree(currentProject.name));
+      if (isCurrentRequest()) setFileTree(buildInitialTree(currentProject.name));
     };
 
     void loadTree();
-    return () => { cancelled = true; };
+    return () => {
+      if (treeRequestEpochRef.current === requestEpoch) treeRequestEpochRef.current += 1;
+    };
   }, [currentProject, projectPath]);
 
   // Re-read the project tree (depth 3) and re-hydrate any directories the user
@@ -85,9 +106,17 @@ export function ProjectTree() {
   // doesn't collapse lazily-loaded deep subtrees.
   const refreshTree = useCallback(async () => {
     if (!projectPath || !currentProject) return;
-    const entries = await window.orisonDesktop?.readDirectory?.(projectPath, 3);
+    const requestEpoch = ++treeRequestEpochRef.current;
+    const capturedPath = projectPath;
+    const projectName = currentProject.name;
+    const isCurrentRequest = () => (
+      requestEpoch === treeRequestEpochRef.current
+      && useAppStore.getState().currentProject?.path === capturedPath
+    );
+    const entries = await window.orisonDesktop?.readDirectory?.(capturedPath, 3);
+    if (!isCurrentRequest()) return;
     if (!entries?.length) return;
-    let tree: FileEntry[] = [{ name: currentProject.name, path: '/', isDir: true, children: entries }];
+    let tree: FileEntry[] = [{ name: projectName, path: '/', isDir: true, children: entries }];
 
     // For each expanded directory whose children weren't included in the shallow
     // read (depth > 3), fetch one more level so it stays open after refresh.
@@ -96,7 +125,8 @@ export function ProjectTree() {
       const node = findNode(tree, dirPath);
       if (!node || !node.isDir || (node.children && node.children.length > 0)) continue;
       try {
-        const children = await window.orisonDesktop?.readDirectory(`${projectPath}${dirPath}`, 1);
+        const children = await window.orisonDesktop?.readDirectory(`${capturedPath}${dirPath}`, 1);
+        if (!isCurrentRequest()) return;
         if (!children) continue;
         const remapped = children.map((child: FileEntry) => ({
           ...child,
@@ -108,7 +138,7 @@ export function ProjectTree() {
         // Best-effort re-hydration; a failed deep dir simply shows collapsed.
       }
     }
-    setFileTree(tree);
+    if (isCurrentRequest()) setFileTree(tree);
   }, [projectPath, currentProject, expandedPaths]);
 
   // External changes (watcher `file:changed`, agent `image:created`) refresh the
@@ -159,16 +189,25 @@ export function ProjectTree() {
 
   const loadChildrenIfNeeded = useCallback(async (entry: FileEntry) => {
     if (!projectPath || !entry.isDir || (entry.children && entry.children.length > 0)) return;
-    const fullDir = `${projectPath}${entry.path}`;
+    const requestEpoch = treeRequestEpochRef.current;
+    const capturedPath = projectPath;
+    const isCurrentRequest = () => (
+      requestEpoch === treeRequestEpochRef.current
+      && useAppStore.getState().currentProject?.path === capturedPath
+    );
+    const fullDir = `${capturedPath}${entry.path}`;
     try {
       const children = await window.orisonDesktop?.readDirectory(fullDir, 1);
+      if (!isCurrentRequest()) return;
       if (!children) return;
       const remapped = children.map((child: FileEntry) => ({
         ...child,
         path: entry.path === '/' ? `/${child.name}` : `${entry.path}/${child.name}`,
         children: child.isDir ? (child.children ?? []) : undefined,
       }));
-      setFileTree((prev) => prev ? updateChildren(prev, entry.path, remapped) : prev);
+      if (isCurrentRequest()) {
+        setFileTree((prev) => prev ? updateChildren(prev, entry.path, remapped) : prev);
+      }
     } catch {
       // Ignore lazy-load failures; users can retry by expanding again.
     }
@@ -196,10 +235,12 @@ export function ProjectTree() {
       return;
     }
 
-    const fullPath = normalizePath(`${projectPath}${entry.path}`);
+    const capturedPath = projectPath;
+    const fullPath = normalizePath(`${capturedPath}${entry.path}`);
     if (isImageFileName(entry.name)) {
       try {
         const payload = await window.orisonDesktop?.readFileBinary?.(fullPath);
+        if (!isCurrentProject(capturedPath)) return;
         if (payload) {
           const dataUrl = `data:${payload.mimeType};base64,${payload.base64}`;
           openFile(fullPath, entry.name, '', { kind: 'image', dataUrl });
@@ -208,6 +249,7 @@ export function ProjectTree() {
       } catch {
         // Fall through to placeholder text below.
       }
+      if (!isCurrentProject(capturedPath)) return;
       openFile(fullPath, entry.name, '', { kind: 'image' });
       return;
     }
@@ -215,8 +257,10 @@ export function ProjectTree() {
     if (isDocxFileName(entry.name)) {
       try {
         const html = await window.orisonDesktop?.docxToHtml(fullPath);
+        if (!isCurrentProject(capturedPath)) return;
         openFile(fullPath, entry.name, html ?? '', { kind: 'docx' });
       } catch {
+        if (!isCurrentProject(capturedPath)) return;
         openFile(fullPath, entry.name, '', { kind: 'docx' });
       }
       return;
@@ -224,11 +268,13 @@ export function ProjectTree() {
 
     try {
       const content = await window.orisonDesktop?.readFile(fullPath);
+      if (!isCurrentProject(capturedPath)) return;
       openFile(fullPath, entry.name, content ?? '');
     } catch {
+      if (!isCurrentProject(capturedPath)) return;
       openFile(fullPath, entry.name, '');
     }
-  }, [openFile, projectPath, t]);
+  }, [isCurrentProject, openFile, projectPath, t]);
 
   const handleContextMenu = useCallback((event: React.MouseEvent, entry: FileEntry) => {
     event.preventDefault();
@@ -299,14 +345,17 @@ export function ProjectTree() {
       items.push({
         type: 'item', label: t('contextMenu.delete'), icon: 'delete', danger: true,
         onClick: async () => {
+          const capturedPath = projectPath;
           // Confirm before an irreversible delete (directories are recursive).
           const confirmMsg = entry.isDir
             ? t('projectTree.deleteConfirmDir', { name: entry.name })
             : t('projectTree.deleteConfirmFile', { name: entry.name });
           if (!window.confirm(confirmMsg)) return;
-          if (projectPath) {
-            const fullPath = normalizePath(`${projectPath}${entry.path}`);
-            const ok = await window.orisonDesktop?.deleteEntry(`${projectPath}${entry.path}`);
+          if (!capturedPath || !isCurrentProject(capturedPath)) return;
+          if (capturedPath) {
+            const fullPath = normalizePath(`${capturedPath}${entry.path}`);
+            const ok = await window.orisonDesktop?.deleteEntry(`${capturedPath}${entry.path}`);
+            if (!isCurrentProject(capturedPath)) return;
             if (ok === false) {
               useToastStore.getState().showToast(t('projectTree.deleteFailed'), 'error');
               return;
@@ -333,9 +382,10 @@ export function ProjectTree() {
     });
 
     return items;
-  }, [ctxMenu, t, currentProject, projectPath, closeFilesUnder]);
+  }, [ctxMenu, t, currentProject, projectPath, closeFilesUnder, isCurrentProject]);
 
   const handleRenameConfirm = useCallback(async (oldPath: string, newName: string) => {
+    const capturedPath = projectPath;
     const trimmed = newName.trim();
     const parentDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/';
     const newRelative = parentDir === '/' ? `/${trimmed}` : `${parentDir}/${trimmed}`;
@@ -353,10 +403,11 @@ export function ProjectTree() {
       useToastStore.getState().showToast(t('projectTree.nameExists', { name: trimmed }), 'error');
       return;
     }
-    if (projectPath) {
-      const oldFull = normalizePath(`${projectPath}${oldPath}`);
-      const newFull = normalizePath(`${projectPath}${newRelative}`);
+    if (capturedPath) {
+      const oldFull = normalizePath(`${capturedPath}${oldPath}`);
+      const newFull = normalizePath(`${capturedPath}${newRelative}`);
       const ok = await window.orisonDesktop?.renameEntry(oldFull, newFull);
+      if (!isCurrentProject(capturedPath)) return;
       if (ok === false) {
         useToastStore.getState().showToast(t('projectTree.renameFailed'), 'error');
         setRenamingPath(null);
@@ -367,9 +418,10 @@ export function ProjectTree() {
     }
     setFileTree((prev) => prev ? renameNode(prev, oldPath, trimmed) : prev);
     setRenamingPath(null);
-  }, [projectPath, fileTree, renameOpenFile, t]);
+  }, [projectPath, fileTree, renameOpenFile, t, isCurrentProject]);
 
   const handleCreateConfirm = useCallback(async (name: string) => {
+    const capturedPath = projectPath;
     if (!creatingIn || !creatingType) return;
     const trimmed = name.trim();
     const isDir = creatingType === 'folder';
@@ -384,8 +436,9 @@ export function ProjectTree() {
       useToastStore.getState().showToast(t('projectTree.nameExists', { name: trimmed }), 'error');
       return;
     }
-    if (projectPath) {
-      const ok = await window.orisonDesktop?.createEntry(`${projectPath}${newPath}`, isDir);
+    if (capturedPath) {
+      const ok = await window.orisonDesktop?.createEntry(`${capturedPath}${newPath}`, isDir);
+      if (!isCurrentProject(capturedPath)) return;
       if (ok === false) {
         // Main rejected it (collision/invalid that slipped past the UI check).
         useToastStore.getState().showToast(t('projectTree.createFailed'), 'error');
@@ -399,11 +452,11 @@ export function ProjectTree() {
     setCreatingIn(null);
     setCreatingType(null);
     // Open the freshly created file so the user can start editing immediately.
-    if (!isDir && projectPath) {
-      const fullPath = normalizePath(`${projectPath}${newPath}`);
+    if (!isDir && capturedPath) {
+      const fullPath = normalizePath(`${capturedPath}${newPath}`);
       openFile(fullPath, trimmed, '');
     }
-  }, [creatingIn, creatingType, projectPath, fileTree, openFile, t]);
+  }, [creatingIn, creatingType, projectPath, fileTree, openFile, t, isCurrentProject]);
 
   const handleCreateCancel = useCallback(() => {
     setCreatingIn(null);

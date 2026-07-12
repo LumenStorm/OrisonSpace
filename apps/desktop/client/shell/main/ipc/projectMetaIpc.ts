@@ -102,7 +102,7 @@ export function registerProjectMetaIpc(): void {
     assertWithinProject(projectDir, dest);
     atomicWriteFileSync(dest, markdown, 'utf-8');
     const rel = '/' + path.relative(projectDir, dest).split(path.sep).join('/');
-    notifyUI({ type: 'file:changed', path: rel });
+    notifyUI({ type: 'file:changed', projectPath: projectDir, path: rel });
     return rel;
   });
 
@@ -121,8 +121,9 @@ export function registerProjectMetaIpc(): void {
     }
   });
 
-  ipcMain.handle('project:docx-to-markdown', async (_, fullPath: string) => {
+  ipcMain.handle('project:docx-to-markdown', async (_, fullPath: string, projectDir: string) => {
     assertSafePath(fullPath);
+    assertSafePath(projectDir);
     if (!existsSync(fullPath) || path.extname(fullPath).toLowerCase() !== '.docx') return null;
     const markdown = await convertDocxToMarkdown(fullPath);
     const dir = path.dirname(fullPath);
@@ -130,7 +131,7 @@ export function registerProjectMetaIpc(): void {
     const dest = uniqueMarkdownPath(dir, baseName);
     assertSafePath(dest);
     atomicWriteFileSync(dest, markdown, 'utf-8');
-    notifyUI({ type: 'file:changed', path: dest });
+    notifyUI({ type: 'file:changed', projectPath: projectDir, path: dest });
     return dest;
   });
 
@@ -178,14 +179,16 @@ export function registerProjectMetaIpc(): void {
 
   ipcMain.handle('project:load-meta', async (_, projectDir: string) => {
     assertSafePath(projectDir);
-    try {
-      const { migrateLegacyProjectJson } = await import('@orison/desktop-local-bff');
-      const doc = migrateLegacyProjectJson(projectDir);
-      if (!doc) return null;
-      return projectMetaToLegacyShape(doc.meta);
-    } catch {
-      return null;
-    }
+    return withProjectLock(projectDir, async () => {
+      try {
+        const { migrateLegacyProjectJson } = await import('@orison/desktop-local-bff');
+        const doc = migrateLegacyProjectJson(projectDir);
+        if (!doc) return null;
+        return projectMetaToLegacyShape(doc.meta);
+      } catch {
+        return null;
+      }
+    });
   });
 
   ipcMain.handle('project:load-document', async (_, projectDir: string) => {

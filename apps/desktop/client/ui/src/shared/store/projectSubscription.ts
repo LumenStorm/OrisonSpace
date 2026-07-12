@@ -30,22 +30,10 @@ export function installProjectSubscription(useAppStore: AppStoreApi) {
     const isSwitch = (project?.path ?? null) !== (prev?.path ?? null);
     if (!isSwitch) return;
 
-    // Flush the previous project's dirty open files to disk before tearing down
-    // its state. The reset clears `openFiles`, so an un-flushed buffer would be
-    // lost silently. Fire-and-forget: saveFile writes by absolute path, which is
-    // still valid even after the store has moved on to the new project.
-    const flushPrevDirty = () => {
-      const s = useAppStore.getState() as any;
-      if (prev && typeof s.saveAllOpenFiles === 'function' && s.hasDirtyFiles?.()) {
-        void s.saveAllOpenFiles();
-      }
-    };
-
     // Drop ALL project-scoped slice state (open files, chapters, creative fields,
     // agent conversation, pending diffs, split view…) via the reset registry, so
     // nothing bleeds across projects. Each slice owns its own reset.
     const resetAll = () => {
-      flushPrevDirty();
       runProjectResets();
     };
 

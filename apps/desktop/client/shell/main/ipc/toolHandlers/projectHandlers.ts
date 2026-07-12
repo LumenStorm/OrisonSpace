@@ -45,8 +45,8 @@ export const memoryUpdateHandler: ToolHandler = async ({ params, projectDir }) =
   // Without file:changed, an editor showing story-memory.yaml won't refresh
   // until manually closed and reopened. Path is project-relative, matching
   // writeFileHandler's convention.
-  notifyUI({ type: 'memory:changed' });
-  notifyUI({ type: 'file:changed', path: 'story-memory.yaml' });
+  notifyUI({ type: 'memory:changed', projectPath: projectDir });
+  notifyUI({ type: 'file:changed', projectPath: projectDir, path: 'story-memory.yaml' });
   return { title: 'memory_update', output: `Updated story-memory.yaml (${content.length} chars)` };
 };
 

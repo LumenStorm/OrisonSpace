@@ -34,8 +34,8 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
   }
   registered = true;
 
-  const generateTextImpl: GenerateTextFn = async (body, _abort) => {
-    const result = await handleGenerateText(body as any);
+  const generateTextImpl: GenerateTextFn = async (body, abort) => {
+    const result = await handleGenerateText(body as any, abort);
     return result as any;
   };
   setGenerateTextFn(generateTextImpl);
@@ -46,6 +46,7 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
       params: params as Record<string, unknown>,
       projectDir: ctx.projectDir,
       sessionId: ctx.sessionId,
+      abort: ctx.abort,
     });
   };
   setExecuteToolFn(executeToolImpl);
@@ -74,8 +75,16 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
   ipcMain.handle('agent:set-session-model', async (_event, sessionId: string, projectPath: string | undefined, modelRef: { keyId: string; modelId: string } | undefined) => {
     // Ensure the session is loaded into memory before mutating it (it may only
     // exist on disk after an app restart).
-    runtime.getSession(sessionId, projectPath);
+    const session = runtime.getSession(sessionId, projectPath);
+    if (!session) return { ok: false };
     const ok = runtime.setSessionModel(sessionId, modelRef);
+    return { ok };
+  });
+
+  ipcMain.handle('agent:set-session-mode', async (_event, sessionId: string, projectPath: string | undefined, mode: 'readonly' | 'suggest' | 'auto') => {
+    const session = runtime.getSession(sessionId, projectPath);
+    if (!session) return { ok: false };
+    const ok = runtime.setSessionPermissionMode(sessionId, mode);
     return { ok };
   });
 
@@ -83,8 +92,8 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
     return runtime.listSessions(projectPath);
   });
 
-  ipcMain.handle('agent:delete-session', async (_event, id: string) => {
-    return runtime.deleteSession(id);
+  ipcMain.handle('agent:delete-session', async (_event, id: string, projectPath?: string) => {
+    return runtime.deleteSession(id, projectPath);
   });
 
   ipcMain.handle('agent:resolve-confirmation', async (_event, sessionId: string, callId: string, approved: boolean) => {
@@ -156,6 +165,9 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
       return { status: 'completed' };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      if (isAbortError(err)) {
+        return { status: 'aborted', message };
+      }
       logger.error({ err: message, sessionId: input.sessionId }, 'agent stream error');
       sendEvent({ type: 'error', data: { message } });
       return { status: 'error', message };
@@ -163,4 +175,10 @@ export function registerAgentIpc(getWin: () => BrowserWindow | null) {
       streamAbortControllers.delete(input.sessionId);
     }
   });
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === 'AbortError'
+    : error instanceof Error && error.name === 'AbortError';
 }

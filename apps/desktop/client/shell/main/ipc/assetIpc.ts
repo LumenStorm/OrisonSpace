@@ -84,7 +84,7 @@ export function registerAssetIpc() {
     }
 
     if (imported.length > 0) {
-      notifyUI({ type: 'image:created', paths: imported });
+      notifyUI({ type: 'image:created', projectPath: projectDir, paths: imported });
     }
     return imported;
   });

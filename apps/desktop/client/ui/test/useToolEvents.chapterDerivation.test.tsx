@@ -40,7 +40,7 @@ describe('useToolEvents 章节磁盘派生', () => {
         if (fullPath.endsWith('/第2章.md')) return '# 新章节\n\n第二章正文';
         return null;
       }),
-      syncChaptersMeta: vi.fn(async () => undefined),
+      syncChaptersMeta: vi.fn(async () => ({ ok: true })),
       wordCount: vi.fn(async () => 0),
     };
     useAppStore.setState({
@@ -71,7 +71,11 @@ describe('useToolEvents 章节磁盘派生', () => {
     render(<ToolEventsHarness />);
 
     act(() => {
-      emitToolEvent?.({ type: 'file:changed', path: 'chapters\\第2章.md' });
+      emitToolEvent?.({
+        type: 'file:changed',
+        projectPath: '/manual-project',
+        path: 'chapters\\第2章.md',
+      });
     });
     await act(async () => {
       vi.advanceTimersByTime(500);

@@ -62,21 +62,28 @@ export function useToolEvents() {
         // File no longer readable (deleted/moved). Only flag if the tab has
         // unsaved work worth warning about; otherwise leave it (tree refresh
         // handles the listing) so a transient read race doesn't nag the user.
-        if (tab.content !== tab.savedContent) state.markExternalChange(fullPath, 'deleted');
+        const latest = useAppStore.getState();
+        const latestTab = latest.openFiles.find((file) => file.path === fullPath);
+        if (latestTab && latestTab.content !== latestTab.savedContent) {
+          latest.markExternalChange(fullPath, 'deleted');
+        }
         return;
       }
-      if (disk === tab.savedContent) return; // our own write, or no real change
-      const isDirty = tab.content !== tab.savedContent;
-      if (isDirty) {
-        // Don't clobber unsaved edits and don't silently drop the external
-        // change — surface a conflict the user resolves (reload / keep mine).
-        state.markExternalChange(fullPath, 'changed');
-      } else {
-        void state.reloadFile(fullPath);
-      }
+      state.reconcileExternalFile(fullPath, disk, tab.savedContent);
     };
 
     const unsubscribe = api.onToolEvent((event: { type: string; [key: string]: unknown }) => {
+      const eventProjectPath = typeof event.projectPath === 'string'
+        ? normalizePath(event.projectPath)
+        : null;
+      const currentProjectPath = useAppStore.getState().currentProject?.path;
+      if (!eventProjectPath) return;
+      if (
+        !currentProjectPath
+        || normalizePath(currentProjectPath) !== eventProjectPath
+      ) {
+        return;
+      }
       window.dispatchEvent(new CustomEvent('orison:tool-event', { detail: event }));
 
       if (event.type === 'file:changed') {

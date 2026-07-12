@@ -98,7 +98,6 @@ export class RunStateStore {
       checkpoint,
     });
     active.controller.abort(new DOMException('Aborted', 'AbortError'));
-    this.activeRuns.delete(sessionId);
     return true;
   }
 

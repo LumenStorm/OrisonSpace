@@ -257,6 +257,7 @@ export function AgentInput() {
           className="agent-input-select"
           value={agentMode}
           onChange={(e) => setAgentMode(e.target.value as AgentMode)}
+          disabled={agentLoading}
         >
           {MODE_KEYS.map((o) => (
             <option key={o.value} value={o.value}>{t(o.i18nKey)}</option>

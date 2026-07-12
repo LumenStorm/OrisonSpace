@@ -9,6 +9,7 @@ import { snapshotToLocalHistory } from '../../fs/localHistory';
 import type { ToolHandler } from './types';
 import type { ProjectSearchResult } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
+import { assertNotManagedProjectDocument } from '../managedProjectDocument';
 
 export const readFileHandler: ToolHandler = async ({ params, projectDir }) => {
   const { filePath, offset = 0, limit } = params as { filePath: string; offset?: number; limit?: number };
@@ -32,6 +33,7 @@ export const writeFileHandler: ToolHandler = async ({ params, projectDir }) => {
   const { filePath, content } = params as { filePath: string; content: string };
   const fullPath = path.resolve(projectDir, filePath);
   assertWithinProject(projectDir, fullPath);
+  assertNotManagedProjectDocument(fullPath);
 
   const dir = path.dirname(fullPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -45,7 +47,7 @@ export const writeFileHandler: ToolHandler = async ({ params, projectDir }) => {
   snapshotToLocalHistory(projectDir, fullPath, content);
   atomicWriteFileSync(fullPath, content, 'utf-8');
 
-  notifyUI({ type: 'file:changed', path: filePath });
+  notifyUI({ type: 'file:changed', projectPath: projectDir, path: filePath });
   return {
     title: filePath,
     output: `Wrote ${content.length} chars to ${filePath}`,

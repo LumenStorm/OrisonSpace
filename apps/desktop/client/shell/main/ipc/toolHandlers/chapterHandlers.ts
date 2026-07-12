@@ -75,8 +75,8 @@ export const chapterWriteHandler: ToolHandler = async ({ params, projectDir }) =
   // (open-tab reload). Without file:changed, an editor showing this chapter
   // won't refresh until manually closed and reopened (issue #4). Path is
   // project-relative, matching writeFileHandler's convention.
-  notifyUI({ type: 'chapter:changed', chapterId });
-  notifyUI({ type: 'file:changed', path: `${CHAPTERS_DIR}/${chapterId}.md` });
+  notifyUI({ type: 'chapter:changed', projectPath: projectDir, chapterId });
+  notifyUI({ type: 'file:changed', projectPath: projectDir, path: `${CHAPTERS_DIR}/${chapterId}.md` });
   const wordCount = content.replace(/\s+/g, '').length;
   return {
     title: `chapter_write: ${chapterId}`,

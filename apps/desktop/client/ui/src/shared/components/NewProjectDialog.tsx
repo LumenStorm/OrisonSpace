@@ -65,7 +65,16 @@ export function NewProjectDialog({ onClose }: Props) {
       };
       await window.orisonDesktop.saveProjectMeta(projectDir, meta);
 
-      openProject({ projectId, name: name.trim(), path: projectDir, type, coverImage });
+      const result = await openProject({ projectId, name: name.trim(), path: projectDir, type, coverImage });
+      if (!result.opened) {
+        if (result.error || result.failed.length > 0) {
+          const reason = result.error
+            ?? result.failed.map((path) => path.split(/[\\/]/).pop() ?? path).join(', ');
+          showToast(`${t('topbar.saveFailed')} — ${reason}`, 'error');
+        }
+        setCreating(false);
+        return;
+      }
       onClose();
     } catch (err) {
       // Disk/permission/path failures must be visible, not a dead button.

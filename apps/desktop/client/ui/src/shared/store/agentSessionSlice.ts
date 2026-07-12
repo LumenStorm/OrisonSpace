@@ -8,6 +8,7 @@ import { recoverSelectionAnchorFromMessages } from './passageAnchor';
 import {
   createAgentSession,
   fetchAgentSession,
+  setAgentSessionMode,
   setAgentSessionModel,
   deleteAgentSession as deleteSession,
   listAgentSessions,
@@ -31,11 +32,6 @@ function readPersistedMode(): AgentMode {
 export type { AgentMessage, AgentSessionMeta };
 
 let activeAbort: { cleanup: () => void; sessionId: string } | null = null;
-
-// Monotonic token guarding model-switch persistence. Rapid A→B→C switches each
-// bump it; a late-failing earlier request must not roll the dropdown back over a
-// newer selection the user already made.
-let modelSwitchToken = 0;
 
 export type AgentSessionSlice = {
   agentMode: AgentMode;
@@ -75,6 +71,23 @@ type Deps = AgentSessionSlice & {
 };
 
 export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSlice> = (set, get) => {
+  const initialMode = readPersistedMode();
+  let projectEpoch = 0;
+  let sessionListToken = 0;
+  let sessionSwitchToken = 0;
+  let modelSwitchToken = 0;
+  let modeSwitchToken = 0;
+  let confirmedMode = initialMode;
+  let confirmedModeSessionId: string | null = null;
+  let confirmedModelRef: ModelRef | null = null;
+  let confirmedModelSessionId: string | null = null;
+  let modeSwitchQueue: Promise<void> = Promise.resolve();
+  let modelSwitchQueue: Promise<void> = Promise.resolve();
+
+  const isCurrentProjectScope = (epoch: number, projectPath: string | undefined) => (
+    projectEpoch === epoch && get().currentProject?.path === projectPath
+  );
+
   // The agent conversation is keyed to a project path; drop it on switch so
   // messages, session id, model and pending cards can't bleed into the new
   // project. Delegates to the slice's own resetAgentForProjectSwitch action.
@@ -83,11 +96,53 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   });
 
   return {
-  agentMode: readPersistedMode(),
-  setAgentMode: (mode) => { storage.set(AGENT_MODE_KEY, mode); set({ agentMode: mode }); },
+  agentMode: initialMode,
+  setAgentMode: (mode) => {
+    const state = get();
+    if (state.agentLoading && !state.agentSessionId) return;
+    storage.set(AGENT_MODE_KEY, mode);
+    set({ agentMode: mode });
+    const sessionId = state.agentSessionId;
+    if (!sessionId) {
+      confirmedMode = mode;
+      confirmedModeSessionId = null;
+      return;
+    }
+    if (confirmedModeSessionId !== sessionId) {
+      confirmedMode = state.agentMode;
+      confirmedModeSessionId = sessionId;
+    }
+    const token = ++modeSwitchToken;
+    const epoch = projectEpoch;
+    const projectPath = state.currentProject?.path;
+    modeSwitchQueue = modeSwitchQueue.then(async () => {
+      if (!isCurrentProjectScope(epoch, projectPath) || get().agentSessionId !== sessionId) return;
+      try {
+        const { ok } = await setAgentSessionMode(sessionId, projectPath, mode);
+        if (!isCurrentProjectScope(epoch, projectPath) || get().agentSessionId !== sessionId) return;
+        if (ok) {
+          confirmedMode = mode;
+        } else if (token === modeSwitchToken) {
+          storage.set(AGENT_MODE_KEY, confirmedMode);
+          set({ agentMode: confirmedMode, agentError: 'agent.modeSwitchFailed' });
+        }
+      } catch {
+        if (
+          token === modeSwitchToken
+          && isCurrentProjectScope(epoch, projectPath)
+          && get().agentSessionId === sessionId
+        ) {
+          storage.set(AGENT_MODE_KEY, confirmedMode);
+          set({ agentMode: confirmedMode, agentError: 'agent.modeSwitchFailed' });
+        }
+      }
+    });
+  },
   agentModelRef: null,
   setAgentModelRef: (ref) => {
-    const previous = get().agentModelRef;
+    const currentState = get();
+    if (currentState.agentLoading && !currentState.agentSessionId) return;
+    const previous = currentState.agentModelRef;
     set({ agentModelRef: ref });
     // The model is a session-level setting. When a conversation is already
     // open, persist the change so the next turn uses it — without this,
@@ -100,27 +155,39 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     // model the session isn't actually using. A change made while a turn is
     // running is accepted and queued for the next turn (ok === true).
     const state = get();
-    if (state.agentSessionId) {
-      const token = ++modelSwitchToken;
-      void (async () => {
-        try {
-          const { ok } = await setAgentSessionModel(
-            state.agentSessionId!,
-            state.currentProject?.path ?? undefined,
-            ref,
-          );
-          // A newer switch superseded this one — its result is authoritative,
-          // so neither roll back nor surface an error for the stale request.
-          if (token !== modelSwitchToken) return;
-          if (!ok) {
-            set({ agentModelRef: previous, agentError: 'agent.modelSwitchFailed' });
-          }
-        } catch {
-          if (token !== modelSwitchToken) return;
-          set({ agentModelRef: previous, agentError: 'agent.modelSwitchFailed' });
-        }
-      })();
+    const sessionId = state.agentSessionId;
+    if (!sessionId) {
+      confirmedModelRef = ref;
+      confirmedModelSessionId = null;
+      return;
     }
+    if (confirmedModelSessionId !== sessionId) {
+      confirmedModelRef = previous;
+      confirmedModelSessionId = sessionId;
+    }
+    const token = ++modelSwitchToken;
+    const epoch = projectEpoch;
+    const projectPath = state.currentProject?.path;
+    modelSwitchQueue = modelSwitchQueue.then(async () => {
+      if (!isCurrentProjectScope(epoch, projectPath) || get().agentSessionId !== sessionId) return;
+      try {
+        const { ok } = await setAgentSessionModel(sessionId, projectPath, ref);
+        if (!isCurrentProjectScope(epoch, projectPath) || get().agentSessionId !== sessionId) return;
+        if (ok) {
+          confirmedModelRef = ref;
+        } else if (token === modelSwitchToken) {
+          set({ agentModelRef: confirmedModelRef, agentError: 'agent.modelSwitchFailed' });
+        }
+      } catch {
+        if (
+          token === modelSwitchToken
+          && isCurrentProjectScope(epoch, projectPath)
+          && get().agentSessionId === sessionId
+        ) {
+          set({ agentModelRef: confirmedModelRef, agentError: 'agent.modelSwitchFailed' });
+        }
+      }
+    });
   },
 
   agentSessionId: null,
@@ -144,7 +211,10 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
   async sendAgentMessage(content) {
     const state = get();
     const projectPath = state.currentProject?.path;
-    if (!projectPath) return;
+    if (!projectPath || state.agentLoading) return;
+    const epoch = projectEpoch;
+    const isCurrentScope = () => isCurrentProjectScope(epoch, projectPath);
+    set({ agentLoading: true, agentError: null });
 
     // Structured selection/chapter/file references pinned for this turn. They are
     // passed through the IPC channel (not flattened into text); the runtime renders
@@ -157,10 +227,16 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     try {
       if (!sessionId) {
         const session = await createAgentSession(projectPath, state.agentMode, state.agentModelRef);
+        if (!isCurrentScope()) return;
         sessionId = session.id;
+        confirmedMode = state.agentMode;
+        confirmedModeSessionId = sessionId;
+        confirmedModelRef = state.agentModelRef;
+        confirmedModelSessionId = sessionId;
         set({ agentSessionId: sessionId });
       }
     } catch (err) {
+      if (!isCurrentScope()) return;
       const message = err instanceof Error ? err.message : String(err);
       set({ agentError: `agent.sessionCreateFailed: ${message}`, agentLoading: false });
       return;
@@ -175,7 +251,6 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     };
     set((s) => ({
       agentMessages: [...s.agentMessages, userMsg],
-      agentLoading: true,
       agentError: null,
       pendingAttachments: [],
     }));
@@ -191,6 +266,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     }
 
     const { cleanup, promise } = streamAgentMessage(sid, messageContent, (event: AgentStreamEvent) => {
+      if (!isCurrentScope()) return;
       switch (event.type) {
         case 'assistant':
           set((s) => ({
@@ -358,8 +434,8 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
           }
           set({ agentLoading: false });
           // stream 结束后与后端对账，补偿可能因 IPC 时序丢失的消息
-          void fetchAgentSession(sid).then((session) => {
-            if (!session) return;
+          void fetchAgentSession(sid, projectPath).then((session) => {
+            if (!session || !isCurrentScope()) return;
             const current = get();
             if (current.agentSessionId === sid && session.messages.length > current.agentMessages.length) {
               set({ agentMessages: session.messages });
@@ -382,7 +458,7 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     // spinner, locked input). Only recover if this run is still the active one,
     // so we don't clobber a newer run the user already started.
     promise.catch((err: unknown) => {
-      if (activeAbort?.sessionId !== sid) return;
+      if (activeAbort?.sessionId !== sid || !isCurrentScope()) return;
       const message = err instanceof Error ? err.message : String(err);
       activeAbort.cleanup();
       activeAbort = null;
@@ -392,6 +468,8 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
 
   cancelAgent() {
     const abortedSessionId = activeAbort?.sessionId;
+    const projectPath = get().currentProject?.path;
+    const epoch = projectEpoch;
     if (activeAbort) {
       activeAbort.cleanup();
       void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
@@ -409,8 +487,8 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     // 取消 run 时 listener 已被移除，可能有最后几条已持久化但未推送到 UI 的消息。
     // 从后端重新同步 session 消息以补偿丢失的事件。
     if (abortedSessionId) {
-      void fetchAgentSession(abortedSessionId).then((session) => {
-        if (!session) return;
+      void fetchAgentSession(abortedSessionId, projectPath).then((session) => {
+        if (!session || !isCurrentProjectScope(epoch, projectPath)) return;
         const current = get();
         if (current.agentSessionId === abortedSessionId) {
           set({ agentMessages: session.messages });
@@ -425,6 +503,10 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
     }
     activeAbort = null;
+    confirmedMode = get().agentMode;
+    confirmedModeSessionId = null;
+    confirmedModelRef = get().agentModelRef;
+    confirmedModelSessionId = null;
     set({
       agentSessionId: null,
       agentMessages: [],
@@ -447,6 +529,15 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
     }
     activeAbort = null;
+    projectEpoch += 1;
+    sessionListToken += 1;
+    sessionSwitchToken += 1;
+    modelSwitchToken += 1;
+    modeSwitchToken += 1;
+    confirmedMode = get().agentMode;
+    confirmedModeSessionId = null;
+    confirmedModelRef = null;
+    confirmedModelSessionId = null;
     set({
       agentSessionId: null,
       agentMessages: [],
@@ -457,21 +548,30 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
       pendingDiffs: [],
       pendingAttachments: [],
       pendingPassageResolve: null,
+      agentSessions: [],
     });
   },
 
   async loadAgentSessions() {
     const projectPath = get().currentProject?.path;
     if (!projectPath) { set({ agentSessions: [] }); return; }
+    const epoch = projectEpoch;
+    const token = ++sessionListToken;
     try {
       const sessions = await listAgentSessions(projectPath);
+      if (token !== sessionListToken || !isCurrentProjectScope(epoch, projectPath)) return;
       set({ agentSessions: sessions ?? [] });
     } catch {
+      if (token !== sessionListToken || !isCurrentProjectScope(epoch, projectPath)) return;
       set({ agentSessions: [] });
     }
   },
 
   async switchAgentSession(sessionId) {
+    const projectPath = get().currentProject?.path;
+    if (!projectPath) return;
+    const epoch = projectEpoch;
+    const token = ++sessionSwitchToken;
     if (activeAbort) {
       activeAbort.cleanup();
       void window.orisonDesktop.abortAgentRun(activeAbort.sessionId);
@@ -479,12 +579,19 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
     activeAbort = null;
     set({ agentLoading: true, agentError: null });
     try {
-      const projectPath = get().currentProject?.path;
-      const session = await fetchAgentSession(sessionId, projectPath ?? undefined);
+      const session = await fetchAgentSession(sessionId, projectPath);
+      if (token !== sessionSwitchToken || !isCurrentProjectScope(epoch, projectPath)) return;
       if (!session) throw new Error('Session not found');
+      const permissionMode = session.permissionMode ?? 'suggest';
+      storage.set(AGENT_MODE_KEY, permissionMode);
+      confirmedMode = permissionMode;
+      confirmedModeSessionId = sessionId;
+      confirmedModelRef = session.modelRef ?? null;
+      confirmedModelSessionId = sessionId;
       set({
         agentSessionId: sessionId,
         agentModelRef: session.modelRef ?? null,
+        agentMode: permissionMode,
         agentMessages: (session.messages ?? []).map((m: any) => ({
           id: m.id,
           role: m.role,
@@ -498,14 +605,19 @@ export const createAgentSessionSlice: StateCreator<Deps, [], [], AgentSessionSli
         pendingDiffs: [],
       });
     } catch (error) {
+      if (token !== sessionSwitchToken || !isCurrentProjectScope(epoch, projectPath)) return;
       const message = error instanceof Error ? error.message : String(error);
       set({ agentError: message, agentLoading: false });
     }
   },
 
   async deleteAgentSession(sessionId) {
+    const projectPath = get().currentProject?.path;
+    const epoch = projectEpoch;
     try {
-      await deleteSession(sessionId);
+      const deleted = await deleteSession(sessionId, projectPath);
+      if (!isCurrentProjectScope(epoch, projectPath)) return;
+      if (!deleted) return;
       set((s) => ({ agentSessions: s.agentSessions.filter((sess) => sess.id !== sessionId) }));
       if (get().agentSessionId === sessionId) {
         set({ agentSessionId: null, agentMessages: [], pendingToolConfirm: null, pendingDiffs: [] });

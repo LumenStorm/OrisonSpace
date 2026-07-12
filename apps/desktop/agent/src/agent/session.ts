@@ -170,3 +170,14 @@ export function updateSessionModelRef(
   session.updatedAt = Date.now();
   persistSession(session);
 }
+
+export function updateSessionPermissionMode(
+  sessionId: string,
+  permissionMode: SessionPermissionMode,
+): void {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  session.permissionMode = permissionMode;
+  session.updatedAt = Date.now();
+  persistSession(session);
+}

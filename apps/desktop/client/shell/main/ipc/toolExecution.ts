@@ -28,6 +28,7 @@ export interface ToolExecuteRequest {
   params: Record<string, unknown>;
   projectDir: string;
   sessionId: string;
+  abort: AbortSignal;
   requestId?: string;
 }
 
@@ -80,7 +81,7 @@ register('skill', skillHandler);
  * Execute a tool by id. This is the single entry point for all tool calls.
  */
 export async function handleToolExecute(req: ToolExecuteRequest): Promise<ToolExecuteResponse> {
-  const { toolId, params, projectDir, sessionId } = req;
+  const { toolId, params, projectDir, sessionId, abort } = req;
 
   // Validate project directory is within allowed scope
   assertSafePath(projectDir);
@@ -92,8 +93,17 @@ export async function handleToolExecute(req: ToolExecuteRequest): Promise<ToolEx
 
   logger.info({ toolId, sessionId, projectDir }, 'tool:execute');
 
-  const result = await handler({ params, projectDir, sessionId });
+  throwIfAborted(abort);
+  const result = await handler({ params, projectDir, sessionId, abort });
+  throwIfAborted(abort);
   return result;
+}
+
+function throwIfAborted(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  throw signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException('Aborted', 'AbortError');
 }
 
 /**

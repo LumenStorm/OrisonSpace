@@ -11,6 +11,16 @@ import { defaultParamsFor } from '../src/shared/imageGen/schema';
 const TEST_PROJECT_DIR = join(tmpdir(), 'OrisonSpace', 'ImageProject');
 const TEST_PROJECT_DIR_POSIX = TEST_PROJECT_DIR.replace(/\\/g, '/');
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 // `src/shared/api/filesystem.ts` binds `const api = window.orisonDesktop` at
 // module-load time. In the test environment the preload bridge isn't installed
 // before modules evaluate, so that capture would be `undefined`. Mock the module
@@ -25,6 +35,15 @@ vi.mock('../src/shared/api/filesystem', () => ({
   saveBase64Image: (...args: any[]) => (window as any).orisonDesktop.saveBase64Image(...args),
   moveProjectFile: (...args: any[]) => (window as any).orisonDesktop.moveProjectFile(...args),
   deleteProjectFile: (...args: any[]) => (window as any).orisonDesktop.deleteProjectFile(...args),
+}));
+
+vi.mock('../src/features/editor/ImageEditDialog', () => ({
+  ImageEditDialog: ({ onSave }: { onSave: (payload: any) => Promise<void> }) => (
+    <div role="dialog">
+      <button type="button" onClick={() => void onSave({ b64Json: 'edited-b64', mimeType: 'image/png', intent: 'save' })}>save edit</button>
+      <button type="button" onClick={() => void onSave({ b64Json: 'variant-input', mimeType: 'image/png', intent: 'generate' })}>generate variant</button>
+    </div>
+  ),
 }));
 
 describe('ImageGenEditor', () => {
@@ -136,6 +155,124 @@ describe('ImageGenEditor', () => {
     expect(screen.getByAltText('quiet desk')).toBeTruthy();
   });
 
+  it('does not write a completed generation into a newly opened project', async () => {
+    const deferred = createDeferred<{
+      provider: string;
+      model: string;
+      images: Array<{ b64Json: string; mimeType: string; dataUrl: string }>;
+    }>();
+    (window.orisonDesktop.generateImage as any).mockReturnValue(deferred.promise);
+
+    render(<ImageGenEditor />);
+
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'project A image');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await waitFor(() => expect(window.orisonDesktop.generateImage).toHaveBeenCalledTimes(1));
+
+    const projectBResult = {
+      id: 'project-b-result',
+      prompt: 'project B image',
+      tempRelativePath: 'temp/images/generation/project-b.png',
+      mimeType: 'image/png',
+      assetAdded: false,
+      source: 'loaded' as const,
+    };
+    useAppStore.setState({
+      currentProject: {
+        projectId: '00002',
+        name: 'Project B',
+        path: `${TEST_PROJECT_DIR}-B`,
+        type: 'novel',
+      },
+    } as any);
+    useAppStore.setState({ imageGenResultsMeta: [projectBResult] } as any);
+
+    deferred.resolve({
+      provider: 'openai',
+      model: 'gpt-image-1',
+      images: [{
+        b64Json: 'project-a-base64',
+        mimeType: 'image/png',
+        dataUrl: 'data:image/png;base64,project-a-base64',
+      }],
+    });
+
+    await waitFor(() => expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalledTimes(1));
+    expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalledWith(
+      TEST_PROJECT_DIR,
+      expect.objectContaining({ b64Json: 'project-a-base64' }),
+    );
+    expect(useAppStore.getState().imageGenResultsMeta).toEqual([projectBResult]);
+    expect(screen.queryByAltText('project A image')).toBeNull();
+  });
+
+  it('does not save provider results after the background task is cancelled', async () => {
+    const deferred = createDeferred<{
+      provider: string;
+      model: string;
+      images: Array<{ b64Json: string; mimeType: string; dataUrl: string }>;
+    }>();
+    (window.orisonDesktop.generateImage as any).mockReturnValue(deferred.promise);
+
+    render(<ImageGenEditor />);
+
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'cancelled image');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await waitFor(() => expect(window.orisonDesktop.generateImage).toHaveBeenCalledTimes(1));
+
+    const taskId = useAppStore.getState().bgTasks.find((task) => task.status === 'running')?.id;
+    expect(taskId).toBeTruthy();
+    useAppStore.getState().cancelBgTask(taskId!);
+
+    deferred.resolve({
+      provider: 'openai',
+      model: 'gpt-image-1',
+      images: [{
+        b64Json: 'cancelled-base64',
+        mimeType: 'image/png',
+        dataUrl: 'data:image/png;base64,cancelled-base64',
+      }],
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }).getAttribute('disabled')).toBeNull();
+    });
+    expect(window.orisonDesktop.saveBase64Image).not.toHaveBeenCalled();
+    expect(screen.queryByAltText('cancelled image')).toBeNull();
+  });
+
+  it('removes an image that finishes saving after cancellation', async () => {
+    const saving = createDeferred<{
+      relativePath: string;
+      fullPath: string;
+      fileName: string;
+    }>();
+    (window.orisonDesktop.saveBase64Image as any).mockReturnValue(saving.promise);
+
+    render(<ImageGenEditor />);
+
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe the image you want to generate/), 'cancel during save');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await waitFor(() => expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalledTimes(1));
+
+    const taskId = useAppStore.getState().bgTasks.find((task) => task.status === 'running')?.id;
+    expect(taskId).toBeTruthy();
+    useAppStore.getState().cancelBgTask(taskId!);
+    saving.resolve({
+      relativePath: 'temp/images/generation/cancelled.png',
+      fullPath: `${TEST_PROJECT_DIR}\\temp\\images\\generation\\cancelled.png`,
+      fileName: 'cancelled.png',
+    });
+
+    await waitFor(() => {
+      expect(window.orisonDesktop.deleteProjectFile).toHaveBeenCalledWith(
+        TEST_PROJECT_DIR,
+        'temp/images/generation/cancelled.png',
+      );
+    });
+    expect(screen.queryByAltText('cancel during save')).toBeNull();
+  });
+
   it('moves the generated image to assets when adding it to assets', async () => {
     render(<ImageGenEditor />);
 
@@ -150,6 +287,50 @@ describe('ImageGenEditor', () => {
       'temp/images/generation/test.png',
       'assets/images/test.png',
     );
+  });
+
+  it('does not add an asset card to a newly opened project after promotion finishes', async () => {
+    const moving = createDeferred<string>();
+    (window.orisonDesktop.moveProjectFile as any).mockReturnValue(moving.promise);
+    render(<ImageGenEditor />);
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe/), 'project A asset');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /imageGen.addToAssets|Add to Assets/ }));
+    useAppStore.setState({
+      currentProject: { projectId: '00002', name: 'Project B', path: `${TEST_PROJECT_DIR}-B`, type: 'novel' },
+      creativeFields: { asset_cards: [] },
+    } as any);
+    moving.resolve(`${TEST_PROJECT_DIR}\\assets\\images\\test.png`);
+    await waitFor(() => expect(window.orisonDesktop.moveProjectFile).toHaveBeenCalled());
+    expect(useAppStore.getState().creativeFields.asset_cards ?? []).toEqual([]);
+  });
+
+  it('does not show an edited image in a newly opened project after save finishes', async () => {
+    const saving = createDeferred<{ relativePath: string; fullPath: string; fileName: string }>();
+    render(<ImageGenEditor />);
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe/), 'project A edit');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /imageGen.edit|Edit/ }));
+    (window.orisonDesktop.saveBase64Image as any).mockReturnValueOnce(saving.promise);
+    await userEvent.click(screen.getByRole('button', { name: 'save edit' }));
+    useAppStore.setState({ currentProject: { projectId: '00002', name: 'Project B', path: `${TEST_PROJECT_DIR}-B`, type: 'novel' } } as any);
+    saving.resolve({ relativePath: 'temp/images/generation/edited.png', fullPath: `${TEST_PROJECT_DIR}\\edited.png`, fileName: 'edited.png' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByAltText('project A edit edited')).toBeNull();
+  });
+
+  it('does not show a generated variant in a newly opened project', async () => {
+    const generating = createDeferred<any>();
+    render(<ImageGenEditor />);
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe/), 'project A variant');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /imageGen.edit|Edit/ }));
+    (window.orisonDesktop.generateImage as any).mockReturnValueOnce(generating.promise);
+    await userEvent.click(screen.getByRole('button', { name: 'generate variant' }));
+    useAppStore.setState({ currentProject: { projectId: '00002', name: 'Project B', path: `${TEST_PROJECT_DIR}-B`, type: 'novel' } } as any);
+    generating.resolve({ provider: 'openai', model: 'gpt-image-1', images: [{ b64Json: 'variant-b64', mimeType: 'image/png' }] });
+    await waitFor(() => expect(window.orisonDesktop.saveBase64Image).toHaveBeenCalledTimes(2));
+    expect(screen.queryByAltText('project A variant')).toBeNull();
   });
 
   it('loads existing generation images from temp/images/generation', async () => {
@@ -253,6 +434,19 @@ describe('ImageGenEditor', () => {
       ),
     );
     await waitFor(() => expect(screen.queryByAltText('quiet desk')).toBeNull());
+  });
+
+  it('does not delete from a newly opened project after delayed confirmation', async () => {
+    const confirming = createDeferred<boolean>();
+    useConfirmStore.setState({ requestConfirm: vi.fn().mockReturnValue(confirming.promise) } as any);
+    render(<ImageGenEditor />);
+    await userEvent.type(screen.getByPlaceholderText(/imageGen.promptPlaceholder|Describe/), 'project A delete');
+    await userEvent.click(screen.getByRole('button', { name: /imageGen.generate|Generate Image/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /imageGen.delete|Delete/ }));
+    useAppStore.setState({ currentProject: { projectId: '00002', name: 'Project B', path: `${TEST_PROJECT_DIR}-B`, type: 'novel' } } as any);
+    confirming.resolve(true);
+    await waitFor(() => expect(window.orisonDesktop.deleteProjectFile).toHaveBeenCalledWith(TEST_PROJECT_DIR, 'temp/images/generation/test.png'));
+    expect(window.orisonDesktop.deleteProjectFile).not.toHaveBeenCalledWith(`${TEST_PROJECT_DIR}-B`, expect.anything());
   });
 
   it('disables delete for an image that was added to assets', async () => {

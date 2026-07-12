@@ -10,7 +10,7 @@ import { notifyUI } from '../toolNotify';
 import type { ToolHandler } from './types';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 
-export const generateImageHandler: ToolHandler = async ({ params, projectDir }) => {
+export const generateImageHandler: ToolHandler = async ({ params, projectDir, abort }) => {
   const { prompt, size, quality, n, outputDir } = params as {
     prompt: string; size?: string; quality?: string; n?: number; outputDir?: string;
   };
@@ -19,9 +19,10 @@ export const generateImageHandler: ToolHandler = async ({ params, projectDir }) 
     ref: { keyId: 'default', modelId: 'default' },
     request: { model: 'gpt-image-1', prompt, n: n ?? 1, size: size ?? '1024x1024', quality },
   };
-  const data = await handleGenerateImage(body) as {
+  const data = await handleGenerateImage(body, abort) as {
     images: Array<{ b64Json?: string; mimeType?: string }>;
   };
+  throwIfAborted(abort);
 
   const subDir = outputDir ?? 'generation';
   const outDir = path.join(projectDir, 'assets', 'images', subDir);
@@ -40,7 +41,7 @@ export const generateImageHandler: ToolHandler = async ({ params, projectDir }) 
     savedPaths.push(path.relative(projectDir, filePath));
   }
 
-  notifyUI({ type: 'image:created', paths: savedPaths });
+  notifyUI({ type: 'image:created', projectPath: projectDir, paths: savedPaths });
   return {
     title: `generate_image: ${prompt.slice(0, 40)}`,
     output: savedPaths.length > 0
@@ -50,7 +51,7 @@ export const generateImageHandler: ToolHandler = async ({ params, projectDir }) 
   };
 };
 
-export const editImageHandler: ToolHandler = async ({ params, projectDir }) => {
+export const editImageHandler: ToolHandler = async ({ params, projectDir, abort }) => {
   const { prompt, imagePath, size, n, outputDir } = params as {
     prompt: string; imagePath: string; size?: string; n?: number; outputDir?: string;
   };
@@ -73,9 +74,10 @@ export const editImageHandler: ToolHandler = async ({ params, projectDir }) => {
       size: size ?? '1024x1024',
     },
   };
-  const data = await handleGenerateImage(body) as {
+  const data = await handleGenerateImage(body, abort) as {
     images: Array<{ b64Json?: string; mimeType?: string }>;
   };
+  throwIfAborted(abort);
 
   const subDir = outputDir ?? 'edits';
   const outDir = path.join(projectDir, 'assets', 'images', subDir);
@@ -93,7 +95,7 @@ export const editImageHandler: ToolHandler = async ({ params, projectDir }) => {
     savedPaths.push(path.relative(projectDir, filePath));
   }
 
-  notifyUI({ type: 'image:created', paths: savedPaths });
+  notifyUI({ type: 'image:created', projectPath: projectDir, paths: savedPaths });
   return {
     title: `edit_image: ${prompt.slice(0, 40)}`,
     output: savedPaths.length > 0
@@ -102,3 +104,10 @@ export const editImageHandler: ToolHandler = async ({ params, projectDir }) => {
     metadata: { paths: savedPaths },
   };
 };
+
+function throwIfAborted(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  throw signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException('Aborted', 'AbortError');
+}

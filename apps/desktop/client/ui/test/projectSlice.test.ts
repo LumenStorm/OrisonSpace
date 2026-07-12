@@ -88,7 +88,7 @@ describe('projectSlice regressions', () => {
       loadProjectDocument: vi.fn(async () => null),
       listTasks: vi.fn(async () => []),
       syncField: vi.fn(async () => undefined),
-      syncChaptersMeta: vi.fn(async () => undefined),
+      syncChaptersMeta: vi.fn(async () => ({ ok: true })),
       readDirectory: vi.fn(async () => []),
       readFile: vi.fn(async () => null),
       // refreshWordCount fires via the currentProject subscription; stub it so
@@ -143,6 +143,139 @@ describe('projectSlice regressions', () => {
       logline: '新一句话',
       coverImage: '/last-project/new.png',
     });
+  });
+
+  it('openProject 会在保存失败时保留当前项目', async () => {
+    const saving = deferred<{ failed: string[] }>();
+    const saveAllOpenFiles = vi.fn(() => saving.promise);
+    (window as any).orisonDesktop.loadProjectDocument = undefined;
+    useTestStore.setState({
+      currentProject: { name: 'Project A', path: '/project-a', type: 'novel' },
+      hasDirtyFiles: () => true,
+      saveAllOpenFiles,
+      setSaveStatus: vi.fn(),
+      setLastSavedAt: vi.fn(),
+    } as any);
+
+    useTestStore.getState().openProject({ name: 'Project B', path: '/project-b', type: 'novel' });
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-a');
+
+    saving.resolve({ failed: ['/project-a/chapter.md'] });
+    await flushMicrotasks();
+
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-a');
+    expect(saveAllOpenFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('openProject 会等待当前项目保存成功后再切换', async () => {
+    const saving = deferred<{ failed: string[] }>();
+    const saveAllOpenFiles = vi.fn(() => saving.promise);
+    (window as any).orisonDesktop.loadProjectDocument = undefined;
+    useTestStore.setState({
+      currentProject: { name: 'Project A', path: '/project-a', type: 'novel' },
+      hasDirtyFiles: () => true,
+      saveAllOpenFiles,
+      setSaveStatus: vi.fn(),
+      setLastSavedAt: vi.fn(),
+    } as any);
+
+    useTestStore.getState().openProject({ name: 'Project B', path: '/project-b', type: 'novel' });
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-a');
+
+    saving.resolve({ failed: [] });
+    await flushMicrotasks();
+
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-b');
+    expect(saveAllOpenFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('openProject 会等待项目元数据保存后再切换', async () => {
+    const savingMeta = deferred<void>();
+    (window as any).orisonDesktop.loadProjectDocument = undefined;
+    (window as any).orisonDesktop.saveProjectMeta = vi.fn(() => savingMeta.promise);
+    useTestStore.setState({
+      currentProject: { name: 'Project A', path: '/project-a', type: 'novel' },
+      hasDirtyFiles: () => false,
+    } as any);
+    useTestStore.getState().updateProjectMeta({ name: 'Project A edited' });
+
+    useTestStore.getState().openProject({ name: 'Project B', path: '/project-b', type: 'novel' });
+
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-a');
+    expect((window as any).orisonDesktop.saveProjectMeta).toHaveBeenCalledWith(
+      '/project-a',
+      expect.objectContaining({ name: 'Project A edited' }),
+    );
+
+    savingMeta.resolve();
+    await flushMicrotasks();
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-b');
+  });
+
+  it('flushDirty 保存失败时会返回失败路径且不标记为已保存', async () => {
+    const setSaveStatus = vi.fn();
+    const setLastSavedAt = vi.fn();
+    useTestStore.setState({
+      hasDirtyFiles: () => true,
+      saveAllOpenFiles: vi.fn(async () => ({ failed: ['/project/a.md'] })),
+      setSaveStatus,
+      setLastSavedAt,
+    } as any);
+
+    await expect(useTestStore.getState().flushDirty()).resolves.toEqual({ failed: ['/project/a.md'] });
+    expect(setSaveStatus.mock.calls).toEqual([['saving'], ['error']]);
+    expect(setLastSavedAt).not.toHaveBeenCalled();
+  });
+
+  it('refreshWordCount 保存失败时不会发布旧磁盘字数', async () => {
+    useTestStore.setState({
+      currentProject: { name: 'Project', path: '/project', type: 'novel' },
+      hasDirtyFiles: () => true,
+      saveAllOpenFiles: vi.fn(async () => ({ failed: ['/project/a.md'] })),
+      setSaveStatus: vi.fn(),
+      setLastSavedAt: vi.fn(),
+    } as any);
+
+    await useTestStore.getState().refreshWordCount();
+
+    expect((window as any).orisonDesktop.wordCount).not.toHaveBeenCalled();
+    expect(useTestStore.getState().projectWordCount).toBe(0);
+  });
+
+  it('closeProject 保存失败时会保留当前项目', async () => {
+    useTestStore.setState({
+      currentProject: { name: 'Project', path: '/project', type: 'novel' },
+      hasDirtyFiles: () => true,
+      saveAllOpenFiles: vi.fn(async () => ({ failed: ['/project/a.md'] })),
+    } as any);
+
+    await expect(useTestStore.getState().closeProject()).resolves.toEqual({
+      closed: false,
+      failed: ['/project/a.md'],
+    });
+    expect(useTestStore.getState().currentProject?.path).toBe('/project');
+  });
+
+  it('closeProject 保存期间切换项目时不会关闭新项目', async () => {
+    const saving = deferred<{ failed: string[] }>();
+    useTestStore.setState({
+      currentProject: { name: 'Project A', path: '/project-a', type: 'novel' },
+      hasDirtyFiles: () => true,
+      saveAllOpenFiles: vi.fn(() => saving.promise),
+      setSaveStatus: vi.fn(),
+      setLastSavedAt: vi.fn(),
+    } as any);
+
+    const closing = useTestStore.getState().closeProject();
+    useTestStore.setState({
+      currentProject: { name: 'Project B', path: '/project-b', type: 'novel' },
+      projectDocumentHydrated: true,
+      projectWordCount: 123,
+    });
+    saving.resolve({ failed: [] });
+
+    await expect(closing).resolves.toMatchObject({ closed: false });
+    expect(useTestStore.getState().currentProject?.path).toBe('/project-b');
   });
 
   it('openProject 失败或无 novel 数据时会清空旧章节和创作字段', async () => {

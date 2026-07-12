@@ -12,8 +12,9 @@ import type { FileTab } from '../../../shared/store/fileTabsSlice';
  * Markdown" action (top-right, mirroring the MarkdownEditor heading toolbar).
  */
 export function DocxPreview({ file }: { file: FileTab }) {
-  const { resolvedLocale, openFile, refreshWordCount } = useAppStore(
+  const { currentProject, resolvedLocale, openFile, refreshWordCount } = useAppStore(
     useShallow((s) => ({
+      currentProject: s.currentProject,
       resolvedLocale: s.resolvedLocale,
       openFile: s.openFile,
       refreshWordCount: s.refreshWordCount,
@@ -24,10 +25,10 @@ export function DocxPreview({ file }: { file: FileTab }) {
   const [converting, setConverting] = useState(false);
 
   const handleConvert = useCallback(async () => {
-    if (converting) return;
+    if (converting || !currentProject?.path) return;
     setConverting(true);
     try {
-      const mdPath = await window.orisonDesktop?.docxToMarkdown(file.path);
+      const mdPath = await window.orisonDesktop?.docxToMarkdown(file.path, currentProject.path);
       if (!mdPath) {
         showToast(t('fileEditor.docxConvertFailed'), 'error');
         return;
@@ -42,7 +43,7 @@ export function DocxPreview({ file }: { file: FileTab }) {
     } finally {
       setConverting(false);
     }
-  }, [converting, file.path, openFile, refreshWordCount, showToast, t]);
+  }, [converting, currentProject?.path, file.path, openFile, refreshWordCount, showToast, t]);
 
   return (
     <div className="file-editor-docx">

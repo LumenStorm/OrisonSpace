@@ -16,6 +16,7 @@ import { SourceModeBanner } from './SourceModeBanner';
  */
 export function TextFileEditor({ file }: { file: FileTab }) {
   const ext = getFileExtension(file.name);
+  const isManagedProjectDocument = file.name.toLowerCase() === 'project.yaml';
   const isYaml = ext === 'yaml' || ext === 'yml';
   const isMarkdownLike = ext === 'md' || ext === 'txt' || ext === 'text' || ext === '';
 
@@ -36,6 +37,7 @@ export function TextFileEditor({ file }: { file: FileTab }) {
     return false;
   }, [isMarkdownLike, file.id, file.savedContent]);
 
+  if (isManagedProjectDocument) return <ReadOnlyPreview file={file} />;
   if (isYaml) return <CodeEditor file={file} />;
   if (!isMarkdownLike) return <ReadOnlyPreview file={file} />;
   if (lossy) {

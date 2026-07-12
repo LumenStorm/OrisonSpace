@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession, updateSessionModelRef } from '../agent/session';
+import { createSession, getSession, deleteSession, addMessage, updateStatus, loadSession, updateSessionModelRef, updateSessionPermissionMode } from '../agent/session';
 import { listSessions, persistContinuation, loadContinuations, loadContinuationById, overwriteMessagesFile, persistSession } from '../agent/persistence';
 import { runLoop } from '../agent/loop';
 import { loadAgentDefinition } from '../agent/agentDefinitions';
@@ -131,8 +131,9 @@ export interface WorkflowRuntime {
   createSession(input: CreateSessionInput): SessionState;
   getSession(id: string, projectPath?: string): SessionState | undefined;
   setSessionModel(id: string, modelRef: { keyId: string; modelId: string } | undefined): boolean;
+  setSessionPermissionMode(id: string, mode: SessionPermissionMode): boolean;
   listSessions(projectPath?: string): { sessions: ReturnType<typeof listSessions> };
-  deleteSession(id: string): boolean;
+  deleteSession(id: string, projectPath?: string): boolean;
   getRunState(sessionId: string): RunStateSnapshot | undefined;
   abortRun(sessionId: string): boolean;
   resumeRun(sessionId: string): RunCheckpoint | undefined;
@@ -373,7 +374,11 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
     },
 
     getSession(id, projectPath) {
-      return getSession(id) ?? (projectPath ? loadSession(id, projectPath) : undefined);
+      const cached = getSession(id);
+      if (cached) {
+        return projectPath && cached.projectPath !== projectPath ? undefined : cached;
+      }
+      return projectPath ? loadSession(id, projectPath) : undefined;
     },
 
     setSessionModel(id, modelRef) {
@@ -390,12 +395,20 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
       return true;
     },
 
+    setSessionPermissionMode(id, mode) {
+      const session = getSession(id);
+      if (!session || session.status === 'running') return false;
+      updateSessionPermissionMode(id, mode);
+      return true;
+    },
+
     listSessions(projectPath) {
       if (!projectPath) return { sessions: [] };
       return { sessions: listSessions(projectPath) };
     },
 
-    deleteSession(id) {
+    deleteSession(id, projectPath) {
+      if (!getSession(id) && projectPath) loadSession(id, projectPath);
       return deleteSession(id);
     },
 
@@ -740,6 +753,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           permissionMode: session.permissionMode,
         });
 
+        throwIfAborted(runAbortSignal);
         updateStatus(input.sessionId, 'completed');
         runState.completeRun(input.sessionId);
         return { messages: newMessages };
@@ -858,6 +872,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           permissionMode: session.permissionMode,
         });
 
+        throwIfAborted(runAbortSignal);
         updateStatus(input.sessionId, 'completed');
         runState.completeRun(input.sessionId);
         input.sendEvent({
@@ -870,8 +885,8 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
           updateStatus(input.sessionId, 'aborted');
           runState.markAborted(input.sessionId);
           input.sendEvent({
-            type: 'error',
-            data: { message: errMsg },
+            type: 'done',
+            data: { status: 'aborted' },
           });
         } else {
           logger.error({ sessionId: input.sessionId, err: errMsg }, 'stream run failed');
@@ -882,6 +897,7 @@ export function createWorkflowRuntime(options: WorkflowRuntimeOptions = {}): Wor
             data: { message: errMsg },
           });
         }
+        throw err;
       }
     },
   };
@@ -1118,6 +1134,13 @@ function _createPendingConfirmationState(
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
+}
+
+function throwIfAborted(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  throw signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException('Aborted', 'AbortError');
 }
 
 function parseSkillInvocation(content: string): { skillName: string; input?: string } | undefined {

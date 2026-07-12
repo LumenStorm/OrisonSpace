@@ -155,6 +155,22 @@ describe('runtime workflow run state', { timeout: 30_000 }, () => {
     expect(getSession(session.id)?.pendingModelRef).toBeUndefined();
   });
 
+  it('deletes a persisted session that has not been loaded into the current runtime', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const firstRuntime = createWorkflowRuntime();
+    const session = firstRuntime.createSession({ agentName: 'writer', projectPath });
+    const { closeDb } = await import('../src/agent/persistence');
+    closeDb(projectPath);
+    vi.resetModules();
+
+    const { createWorkflowRuntime: createReloadedRuntime } = await import('../src/runtime/workflow');
+    const reloadedRuntime = createReloadedRuntime();
+    expect(reloadedRuntime.listSessions(projectPath).sessions.map((item) => item.id)).toContain(session.id);
+
+    expect(reloadedRuntime.deleteSession(session.id, projectPath)).toBe(true);
+    expect(reloadedRuntime.listSessions(projectPath).sessions.map((item) => item.id)).not.toContain(session.id);
+  });
+
   it('applies the top-level agent definition and only describes visible tools', async () => {
     mkdirSync(path.join(projectPath, '.orison', 'agents'), { recursive: true });
     writeFileSync(path.join(projectPath, '.orison', 'agents', 'writer.md'), [
@@ -265,6 +281,44 @@ describe('runtime workflow run state', { timeout: 30_000 }, () => {
       stage: 'loop',
     });
     expect(runtime.getRunState(session.id)?.status).toBe('idle');
+  });
+
+  it('rejects a late provider response after abort without persisting an assistant message', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    let resolveGenerate!: (value: { content: string; finishReason: string }) => void;
+    const runtime = createWorkflowRuntime({
+      generate: vi.fn(() => new Promise((resolve) => {
+        resolveGenerate = resolve;
+      })),
+    });
+    const session = runtime.createSession({ agentName: 'writer', projectPath });
+    const run = runtime.sendMessage({
+      sessionId: session.id,
+      content: 'Abort before the provider returns.',
+      abortSignal: new AbortController().signal,
+    });
+
+    await vi.waitFor(() => {
+      if (!resolveGenerate) throw new Error('generate not yet entered');
+    });
+    expect(runtime.abortRun(session.id)).toBe(true);
+    resolveGenerate({ content: 'late response', finishReason: 'stop' });
+
+    await expect(run).rejects.toThrow(/aborted/i);
+    expect(runtime.getSession(session.id)?.messages.map((message) => message.role)).toEqual(['user']);
+    expect(runtime.getRunState(session.id)?.status).toBe('aborted');
+  });
+
+  it('keeps an aborted run active until its execution has unwound', async () => {
+    const { RunStateStore } = await import('../src/runtime/runState');
+    const runState = new RunStateStore();
+    runState.beginRun('session');
+
+    expect(runState.abortRun('session')).toBe(true);
+    expect(() => runState.beginRun('session')).toThrow(/already active/i);
+
+    runState.markAborted('session');
+    expect(() => runState.beginRun('session')).not.toThrow();
   });
 
   it('builds skill context from stored artifacts and creates continuation snapshots after skill execution', async () => {

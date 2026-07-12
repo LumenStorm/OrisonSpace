@@ -18,6 +18,7 @@ import {
   readDirectoryRecursive,
 } from './projectIpcHelpers';
 import { searchProjectFiles } from './toolHandlers/fileHandlers';
+import { assertNotManagedProjectDocument, isManagedProjectDocumentPath } from './managedProjectDocument';
 
 /**
  * Per-file word-count cache keyed by absolute path, invalidated by mtime.
@@ -109,6 +110,7 @@ export function registerProjectFileIpc(): void {
         if (shouldSkipImport(baseName)) continue;
         const dest = uniquePath(destDir, baseName);
         assertWithinProject(projectDir, dest);
+        if (isManagedProjectDocumentPath(dest)) continue;
         try {
           const stats = statSync(src);
           if (stats.isDirectory()) {
@@ -118,7 +120,7 @@ export function registerProjectFileIpc(): void {
           }
           const rel = '/' + path.relative(projectDir, dest).split(path.sep).join('/');
           imported.push(rel);
-          notifyUI({ type: 'file:changed', path: rel });
+          notifyUI({ type: 'file:changed', projectPath: projectDir, path: rel });
         } catch {
           // Skip individual files that fail to copy; continue with the rest.
         }
@@ -129,6 +131,7 @@ export function registerProjectFileIpc(): void {
 
   ipcMain.handle('project:delete-entry', async (_, fullPath: string) => {
     assertSafePath(fullPath);
+    if (isManagedProjectDocumentPath(fullPath)) return false;
     try {
       const stat = statSync(fullPath);
       // Deletion is irreversible — keep a local-history snapshot of the text
@@ -150,6 +153,7 @@ export function registerProjectFileIpc(): void {
   ipcMain.handle('project:rename-entry', async (_, oldPath: string, newPath: string) => {
     assertSafePath(oldPath);
     assertSafePath(newPath);
+    if (isManagedProjectDocumentPath(oldPath) || isManagedProjectDocumentPath(newPath)) return false;
     // Reject renaming onto an existing sibling. On POSIX renameSync would
     // silently replace the target (data loss); on Windows it throws. Guard
     // explicitly so the behaviour is consistent and the UI can warn the user.
@@ -167,6 +171,7 @@ export function registerProjectFileIpc(): void {
 
   ipcMain.handle('project:create-entry', async (_, fullPath: string, isDir: boolean) => {
     assertSafePath(fullPath);
+    if (isManagedProjectDocumentPath(fullPath)) return false;
     // Reject names containing path separators / traversal (matches
     // create-directory). The name is the last path segment of fullPath.
     const baseName = path.basename(fullPath);
@@ -230,6 +235,7 @@ export function registerProjectFileIpc(): void {
   ipcMain.handle('project:write-file', async (_, fullPath: string, content: string) => {
     assertSafePath(fullPath);
     try {
+      assertNotManagedProjectDocument(fullPath);
       const dir = path.dirname(fullPath);
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       // Local-history snapshot of the previous content before it's replaced
@@ -276,6 +282,8 @@ export function registerProjectFileIpc(): void {
     assertSafePath(projectDir);
     const source = buildProjectPath(projectDir, fromRelativePath);
     const destination = buildProjectPath(projectDir, toRelativePath);
+    assertNotManagedProjectDocument(source);
+    assertNotManagedProjectDocument(destination);
     const dir = path.dirname(destination);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     renameSync(source, destination);
@@ -285,6 +293,7 @@ export function registerProjectFileIpc(): void {
   ipcMain.handle('project:delete-file', async (_, projectDir: string, relativePath: string) => {
     assertSafePath(projectDir);
     const fullPath = buildProjectPath(projectDir, relativePath);
+    if (isManagedProjectDocumentPath(fullPath)) return false;
     try {
       if (!existsSync(fullPath)) return true;
       snapshotToLocalHistory(projectDir, fullPath);

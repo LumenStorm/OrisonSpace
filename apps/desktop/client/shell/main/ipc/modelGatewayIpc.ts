@@ -80,12 +80,12 @@ export function registerModelGatewayIpc() {
   });
 }
 
-export async function handleGenerateText(payload: GenerateTextPayload): Promise<TextGenerationResponse> {
+export async function handleGenerateText(payload: GenerateTextPayload, signal?: AbortSignal): Promise<TextGenerationResponse> {
   const resolved = resolveModel(payload.ref);
-  return generateText(resolved, payload.request);
+  return generateText(resolved, payload.request, { signal });
 }
 
-export async function handleGenerateImage(payload: GenerateImagePayload): Promise<ImageGenerationResponse> {
+export async function handleGenerateImage(payload: GenerateImagePayload, signal?: AbortSignal): Promise<ImageGenerationResponse> {
   const resolved = resolveModel(payload.ref);
-  return generateImage(resolved, payload.request);
+  return generateImage(resolved, payload.request, { signal });
 }

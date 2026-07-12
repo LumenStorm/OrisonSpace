@@ -80,6 +80,28 @@ describe('runtime permission service', () => {
     expect(runtime.getPendingConfirmation(session.id)).toBeUndefined();
   });
 
+  it('persists permission mode updates for idle sessions and refuses running sessions', async () => {
+    const { createWorkflowRuntime } = await import('../src/runtime/workflow');
+    const { evictSession } = await import('../src/agent/session');
+    const runtime = createWorkflowRuntime();
+    const session = runtime.createSession({
+      agentName: 'writer',
+      projectPath,
+      mode: 'suggest',
+    });
+
+    expect(runtime.setSessionPermissionMode(session.id, 'readonly')).toBe(true);
+    expect(runtime.getSession(session.id)?.permissionMode).toBe('readonly');
+
+    evictSession(session.id);
+    expect(runtime.getSession(session.id, projectPath)?.permissionMode).toBe('readonly');
+
+    const loaded = runtime.getSession(session.id, projectPath)!;
+    loaded.status = 'running';
+    expect(runtime.setSessionPermissionMode(session.id, 'auto')).toBe(false);
+    expect(loaded.permissionMode).toBe('readonly');
+  });
+
   it('filters write tools in readonly sessions before model generation', async () => {
     const { createWorkflowRuntime } = await import('../src/runtime/workflow');
     const { registerBuiltinTools } = await import('../src/tool/builtin');

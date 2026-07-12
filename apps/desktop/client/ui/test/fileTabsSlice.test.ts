@@ -36,6 +36,16 @@ function reset() {
   });
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('fileTabsSlice', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -86,6 +96,25 @@ describe('fileTabsSlice', () => {
     expect(useTestStore.getState().openFiles[0].savedContent).toBe('hello');
   });
 
+  it('saveFile only confirms the content snapshot that reached disk', async () => {
+    const write = deferred<boolean>();
+    (window as any).orisonDesktop.writeFile = vi.fn(() => write.promise);
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'hello');
+    useTestStore.getState().updateFileContent('/p/a.md', 'snapshot A');
+
+    const saving = useTestStore.getState().saveFile('/p/a.md');
+    useTestStore.getState().updateFileContent('/p/a.md', 'snapshot B');
+    write.resolve(true);
+
+    expect(await saving).toBe(false);
+    expect(window.orisonDesktop.writeFile).toHaveBeenCalledWith('/p/a.md', 'snapshot A');
+    expect(useTestStore.getState().openFiles[0]).toMatchObject({
+      content: 'snapshot B',
+      savedContent: 'snapshot A',
+    });
+    expect(useTestStore.getState().hasDirtyFiles()).toBe(true);
+  });
+
   it('saveAllOpenFiles only saves dirty tabs', async () => {
     useTestStore.getState().openFile('/p/a.md', 'a.md', 'hello');
     useTestStore.getState().openFile('/p/b.md', 'b.md', 'world');
@@ -93,6 +122,52 @@ describe('fileTabsSlice', () => {
     await useTestStore.getState().saveAllOpenFiles();
     expect(window.orisonDesktop.writeFile).toHaveBeenCalledTimes(1);
     expect(window.orisonDesktop.writeFile).toHaveBeenCalledWith('/p/a.md', 'edited');
+  });
+
+  it('saveAllOpenFiles reports every failed path', async () => {
+    (window as any).orisonDesktop.writeFile = vi.fn(async (path: string) => path !== '/p/b.md');
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'a');
+    useTestStore.getState().openFile('/p/b.md', 'b.md', 'b');
+    useTestStore.getState().updateFileContent('/p/a.md', 'edited a');
+    useTestStore.getState().updateFileContent('/p/b.md', 'edited b');
+
+    await expect(useTestStore.getState().saveAllOpenFiles()).resolves.toEqual({ failed: ['/p/b.md'] });
+  });
+
+  it('confirmBulkClose keeps tabs open when saving any file fails', async () => {
+    (window as any).orisonDesktop.writeFile = vi.fn(async () => false);
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'a');
+    useTestStore.getState().updateFileContent('/p/a.md', 'edited');
+    useTestStore.getState().closeAllFiles();
+
+    await useTestStore.getState().confirmBulkClose(true);
+
+    expect(useTestStore.getState().openFiles.map((file) => file.path)).toEqual(['/p/a.md']);
+    expect(useTestStore.getState().pendingBulkClose).not.toBeNull();
+  });
+
+  it('confirmBulkClose 保存期间标签被重置时不会关闭新项目标签', async () => {
+    const write = deferred<boolean>();
+    (window as any).orisonDesktop.writeFile = vi.fn(() => write.promise);
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'a');
+    useTestStore.getState().updateFileContent('/p/a.md', 'edited');
+    useTestStore.getState().closeAllFiles();
+
+    const confirming = useTestStore.getState().confirmBulkClose(true);
+    useTestStore.setState({
+      openFiles: [],
+      activeFilePath: null,
+      pendingBulkClose: null,
+      recentlyClosed: [],
+      pinnedPaths: new Set(),
+    });
+    useTestStore.getState().openFile('/b/b.md', 'b.md', 'B');
+    write.resolve(true);
+    await confirming;
+
+    expect(useTestStore.getState().openFiles.map((file) => file.path)).toEqual(['/b/b.md']);
+    expect(useTestStore.getState().activeFilePath).toBe('/b/b.md');
+    expect(useTestStore.getState().recentlyClosed).toEqual([]);
   });
 
   it('closeFile records into recentlyClosed', () => {
@@ -259,6 +334,31 @@ describe('fileTabsSlice', () => {
     expect(s.openFiles[0].selectionEnd).toBe(3);
     expect(s.openFiles[0].scrollTop).toBe(44);
     expect(s.mainView).toBe('files');
+  });
+
+  it('does not publish restored tabs after the active project changes', async () => {
+    persistProjectSession('/p', {
+      version: 1,
+      activeFilePath: '/p/a.md',
+      pinnedPaths: [],
+      openFiles: [{ path: '/p/a.md', name: 'a.md', kind: 'text' }],
+    });
+    const read = deferred<string>();
+    (window as any).orisonDesktop.readFile = vi.fn(() => read.promise);
+
+    const restoring = useSessionStore.getState().restoreProjectTabs('/p');
+    useSessionStore.setState({
+      currentProject: { name: 'Project B', path: '/b', type: 'novel' },
+      openFiles: [],
+      activeFilePath: null,
+      pinnedPaths: new Set(),
+    });
+    useSessionStore.getState().openFile('/b/b.md', 'b.md', 'B');
+    read.resolve('A');
+    await restoring;
+
+    expect(useSessionStore.getState().openFiles.map((file) => file.path)).toEqual(['/b/b.md']);
+    expect(useSessionStore.getState().activeFilePath).toBe('/b/b.md');
   });
 
   it('restores docx tabs by converting them back to preview HTML', async () => {
