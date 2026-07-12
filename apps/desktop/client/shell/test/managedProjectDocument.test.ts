@@ -1,7 +1,12 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('electron', () => ({
+  BrowserWindow: { getAllWindows: vi.fn(() => []) },
+}));
+
 import { isManagedProjectDocumentPath } from '../main/ipc/managedProjectDocument';
 import { writeFileHandler } from '../main/ipc/toolHandlers/fileHandlers';
 

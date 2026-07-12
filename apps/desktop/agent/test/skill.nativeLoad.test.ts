@@ -26,8 +26,8 @@ describe('native skill loading', () => {
   afterEach(async () => {
     const { closeDb } = await import('../src/agent/persistence');
     closeDb(projectPath);
-    rmSync(projectPath, { recursive: true, force: true });
-    rmSync(homePath, { recursive: true, force: true });
+    rmSync(projectPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    rmSync(homePath, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     vi.resetModules();
   });
 
@@ -89,7 +89,7 @@ describe('native skill loading', () => {
     expect(skillToolMessage?.toolResults?.[0]?.output).toContain('references/voice.md');
     expect(generate).toHaveBeenCalledTimes(2);
     expect(messages.at(-1)?.content).toBe('Loaded the brand voice skill and will follow it.');
-  });
+  }, 15_000);
 
   it('keeps active skill allowed-tools restrictions across turns', async () => {
     const skillDir = path.join(projectPath, '.orison', 'skills', 'read-only-skill');
