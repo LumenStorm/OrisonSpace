@@ -276,9 +276,12 @@ async function generateAnthropicText(
     });
   }
 
+  // Anthropic requires max_tokens. Prefer caller value; otherwise use a high
+  // default suitable for long-form chapter generation (Chinese chapters often
+  // need 6k–16k output tokens). OpenAI path leaves this unset when omitted.
   const body: Record<string, unknown> = {
     model: model.modelId,
-    max_tokens: request.maxTokens ?? 4096,
+    max_tokens: request.maxTokens ?? 16384,
     messages,
   };
   if (systemParts.length) body.system = systemParts.join('\n');

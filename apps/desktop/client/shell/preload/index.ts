@@ -79,6 +79,7 @@ export const exposedDesktopApi = {
   // 模型配置
   loadModelConfig: () => ipcRenderer.invoke('config:load-model') as Promise<ModelConfig>,
   saveModelConfig: (config: ModelConfig) => ipcRenderer.invoke('config:save-model', config) as Promise<void>,
+  isKeyEncryptionAvailable: () => ipcRenderer.invoke('config:is-key-encryption-available') as Promise<boolean>,
   listRemoteModels: (request: ListRemoteModelsRequest) =>
     ipcRenderer.invoke('model:list-remote-models', request) as Promise<RemoteModel[]>,
   // 模型生成（desktop main 直连 provider）

@@ -44,13 +44,32 @@ export function CodeEditor({ file }: { file: FileTab }) {
   const savedRef = useRef(file.savedContent);
   const contentRef = useRef(file.content);
   const viewportRafRef = useRef<number | null>(null);
+  // Local buffer + debounced store write (mirrors TiptapEditor 200ms) so
+  // openFiles subscribers don't rebuild on every keystroke in source mode.
+  const [localContent, setLocalContent] = useState(file.content);
+  const contentFlushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const CONTENT_DEBOUNCE_MS = 200;
+
+  const flushContent = useCallback((value?: string) => {
+    if (contentFlushTimer.current) {
+      clearTimeout(contentFlushTimer.current);
+      contentFlushTimer.current = null;
+    }
+    const next = value ?? contentRef.current;
+    updateFileContent(file.path, next);
+  }, [file.path, updateFileContent]);
 
   // Reset history when a different file becomes active in this reused editor.
   useEffect(() => {
     if (file.id !== fileIdRef.current) {
+      if (contentFlushTimer.current) {
+        clearTimeout(contentFlushTimer.current);
+        contentFlushTimer.current = null;
+      }
       fileIdRef.current = file.id;
       savedRef.current = file.savedContent;
       contentRef.current = file.content;
+      setLocalContent(file.content);
       undoStack.current = [];
       redoStack.current = [];
       lastPushAt.current = 0;
@@ -63,14 +82,19 @@ export function CodeEditor({ file }: { file: FileTab }) {
     // restore deleted text. Clear it. A user's own save (content unchanged)
     // keeps history intact.
     if (file.content !== contentRef.current) {
+      if (contentFlushTimer.current) {
+        clearTimeout(contentFlushTimer.current);
+        contentFlushTimer.current = null;
+      }
       contentRef.current = file.content;
+      setLocalContent(file.content);
       undoStack.current = [];
       redoStack.current = [];
       lastPushAt.current = 0;
     }
   }, [file.id, file.savedContent, file.content]);
 
-  const lineCount = useMemo(() => file.content.split('\n').length, [file.content]);
+  const lineCount = useMemo(() => localContent.split('\n').length, [localContent]);
 
   const readViewport = useCallback(() => {
     const ta = textareaRef.current;
@@ -105,7 +129,13 @@ export function CodeEditor({ file }: { file: FileTab }) {
       cancelAnimationFrame(viewportRafRef.current);
       viewportRafRef.current = null;
     }
-  }, []);
+    // Flush pending keystrokes before unmount so autosave / tab switch sees latest.
+    if (contentFlushTimer.current) {
+      clearTimeout(contentFlushTimer.current);
+      contentFlushTimer.current = null;
+    }
+    updateFileContent(file.path, contentRef.current);
+  }, [file.path, updateFileContent]);
 
   useEffect(() => {
     const ta = textareaRef.current;
@@ -123,10 +153,10 @@ export function CodeEditor({ file }: { file: FileTab }) {
 
   // Snapshot the current content onto the undo stack (clears redo).
   const pushHistory = useCallback(() => {
-    undoStack.current.push({ content: file.content });
+    undoStack.current.push({ content: contentRef.current });
     if (undoStack.current.length > HISTORY_LIMIT) undoStack.current.shift();
     redoStack.current = [];
-  }, [file.content]);
+  }, []);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -136,23 +166,28 @@ export function CodeEditor({ file }: { file: FileTab }) {
       if (now - lastPushAt.current > COALESCE_MS) pushHistory();
       lastPushAt.current = now;
       contentRef.current = ta.value;
-      updateFileContent(file.path, ta.value);
+      setLocalContent(ta.value);
+      if (contentFlushTimer.current) clearTimeout(contentFlushTimer.current);
+      contentFlushTimer.current = setTimeout(() => flushContent(ta.value), CONTENT_DEBOUNCE_MS);
       updateFileViewport(file.path, {
         selectionStart: ta.selectionStart,
         selectionEnd: ta.selectionEnd,
         scrollTop: ta.scrollTop,
       });
     },
-    [file.path, updateFileContent, updateFileViewport, pushHistory],
+    [file.path, updateFileViewport, pushHistory, flushContent],
   );
 
   const restore = useCallback(
     (fromContent: string, entry: HistoryEntry) => {
-      // Keep contentRef in sync so a later save isn't mistaken for a reload.
       contentRef.current = entry.content;
+      if (contentFlushTimer.current) {
+        clearTimeout(contentFlushTimer.current);
+        contentFlushTimer.current = null;
+      }
+      setLocalContent(entry.content);
       updateFileContent(file.path, entry.content);
       const caret = caretAfterSwap(fromContent, entry.content);
-      // Reapply caret after React commits the new value.
       requestAnimationFrame(() => {
         const ta = textareaRef.current;
         if (ta) {
@@ -172,18 +207,20 @@ export function CodeEditor({ file }: { file: FileTab }) {
   const handleUndo = useCallback(() => {
     const prev = undoStack.current.pop();
     if (!prev) return;
-    redoStack.current.push({ content: file.content });
-    lastPushAt.current = 0; // force the next edit to start a fresh undo step
-    restore(file.content, prev);
-  }, [file.content, restore]);
+    const current = contentRef.current;
+    redoStack.current.push({ content: current });
+    lastPushAt.current = 0;
+    restore(current, prev);
+  }, [restore]);
 
   const handleRedo = useCallback(() => {
     const next = redoStack.current.pop();
     if (!next) return;
-    undoStack.current.push({ content: file.content });
+    const current = contentRef.current;
+    undoStack.current.push({ content: current });
     lastPushAt.current = 0;
-    restore(file.content, next);
-  }, [file.content, restore]);
+    restore(current, next);
+  }, [restore]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && lineNumRef.current) {
@@ -221,32 +258,45 @@ export function CodeEditor({ file }: { file: FileTab }) {
   }, [findRequest]);
 
   const adapter: FindReplaceAdapter = useMemo(() => ({
-    getText: () => file.content,
+    getText: () => localContent,
     highlight: (match: FindMatch) => {
       const ta = textareaRef.current;
       if (!ta) return;
       ta.focus();
       ta.setSelectionRange(match.start, match.end);
-      const linesBefore = file.content.slice(0, match.start).split('\n').length;
-      const lineHeight = ta.scrollHeight / (file.content.split('\n').length || 1);
+      const linesBefore = localContent.slice(0, match.start).split('\n').length;
+      const lineHeight = ta.scrollHeight / (localContent.split('\n').length || 1);
       ta.scrollTop = Math.max(0, (linesBefore - 3) * lineHeight);
     },
     replaceOne: (match: FindMatch, replacement: string) => {
-      const before = file.content.slice(0, match.start);
-      const after = file.content.slice(match.end);
+      const before = localContent.slice(0, match.start);
+      const after = localContent.slice(match.end);
+      const next = before + replacement + after;
       pushHistory();
-      updateFileContent(file.path, before + replacement + after);
+      contentRef.current = next;
+      setLocalContent(next);
+      if (contentFlushTimer.current) {
+        clearTimeout(contentFlushTimer.current);
+        contentFlushTimer.current = null;
+      }
+      updateFileContent(file.path, next);
     },
     replaceAll: (matches: FindMatch[], replacement: string) => {
-      let result = file.content;
+      let result = localContent;
       for (let i = matches.length - 1; i >= 0; i--) {
         const m = matches[i];
         result = result.slice(0, m.start) + replacement + result.slice(m.end);
       }
       pushHistory();
+      contentRef.current = result;
+      setLocalContent(result);
+      if (contentFlushTimer.current) {
+        clearTimeout(contentFlushTimer.current);
+        contentFlushTimer.current = null;
+      }
       updateFileContent(file.path, result);
     },
-  }), [file.content, file.path, updateFileContent, pushHistory]);
+  }), [localContent, file.path, updateFileContent, pushHistory]);
 
   const ext = file.name.split('.').pop()?.toUpperCase() ?? 'TEXT';
 
@@ -264,18 +314,21 @@ export function CodeEditor({ file }: { file: FileTab }) {
         <textarea
           ref={textareaRef}
           className="code-editor-textarea"
-          value={file.content}
+          value={localContent}
           onChange={handleChange}
           onScroll={handleScroll}
           onKeyDown={handleKeyDown}
           onKeyUp={recordViewport}
           onMouseUp={recordViewport}
           onSelect={recordViewport}
-          onBlur={flushViewport}
+          onBlur={() => {
+            flushContent();
+            flushViewport();
+          }}
           spellCheck={spellCheck}
         />
       </div>
-      <EditorStatusBar content={file.content} fileType={ext} />
+      <EditorStatusBar content={localContent} fileType={ext} />
     </div>
   );
 }

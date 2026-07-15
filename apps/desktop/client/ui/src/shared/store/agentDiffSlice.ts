@@ -129,6 +129,32 @@ function resolveChapterFilePath(state: Deps, chapterId: string | undefined, file
 }
 
 /**
+ * Resolve a passage/file path to an absolute normalized form for tab lookup.
+ * Models and tool metadata often pass project-relative paths (`chapters/x.md`)
+ * or Windows backslashes; open tabs always store absolute forward-slash paths.
+ */
+function resolveFileTabPath(state: Deps, filePath: string | undefined): string | null {
+  if (!filePath) return null;
+  const normalized = normalizePath(filePath);
+  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/')) {
+    return normalized;
+  }
+  const projectPath = state.currentProject?.path;
+  if (!projectPath) return normalized;
+  return normalizePath(`${projectPath}/${normalized.replace(/^\.\//, '')}`);
+}
+
+function findOpenFileByPath(state: Deps, filePath: string | undefined): { path: string; content: string } | undefined {
+  const abs = resolveFileTabPath(state, filePath);
+  if (!abs) return undefined;
+  const exact = state.openFiles.find((f) => normalizePath(f.path) === abs);
+  if (exact) return exact;
+  // Case-insensitive fallback (Windows paths).
+  const lower = abs.toLowerCase();
+  return state.openFiles.find((f) => normalizePath(f.path).toLowerCase() === lower);
+}
+
+/**
  * Read a chapter's latest content from its open tab, if any. Passage relocation
  * needs the current in-editor text; when the chapter file isn't open there is no
  * in-memory copy to relocate against (returns undefined → caller drops the diff).
@@ -136,7 +162,7 @@ function resolveChapterFilePath(state: Deps, chapterId: string | undefined, file
 function readChapterContent(state: Deps, chapterId: string | undefined): string | undefined {
   const filePath = resolveChapterFilePath(state, chapterId, undefined);
   if (!filePath) return undefined;
-  return state.openFiles.find((f) => f.path === filePath)?.content;
+  return findOpenFileByPath(state, filePath)?.content;
 }
 
 /**
@@ -145,10 +171,11 @@ function readChapterContent(state: Deps, chapterId: string | undefined): string 
  * editor view stays in sync; otherwise write straight to disk.
  */
 function persistChapterContent(state: Deps, filePath: string, content: string): void {
-  const openTab = state.openFiles.find((f) => f.path === filePath);
+  const openTab = findOpenFileByPath(state, filePath);
+  const tabPath = openTab ? normalizePath(openTab.path) : filePath;
   if (openTab) {
-    state.updateFileContent(filePath, content);
-    void state.saveFile(filePath);
+    state.updateFileContent(tabPath, content);
+    void state.saveFile(tabPath);
     return;
   }
   const fileName = filePath.slice(filePath.lastIndexOf('/') + 1);
@@ -204,15 +231,63 @@ function normalizeLineEndings(text: string): string {
   return text.replace(/\r\n?/g, '\n');
 }
 
+/**
+ * Collapse paragraph separators so TipTap `textBetween(..., '\n')` (single \n
+ * between blocks) can match markdown source which uses blank lines (`\n\n`).
+ * Maps each character in the collapsed string back to the original index range.
+ */
+function normalizeParagraphBreaksWithMap(text: string): { text: string; starts: number[]; ends: number[] } {
+  const chars: string[] = [];
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '\n') {
+      // Collapse runs of blank lines (optionally with spaces) into a single \n.
+      let j = i;
+      while (j < text.length && (text[j] === '\n' || text[j] === ' ' || text[j] === '\t')) {
+        if (text[j] === '\n') j++;
+        else {
+          // trailing spaces on a blank line
+          let k = j;
+          while (k < text.length && (text[k] === ' ' || text[k] === '\t')) k++;
+          if (text[k] === '\n') j = k + 1;
+          else break;
+        }
+      }
+      if (j > i + 1) {
+        chars.push('\n');
+        starts.push(i);
+        ends.push(j);
+        i = j;
+        continue;
+      }
+    }
+    chars.push(text[i]);
+    starts.push(i);
+    ends.push(i + 1);
+    i++;
+  }
+  return { text: chars.join(''), starts, ends };
+}
+
 function comparableText(text: string): string {
   return normalizeLineEndings(text).replace(/\s+/g, '').trim();
 }
 
-function findLineEndingNormalizedRanges(haystack: string, needle: string): TextRange[] {
-  const normalizedNeedle = normalizeLineEndings(needle);
-  if (!normalizedNeedle || (normalizedNeedle === needle && haystack.indexOf(needle) !== -1)) return [];
+function findMappedRanges(
+  haystack: string,
+  needle: string,
+  normalize: (text: string) => { text: string; starts: number[]; ends: number[] },
+): TextRange[] {
+  const normalizedNeedle = normalize(needle).text;
+  if (!normalizedNeedle) return [];
+  // Skip when already identical and exact search would find it (caller handles exact first).
+  if (normalizedNeedle === needle && haystack.indexOf(needle) !== -1) return [];
 
-  const normalizedHaystack = normalizeLineEndingsWithMap(haystack);
+  const normalizedHaystack = normalize(haystack);
+  if (normalizedHaystack.text === haystack && normalizedNeedle === needle) return [];
+
   const out: TextRange[] = [];
   let from = 0;
   for (;;) {
@@ -229,10 +304,37 @@ function findLineEndingNormalizedRanges(haystack: string, needle: string): TextR
   return out;
 }
 
+function findLineEndingNormalizedRanges(haystack: string, needle: string): TextRange[] {
+  return findMappedRanges(haystack, needle, normalizeLineEndingsWithMap);
+}
+
+/** Match when quote uses single newlines between blocks but source has blank lines. */
+function findParagraphBreakNormalizedRanges(haystack: string, needle: string): TextRange[] {
+  const lineNormalizedHaystack = normalizeLineEndings(haystack);
+  const lineNormalizedNeedle = normalizeLineEndings(needle);
+  // First try on already line-ending-normalized text with paragraph collapse.
+  const ranges = findMappedRanges(
+    lineNormalizedHaystack,
+    lineNormalizedNeedle,
+    normalizeParagraphBreaksWithMap,
+  );
+  if (ranges.length === 0 || lineNormalizedHaystack === haystack) return ranges;
+
+  // Remap ranges from \n-normalized haystack back to original (may contain \r\n).
+  const map = normalizeLineEndingsWithMap(haystack);
+  return ranges.map((r) => {
+    const from = map.starts[r.from] ?? r.from;
+    const to = map.ends[r.to - 1] ?? r.to;
+    return { from, to };
+  });
+}
+
 function findAllOccurrenceRanges(haystack: string, needle: string): TextRange[] {
   const exact = findExactOccurrenceRanges(haystack, needle);
   if (exact.length > 0) return exact;
-  return findLineEndingNormalizedRanges(haystack, needle);
+  const lineEnding = findLineEndingNormalizedRanges(haystack, needle);
+  if (lineEnding.length > 0) return lineEnding;
+  return findParagraphBreakNormalizedRanges(haystack, needle);
 }
 
 function locateExactText(content: string, text: string, anchor?: SelectionAnchor): LocateResult | null {
@@ -414,7 +516,7 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
     // passage: relocate in the latest content at accept time
     const current = diff.sourceType === 'chapter'
       ? readChapterContent(state, diff.chapterId)
-      : state.openFiles.find((f) => f.path === diff.filePath)?.content;
+      : findOpenFileByPath(state, diff.filePath)?.content;
 
     if (current == null) {
       // Source no longer open/available — drop the stale diff.
@@ -459,7 +561,7 @@ export const createAgentDiffSlice: StateCreator<Deps, [], [], AgentDiffSlice> = 
 
     const current = resolve.sourceType === 'chapter'
       ? readChapterContent(state, resolve.chapterId)
-      : state.openFiles.find((f) => f.path === resolve.filePath)?.content;
+      : findOpenFileByPath(state, resolve.filePath)?.content;
     if (current == null) {
       set({ pendingPassageResolve: null, pendingDiffs: state.pendingDiffs.filter((d) => d.id !== diffId) });
       return;
@@ -527,8 +629,11 @@ function applyPassage(
     const chapterFile = resolveChapterFilePath(state, chapterId, undefined);
     if (chapterFile) persistChapterContent(state, chapterFile, next);
   } else if (sourceType === 'file' && filePath) {
-    state.updateFileContent(filePath, next);
-    void state.saveFile(filePath);
+    const tab = findOpenFileByPath(state, filePath);
+    const tabPath = tab ? normalizePath(tab.path) : resolveFileTabPath(state, filePath);
+    if (!tabPath) return;
+    state.updateFileContent(tabPath, next);
+    void state.saveFile(tabPath);
   }
 }
 
@@ -560,10 +665,11 @@ async function restoreRejectedWrite(state: Deps, diff: ChapterPendingDiff): Prom
 
   // The file existed — restore its previous content (in the open tab if any).
   const previous = diff.previousContent ?? '';
-  const openTab = state.openFiles.find((f) => f.path === absPath);
+  const openTab = findOpenFileByPath(state, absPath);
+  const tabPath = openTab ? normalizePath(openTab.path) : absPath;
   if (openTab) {
-    state.updateFileContent(absPath, previous);
-    void state.saveFile(absPath);
+    state.updateFileContent(tabPath, previous);
+    void state.saveFile(tabPath);
   } else {
     try { await api.writeFile?.(absPath, previous); } catch { /* best effort */ }
   }

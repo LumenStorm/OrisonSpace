@@ -110,6 +110,32 @@ describe('unified protocol', () => {
         usage: { promptTokens: 11, completionTokens: 7, totalTokens: 18 },
       });
     });
+
+    it('defaults anthropic max_tokens to 16384 when omitted (long-form chapters)', async () => {
+      globalThis.fetch = buildMock(captured, {
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-3-5-sonnet-latest',
+        content: [{ type: 'text', text: 'ok' }],
+        stop_reason: 'end_turn',
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+
+      await generateText(
+        model({
+          protocol: 'anthropic-compatible',
+          modelId: 'claude-3-5-sonnet-latest',
+          baseUrl: 'https://api.anthropic.com',
+        }),
+        {
+          model: 'claude-3-5-sonnet-latest',
+          messages: [{ role: 'user', content: 'write a chapter' }],
+        },
+      );
+
+      const body = JSON.parse((captured[0].init?.body as string) ?? '{}');
+      expect(body.max_tokens).toBe(16384);
+    });
   });
 
   describe('generateImage', () => {

@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { existsSync, mkdirSync, copyFileSync, cpSync, readFileSync, readdirSync, statSync, unlinkSync, renameSync, rmSync } from 'node:fs';
 import { readFile as readFileAsync, stat as statAsync } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import type { SaveBase64ImageInput } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
 import { allowPath, assertSafePath, assertWithinProject, getOrisonSpaceRoot, isSafePath } from './pathGuard';
@@ -48,6 +49,58 @@ function shouldSkipImport(name: string): boolean {
   return name.startsWith('.') || name === 'node_modules';
 }
 
+/** Max single-file import size (50 MiB) — blocks bulk secret exfil via import-then-read. */
+const MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024;
+/** Max files per import batch. */
+const MAX_IMPORT_BATCH = 100;
+
+/**
+ * Reject source paths that are clearly not user drag-drop targets: empty,
+ * relative, UNC without drive, or known sensitive locations (ssh keys, orison
+ * key store, system dirs). Destination is still project-scoped; this only
+ * reduces the "arbitrary local file read via import" blast radius if the
+ * renderer is compromised.
+ */
+function isImportableSourcePath(src: string): boolean {
+  if (!src || typeof src !== 'string') return false;
+  const trimmed = src.trim();
+  if (!trimmed) return false;
+  // Must be absolute (Windows drive or POSIX root). Reject relative / traversal.
+  if (!path.isAbsolute(trimmed)) return false;
+  // Reject Windows device paths / alternate data stream tricks.
+  if (trimmed.includes('\0')) return false;
+  if (/^[a-zA-Z]:/.test(trimmed) === false && process.platform === 'win32' && !trimmed.startsWith('\\\\')) {
+    // On Windows, absolute paths are drive-letter or UNC.
+  }
+  const resolved = path.resolve(trimmed);
+  if (isSensitiveImportSource(resolved)) return false;
+  return true;
+}
+
+function isSensitiveImportSource(resolved: string): boolean {
+  const lower = resolved.replace(/\\/g, '/').toLowerCase();
+  const home = path.resolve(os.homedir()).replace(/\\/g, '/').toLowerCase();
+  const denyExact = [
+    `${home}/.ssh`,
+    `${home}/.gnupg`,
+    `${home}/.aws`,
+    `${home}/.orison/model/keys`,
+    `${home}/.orison/model`,
+  ];
+  for (const d of denyExact) {
+    if (lower === d || lower.startsWith(d + '/')) return true;
+  }
+  // System dirs (best-effort)
+  if (process.platform === 'win32') {
+    if (lower.startsWith('c:/windows') || lower.startsWith('c:/program files')) return true;
+  } else {
+    if (lower.startsWith('/etc') || lower.startsWith('/usr') || lower.startsWith('/bin') || lower.startsWith('/sbin') || lower.startsWith('/root')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function registerProjectFileIpc(): void {
   const orisonSpaceRoot = getOrisonSpaceRoot();
 
@@ -89,10 +142,9 @@ export function registerProjectFileIpc(): void {
   });
 
   /* ── Import external files dropped from the OS into the project ──
-   * The DESTINATION is validated to stay within the project. The SOURCE paths
-   * are NOT checked against the allowed-root scope: a drag-drop is the user's
-   * explicit authorization to copy those arbitrary on-disk files in. We only
-   * read (copy) them, never write to them. */
+   * Destination stays project-scoped. Source paths must be absolute, must not
+   * escape into sensitive system locations, and are size-capped so a compromised
+   * renderer cannot bulk-exfiltrate arbitrary files via import-then-read. */
   ipcMain.handle(
     'project:import-files',
     async (_, projectDir: string, targetRelDir: string, sourcePaths: string[]) => {
@@ -103,9 +155,14 @@ export function registerProjectFileIpc(): void {
       assertWithinProject(projectDir, destDir);
       if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
 
+      if (!Array.isArray(sourcePaths)) return [];
+      // Cap batch size to limit abuse if renderer is compromised.
+      const batch = sourcePaths.slice(0, MAX_IMPORT_BATCH);
+
       const imported: string[] = [];
-      for (const src of sourcePaths) {
-        if (!src || !existsSync(src)) continue;
+      for (const src of batch) {
+        if (!isImportableSourcePath(src)) continue;
+        if (!existsSync(src)) continue;
         const baseName = path.basename(src);
         if (shouldSkipImport(baseName)) continue;
         const dest = uniquePath(destDir, baseName);
@@ -114,8 +171,12 @@ export function registerProjectFileIpc(): void {
         try {
           const stats = statSync(src);
           if (stats.isDirectory()) {
+            // Directories: still copy, but reject sensitive roots and cap total size.
+            if (isSensitiveImportSource(src)) continue;
             cpSync(src, dest, { recursive: true });
           } else {
+            if (stats.size > MAX_IMPORT_FILE_BYTES) continue;
+            if (isSensitiveImportSource(src)) continue;
             copyFileSync(src, dest);
           }
           const rel = '/' + path.relative(projectDir, dest).split(path.sep).join('/');

@@ -120,6 +120,20 @@ function createWindow() {
     }
   });
 
+  // Navigation / popup hard guards — renderer must not open arbitrary URLs or
+  // spawn windows. External links go through openExternal (https-only).
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    // Allow the initial load and Vite HMR reloads in dev; block everything else.
+    const allowed =
+      url.startsWith('file:')
+      || (isDev && (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')));
+    if (!allowed) {
+      event.preventDefault();
+      getLogger().warn({ url }, 'blocked renderer navigation');
+    }
+  });
+
   // Guard window close — ask renderer to check for unsaved files
   let forceClose = false;
   win.on('close', (e) => {

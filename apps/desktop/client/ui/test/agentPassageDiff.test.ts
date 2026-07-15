@@ -99,6 +99,72 @@ describe('agent passage diff acceptance', () => {
     expect(useAppStore.getState().openFiles[0].content).toBe('Alpha\nBeta rewritten\r\nOmega');
   });
 
+  it('accepts a file passage when tool metadata uses a project-relative path', () => {
+    const absPath = 'I:/proj/chapters/ch01.md';
+    const current = 'Hello world\nSecond line';
+
+    useAppStore.setState({
+      openFiles: [{
+        id: 'tab-1',
+        path: absPath,
+        name: 'ch01.md',
+        content: current,
+        savedContent: current,
+        kind: 'text',
+      }],
+      pendingDiffs: [{
+        kind: 'passage',
+        id: 'diff-rel',
+        toolId: 'rewrite_passage',
+        sourceType: 'file',
+        filePath: 'chapters/ch01.md',
+        originalText: 'Hello world',
+        replacement: 'Hi world',
+      }],
+    } as any);
+
+    useAppStore.getState().acceptDiff('diff-rel');
+
+    expect(useAppStore.getState().pendingPassageResolve).toBeNull();
+    expect(useAppStore.getState().pendingDiffs).toEqual([]);
+    expect(useAppStore.getState().openFiles[0].content).toBe('Hi world\nSecond line');
+  });
+
+  it('accepts a multi-paragraph passage when quote uses single newlines but source has blank lines', () => {
+    const filePath = 'I:/proj/chapters/ch01.md';
+    const current = 'Para one.\n\nPara two.\n\nPara three.';
+    // TipTap historically produced single-\n between blocks; markdown stores \n\n.
+    const quote = 'Para one.\nPara two.';
+
+    useAppStore.setState({
+      openFiles: [{
+        id: 'tab-1',
+        path: filePath,
+        name: 'ch01.md',
+        content: current,
+        savedContent: current,
+        kind: 'text',
+      }],
+      pendingDiffs: [{
+        kind: 'passage',
+        id: 'diff-para',
+        toolId: 'rewrite_passage',
+        sourceType: 'file',
+        filePath,
+        originalText: quote,
+        replacement: 'Para one rewritten.\n\nPara two rewritten.',
+      }],
+    } as any);
+
+    useAppStore.getState().acceptDiff('diff-para');
+
+    expect(useAppStore.getState().pendingPassageResolve).toBeNull();
+    expect(useAppStore.getState().pendingDiffs).toEqual([]);
+    expect(useAppStore.getState().openFiles[0].content).toBe(
+      'Para one rewritten.\n\nPara two rewritten.\n\nPara three.',
+    );
+  });
+
   it('accepts a chapter-length passage rewrite when model original text drifted', () => {
     const filePath = 'I:/proj/chapters/ch01.md';
     const current = [

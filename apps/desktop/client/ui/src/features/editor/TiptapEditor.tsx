@@ -229,22 +229,24 @@ export function TiptapEditor({
       { type: 'separator' } as const,
       { type: 'item' as const, label: t('editor.aiReview'), icon: 'rate_review', disabled: !hasSelection, onClick: () => {
         const { from, to } = editor.state.selection;
-        const text = editor.state.doc.textBetween(from, to, '\n');
+        // Use blockSeparator '\n\n' so multi-block selections match markdown source
+        // (paragraphs are separated by blank lines), not TipTap's default single \n.
+        const text = editor.state.doc.textBetween(from, to, '\n\n');
         if (text) onSelectionAction('review', { text, from, to });
       }},
       { type: 'item' as const, label: t('editor.aiContinue'), icon: 'auto_fix_high', disabled: !hasSelection, onClick: () => {
         const { from, to } = editor.state.selection;
-        const text = editor.state.doc.textBetween(from, to, '\n');
+        const text = editor.state.doc.textBetween(from, to, '\n\n');
         if (text) onSelectionAction('continue', { text, from, to });
       }},
       { type: 'item' as const, label: t('editor.aiPolish'), icon: 'auto_awesome', disabled: !hasSelection, onClick: () => {
         const { from, to } = editor.state.selection;
-        const text = editor.state.doc.textBetween(from, to, '\n');
+        const text = editor.state.doc.textBetween(from, to, '\n\n');
         if (text) onSelectionAction('polish', { text, from, to });
       }},
       { type: 'item' as const, label: t('editor.addToAgent'), icon: 'attach_file', disabled: !hasSelection, onClick: () => {
         const { from, to } = editor.state.selection;
-        const text = editor.state.doc.textBetween(from, to, '\n');
+        const text = editor.state.doc.textBetween(from, to, '\n\n');
         if (text) onSelectionAction('attach', { text, from, to });
       }},
     ] : []),

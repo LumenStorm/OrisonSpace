@@ -11,6 +11,7 @@ import type {
 } from '@orison/shared-contracts';
 import { parseFlatYaml, stringifyFlatYaml, modelConfigSaveSchema, DEFAULT_USER_PREFERENCES } from '@orison/shared-contracts';
 import { atomicWriteFileSync } from '@orison/shared-contracts/fs/atomicWrite';
+import { getLogger } from '../logger';
 
 const DEFAULT_MODEL_CONFIG: ModelConfig = { keys: [] };
 
@@ -32,6 +33,9 @@ function getUserPreferencesPath(): string {
   return path.join(os.homedir(), '.orison', 'user', 'preferences.yaml');
 }
 
+/** True when the last write fell back to plaintext (no OS keyring). */
+let plaintextKeyWarningLogged = false;
+
 function encrypt(value: string): string {
   if (!value) return '';
   try {
@@ -39,7 +43,24 @@ function encrypt(value: string): string {
       return safeStorage.encryptString(value).toString('base64');
     }
   } catch { /* fall through */ }
+  // No keyring (common on some Linux setups): store plaintext but warn once so
+  // operators know API keys sit unencrypted under ~/.orison/model/keys/.
+  if (!plaintextKeyWarningLogged) {
+    plaintextKeyWarningLogged = true;
+    getLogger().warn(
+      'safeStorage encryption unavailable — API keys will be stored in plaintext under ~/.orison/model/keys/',
+    );
+  }
   return value;
+}
+
+/** Whether OS-level secret encryption is available (for UI warnings). */
+export function isApiKeyEncryptionAvailable(): boolean {
+  try {
+    return safeStorage.isEncryptionAvailable();
+  } catch {
+    return false;
+  }
 }
 
 function decrypt(value: string): string {
@@ -379,6 +400,7 @@ export function registerConfigIpc() {
   ipcMain.handle('config:save-model', (_, config: ModelConfig) => {
     writeModelConfig(modelConfigSaveSchema.parse(config));
   });
+  ipcMain.handle('config:is-key-encryption-available', () => isApiKeyEncryptionAvailable());
   ipcMain.handle('config:load-user-preferences', () => readUserPreferences());
   ipcMain.handle('config:save-user-preferences', (_, config: UserPreferencesConfig) => {
     writeUserPreferences(config);

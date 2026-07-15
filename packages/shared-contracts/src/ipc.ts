@@ -356,6 +356,8 @@ export type OrisonDesktopApi = {
   loadProjectDocument(projectDir: string): Promise<Record<string, unknown> | null>;
   loadModelConfig(): Promise<ModelConfig>;
   saveModelConfig(config: ModelConfig): Promise<void>;
+  /** Whether OS keyring encryption is available for API keys (false → plaintext on disk). */
+  isKeyEncryptionAvailable(): Promise<boolean>;
   listRemoteModels(request: ListRemoteModelsRequest): Promise<RemoteModel[]>;
   generateText(payload: GenerateTextPayload): Promise<TextGenerationResponse>;
   generateImage(payload: GenerateImagePayload): Promise<ImageGenerationResponse>;

@@ -53,6 +53,7 @@ describe('preload security surface', () => {
       'importFiles',
       'importFonts',
       'installUpdate',
+      'isKeyEncryptionAvailable',
       'isMaximized',
       'listAgentContinuations',
       'listAgentSessions',
