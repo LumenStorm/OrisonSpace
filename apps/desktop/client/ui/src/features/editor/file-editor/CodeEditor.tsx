@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../../shared/store/appStore';
+import { registerEditorContentFlush } from '../../../shared/store/editorContentFlush';
 import type { FileTab } from '../../../shared/store/fileTabsSlice';
 import { FindReplaceBar, type FindReplaceAdapter, type FindMatch, type FindReplaceMode } from '../FindReplaceBar';
 import { EditorStatusBar } from './EditorStatusBar';
@@ -58,6 +59,16 @@ export function CodeEditor({ file }: { file: FileTab }) {
     const next = value ?? contentRef.current;
     updateFileContent(file.path, next);
   }, [file.path, updateFileContent]);
+
+  // Let save / flushDirty / hasDirtyFiles pull the latest keystrokes before
+  // reading openFiles (debounce would otherwise leave a 0–200ms hole).
+  useEffect(() => registerEditorContentFlush(() => {
+    if (contentFlushTimer.current) {
+      clearTimeout(contentFlushTimer.current);
+      contentFlushTimer.current = null;
+    }
+    updateFileContent(file.path, contentRef.current);
+  }), [file.path, updateFileContent]);
 
   // Reset history when a different file becomes active in this reused editor.
   useEffect(() => {

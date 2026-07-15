@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { flushPendingEditorContent } from './editorContentFlush';
 import { registerProjectReset } from './resetRegistry';
 import { loadProjectSession, persistProjectSession, type ProjectSessionSnapshot } from './workspaceSession';
 
@@ -489,6 +490,8 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   },
 
   saveFile: async (path) => {
+    // Pull debounced keystrokes from mounted editors before reading content.
+    flushPendingEditorContent();
     const state = get();
     const file = state.openFiles.find((f) => f.path === path);
     if (!file) return false;
@@ -511,6 +514,7 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
   },
 
   saveAllOpenFiles: async () => {
+    flushPendingEditorContent();
     const dirty = get().openFiles.filter(
       (f) => f.kind === 'text' && f.content !== f.savedContent,
     );
@@ -578,7 +582,11 @@ export const createFileTabsSlice: StateCreator<FileTabsSlice, [], [], FileTabsSl
     }));
   },
 
-  hasDirtyFiles: () => get().openFiles.some((f) => f.kind === 'text' && f.content !== f.savedContent),
+  hasDirtyFiles: () => {
+    // Include keystrokes still sitting in a mounted editor's debounce buffer.
+    flushPendingEditorContent();
+    return get().openFiles.some((f) => f.kind === 'text' && f.content !== f.savedContent);
+  },
 
   togglePinTab: (path) => {
     const state = get();

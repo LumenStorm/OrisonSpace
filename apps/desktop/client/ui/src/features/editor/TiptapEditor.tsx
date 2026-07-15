@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { htmlToMarkdown, markdownToHtml } from '../../shared/utils/markdown';
 import { useAppStore } from '../../shared/store/appStore';
+import { registerEditorContentFlush } from '../../shared/store/editorContentFlush';
 import { useI18n } from '../../shared/i18n/useI18n';
 import { ContextMenu, type ContextMenuItem } from '../../shared/components/ContextMenu';
 import { FindReplaceBar, type FindReplaceAdapter, type FindMatch, type FindReplaceMode } from './FindReplaceBar';
@@ -102,6 +103,9 @@ export function TiptapEditor({
   // Flush any pending edit when the editor unmounts (tab switch / remount) so
   // the last keystrokes within the debounce window are never dropped.
   useEffect(() => () => flushChange(), [flushChange]);
+
+  // Save / project-switch / dirty checks call flushPendingEditorContent first.
+  useEffect(() => registerEditorContentFlush(flushChange), [flushChange]);
 
   // Reactively reflect the spellcheck setting onto the editable element.
   useEffect(() => {

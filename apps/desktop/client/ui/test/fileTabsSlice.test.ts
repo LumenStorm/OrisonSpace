@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { create } from 'zustand';
+import { registerEditorContentFlush } from '../src/shared/store/editorContentFlush';
 import { createFileTabsSlice, type FileTabsSlice } from '../src/shared/store/fileTabsSlice';
 import { loadProjectSession, persistProjectSession } from '../src/shared/store/workspaceSession';
 
@@ -122,6 +123,35 @@ describe('fileTabsSlice', () => {
     await useTestStore.getState().saveAllOpenFiles();
     expect(window.orisonDesktop.writeFile).toHaveBeenCalledTimes(1);
     expect(window.orisonDesktop.writeFile).toHaveBeenCalledWith('/p/a.md', 'edited');
+  });
+
+  it('saveFile flushes pending editor content before writing', async () => {
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'hello');
+    const unregister = registerEditorContentFlush(() => {
+      useTestStore.getState().updateFileContent('/p/a.md', 'from-editor-buffer');
+    });
+    try {
+      const ok = await useTestStore.getState().saveFile('/p/a.md');
+      expect(ok).toBe(true);
+      expect(window.orisonDesktop.writeFile).toHaveBeenCalledWith('/p/a.md', 'from-editor-buffer');
+      expect(useTestStore.getState().openFiles[0].savedContent).toBe('from-editor-buffer');
+    } finally {
+      unregister();
+    }
+  });
+
+  it('hasDirtyFiles flushes pending editor content first', () => {
+    useTestStore.getState().openFile('/p/a.md', 'a.md', 'hello');
+    expect(useTestStore.getState().hasDirtyFiles()).toBe(false);
+    const unregister = registerEditorContentFlush(() => {
+      useTestStore.getState().updateFileContent('/p/a.md', 'typed-but-not-flushed');
+    });
+    try {
+      expect(useTestStore.getState().hasDirtyFiles()).toBe(true);
+      expect(useTestStore.getState().openFiles[0].content).toBe('typed-but-not-flushed');
+    } finally {
+      unregister();
+    }
   });
 
   it('saveAllOpenFiles reports every failed path', async () => {
