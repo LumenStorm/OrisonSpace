@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { allowPath, assertSafePath, assertWithinProject } from '../main/ipc/pathGuard';
+import { allowPath, assertSafePath, assertWithinProject, revokePath } from '../main/ipc/pathGuard';
 
 describe('path guard', () => {
   it('allows paths that were selected by the user for project-scoped operations', () => {
@@ -16,5 +16,12 @@ describe('path guard', () => {
     const sibling = path.resolve(projectDir, '..', 'other-project', 'frame.png');
 
     expect(() => assertWithinProject(projectDir, sibling)).toThrow('Path escapes project directory');
+  });
+
+  it('revokes explicit access after an external project is deleted', () => {
+    const projectDir = allowPath(path.resolve('C:/projects/to-delete'));
+    revokePath(projectDir);
+
+    expect(() => assertSafePath(projectDir)).toThrow('Path outside allowed scope');
   });
 });

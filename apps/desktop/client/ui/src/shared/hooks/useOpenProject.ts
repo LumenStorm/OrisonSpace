@@ -33,12 +33,11 @@ export function useOpenProject(): () => Promise<void> {
       type: 'script',
     };
 
-    if (!project.projectId) {
-      try {
-        project.projectId = await ensureProjectRegistration({ project });
-      } catch {
-        // Keep the local project open even when registration is temporarily unavailable.
-      }
+    try {
+      // 每次从目录打开都重新校验注册：可恢复回收站还原的项目，也能为复制目录分配新身份。
+      project.projectId = await ensureProjectRegistration({ project });
+    } catch {
+      // 注册暂时不可用时仍允许打开本地项目。
     }
 
     const metaBase = {

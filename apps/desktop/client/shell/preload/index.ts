@@ -11,6 +11,7 @@ import type {
   ListRemoteModelsRequest,
   ModelConfig,
   OrisonDesktopApi,
+  ProjectLifecycleResult,
   ProjectSearchResult,
   RegisteredProject,
   RemoteModel,
@@ -136,12 +137,18 @@ export const exposedDesktopApi = {
   watchProject: (projectDir: string) =>
     ipcRenderer.invoke('project:watch', projectDir) as Promise<void>,
   unwatchProject: () => ipcRenderer.invoke('project:unwatch') as Promise<void>,
-  ensureProjectRegistration: (input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }) =>
+  ensureProjectRegistration: (input: { projectId?: string; name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }) =>
     ipcRenderer.invoke('project:ensure-registration', input) as Promise<{ projectId: string; name: string; type: string }>,
   listRegisteredProjects: () =>
     ipcRenderer.invoke('project:list-registered') as Promise<RegisteredProject[]>,
   touchProjectRegistration: (input: { localFingerprint: string; coverImage?: string }) =>
     ipcRenderer.invoke('project:touch-registration', input) as Promise<void>,
+  duplicateProject: (projectPath: string, name: string) =>
+    ipcRenderer.invoke('project:duplicate', projectPath, name) as Promise<ProjectLifecycleResult>,
+  renameProject: (projectPath: string, name: string) =>
+    ipcRenderer.invoke('project:rename', projectPath, name) as Promise<ProjectLifecycleResult>,
+  deleteProject: (projectPath: string) =>
+    ipcRenderer.invoke('project:delete', projectPath) as Promise<ProjectLifecycleResult>,
   // Task persistence (SQLite)
   listTasks: (projectId: string, limit?: number) =>
     ipcRenderer.invoke('task:list', projectId, limit) as Promise<TaskRecord[]>,

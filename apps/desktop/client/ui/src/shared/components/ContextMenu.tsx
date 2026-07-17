@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 
 export type ContextMenuItem =
@@ -39,6 +39,13 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     if (rect.bottom > vh) ref.current.style.top = `${vh - rect.height - 4}px`;
   }, [x, y]);
 
+  useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const firstItem = ref.current?.querySelector<HTMLButtonElement>('button:not(:disabled)');
+    firstItem?.focus();
+    return () => previouslyFocused?.focus();
+  }, [x, y]);
+
   const handleItemClick = useCallback(
     (item: ContextMenuItem) => {
       if (item.type !== 'item' || item.disabled) return;
@@ -48,8 +55,26 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     [onClose],
   );
 
+  const handleMenuKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const buttons = Array.from(ref.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []);
+    if (buttons.length === 0) return;
+    const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowDown') nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % buttons.length;
+    if (event.key === 'ArrowUp') nextIndex = currentIndex < 0 ? buttons.length - 1 : (currentIndex - 1 + buttons.length) % buttons.length;
+    if (event.key === 'Home') nextIndex = 0;
+    if (event.key === 'End') nextIndex = buttons.length - 1;
+    if (event.key === 'Tab') {
+      onClose();
+      return;
+    }
+    if (nextIndex === null) return;
+    event.preventDefault();
+    buttons[nextIndex]?.focus();
+  }, [onClose]);
+
   return createPortal(
-    <div className="ctx-menu" ref={ref} style={{ left: x, top: y }} role="menu">
+    <div className="ctx-menu" ref={ref} style={{ left: x, top: y }} role="menu" onKeyDown={handleMenuKeyDown}>
       {items.map((item, i) => {
         if (item.type === 'separator') {
           return <div key={`sep-${i}`} className="ctx-menu-separator" role="separator" />;

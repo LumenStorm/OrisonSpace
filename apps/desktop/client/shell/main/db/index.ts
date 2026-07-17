@@ -42,6 +42,8 @@ function initSchema(db: Database.Database): void {
       logline           TEXT,
       genre             TEXT,
       writing_style     TEXT,
+      deleted_at        TEXT,
+      identity_backfill_pending INTEGER NOT NULL DEFAULT 0,
       created_at        TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -109,6 +111,16 @@ function initSchema(db: Database.Database): void {
   if (!colNames.has('project_path')) db.exec('ALTER TABLE projects ADD COLUMN project_path TEXT');
   if (!colNames.has('cover_image')) db.exec('ALTER TABLE projects ADD COLUMN cover_image TEXT');
   if (!colNames.has('last_opened_at')) db.exec('ALTER TABLE projects ADD COLUMN last_opened_at TEXT');
+  if (!colNames.has('deleted_at')) db.exec('ALTER TABLE projects ADD COLUMN deleted_at TEXT');
+  // 旧版本只在 SQLite 中保存项目编号，project.yaml 尚无 meta.project_id。
+  // 新增一次性标记后，仅允许这些迁移前已存在的活动记录补写编号；新记录默认不允许，
+  // 避免同一路径被新目录占用时错误继承旧项目身份。
+  if (!colNames.has('identity_backfill_pending')) {
+    db.transaction(() => {
+      db.exec('ALTER TABLE projects ADD COLUMN identity_backfill_pending INTEGER NOT NULL DEFAULT 0');
+      db.exec('UPDATE projects SET identity_backfill_pending = 1 WHERE deleted_at IS NULL');
+    })();
+  }
   // Backfill project_path from the fingerprint for rows registered before this column existed.
   if (!colNames.has('project_path')) {
     db.exec('UPDATE projects SET project_path = local_fingerprint WHERE project_path IS NULL');

@@ -128,6 +128,17 @@ export type RegisteredProject = {
   updatedAt: string;
 };
 
+export type ProjectLifecycleError =
+  | 'invalid-name'
+  | 'name-exists'
+  | 'not-found'
+  | 'protected-path'
+  | 'operation-failed';
+
+export type ProjectLifecycleResult =
+  | { ok: true; project?: RegisteredProject }
+  | { ok: false; error: ProjectLifecycleError };
+
 /* ── Shared types ── */
 
 export type { ModelCapability, ModelProtocol, DiscoveredModel, ApiKeyConfig, ApiKeyEntry, ModelConfig, ResolvedModel } from './contracts/model';
@@ -391,11 +402,17 @@ export type OrisonDesktopApi = {
   pathForFile(file: File): string;
   watchProject(projectDir: string): Promise<void>;
   unwatchProject(): Promise<void>;
-  ensureProjectRegistration(input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }): Promise<{ projectId: string; name: string; type: string }>;
+  ensureProjectRegistration(input: { projectId?: string; name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }): Promise<{ projectId: string; name: string; type: string }>;
   /** List every project registered on this machine (durable across version changes). */
   listRegisteredProjects(): Promise<RegisteredProject[]>;
   /** Bump last-opened time (and optionally cover image) for a registered project. */
   touchProjectRegistration(input: { localFingerprint: string; coverImage?: string }): Promise<void>;
+  /** 将项目内容复制到同级新目录，并生成独立项目身份。 */
+  duplicateProject(projectPath: string, name: string): Promise<ProjectLifecycleResult>;
+  /** 只重命名项目元数据，不移动项目目录。 */
+  renameProject(projectPath: string, name: string): Promise<ProjectLifecycleResult>;
+  /** 将项目目录移入系统回收站，并软归档注册记录。 */
+  deleteProject(projectPath: string): Promise<ProjectLifecycleResult>;
   // Task persistence (SQLite)
   listTasks(projectId: string, limit?: number): Promise<TaskRecord[]>;
   upsertTask(input: TaskUpsertInput): Promise<void>;

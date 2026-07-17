@@ -11,6 +11,8 @@ export type ProjectRecord = {
   logline?: string;
   genre?: string;
   writingStyle?: string;
+  deletedAt?: string;
+  identityBackfillPending: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,29 +36,60 @@ function rowToRecord(r: any): ProjectRecord {
     logline: r.logline ?? undefined,
     genre: r.genre ?? undefined,
     writingStyle: r.writing_style ?? undefined,
+    deletedAt: r.deleted_at ?? undefined,
+    identityBackfillPending: r.identity_backfill_pending === 1,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
 }
 
 const SELECT_COLS =
-  'project_id, project_name, project_type, local_fingerprint, project_path, cover_image, last_opened_at, logline, genre, writing_style, created_at, updated_at';
+  'project_id, project_name, project_type, local_fingerprint, project_path, cover_image, last_opened_at, logline, genre, writing_style, deleted_at, identity_backfill_pending, created_at, updated_at';
 
-export function ensureProject(input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string; logline?: string; genre?: string; writingStyle?: string }): ProjectRecord {
+type EnsureProjectInput = {
+  projectId?: string;
+  name: string;
+  type: 'novel' | 'script';
+  localFingerprint: string;
+  path?: string;
+  coverImage?: string;
+  logline?: string;
+  genre?: string;
+  writingStyle?: string;
+};
+
+export function ensureProject(input: EnsureProjectInput): ProjectRecord {
   const db = getDb();
 
-  const existing = db.prepare(
+  let existing = db.prepare(
     `SELECT ${SELECT_COLS} FROM projects WHERE local_fingerprint = ?`
   ).get(input.localFingerprint) as any;
 
   if (existing) {
-    // Keep path/cover fresh on re-registration (e.g. cover added later).
+    if (input.projectId !== existing.project_id) {
+      // 同一路径已被另一个项目占用时，为旧记录换成墓碑指纹，避免新项目继承旧身份。
+      db.prepare(
+        "UPDATE projects SET local_fingerprint = ?, deleted_at = COALESCE(deleted_at, datetime('now')), updated_at = datetime('now') WHERE project_id = ?"
+      ).run(`__archived__:${existing.project_id}:${Date.now()}`, existing.project_id);
+      existing = undefined;
+    }
+  }
+
+  if (!existing && input.projectId) {
+    const restored = db.prepare(
+      `SELECT ${SELECT_COLS} FROM projects WHERE project_id = ? AND deleted_at IS NOT NULL`
+    ).get(input.projectId) as any;
+    if (restored) existing = restored;
+  }
+
+  if (existing) {
+    // 刷新可变元数据；若用户从回收站恢复项目，则同时恢复注册状态。
     const path = input.path ?? existing.project_path ?? input.localFingerprint;
     const coverImage = input.coverImage ?? existing.cover_image ?? null;
     db.prepare(
-      "UPDATE projects SET project_path = ?, cover_image = ?, updated_at = datetime('now') WHERE local_fingerprint = ?"
-    ).run(path, coverImage, input.localFingerprint);
-    return rowToRecord({ ...existing, project_path: path, cover_image: coverImage });
+      "UPDATE projects SET project_name = ?, project_type = ?, local_fingerprint = ?, project_path = ?, cover_image = ?, deleted_at = NULL, updated_at = datetime('now') WHERE project_id = ?"
+    ).run(input.name, input.type, input.localFingerprint, path, coverImage, existing.project_id);
+    return getProject(input.localFingerprint)!;
   }
 
   const projectId = nextProjectId();
@@ -77,6 +110,7 @@ export function ensureProject(input: { name: string; type: 'novel' | 'script'; l
     logline: input.logline,
     genre: input.genre,
     writingStyle: input.writingStyle,
+    identityBackfillPending: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -87,9 +121,71 @@ export function ensureProject(input: { name: string; type: 'novel' | 'script'; l
 export function listProjects(): ProjectRecord[] {
   const db = getDb();
   const rows = db.prepare(
-    `SELECT ${SELECT_COLS} FROM projects ORDER BY COALESCE(last_opened_at, updated_at) DESC`
+    `SELECT ${SELECT_COLS} FROM projects WHERE deleted_at IS NULL ORDER BY COALESCE(last_opened_at, updated_at) DESC`
   ).all() as any[];
   return rows.map(rowToRecord);
+}
+
+/** 按基于路径的本地指纹查询单个项目。 */
+export function getProject(localFingerprint: string): ProjectRecord | undefined {
+  const db = getDb();
+  const row = db.prepare(
+    `SELECT ${SELECT_COLS} FROM projects WHERE local_fingerprint = ?`
+  ).get(localFingerprint) as any;
+  return row ? rowToRecord(row) : undefined;
+}
+
+/** 按持久项目编号查询项目，包括软归档记录。 */
+export function getProjectById(projectId: string): ProjectRecord | undefined {
+  const db = getDb();
+  const row = db.prepare(
+    `SELECT ${SELECT_COLS} FROM projects WHERE project_id = ?`
+  ).get(projectId) as any;
+  return row ? rowToRecord(row) : undefined;
+}
+
+/** 只更新项目显示名称，不改变路径身份。 */
+export function renameProject(localFingerprint: string, name: string): ProjectRecord | undefined {
+  const db = getDb();
+  db.prepare(
+    "UPDATE projects SET project_name = ?, updated_at = datetime('now') WHERE local_fingerprint = ?"
+  ).run(name, localFingerprint);
+  return getProject(localFingerprint);
+}
+
+/** 软归档已删除项目，保留身份和运行历史，便于从回收站恢复。 */
+export function archiveProject(localFingerprint: string): boolean {
+  const db = getDb();
+  const result = db.prepare(
+    "UPDATE projects SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE local_fingerprint = ? AND deleted_at IS NULL"
+  ).run(localFingerprint);
+  return result.changes > 0;
+}
+
+/** project.yaml 已成功补写持久项目编号后，关闭该记录的一次性兼容窗口。 */
+export function completeProjectIdentityBackfill(localFingerprint: string, projectId: string): boolean {
+  const db = getDb();
+  const result = db.prepare(
+    'UPDATE projects SET identity_backfill_pending = 0, updated_at = datetime(\'now\') WHERE local_fingerprint = ? AND project_id = ? AND identity_backfill_pending = 1'
+  ).run(localFingerprint, projectId);
+  return result.changes > 0;
+}
+
+/** 永久清理从未暴露给用户的注册记录，仅用于回滚失败的复制。 */
+export function purgeProject(localFingerprint: string): boolean {
+  const db = getDb();
+  const project = getProject(localFingerprint);
+  if (!project) return false;
+
+  const remove = db.transaction((projectId: string) => {
+    // tasks 的 project_id 当前没有声明 ON DELETE CASCADE。
+    db.prepare('DELETE FROM task_asset_refs WHERE task_id IN (SELECT task_id FROM tasks WHERE project_id = ?)').run(projectId);
+    db.prepare('DELETE FROM tasks WHERE project_id = ?').run(projectId);
+    db.prepare('DELETE FROM project_assets WHERE project_id = ?').run(projectId);
+    db.prepare('DELETE FROM projects WHERE project_id = ?').run(projectId);
+  });
+  remove(project.projectId);
+  return true;
 }
 
 /** Bump last-opened time (and optionally cover image) for ordering. No-op if unknown. */

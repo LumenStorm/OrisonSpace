@@ -1,10 +1,15 @@
-import { dialog, ipcMain } from 'electron';
+import { dialog, ipcMain, shell } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
-import { allowPath, getOrisonSpaceRoot } from './pathGuard';
+import path from 'node:path';
+import type { RegisteredProject } from '@orison/shared-contracts';
+import { allowPath, assertSafePath, getOrisonSpaceRoot } from './pathGuard';
 import { watchProject, unwatchProject } from '../fs/projectWatcher';
-import { ensureProject, listProjects, touchProject } from '../db/projectRepository';
+import { ensureProject, getProject, listProjects, touchProject } from '../db/projectRepository';
 import { registerProjectFileIpc } from './projectFileIpc';
 import { registerProjectMetaIpc } from './projectMetaIpc';
+import { deleteProject, duplicateProject, renameProject } from './projectLifecycle';
+import { withProjectLock } from '../fs/projectWriteLock';
+import { loadVerifiedProjectDocument } from './projectIdentity';
 
 export function registerProjectIpc() {
   const orisonSpaceRoot = getOrisonSpaceRoot();
@@ -39,27 +44,67 @@ export function registerProjectIpc() {
   registerProjectMetaIpc();
 
   /* ── Local project registration (SQLite) ── */
-  ipcMain.handle('project:ensure-registration', async (_, input: { name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }) => {
-    const record = ensureProject(input);
+  ipcMain.handle('project:ensure-registration', async (_, input: { projectId?: string; name: string; type: 'novel' | 'script'; localFingerprint: string; path?: string; coverImage?: string }) => {
+    const localFingerprint = path.resolve(input.localFingerprint);
+    const projectPath = path.resolve(input.path ?? input.localFingerprint);
+    if (localFingerprint !== projectPath) throw new Error('Project fingerprint must match project path');
+    assertSafePath(projectPath);
+    let projectId = input.projectId;
+    const existing = getProject(projectPath);
+    if (existing && !existing.deletedAt) {
+      const document = await withProjectLock(projectPath, () =>
+        loadVerifiedProjectDocument(projectPath, existing));
+      if (document) projectId = existing.projectId;
+    }
+    if (projectId) {
+      const { loadProject } = await import('@orison/desktop-local-bff');
+      const document = loadProject(projectPath);
+      if (document?.meta.project_id !== projectId) projectId = undefined;
+    }
+    const record = ensureProject({ ...input, projectId, localFingerprint, path: projectPath });
     return { projectId: record.projectId, name: record.name, type: record.type };
   });
 
   // Durable project list for ProjectsPage (survives app version changes / reinstalls).
   ipcMain.handle('project:list-registered', async () => {
-    return listProjects().map((r) => ({
-      projectId: r.projectId,
-      name: r.name,
-      type: r.type,
-      path: r.path ?? r.localFingerprint,
-      coverImage: r.coverImage,
-      lastOpenedAt: r.lastOpenedAt,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
-    }));
+    const projects: RegisteredProject[] = [];
+    for (const r of listProjects()) {
+      const projectPath = path.resolve(r.path ?? r.localFingerprint);
+      try {
+        const document = await withProjectLock(projectPath, () =>
+          loadVerifiedProjectDocument(projectPath, r));
+        if (!document) continue;
+        projects.push({
+          projectId: r.projectId,
+          name: r.name,
+          type: r.type,
+          path: allowPath(projectPath),
+          coverImage: r.coverImage,
+          lastOpenedAt: r.lastOpenedAt,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+        });
+      } catch {
+        continue;
+      }
+    }
+    return projects;
   });
 
   ipcMain.handle('project:touch-registration', async (_, input: { localFingerprint: string; coverImage?: string }) => {
     touchProject(input);
+  });
+
+  ipcMain.handle('project:duplicate', async (_, projectPath: string, name: string) => {
+    return duplicateProject(projectPath, name);
+  });
+
+  ipcMain.handle('project:rename', async (_, projectPath: string, name: string) => {
+    return renameProject(projectPath, name);
+  });
+
+  ipcMain.handle('project:delete', async (_, projectPath: string) => {
+    return deleteProject(projectPath, (target) => shell.trashItem(target));
   });
 
   /* ── Filesystem watcher (auto-refresh on external changes) ── */

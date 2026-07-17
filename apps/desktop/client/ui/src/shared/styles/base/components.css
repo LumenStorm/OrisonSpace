@@ -68,6 +68,12 @@
   background: var(--menu-item-hover);
 }
 
+.ctx-menu-item:focus-visible {
+  background: var(--menu-item-hover);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .ctx-menu-item-danger {
   color: var(--error);
 }

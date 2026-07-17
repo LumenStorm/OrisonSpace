@@ -15,7 +15,7 @@ import { registerUpdateIpc, checkForUpdateOnStartup } from './ipc/updateIpc';
 import { registerGitIpc } from './ipc/gitIpc';
 import { registerAgentIpc } from './ipc/agentIpc';
 import { fetchOrisonFile } from './orisonFileProtocol';
-import { closeDb } from './db';
+import { closeDb, getDb } from './db';
 
 /* ── CSP ── */
 
@@ -179,7 +179,17 @@ app.whenReady().then(() => {
   });
 
   installGlobalErrorHandlers();
-  getLogger().info({ platform: process.platform, version: app.getVersion() }, 'desktop main starting');
+  const logger = getLogger();
+  logger.info({ platform: process.platform, version: app.getVersion() }, 'desktop main starting');
+  // 数据库迁移必须在 IPC 和窗口创建前完成，不能依赖项目页是否触发首次查询。
+  // 这样旧表缺列会在启动阶段一次性修复，不会等到复制/删除时才暴露失败。
+  try {
+    getDb();
+    logger.info('project registry initialized');
+  } catch (err) {
+    logger.fatal({ err }, 'project registry initialization failed');
+    throw err;
+  }
   registerAllIpc();
   createWindow();
 

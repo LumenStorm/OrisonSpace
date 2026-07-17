@@ -330,6 +330,13 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+.projects-grid-card.is-context-active {
+  border-color: var(--accent);
+  background: var(--hover-overlay);
+  box-shadow: 0 0 0 1px var(--accent);
+  transform: none;
+}
+
 .projects-grid-card:active {
   transform: scale(0.98);
   box-shadow: none;
@@ -435,6 +442,17 @@
 
 .projects-cancel:hover {
   background: var(--hover-overlay);
+}
+
+.project-name-dialog {
+  width: min(420px, calc(100vw - 2rem));
+}
+
+.project-name-dialog-error {
+  margin: calc(-1 * var(--space-sm)) 0 var(--space-md);
+  color: var(--error);
+  font-size: var(--text-sm);
+  line-height: 1.45;
 }
 
 /* ── New Project Dialog: Directory Picker ── */

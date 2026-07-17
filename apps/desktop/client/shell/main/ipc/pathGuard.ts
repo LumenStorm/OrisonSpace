@@ -43,6 +43,12 @@ export function allowPath(target: string): string {
   return resolved;
 }
 
+/** 撤销已删除或回滚目录的显式授权；内置 OrisonSpace 根目录不受影响。 */
+export function revokePath(target: string): void {
+  const resolved = path.resolve(target);
+  if (resolved !== path.resolve(ORISON_SPACE_ROOT)) allowedRoots.delete(resolved);
+}
+
 export function assertSafePath(target: string): void {
   const resolved = path.resolve(target);
   const safe = [...allowedRoots].some((root) => isSafePath(root, resolved));
